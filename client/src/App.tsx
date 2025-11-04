@@ -16,8 +16,10 @@ const App = () => (
       <Sonner />
       <Switch>
         <Route path="/" component={Index} />
-        <Route path="/customer/:rest*" component={CustomerDashboard} />
-        <Route path="/operator/:rest*" component={OperatorDashboard} />
+        <Route path="/customer" component={CustomerDashboard} />
+        <Route path="/customer/:rest+" component={CustomerDashboard} />
+        <Route path="/operator" component={OperatorDashboard} />
+        <Route path="/operator/:rest+" component={OperatorDashboard} />
         <Route component={NotFound} />
       </Switch>
     </TooltipProvider>

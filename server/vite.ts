@@ -17,22 +17,34 @@ export async function setupVite(app: Express, server: any) {
 
   app.use(vite.middlewares);
 
-  app.use("*", async (req, res, next) => {
-    const url = req.originalUrl;
-
-    try {
-      let template = fs.readFileSync(
-        path.resolve(__dirname, "..", "index.html"),
-        "utf-8"
-      );
-      template = await vite.transformIndexHtml(url, template);
-
-      const { render } = await vite.ssrLoadModule("/client/src/main.tsx");
-      res.status(200).set({ "Content-Type": "text/html" }).end(template);
-    } catch (e) {
-      vite.ssrFixStacktrace(e as Error);
-      next(e);
+  app.use((req, res, next) => {
+    if (req.path.startsWith('/api')) {
+      return next();
     }
+    
+    if (req.path.includes('.') && !req.path.endsWith('.html')) {
+      return next();
+    }
+    
+    const url = req.originalUrl;
+    
+    fs.readFile(
+      path.resolve(__dirname, "..", "index.html"),
+      "utf-8",
+      async (err, template) => {
+        if (err) {
+          return next(err);
+        }
+        
+        try {
+          template = await vite.transformIndexHtml(url, template);
+          res.status(200).set({ "Content-Type": "text/html" }).end(template);
+        } catch (e) {
+          vite.ssrFixStacktrace(e as Error);
+          next(e);
+        }
+      }
+    );
   });
 }
 
@@ -47,7 +59,7 @@ export async function serveStatic(app: Express) {
 
   app.use(express.static(distPath));
 
-  app.use("*", (_req, res) => {
+  app.use((_req, res) => {
     res.sendFile(path.resolve(distPath, "index.html"));
   });
 }

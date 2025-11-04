@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useLocation, Link } from "react-router-dom";
+import { Link } from "wouter";
 import { Button } from "@/components/ui/enhanced-button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -26,14 +26,13 @@ const aiRecommendations = [
 ];
 
 export const ServiceSelection = () => {
-  const location = useLocation();
   const { toast } = useToast();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [description, setDescription] = useState("");
   const [showRecommendations, setShowRecommendations] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const selectedService = location.state?.selectedService;
+  const selectedService = null;
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
