@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/enhanced-button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { AuthDialog } from "@/components/AuthDialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, MapPin, Star, Truck, Filter, Heart } from "lucide-react";
 import type { Operator, InsertServiceRequest, Favorite } from "@shared/schema";
@@ -30,6 +32,10 @@ export const OperatorMap = () => {
   const [showAuthDialog, setShowAuthDialog] = useState(false);
   const [tileLayer, setTileLayer] = useState<'map' | 'satellite'>('map');
   const [selectedService, setSelectedService] = useState<string>("");
+  const [showRatingDialog, setShowRatingDialog] = useState(false);
+  const [ratingOperator, setRatingOperator] = useState<Operator | null>(null);
+  const [rating, setRating] = useState(5);
+  const [ratingComment, setRatingComment] = useState("");
   const [, navigate] = useLocation();
   const { toast } = useToast();
 
@@ -129,9 +135,50 @@ export const OperatorMap = () => {
     },
   });
 
+  // Submit rating mutation
+  const submitRatingMutation = useMutation({
+    mutationFn: async () => {
+      if (!ratingOperator) throw new Error("No operator selected");
+      return await apiRequest("/api/ratings", {
+        method: "POST",
+        body: JSON.stringify({
+          customerId: CUSTOMER_ID,
+          operatorId: ratingOperator.operatorId,
+          rating,
+          comment: ratingComment.trim() || undefined,
+        }),
+        headers: { "Content-Type": "application/json" },
+      });
+    },
+    onSuccess: () => {
+      toast({
+        title: "Rating Submitted",
+        description: `Thank you for rating ${ratingOperator?.name}!`,
+      });
+      setShowRatingDialog(false);
+      setRating(5);
+      setRatingComment("");
+      setRatingOperator(null);
+    },
+    onError: () => {
+      toast({
+        title: "Failed to Submit Rating",
+        description: "Could not submit your rating. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
   // Helper to check if operator is favorited
   const isFavorite = (operatorId: string) => {
     return favorites.some(f => f.operatorId === operatorId);
+  };
+
+  // Open rating dialog
+  const handleOpenRatingDialog = (operator: Operator, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setRatingOperator(operator);
+    setShowRatingDialog(true);
   };
 
   // Toggle favorite
@@ -449,21 +496,102 @@ export const OperatorMap = () => {
                     )}
                   </div>
 
-                  <Button
-                    className="w-full bg-black text-white hover:bg-gray-800 dark:bg-white dark:text-black dark:hover:bg-gray-200"
-                    size="sm"
-                    onClick={(e) => handleRequestService(operator, e)}
-                    disabled={!operator.isOnline || createServiceRequestMutation.isPending}
-                    data-testid={`button-request-${operator.operatorId}`}
-                  >
-                    {createServiceRequestMutation.isPending ? "Sending..." : "Request Service"}
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button
+                      className="flex-1 bg-black text-white hover:bg-gray-800 dark:bg-white dark:text-black dark:hover:bg-gray-200"
+                      size="sm"
+                      onClick={(e) => handleRequestService(operator, e)}
+                      disabled={!operator.isOnline || createServiceRequestMutation.isPending}
+                      data-testid={`button-request-${operator.operatorId}`}
+                    >
+                      {createServiceRequestMutation.isPending ? "Sending..." : "Request Service"}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={(e) => handleOpenRatingDialog(operator, e)}
+                      className="hover:bg-gray-100 dark:hover:bg-gray-800"
+                      data-testid={`button-rate-${operator.operatorId}`}
+                    >
+                      <Star className="w-4 h-4" />
+                    </Button>
+                  </div>
                 </Card>
               ))
             )}
           </div>
         </div>
       </div>
+
+      {/* Rating Dialog */}
+      <Dialog open={showRatingDialog} onOpenChange={setShowRatingDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Rate {ratingOperator?.name}</DialogTitle>
+            <DialogDescription>
+              Share your experience with this operator
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            {/* Star Rating */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-black dark:text-white">Rating</label>
+              <div className="flex gap-2">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <button
+                    key={star}
+                    type="button"
+                    onClick={() => setRating(star)}
+                    className="transition-transform hover:scale-110"
+                    data-testid={`button-star-${star}`}
+                  >
+                    <Star
+                      className={`w-8 h-8 ${
+                        star <= rating
+                          ? 'fill-yellow-400 text-yellow-400'
+                          : 'text-gray-300 dark:text-gray-600'
+                      }`}
+                    />
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Comment */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-black dark:text-white">
+                Comment (optional)
+              </label>
+              <Textarea
+                placeholder="Tell us about your experience..."
+                value={ratingComment}
+                onChange={(e) => setRatingComment(e.target.value)}
+                rows={4}
+                data-testid="textarea-rating-comment"
+              />
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setShowRatingDialog(false)}
+              data-testid="button-cancel-rating"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={() => submitRatingMutation.mutate()}
+              disabled={submitRatingMutation.isPending}
+              className="bg-black text-white hover:bg-gray-800 dark:bg-white dark:text-black"
+              data-testid="button-submit-rating"
+            >
+              {submitRatingMutation.isPending ? "Submitting..." : "Submit Rating"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <AuthDialog open={showAuthDialog} onOpenChange={setShowAuthDialog} />
     </div>
