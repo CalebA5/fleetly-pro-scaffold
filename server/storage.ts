@@ -2,7 +2,11 @@ import type {
   Job, InsertJob, UpdateJob, 
   Operator, InsertOperator,
   ServiceRequest, InsertServiceRequest,
-  Customer, InsertCustomer
+  Customer, InsertCustomer,
+  Rating, InsertRating,
+  Favorite, InsertFavorite,
+  OperatorLocation, InsertOperatorLocation,
+  CustomerServiceHistory, InsertCustomerServiceHistory
 } from "@shared/schema";
 
 export interface IStorage {
@@ -22,6 +26,25 @@ export interface IStorage {
   getCustomer(customerId: string): Promise<Customer | undefined>;
   createCustomer(customer: InsertCustomer): Promise<Customer>;
   updateCustomer(customerId: string, customer: Partial<InsertCustomer>): Promise<Customer | undefined>;
+  
+  // Ratings
+  getRatings(operatorId?: string): Promise<Rating[]>;
+  createRating(rating: InsertRating): Promise<Rating>;
+  
+  // Favorites
+  getFavorites(customerId: string): Promise<Favorite[]>;
+  addFavorite(customerId: string, operatorId: string): Promise<Favorite>;
+  removeFavorite(customerId: string, operatorId: string): Promise<boolean>;
+  isFavorite(customerId: string, operatorId: string): Promise<boolean>;
+  
+  // Operator Locations (real-time tracking)
+  getOperatorLocation(operatorId: string): Promise<OperatorLocation | undefined>;
+  updateOperatorLocation(location: InsertOperatorLocation): Promise<OperatorLocation>;
+  getOperatorLocationHistory(operatorId: string, limit?: number): Promise<OperatorLocation[]>;
+  
+  // Customer Service History (for location-based grouping)
+  getCustomerServiceHistory(operatorId: string, service: string, lat: number, lon: number, radiusMiles?: number): Promise<CustomerServiceHistory[]>;
+  addServiceHistory(history: InsertCustomerServiceHistory): Promise<CustomerServiceHistory>;
 }
 
 export class MemStorage implements IStorage {
@@ -29,10 +52,18 @@ export class MemStorage implements IStorage {
   private operators: Operator[] = [];
   private serviceRequests: ServiceRequest[] = [];
   private customers: Customer[] = [];
+  private ratings: Rating[] = [];
+  private favorites: Favorite[] = [];
+  private operatorLocations: OperatorLocation[] = [];
+  private customerServiceHistory: CustomerServiceHistory[] = [];
   private nextJobId = 1;
   private nextOperatorId = 1;
   private nextServiceRequestId = 1;
   private nextCustomerId = 1;
+  private nextRatingId = 1;
+  private nextFavoriteId = 1;
+  private nextLocationId = 1;
+  private nextHistoryId = 1;
 
   constructor() {
     this.seedSampleData();
@@ -379,5 +410,138 @@ export class MemStorage implements IStorage {
       ...customerUpdate,
     };
     return this.customers[index];
+  }
+
+  // Ratings implementation
+  async getRatings(operatorId?: string): Promise<Rating[]> {
+    if (operatorId) {
+      return this.ratings.filter((r) => r.operatorId === operatorId);
+    }
+    return this.ratings;
+  }
+
+  async createRating(rating: InsertRating): Promise<Rating> {
+    const newRating: Rating = {
+      id: this.nextRatingId++,
+      ratingId: rating.ratingId,
+      customerId: rating.customerId,
+      operatorId: rating.operatorId,
+      jobId: rating.jobId || null,
+      rating: rating.rating,
+      review: rating.review || null,
+      createdAt: new Date(),
+    };
+    this.ratings.push(newRating);
+    return newRating;
+  }
+
+  // Favorites implementation
+  async getFavorites(customerId: string): Promise<Favorite[]> {
+    return this.favorites.filter((f) => f.customerId === customerId);
+  }
+
+  async addFavorite(customerId: string, operatorId: string): Promise<Favorite> {
+    const newFavorite: Favorite = {
+      id: this.nextFavoriteId++,
+      customerId,
+      operatorId,
+      createdAt: new Date(),
+    };
+    this.favorites.push(newFavorite);
+    return newFavorite;
+  }
+
+  async removeFavorite(customerId: string, operatorId: string): Promise<boolean> {
+    const index = this.favorites.findIndex(
+      (f) => f.customerId === customerId && f.operatorId === operatorId
+    );
+    if (index === -1) return false;
+    this.favorites.splice(index, 1);
+    return true;
+  }
+
+  async isFavorite(customerId: string, operatorId: string): Promise<boolean> {
+    return this.favorites.some(
+      (f) => f.customerId === customerId && f.operatorId === operatorId
+    );
+  }
+
+  // Operator Locations implementation
+  async getOperatorLocation(operatorId: string): Promise<OperatorLocation | undefined> {
+    const locations = this.operatorLocations
+      .filter((l) => l.operatorId === operatorId)
+      .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+    return locations[0];
+  }
+
+  async updateOperatorLocation(location: InsertOperatorLocation): Promise<OperatorLocation> {
+    const newLocation: OperatorLocation = {
+      id: this.nextLocationId++,
+      operatorId: location.operatorId,
+      jobId: location.jobId || null,
+      latitude: location.latitude,
+      longitude: location.longitude,
+      heading: location.heading || null,
+      speed: location.speed || null,
+      timestamp: new Date(),
+    };
+    this.operatorLocations.push(newLocation);
+    return newLocation;
+  }
+
+  async getOperatorLocationHistory(operatorId: string, limit: number = 10): Promise<OperatorLocation[]> {
+    return this.operatorLocations
+      .filter((l) => l.operatorId === operatorId)
+      .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
+      .slice(0, limit);
+  }
+
+  // Customer Service History implementation
+  async getCustomerServiceHistory(
+    operatorId: string,
+    service: string,
+    lat: number,
+    lon: number,
+    radiusMiles: number = 5
+  ): Promise<CustomerServiceHistory[]> {
+    return this.customerServiceHistory.filter((h) => {
+      if (h.operatorId !== operatorId || h.service !== service) return false;
+      
+      // Calculate distance if coordinates are available
+      if (h.latitude && h.longitude) {
+        const distance = this.calculateDistance(lat, lon, parseFloat(h.latitude), parseFloat(h.longitude));
+        return distance <= radiusMiles;
+      }
+      return true;
+    });
+  }
+
+  async addServiceHistory(history: InsertCustomerServiceHistory): Promise<CustomerServiceHistory> {
+    const newHistory: CustomerServiceHistory = {
+      id: this.nextHistoryId++,
+      customerId: history.customerId,
+      operatorId: history.operatorId,
+      service: history.service,
+      location: history.location,
+      latitude: history.latitude || null,
+      longitude: history.longitude || null,
+      completedAt: new Date(),
+    };
+    this.customerServiceHistory.push(newHistory);
+    return newHistory;
+  }
+
+  private calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
+    const R = 3959; // Earth's radius in miles
+    const dLat = ((lat2 - lat1) * Math.PI) / 180;
+    const dLon = ((lon2 - lon1) * Math.PI) / 180;
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos((lat1 * Math.PI) / 180) *
+        Math.cos((lat2 * Math.PI) / 180) *
+        Math.sin(dLon / 2) *
+        Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
   }
 }
