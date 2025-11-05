@@ -6,9 +6,9 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { AuthDialog } from "@/components/AuthDialog";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, MapPin, Star, Truck, Filter } from "lucide-react";
-import type { Operator, InsertServiceRequest } from "@shared/schema";
-import { apiRequest } from "@/lib/queryClient";
+import { ArrowLeft, MapPin, Star, Truck, Filter, Heart } from "lucide-react";
+import type { Operator, InsertServiceRequest, Favorite } from "@shared/schema";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
@@ -35,6 +35,11 @@ export const OperatorMap = () => {
 
   const { data: allOperators, isLoading } = useQuery<Operator[]>({
     queryKey: ['/api/operators'],
+  });
+
+  // Fetch customer's favorites
+  const { data: favorites = [] } = useQuery<Favorite[]>({
+    queryKey: ['/api/favorites', CUSTOMER_ID],
   });
 
   const createServiceRequestMutation = useMutation({
@@ -75,6 +80,69 @@ export const OperatorMap = () => {
       });
     },
   });
+
+  // Add favorite mutation
+  const addFavoriteMutation = useMutation({
+    mutationFn: async (operatorId: string) => {
+      return await apiRequest("/api/favorites", {
+        method: "POST",
+        body: JSON.stringify({ customerId: CUSTOMER_ID, operatorId }),
+        headers: { "Content-Type": "application/json" },
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/favorites', CUSTOMER_ID] });
+      toast({
+        title: "Added to Favorites",
+        description: "Operator added to your favorites",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Failed to Add Favorite",
+        description: "Could not add operator to favorites. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Remove favorite mutation
+  const removeFavoriteMutation = useMutation({
+    mutationFn: async (operatorId: string) => {
+      return await apiRequest(`/api/favorites/${CUSTOMER_ID}/${operatorId}`, {
+        method: "DELETE",
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/favorites', CUSTOMER_ID] });
+      toast({
+        title: "Removed from Favorites",
+        description: "Operator removed from your favorites",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Failed to Remove Favorite",
+        description: "Could not remove operator from favorites. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Helper to check if operator is favorited
+  const isFavorite = (operatorId: string) => {
+    return favorites.some(f => f.operatorId === operatorId);
+  };
+
+  // Toggle favorite
+  const toggleFavorite = (operatorId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (isFavorite(operatorId)) {
+      removeFavoriteMutation.mutate(operatorId);
+    } else {
+      addFavoriteMutation.mutate(operatorId);
+    }
+  };
 
   const operators = selectedService 
     ? allOperators?.filter(op => (op.services as string[]).includes(selectedService))
@@ -246,6 +314,55 @@ export const OperatorMap = () => {
         {/* Sidebar */}
         <div className="w-96 border-l border-gray-200 dark:border-gray-800 overflow-y-auto bg-gray-50 dark:bg-gray-800">
           <div className="p-4 space-y-4">
+            {/* Favorite Operators Section */}
+            {favorites.length > 0 && allOperators && (
+              <>
+                {(() => {
+                  const favoriteOperators = allOperators.filter(op => 
+                    isFavorite(op.operatorId) && op.isOnline
+                  );
+                  
+                  return favoriteOperators.length > 0 ? (
+                    <div className="mb-6">
+                      <div className="flex items-center gap-2 mb-3">
+                        <Heart className="w-5 h-5 fill-red-500 text-red-500 icon-warm-glow" />
+                        <h3 className="font-bold text-black dark:text-white">Your Favorites Online</h3>
+                      </div>
+                      <div className="space-y-2">
+                        {favoriteOperators.map(operator => (
+                          <div
+                            key={operator.operatorId}
+                            className="p-3 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 shadow-warm cursor-pointer hover:shadow-warm-glow transition-all"
+                            onClick={() => {
+                              setSelectedOperator(operator);
+                              const lat = parseFloat(operator.latitude as string);
+                              const lon = parseFloat(operator.longitude as string);
+                              mapRef.current?.setView([lat, lon], 14);
+                            }}
+                            data-testid={`favorite-${operator.operatorId}`}
+                          >
+                            <div className="flex items-center justify-between">
+                              <div className="flex-1">
+                                <p className="font-semibold text-black dark:text-white text-sm">{operator.name}</p>
+                                <div className="flex items-center gap-1 text-xs text-gray-600 dark:text-gray-400">
+                                  <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
+                                  <span>{operator.rating}</span>
+                                  <span className="mx-1">•</span>
+                                  <span>${operator.hourlyRate}/hr</span>
+                                </div>
+                              </div>
+                              <Badge className="bg-green-500 dark:bg-green-600 text-white text-xs">Online</Badge>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="border-b border-gray-300 dark:border-gray-600 my-4"></div>
+                    </div>
+                  ) : null;
+                })()}
+              </>
+            )}
+            
             {operators?.length === 0 ? (
               <div className="text-center py-12">
                 <p className="text-gray-600 dark:text-gray-400">No operators found for this service</p>
@@ -278,7 +395,22 @@ export const OperatorMap = () => {
                 >
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex-1">
-                      <h3 className="font-bold text-black dark:text-white mb-1">{operator.name}</h3>
+                      <div className="flex items-center gap-2 mb-1">
+                        <h3 className="font-bold text-black dark:text-white">{operator.name}</h3>
+                        <button
+                          onClick={(e) => toggleFavorite(operator.operatorId, e)}
+                          className="hover:scale-110 transition-transform"
+                          data-testid={`button-favorite-${operator.operatorId}`}
+                        >
+                          <Heart 
+                            className={`w-5 h-5 transition-colors ${
+                              isFavorite(operator.operatorId) 
+                                ? 'fill-red-500 text-red-500 icon-warm-glow' 
+                                : 'text-gray-400 hover:text-red-500'
+                            }`}
+                          />
+                        </button>
+                      </div>
                       <div className="flex items-center gap-2 text-sm">
                         <div className="flex items-center gap-1">
                           <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
