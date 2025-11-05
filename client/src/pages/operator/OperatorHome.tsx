@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/enhanced-button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
+import { Header } from "@/components/Header";
+import { AuthDialog } from "@/components/AuthDialog";
 import { 
   Truck, 
   MapPin, 
@@ -100,6 +102,8 @@ export const OperatorHome = () => {
   const [isOnline, setIsOnline] = useState(mockOperatorData.isOnline);
   const [showNearbyPrompt, setShowNearbyPrompt] = useState(true);
   const [timeRemaining, setTimeRemaining] = useState(240); // 4 minutes in seconds
+  const [showAuthDialog, setShowAuthDialog] = useState(false);
+  const [authTab, setAuthTab] = useState<"signin" | "signup">("signin");
 
   // Countdown timer for nearby opportunities prompt
   useEffect(() => {
@@ -146,18 +150,25 @@ export const OperatorHome = () => {
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900">
       {/* Header */}
-      <header className="border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <Link href="/operator/">
-              <div className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity" data-testid="link-home-logo">
-                <Truck className="w-8 h-8 text-black dark:text-white icon-warm-glow" />
-                <div>
-                  <h1 className="text-xl font-bold text-black dark:text-white">Operator Dashboard</h1>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">Welcome back, {mockOperatorData.name}</p>
-                </div>
-              </div>
-            </Link>
+      <Header 
+        onSignIn={() => {
+          setAuthTab("signin");
+          setShowAuthDialog(true);
+        }}
+        onSignUp={() => {
+          setAuthTab("signup");
+          setShowAuthDialog(true);
+        }}
+      />
+      
+      {/* Dashboard Header */}
+      <div className="border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <div className="flex justify-between items-center">
+            <div>
+              <h1 className="text-2xl font-bold text-black dark:text-white">Operator Dashboard</h1>
+              <p className="text-sm text-gray-600 dark:text-gray-400">Welcome back, {mockOperatorData.name}</p>
+            </div>
             
             <div className="flex items-center space-x-4">
               <div className="flex items-center space-x-3 bg-gray-50 dark:bg-gray-800 px-4 py-2 rounded-lg">
@@ -176,7 +187,7 @@ export const OperatorHome = () => {
             </div>
           </div>
         </div>
-      </header>
+      </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Nearby Opportunities Prompt */}
@@ -463,6 +474,12 @@ export const OperatorHome = () => {
           </div>
         </div>
       </div>
+      
+      <AuthDialog 
+        open={showAuthDialog} 
+        onOpenChange={setShowAuthDialog} 
+        defaultTab={authTab}
+      />
     </div>
   );
 };

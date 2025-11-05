@@ -65,7 +65,7 @@ export const ProfileDropdown = ({ onDriveAndEarn }: ProfileDropdownProps) => {
           <Truck className="mr-2 h-4 w-4" />
           <span>Drive & Earn</span>
         </DropdownMenuItem>
-        <Link href="/customer/service-request">
+        <Link href="/customer/operator-map">
           <DropdownMenuItem data-testid="menu-request-services">
             <FileText className="mr-2 h-4 w-4" />
             <span>Request Services</span>

@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/enhanced-button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { AuthDialog } from "@/components/AuthDialog";
+import { Header } from "@/components/Header";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
@@ -73,8 +74,9 @@ export const OperatorMap = () => {
   const mapRef = useRef<L.Map | null>(null);
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const markersRef = useRef<Map<string, L.Marker>>(new Map());
-  const [selectedOperator, setSelectedOperator] = useState<Operator | null>(null);
   const [showAuthDialog, setShowAuthDialog] = useState(false);
+  const [authTab, setAuthTab] = useState<"signin" | "signup">("signin");
+  const [selectedOperator, setSelectedOperator] = useState<Operator | null>(null);
   const [tileLayer, setTileLayer] = useState<'map' | 'satellite'>('map');
   const [selectedService, setSelectedService] = useState<string>("");
   const [showRatingDialog, setShowRatingDialog] = useState(false);
@@ -427,44 +429,46 @@ export const OperatorMap = () => {
   return (
     <div className="h-screen flex flex-col bg-white dark:bg-gray-900">
       {/* Header */}
-      <header className="border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center gap-4">
-              <Link href="/customer">
-                <Button variant="ghost" size="sm" data-testid="button-back">
-                  <ArrowLeft className="w-4 h-4 mr-2" />
-                  Back
-                </Button>
-              </Link>
-              <div>
-                <h1 className="text-xl font-bold text-black dark:text-white">Find Operators</h1>
-                <p className="text-sm text-gray-600 dark:text-gray-400">{operators?.length || 0} operators available</p>
-              </div>
-            </div>
-            <div className="flex gap-2">
-              <Button
-                variant={tileLayer === 'map' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setTileLayer('map')}
-                className={tileLayer === 'map' ? 'bg-black text-white hover:bg-gray-800 dark:bg-white dark:text-black' : ''}
-                data-testid="button-map-view"
-              >
-                Map
-              </Button>
-              <Button
-                variant={tileLayer === 'satellite' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setTileLayer('satellite')}
-                className={tileLayer === 'satellite' ? 'bg-black text-white hover:bg-gray-800 dark:bg-white dark:text-black' : ''}
-                data-testid="button-satellite-view"
-              >
-                Satellite
-              </Button>
-            </div>
+      <Header 
+        onSignIn={() => {
+          setAuthTab("signin");
+          setShowAuthDialog(true);
+        }}
+        onSignUp={() => {
+          setAuthTab("signup");
+          setShowAuthDialog(true);
+        }}
+      />
+      
+      {/* Page Title & Controls */}
+      <div className="border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 px-4 sm:px-6 lg:px-8 py-3">
+        <div className="max-w-7xl mx-auto flex justify-between items-center">
+          <div>
+            <h1 className="text-xl font-bold text-black dark:text-white">Find Operators</h1>
+            <p className="text-sm text-gray-600 dark:text-gray-400">{operators?.length || 0} operators available</p>
+          </div>
+          <div className="flex gap-2">
+            <Button
+              variant={tileLayer === 'map' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setTileLayer('map')}
+              className={tileLayer === 'map' ? 'bg-black text-white hover:bg-gray-800 dark:bg-white dark:text-black' : ''}
+              data-testid="button-map-view"
+            >
+              Map
+            </Button>
+            <Button
+              variant={tileLayer === 'satellite' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setTileLayer('satellite')}
+              className={tileLayer === 'satellite' ? 'bg-black text-white hover:bg-gray-800 dark:bg-white dark:text-black' : ''}
+              data-testid="button-satellite-view"
+            >
+              Satellite
+            </Button>
           </div>
         </div>
-      </header>
+      </div>
 
       {/* Service Filters */}
       <div className="border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 px-4 sm:px-6 lg:px-8 py-3">
