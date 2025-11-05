@@ -2,7 +2,7 @@ import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { ProfileDropdown } from "@/components/ProfileDropdown";
 import { useAuth } from "@/contexts/AuthContext";
-import { Truck } from "lucide-react";
+import { Truck, Sparkles } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface HeaderProps {
@@ -50,6 +50,16 @@ export const Header = ({ onSignIn, onSignUp, onDriveAndEarn }: HeaderProps) => {
             </div>
           </Link>
           <nav className="flex items-center space-x-4">
+            <Link href="/customer/ai-assist">
+              <Button 
+                variant="ghost" 
+                className="text-purple-700 dark:text-purple-400 hover:text-purple-900 dark:hover:text-purple-300" 
+                data-testid="link-ai-assist"
+              >
+                <Sparkles className="w-4 h-4 mr-2" />
+                AI Assist
+              </Button>
+            </Link>
             <Link href="/customer/operator-map">
               <Button variant="ghost" className="text-gray-700 dark:text-gray-300" data-testid="link-browse-operators">
                 Browse Operators

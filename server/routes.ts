@@ -237,5 +237,63 @@ export function registerRoutes(storage: IStorage) {
     res.status(201).json(history);
   });
 
+  // AI Assist route
+  router.post("/api/ai-assist/analyze", async (req, res) => {
+    try {
+      const { description, imageCount } = req.body;
+
+      if (!description || !description.trim()) {
+        return res.status(400).json({ message: "Job description is required" });
+      }
+
+      // In production, this would use OpenAI Vision API to analyze description + images
+
+      // Mock AI analysis for now - in production this would call OpenAI Vision API
+      const recommendations = [
+        {
+          serviceType: "Snow Plowing",
+          confidence: 95,
+          estimatedCost: "$85-120",
+          reasoning: "Based on your description of a 3-foot snowdrift blocking a 15-foot driveway, snow plowing with a V-plow attachment is the most efficient solution. This job typically takes 30-45 minutes.",
+          urgency: "high",
+          nearbyOperators: [
+            {
+              name: "Mike's Snow Service",
+              distance: "0.8 miles",
+              rating: 4.9,
+              price: "$95/hr"
+            },
+            {
+              name: "Winter Warriors",
+              distance: "1.2 miles",
+              rating: 4.8,
+              price: "$90/hr"
+            }
+          ]
+        },
+        {
+          serviceType: "Ice Removal",
+          confidence: 75,
+          estimatedCost: "$60-85",
+          reasoning: "If ice has formed beneath the snow, ice removal services with de-icing equipment may be needed as a follow-up to prevent slipping hazards.",
+          urgency: "medium",
+          nearbyOperators: [
+            {
+              name: "QuickClear Services",
+              distance: "1.5 miles",
+              rating: 4.7,
+              price: "$75/hr"
+            }
+          ]
+        }
+      ];
+
+      res.json({ recommendations });
+    } catch (error) {
+      console.error("AI analysis error:", error);
+      res.status(500).json({ message: "Failed to analyze job" });
+    }
+  });
+
   return router;
 }

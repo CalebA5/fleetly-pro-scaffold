@@ -71,10 +71,12 @@ export const ProfileDropdown = ({ onDriveAndEarn }: ProfileDropdownProps) => {
             <span>Request Services</span>
           </DropdownMenuItem>
         </Link>
-        <DropdownMenuItem data-testid="menu-help">
-          <HelpCircle className="mr-2 h-4 w-4" />
-          <span>Help & Support</span>
-        </DropdownMenuItem>
+        <Link href="/help">
+          <DropdownMenuItem data-testid="menu-help">
+            <HelpCircle className="mr-2 h-4 w-4" />
+            <span>Help & Support</span>
+          </DropdownMenuItem>
+        </Link>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={signOut} data-testid="menu-sign-out">
           <LogOut className="mr-2 h-4 w-4" />
