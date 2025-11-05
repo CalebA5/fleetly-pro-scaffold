@@ -79,28 +79,83 @@ export const serviceRequests = pgTable("service_requests", {
   requestId: text("request_id").notNull().unique(),
   customerId: text("customer_id").notNull(),
   customerName: text("customer_name").notNull(),
-  operatorId: text("operator_id").notNull(),
-  operatorName: text("operator_name").notNull(),
-  service: text("service").notNull(),
+  operatorId: text("operator_id"),
+  operatorName: text("operator_name"),
+  serviceType: text("service_type").notNull(),
+  isEmergency: integer("is_emergency").notNull().default(0),
+  description: text("description").notNull(),
   status: text("status").notNull().default("pending"),
   location: text("location").notNull(),
-  notes: text("notes"),
+  preferredDate: text("preferred_date"),
+  preferredTime: text("preferred_time"),
+  timeFlexibility: text("time_flexibility"),
+  budgetRange: text("budget_range"),
+  imageCount: integer("image_count").notNull().default(0),
+  details: jsonb("details"),
   estimatedCost: decimal("estimated_cost", { precision: 10, scale: 2 }),
   requestedAt: timestamp("requested_at").defaultNow().notNull(),
   respondedAt: timestamp("responded_at"),
 });
 
-export const insertServiceRequestSchema = z.object({
+const baseServiceRequestSchema = z.object({
   requestId: z.string(),
   customerId: z.string(),
   customerName: z.string(),
-  operatorId: z.string(),
-  operatorName: z.string(),
-  service: z.string(),
+  operatorId: z.string().optional(),
+  operatorName: z.string().optional(),
+  serviceType: z.string(),
+  isEmergency: z.boolean().optional(),
+  description: z.string(),
   status: z.string().optional(),
   location: z.string(),
-  notes: z.string().optional(),
+  preferredDate: z.string().optional(),
+  preferredTime: z.string().optional(),
+  timeFlexibility: z.string().optional(),
+  budgetRange: z.string().optional(),
+  imageCount: z.number().optional(),
   estimatedCost: z.string().optional(),
+});
+
+const snowDetailsSchema = z.object({
+  areaSize: z.string().optional(),
+  surfaceType: z.string().optional(),
+  snowDepth: z.string().optional(),
+  hasObstacles: z.boolean().optional(),
+  needsSalting: z.boolean().optional(),
+});
+
+const towingDetailsSchema = z.object({
+  vehicleType: z.string().optional(),
+  vehicleCondition: z.string().optional(),
+  vehicleMake: z.string().optional(),
+  vehicleModel: z.string().optional(),
+  destination: z.string().optional(),
+  reason: z.string().optional(),
+});
+
+const haulingDetailsSchema = z.object({
+  itemType: z.string().optional(),
+  weight: z.string().optional(),
+  dimensions: z.string().optional(),
+  needsLoadingHelp: z.boolean().optional(),
+  disposalLocation: z.string().optional(),
+  numberOfItems: z.string().optional(),
+});
+
+const courierDetailsSchema = z.object({
+  packageSize: z.string().optional(),
+  packageWeight: z.string().optional(),
+  isFragile: z.boolean().optional(),
+  deliveryInstructions: z.string().optional(),
+  requiresSignature: z.boolean().optional(),
+  destination: z.string().optional(),
+});
+
+export const insertServiceRequestSchema = baseServiceRequestSchema.extend({
+  snowDetails: snowDetailsSchema.optional(),
+  towingDetails: towingDetailsSchema.optional(),
+  haulingDetails: haulingDetailsSchema.optional(),
+  courierDetails: courierDetailsSchema.optional(),
 });
 
 export type InsertServiceRequest = z.infer<typeof insertServiceRequestSchema>;

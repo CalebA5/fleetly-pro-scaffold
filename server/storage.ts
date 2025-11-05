@@ -347,17 +347,37 @@ export class MemStorage implements IStorage {
 
   async createServiceRequest(request: InsertServiceRequest): Promise<ServiceRequest> {
     const now = new Date();
+    
+    // Build details object from service-specific fields
+    let details: any = null;
+    if (request.snowDetails) {
+      details = { type: 'snow', payload: request.snowDetails };
+    } else if (request.towingDetails) {
+      details = { type: 'towing', payload: request.towingDetails };
+    } else if (request.haulingDetails) {
+      details = { type: 'hauling', payload: request.haulingDetails };
+    } else if (request.courierDetails) {
+      details = { type: 'courier', payload: request.courierDetails };
+    }
+    
     const newRequest: ServiceRequest = {
       id: this.nextServiceRequestId++,
       requestId: request.requestId,
       customerId: request.customerId,
       customerName: request.customerName,
-      operatorId: request.operatorId,
-      operatorName: request.operatorName,
-      service: request.service,
+      operatorId: request.operatorId || null,
+      operatorName: request.operatorName || null,
+      serviceType: request.serviceType,
+      isEmergency: request.isEmergency ? 1 : 0,
+      description: request.description,
       status: request.status || "pending",
       location: request.location,
-      notes: request.notes || null,
+      preferredDate: request.preferredDate || null,
+      preferredTime: request.preferredTime || null,
+      timeFlexibility: request.timeFlexibility || null,
+      budgetRange: request.budgetRange || null,
+      imageCount: request.imageCount || 0,
+      details,
       estimatedCost: request.estimatedCost || null,
       requestedAt: now,
       respondedAt: null,

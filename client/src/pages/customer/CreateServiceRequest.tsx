@@ -937,8 +937,8 @@ export const CreateServiceRequest = () => {
       </div>
 
       <AuthDialog
-        isOpen={showAuthDialog}
-        onClose={() => setShowAuthDialog(false)}
+        open={showAuthDialog}
+        onOpenChange={setShowAuthDialog}
         defaultTab={authTab}
       />
     </div>
