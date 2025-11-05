@@ -73,3 +73,51 @@ export const insertOperatorSchema = createInsertSchema(operators).omit({
 
 export type InsertOperator = z.infer<typeof insertOperatorSchema>;
 export type Operator = typeof operators.$inferSelect;
+
+export const serviceRequests = pgTable("service_requests", {
+  id: serial("id").primaryKey(),
+  requestId: text("request_id").notNull().unique(),
+  customerId: text("customer_id").notNull(),
+  customerName: text("customer_name").notNull(),
+  operatorId: text("operator_id").notNull(),
+  operatorName: text("operator_name").notNull(),
+  service: text("service").notNull(),
+  status: text("status").notNull().default("pending"),
+  location: text("location").notNull(),
+  notes: text("notes"),
+  estimatedCost: decimal("estimated_cost", { precision: 10, scale: 2 }),
+  requestedAt: timestamp("requested_at").defaultNow().notNull(),
+  respondedAt: timestamp("responded_at"),
+});
+
+export const insertServiceRequestSchema = createInsertSchema(serviceRequests).omit({
+  id: true,
+  requestedAt: true,
+  respondedAt: true,
+});
+
+export type InsertServiceRequest = z.infer<typeof insertServiceRequestSchema>;
+export type ServiceRequest = typeof serviceRequests.$inferSelect;
+export type ServiceRequestStatus = "pending" | "confirmed" | "declined" | "cancelled";
+
+export const customers = pgTable("customers", {
+  id: serial("id").primaryKey(),
+  customerId: text("customer_id").notNull().unique(),
+  name: text("name").notNull(),
+  email: text("email").notNull(),
+  phone: text("phone").notNull(),
+  address: text("address"),
+  city: text("city"),
+  state: text("state"),
+  zipCode: text("zip_code"),
+  photo: text("photo"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertCustomerSchema = createInsertSchema(customers).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertCustomer = z.infer<typeof insertCustomerSchema>;
+export type Customer = typeof customers.$inferSelect;

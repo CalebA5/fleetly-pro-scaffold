@@ -1,4 +1,9 @@
-import type { Job, InsertJob, UpdateJob, Operator, InsertOperator } from "@shared/schema";
+import type { 
+  Job, InsertJob, UpdateJob, 
+  Operator, InsertOperator,
+  ServiceRequest, InsertServiceRequest,
+  Customer, InsertCustomer
+} from "@shared/schema";
 
 export interface IStorage {
   getJobs(customerId?: string): Promise<Job[]>;
@@ -9,13 +14,25 @@ export interface IStorage {
   getOperators(service?: string): Promise<Operator[]>;
   getOperator(id: number): Promise<Operator | undefined>;
   getNearbyOperators(lat: number, lon: number, radiusMiles?: number): Promise<Operator[]>;
+  getServiceRequests(customerId?: string): Promise<ServiceRequest[]>;
+  getServiceRequest(id: number): Promise<ServiceRequest | undefined>;
+  getServiceRequestByRequestId(requestId: string): Promise<ServiceRequest | undefined>;
+  createServiceRequest(request: InsertServiceRequest): Promise<ServiceRequest>;
+  updateServiceRequest(id: number, status: string, respondedAt?: Date): Promise<ServiceRequest | undefined>;
+  getCustomer(customerId: string): Promise<Customer | undefined>;
+  createCustomer(customer: InsertCustomer): Promise<Customer>;
+  updateCustomer(customerId: string, customer: Partial<InsertCustomer>): Promise<Customer | undefined>;
 }
 
 export class MemStorage implements IStorage {
   private jobs: Job[] = [];
   private operators: Operator[] = [];
+  private serviceRequests: ServiceRequest[] = [];
+  private customers: Customer[] = [];
   private nextJobId = 1;
   private nextOperatorId = 1;
+  private nextServiceRequestId = 1;
+  private nextCustomerId = 1;
 
   constructor() {
     this.seedSampleData();
@@ -24,6 +41,7 @@ export class MemStorage implements IStorage {
   private seedSampleData() {
     this.seedOperators();
     this.seedJobs();
+    this.seedCustomers();
   }
 
   private seedOperators() {
@@ -138,9 +156,9 @@ export class MemStorage implements IStorage {
       id: this.nextJobId++,
       jobNumber: "JOB-2024-001",
       service: "Snow Plowing",
-      customerId: "customer-123",
+      customerId: "CUST-001",
       customerName: "John Doe",
-      operatorId: "operator-456",
+      operatorId: "OP-001",
       operatorName: "Mike's Snow Service",
       operatorRating: "4.8",
       operatorPhone: "(555) 123-4567",
@@ -165,6 +183,23 @@ export class MemStorage implements IStorage {
       updatedAt: new Date(),
     };
     this.jobs.push(sampleJob);
+  }
+
+  private seedCustomers() {
+    const sampleCustomer: Customer = {
+      id: this.nextCustomerId++,
+      customerId: "CUST-001",
+      name: "John Doe",
+      email: "john.doe@example.com",
+      phone: "(555) 987-6543",
+      address: "123 Main Street",
+      city: "New York",
+      state: "NY",
+      zipCode: "10001",
+      photo: null,
+      createdAt: new Date(),
+    };
+    this.customers.push(sampleCustomer);
   }
 
   async getJobs(customerId?: string): Promise<Job[]> {
@@ -262,5 +297,87 @@ export class MemStorage implements IStorage {
       .filter(({ distance }) => distance <= radiusMiles)
       .sort((a, b) => a.distance - b.distance)
       .map(({ operator }) => operator);
+  }
+
+  async getServiceRequests(customerId?: string): Promise<ServiceRequest[]> {
+    if (customerId) {
+      return this.serviceRequests.filter((sr) => sr.customerId === customerId);
+    }
+    return this.serviceRequests;
+  }
+
+  async getServiceRequest(id: number): Promise<ServiceRequest | undefined> {
+    return this.serviceRequests.find((sr) => sr.id === id);
+  }
+
+  async getServiceRequestByRequestId(requestId: string): Promise<ServiceRequest | undefined> {
+    return this.serviceRequests.find((sr) => sr.requestId === requestId);
+  }
+
+  async createServiceRequest(request: InsertServiceRequest): Promise<ServiceRequest> {
+    const now = new Date();
+    const newRequest: ServiceRequest = {
+      id: this.nextServiceRequestId++,
+      requestId: request.requestId,
+      customerId: request.customerId,
+      customerName: request.customerName,
+      operatorId: request.operatorId,
+      operatorName: request.operatorName,
+      service: request.service,
+      status: request.status || "pending",
+      location: request.location,
+      notes: request.notes || null,
+      estimatedCost: request.estimatedCost || null,
+      requestedAt: now,
+      respondedAt: null,
+    };
+    this.serviceRequests.push(newRequest);
+    return newRequest;
+  }
+
+  async updateServiceRequest(id: number, status: string, respondedAt?: Date): Promise<ServiceRequest | undefined> {
+    const index = this.serviceRequests.findIndex((sr) => sr.id === id);
+    if (index === -1) return undefined;
+
+    this.serviceRequests[index] = {
+      ...this.serviceRequests[index],
+      status,
+      respondedAt: respondedAt || new Date(),
+    };
+    return this.serviceRequests[index];
+  }
+
+  async getCustomer(customerId: string): Promise<Customer | undefined> {
+    return this.customers.find((c) => c.customerId === customerId);
+  }
+
+  async createCustomer(customer: InsertCustomer): Promise<Customer> {
+    const now = new Date();
+    const newCustomer: Customer = {
+      id: this.nextCustomerId++,
+      customerId: customer.customerId,
+      name: customer.name,
+      email: customer.email,
+      phone: customer.phone,
+      address: customer.address || null,
+      city: customer.city || null,
+      state: customer.state || null,
+      zipCode: customer.zipCode || null,
+      photo: customer.photo || null,
+      createdAt: now,
+    };
+    this.customers.push(newCustomer);
+    return newCustomer;
+  }
+
+  async updateCustomer(customerId: string, customerUpdate: Partial<InsertCustomer>): Promise<Customer | undefined> {
+    const index = this.customers.findIndex((c) => c.customerId === customerId);
+    if (index === -1) return undefined;
+
+    this.customers[index] = {
+      ...this.customers[index],
+      ...customerUpdate,
+    };
+    return this.customers[index];
   }
 }
