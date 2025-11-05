@@ -1,13 +1,15 @@
 import { useState, useEffect, useRef } from "react";
-import { Link } from "wouter";
-import { useQuery } from "@tanstack/react-query";
+import { Link, useLocation } from "wouter";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/enhanced-button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, MapPin, Phone, Star, Truck, Filter, Navigation } from "lucide-react";
-import type { Operator } from "@shared/schema";
+import type { Operator, InsertServiceRequest } from "@shared/schema";
+import { apiRequest } from "@/lib/queryClient";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
@@ -19,6 +21,9 @@ L.Icon.Default.mergeOptions({
   shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
 });
 
+const CUSTOMER_ID = "CUST-001";
+const CUSTOMER_NAME = "John Doe";
+
 export const OperatorBrowsing = () => {
   const mapRef = useRef<L.Map | null>(null);
   const mapContainerRef = useRef<HTMLDivElement>(null);
@@ -26,6 +31,8 @@ export const OperatorBrowsing = () => {
   const [selectedService, setSelectedService] = useState<string>("");
   const [userLocation, setUserLocation] = useState<{ lat: number; lon: number } | null>(null);
   const [selectedOperator, setSelectedOperator] = useState<Operator | null>(null);
+  const [, navigate] = useLocation();
+  const { toast } = useToast();
 
   const { data: operators, isLoading } = useQuery<Operator[]>({
     queryKey: ["/api/operators", selectedService],
@@ -36,6 +43,50 @@ export const OperatorBrowsing = () => {
       return fetch(url).then(res => res.json());
     },
   });
+
+  const createServiceRequestMutation = useMutation({
+    mutationFn: async (operator: Operator) => {
+      const requestId = `REQ-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+      const requestData: InsertServiceRequest = {
+        requestId,
+        customerId: CUSTOMER_ID,
+        customerName: CUSTOMER_NAME,
+        operatorId: operator.operatorId,
+        operatorName: operator.name,
+        service: selectedService || (operator.services as string[])[0],
+        status: "pending",
+        location: operator.address,
+        estimatedCost: operator.hourlyRate,
+      };
+
+      const response = await apiRequest("/api/service-requests", {
+        method: "POST",
+        body: JSON.stringify(requestData),
+        headers: { "Content-Type": "application/json" },
+      });
+      
+      return response;
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Service Request Sent!",
+        description: `Your request has been sent to ${data.operatorName}`,
+      });
+      navigate(`/customer/service-request?requestId=${data.requestId}`);
+    },
+    onError: () => {
+      toast({
+        title: "Request Failed",
+        description: "Failed to send service request. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleRequestService = (operator: Operator, e: React.MouseEvent) => {
+    e.stopPropagation();
+    createServiceRequestMutation.mutate(operator);
+  };
 
   // Get user location
   useEffect(() => {
@@ -246,8 +297,14 @@ export const OperatorBrowsing = () => {
                     </div>
                     <div className="flex justify-between items-center pt-2">
                       <span className="text-lg font-bold text-accent">${operator.hourlyRate}/hr</span>
-                      <Button size="sm" variant="accent" data-testid={`button-request-${operator.id}`}>
-                        Request Service
+                      <Button 
+                        size="sm" 
+                        variant="accent" 
+                        onClick={(e) => handleRequestService(operator, e)}
+                        disabled={createServiceRequestMutation.isPending}
+                        data-testid={`button-request-${operator.id}`}
+                      >
+                        {createServiceRequestMutation.isPending ? "Sending..." : "Request Service"}
                       </Button>
                     </div>
                   </CardContent>

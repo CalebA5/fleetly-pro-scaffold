@@ -2,7 +2,7 @@ import React from "react";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/enhanced-button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Truck, Snowflake, Car, Package, MapPin } from "lucide-react";
+import { Truck, Snowflake, Car, Package, MapPin, User } from "lucide-react";
 
 const services = [
   {
@@ -51,13 +51,21 @@ export const CustomerHome = () => {
   return (
     <div className="container mx-auto px-4 py-8">
       {/* Header */}
-      <div className="text-center mb-8 animate-fade-in">
-        <h1 className="text-4xl font-bold bg-gradient-primary bg-clip-text text-transparent mb-4">
-          Welcome to Fleetly
-        </h1>
-        <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-          Professional on-demand trucking and specialty services. Choose your service below to get started.
-        </p>
+      <div className="flex justify-between items-start mb-8 animate-fade-in">
+        <div className="flex-1 text-center">
+          <h1 className="text-4xl font-bold bg-gradient-primary bg-clip-text text-transparent mb-4">
+            Welcome to Fleetly
+          </h1>
+          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+            Professional on-demand trucking and specialty services. Choose your service below to get started.
+          </p>
+        </div>
+        <Link to="/customer/profile">
+          <Button variant="ghost" size="sm" className="flex items-center gap-2" data-testid="button-profile">
+            <User className="w-4 h-4" />
+            Profile
+          </Button>
+        </Link>
       </div>
 
       {/* Service Grid */}

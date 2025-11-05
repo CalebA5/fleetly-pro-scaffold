@@ -4,6 +4,8 @@ import { ServiceSelection } from "./ServiceSelection";
 import { JobTracking } from "./JobTracking";
 import { JobHistory } from "./JobHistory";
 import { OperatorBrowsing } from "./OperatorBrowsing";
+import { ServiceRequest } from "./ServiceRequest";
+import { CustomerProfile } from "./CustomerProfile";
 
 export const CustomerDashboard = () => {
   return (
@@ -12,8 +14,10 @@ export const CustomerDashboard = () => {
         <Route path="/customer" component={CustomerHome} />
         <Route path="/customer/services" component={ServiceSelection} />
         <Route path="/customer/operators" component={OperatorBrowsing} />
+        <Route path="/customer/service-request" component={ServiceRequest} />
         <Route path="/customer/tracking" component={JobTracking} />
         <Route path="/customer/history" component={JobHistory} />
+        <Route path="/customer/profile" component={CustomerProfile} />
       </Switch>
     </div>
   );

@@ -90,10 +90,17 @@ export const serviceRequests = pgTable("service_requests", {
   respondedAt: timestamp("responded_at"),
 });
 
-export const insertServiceRequestSchema = createInsertSchema(serviceRequests).omit({
-  id: true,
-  requestedAt: true,
-  respondedAt: true,
+export const insertServiceRequestSchema = z.object({
+  requestId: z.string(),
+  customerId: z.string(),
+  customerName: z.string(),
+  operatorId: z.string(),
+  operatorName: z.string(),
+  service: z.string(),
+  status: z.string().optional(),
+  location: z.string(),
+  notes: z.string().optional(),
+  estimatedCost: z.string().optional(),
 });
 
 export type InsertServiceRequest = z.infer<typeof insertServiceRequestSchema>;
@@ -114,9 +121,16 @@ export const customers = pgTable("customers", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
-export const insertCustomerSchema = createInsertSchema(customers).omit({
-  id: true,
-  createdAt: true,
+export const insertCustomerSchema = z.object({
+  customerId: z.string(),
+  name: z.string(),
+  email: z.string(),
+  phone: z.string(),
+  address: z.string().optional(),
+  city: z.string().optional(),
+  state: z.string().optional(),
+  zipCode: z.string().optional(),
+  photo: z.string().optional(),
 });
 
 export type InsertCustomer = z.infer<typeof insertCustomerSchema>;

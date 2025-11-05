@@ -1,6 +1,6 @@
 import { Router } from "express";
 import type { IStorage } from "./storage";
-import { insertJobSchema } from "@shared/schema";
+import { insertJobSchema, insertServiceRequestSchema, insertCustomerSchema } from "@shared/schema";
 
 export function registerRoutes(storage: IStorage) {
   const router = Router();
@@ -72,6 +72,73 @@ export function registerRoutes(storage: IStorage) {
       return res.status(404).json({ message: "Operator not found" });
     }
     res.json(operator);
+  });
+
+  router.get("/api/service-requests", async (req, res) => {
+    const customerId = req.query.customerId as string | undefined;
+    const requests = await storage.getServiceRequests(customerId);
+    res.json(requests);
+  });
+
+  router.get("/api/service-requests/:id", async (req, res) => {
+    const id = parseInt(req.params.id);
+    const request = await storage.getServiceRequest(id);
+    if (!request) {
+      return res.status(404).json({ message: "Service request not found" });
+    }
+    res.json(request);
+  });
+
+  router.get("/api/service-requests/request/:requestId", async (req, res) => {
+    const request = await storage.getServiceRequestByRequestId(req.params.requestId);
+    if (!request) {
+      return res.status(404).json({ message: "Service request not found" });
+    }
+    res.json(request);
+  });
+
+  router.post("/api/service-requests", async (req, res) => {
+    const result = insertServiceRequestSchema.safeParse(req.body);
+    if (!result.success) {
+      return res.status(400).json({ errors: result.error.issues });
+    }
+    const request = await storage.createServiceRequest(result.data);
+    res.status(201).json(request);
+  });
+
+  router.patch("/api/service-requests/:id", async (req, res) => {
+    const id = parseInt(req.params.id);
+    const { status, respondedAt } = req.body;
+    const request = await storage.updateServiceRequest(id, status, respondedAt);
+    if (!request) {
+      return res.status(404).json({ message: "Service request not found" });
+    }
+    res.json(request);
+  });
+
+  router.get("/api/customers/:customerId", async (req, res) => {
+    const customer = await storage.getCustomer(req.params.customerId);
+    if (!customer) {
+      return res.status(404).json({ message: "Customer not found" });
+    }
+    res.json(customer);
+  });
+
+  router.post("/api/customers", async (req, res) => {
+    const result = insertCustomerSchema.safeParse(req.body);
+    if (!result.success) {
+      return res.status(400).json({ errors: result.error.issues });
+    }
+    const customer = await storage.createCustomer(result.data);
+    res.status(201).json(customer);
+  });
+
+  router.patch("/api/customers/:customerId", async (req, res) => {
+    const customer = await storage.updateCustomer(req.params.customerId, req.body);
+    if (!customer) {
+      return res.status(404).json({ message: "Customer not found" });
+    }
+    res.json(customer);
   });
 
   return router;
