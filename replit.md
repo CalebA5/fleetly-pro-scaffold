@@ -14,6 +14,29 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes (November 2025)
 
+### Shared Header Component - Universal Navigation (November 2025)
+**Unified header across all pages** providing consistent navigation and authentication experience:
+
+**Shared Header Component**
+- Created reusable Header component (client/src/components/Header.tsx) used across all pages
+- Clickable Fleetly logo always returns to homepage (/) from any page
+- Navigation buttons: Browse Operators, Drive & Earn, Sign in, Sign up (when not authenticated)
+- Profile dropdown menu appears when authenticated (replacing Sign in/Sign up buttons)
+- Smart Drive & Earn logic: triggers auth for unauthenticated users, shows onboarding for incomplete profiles, or navigates to operator dashboard
+- Consistent styling with Uber-inspired black and white theme
+
+**Universal Deployment**
+- Homepage (Index.tsx) uses shared Header
+- Customer pages (OperatorMap, ServiceRequest, JobTracking, etc.) use shared Header
+- Operator pages (OperatorHome, JobManagement, OperatorOnboarding) use shared Header
+- All pages maintain page-specific content below the header
+- Profile dropdown navigation works across customer and operator domains
+
+**ProfileDropdown Improvements**
+- "Request Services" menu item links to operator map (/customer/operator-map)
+- Cross-domain navigation between customer and operator features
+- Menu items: Profile, Drive & Earn, Request Services, Help & Support, Sign out
+
 ### Unified Landing Page - Uber-Inspired Redesign (November 2025)
 **Complete landing experience overhaul** to match Uber's proven customer acquisition pattern:
 
