@@ -1,139 +1,175 @@
-import React from "react";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/enhanced-button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Truck, Snowflake, Car, Package, MapPin, User, Map } from "lucide-react";
-
-const services = [
-  {
-    id: "snow-plow",
-    title: "Snow Plowing",
-    description: "Professional snow removal for driveways and parking lots",
-    icon: Snowflake,
-    color: "text-blue-500",
-    available: true,
-  },
-  {
-    id: "tow",
-    title: "Towing",
-    description: "Emergency and scheduled vehicle towing services",
-    icon: Car,
-    color: "text-orange-500",
-    available: true,
-  },
-  {
-    id: "courier",
-    title: "Courier",
-    description: "Fast and reliable package delivery services",
-    icon: Package,
-    color: "text-green-500",
-    available: true,
-  },
-  {
-    id: "long-distance-tow",
-    title: "Long Distance Tow",
-    description: "Long-haul towing for vehicles and equipment",
-    icon: MapPin,
-    color: "text-purple-500",
-    available: true,
-  },
-  {
-    id: "haul",
-    title: "Hauling",
-    description: "Heavy equipment and material transportation",
-    icon: Truck,
-    color: "text-red-500",
-    available: true,
-  },
-];
+import { Card } from "@/components/ui/card";
+import { MapPin, ArrowRight, Truck, Clock, Shield, Star } from "lucide-react";
 
 export const CustomerHome = () => {
   return (
-    <div className="container mx-auto px-4 py-8">
-      {/* Header */}
-      <div className="flex justify-between items-start mb-8 animate-fade-in">
-        <div className="flex-1 text-center">
-          <h1 className="text-4xl font-bold bg-gradient-primary bg-clip-text text-transparent mb-4">
-            Welcome to Fleetly
-          </h1>
-          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Professional on-demand trucking and specialty services. Choose your service below to get started.
-          </p>
+    <div className="min-h-screen bg-white dark:bg-gray-900">
+      {/* Modern Header */}
+      <header className="border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
+            <div className="flex items-center">
+              <Truck className="w-8 h-8 text-black dark:text-white" />
+              <span className="ml-2 text-2xl font-bold text-black dark:text-white">Fleetly</span>
+            </div>
+            <nav className="flex items-center space-x-4">
+              <Link href="/customer/operator-map">
+                <Button variant="ghost" className="text-gray-700 dark:text-gray-300" data-testid="link-find-operators">
+                  Find Operators
+                </Button>
+              </Link>
+              <Button variant="outline" data-testid="button-sign-in">
+                Sign in
+              </Button>
+              <Button className="bg-black text-white hover:bg-gray-800 dark:bg-white dark:text-black dark:hover:bg-gray-200" data-testid="button-sign-up">
+                Sign up
+              </Button>
+            </nav>
+          </div>
         </div>
-        <Link to="/customer/profile">
-          <Button variant="ghost" size="sm" className="flex items-center gap-2" data-testid="button-profile">
-            <User className="w-4 h-4" />
-            Profile
-          </Button>
-        </Link>
-      </div>
+      </header>
 
-      {/* Service Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-        {services.map((service, index) => {
-          const Icon = service.icon;
-          return (
-            <Card 
-              key={service.id} 
-              className="group cursor-pointer hover:shadow-lg transition-all duration-300 transform hover:scale-105 animate-slide-up"
-              style={{ animationDelay: `${index * 100}ms` }}
-            >
-              <CardHeader>
-                <div className="flex items-center space-x-3">
-                  <div className={`p-2 rounded-lg bg-accent/10 ${service.color}`}>
-                    <Icon className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <CardTitle className="text-lg">{service.title}</CardTitle>
-                    {service.available && (
-                      <span className="text-xs text-success font-medium">Available Now</span>
-                    )}
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <CardDescription className="mb-4">
-                  {service.description}
-                </CardDescription>
-                <Link to="/customer/services" state={{ selectedService: service.id }}>
-                  <Button variant="outline" className="w-full group-hover:bg-primary group-hover:text-primary-foreground">
-                    Get Quote
+      {/* Hero Section */}
+      <section className="relative bg-white dark:bg-gray-900 py-20">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+            <div>
+              <h1 className="text-5xl lg:text-6xl font-bold text-black dark:text-white leading-tight mb-6">
+                On-demand trucking and specialty services
+              </h1>
+              <p className="text-xl text-gray-600 dark:text-gray-400 mb-8">
+                Request snow plowing, towing, hauling, and courier services with just a few taps. Professional operators ready to help.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-4">
+                <Link href="/customer/operator-map">
+                  <Button 
+                    size="lg" 
+                    className="bg-black text-white hover:bg-gray-800 dark:bg-white dark:text-black dark:hover:bg-gray-200 text-lg px-8 py-6 h-auto"
+                    data-testid="button-get-started"
+                  >
+                    Get started
+                    <ArrowRight className="ml-2 w-5 h-5" />
                   </Button>
                 </Link>
-              </CardContent>
-            </Card>
-          );
-        })}
-      </div>
+                <Link href="/customer/operators">
+                  <Button 
+                    variant="outline" 
+                    size="lg" 
+                    className="text-lg px-8 py-6 h-auto border-2"
+                    data-testid="button-browse-operators"
+                  >
+                    Browse operators
+                  </Button>
+                </Link>
+              </div>
+            </div>
+            <div className="relative">
+              <div className="bg-gradient-to-br from-blue-50 to-gray-100 dark:from-gray-800 dark:to-gray-700 rounded-2xl p-8 shadow-2xl">
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between p-4 bg-white dark:bg-gray-900 rounded-lg shadow">
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 bg-black dark:bg-white rounded-full flex items-center justify-center">
+                        <Truck className="w-6 h-6 text-white dark:text-black" />
+                      </div>
+                      <div>
+                        <p className="font-semibold text-black dark:text-white">Snow Plowing</p>
+                        <p className="text-sm text-gray-500">5 min away</p>
+                      </div>
+                    </div>
+                    <p className="font-bold text-black dark:text-white">$95/hr</p>
+                  </div>
+                  <div className="flex items-center justify-between p-4 bg-white dark:bg-gray-900 rounded-lg shadow">
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 bg-black dark:bg-white rounded-full flex items-center justify-center">
+                        <Truck className="w-6 h-6 text-white dark:text-black" />
+                      </div>
+                      <div>
+                        <p className="font-semibold text-black dark:text-white">Towing</p>
+                        <p className="text-sm text-gray-500">8 min away</p>
+                      </div>
+                    </div>
+                    <p className="font-bold text-black dark:text-white">$125/hr</p>
+                  </div>
+                  <div className="flex items-center justify-between p-4 bg-white dark:bg-gray-900 rounded-lg shadow">
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 bg-black dark:bg-white rounded-full flex items-center justify-center">
+                        <Truck className="w-6 h-6 text-white dark:text-black" />
+                      </div>
+                      <div>
+                        <p className="font-semibold text-black dark:text-white">Hauling</p>
+                        <p className="text-sm text-gray-500">12 min away</p>
+                      </div>
+                    </div>
+                    <p className="font-bold text-black dark:text-white">$110/hr</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
 
-      {/* Quick Actions */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-gradient-accent rounded-2xl p-8 text-center text-white">
-          <Map className="w-12 h-12 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold mb-4">Find Operators Nearby</h2>
-          <p className="text-white/90 mb-6">
-            View available operators on an interactive map with satellite imagery
+      {/* Features Section */}
+      <section className="py-20 bg-gray-50 dark:bg-gray-800">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <h2 className="text-3xl font-bold text-center text-black dark:text-white mb-12">
+            Why choose Fleetly
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <Card className="p-8 text-center border-0 shadow-lg">
+              <div className="w-16 h-16 bg-black dark:bg-white rounded-full flex items-center justify-center mx-auto mb-4">
+                <Clock className="w-8 h-8 text-white dark:text-black" />
+              </div>
+              <h3 className="text-xl font-bold mb-2 text-black dark:text-white">Fast response</h3>
+              <p className="text-gray-600 dark:text-gray-400">
+                Operators arrive quickly when you need them most. Real-time tracking included.
+              </p>
+            </Card>
+            <Card className="p-8 text-center border-0 shadow-lg">
+              <div className="w-16 h-16 bg-black dark:bg-white rounded-full flex items-center justify-center mx-auto mb-4">
+                <Shield className="w-8 h-8 text-white dark:text-black" />
+              </div>
+              <h3 className="text-xl font-bold mb-2 text-black dark:text-white">Verified operators</h3>
+              <p className="text-gray-600 dark:text-gray-400">
+                All operators are background-checked and professionally licensed.
+              </p>
+            </Card>
+            <Card className="p-8 text-center border-0 shadow-lg">
+              <div className="w-16 h-16 bg-black dark:bg-white rounded-full flex items-center justify-center mx-auto mb-4">
+                <Star className="w-8 h-8 text-white dark:text-black" />
+              </div>
+              <h3 className="text-xl font-bold mb-2 text-black dark:text-white">Top rated</h3>
+              <p className="text-gray-600 dark:text-gray-400">
+                Read reviews and ratings from other customers before you book.
+              </p>
+            </Card>
+          </div>
+        </div>
+      </section>
+
+      {/* CTA Section */}
+      <section className="py-20 bg-black dark:bg-white">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <h2 className="text-4xl font-bold text-white dark:text-black mb-6">
+            Ready to get started?
+          </h2>
+          <p className="text-xl text-gray-300 dark:text-gray-700 mb-8">
+            Join thousands of customers who trust Fleetly for their trucking and specialty service needs.
           </p>
-          <Link to="/customer/operator-map">
-            <Button variant="secondary" size="lg" data-testid="button-view-map">
-              View Map
+          <Link href="/customer/operator-map">
+            <Button 
+              size="lg" 
+              className="bg-white text-black hover:bg-gray-100 dark:bg-black dark:text-white dark:hover:bg-gray-800 text-lg px-8 py-6 h-auto"
+              data-testid="button-cta-find-operators"
+            >
+              Find operators near you
+              <MapPin className="ml-2 w-5 h-5" />
             </Button>
           </Link>
         </div>
-        
-        <div className="bg-gradient-hero rounded-2xl p-8 text-center text-white">
-          <Truck className="w-12 h-12 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold mb-4">Need Help Choosing?</h2>
-          <p className="text-white/90 mb-6">
-            Upload a photo and describe your needs. Our AI will recommend the best service for you.
-          </p>
-          <Link to="/customer/services">
-            <Button variant="secondary" size="lg">
-              Try AI Recommender
-            </Button>
-          </Link>
-        </div>
-      </div>
+      </section>
     </div>
   );
 };

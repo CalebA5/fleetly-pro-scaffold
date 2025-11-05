@@ -6,7 +6,7 @@ import { JobHistory } from "./JobHistory";
 import { OperatorBrowsing } from "./OperatorBrowsing";
 import { ServiceRequest } from "./ServiceRequest";
 import { CustomerProfile } from "./CustomerProfile";
-import { OperatorMap } from "./OperatorMap";
+import { OperatorMapSimple } from "./OperatorMapSimple";
 
 export const CustomerDashboard = () => {
   return (
@@ -15,7 +15,7 @@ export const CustomerDashboard = () => {
         <Route path="/customer" component={CustomerHome} />
         <Route path="/customer/services" component={ServiceSelection} />
         <Route path="/customer/operators" component={OperatorBrowsing} />
-        <Route path="/customer/operator-map" component={OperatorMap} />
+        <Route path="/customer/operator-map" component={OperatorMapSimple} />
         <Route path="/customer/service-request" component={ServiceRequest} />
         <Route path="/customer/tracking" component={JobTracking} />
         <Route path="/customer/history" component={JobHistory} />
