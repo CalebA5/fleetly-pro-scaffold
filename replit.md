@@ -49,6 +49,50 @@ Preferred communication style: Simple, everyday language.
 - Updated routing to use unified OperatorMap component
 - Both /customer/operators and /customer/operator-map routes now point to unified page
 
+### Advanced Features (November 2025)
+
+**Favorite Drivers System**
+- Heart button on operator cards to mark/unmark favorites
+- Backend API with Zod-validated POST /api/favorites and DELETE /api/favorites/:id endpoints
+- "Your Favorites Online" section on customer map showing only favorited operators currently online
+- Real-time state updates with TanStack Query cache invalidation
+- Success/error toast notifications for all favorite actions
+- Persistent favorite status across page refreshes via in-memory storage
+
+**Customer Rating System**
+- Post-service rating dialog with 1-5 star selection (interactive hover states)
+- Optional comment field for detailed feedback
+- Backend API endpoint POST /api/ratings with validation
+- Proper form state management with React Hook Form
+- Success/error toasts with loading states during submission
+- All ratings stored and associated with specific operators
+
+**Real-Time Driver Tracking**
+- Interactive map with live operator location updates every 2 seconds
+- Custom Leaflet markers with two states:
+  - Pulsing red divIcon for operators en route (moving)
+  - Default blue marker for stationary operators
+- Simulated realistic movement toward random destinations
+- Marker popups show operator status ("En Route" or "Arrived")
+- Efficient state management using Map<string, OperatorLocation> for quick lookups
+- CSS pulse animation for moving operator markers
+- Automatic status transitions when operators reach destinations
+
+**Location-Based Customer Grouping**
+- Automated opportunity detection for operators serving same geographic areas
+- 4-minute countdown timer with MM:SS format (zero-padded)
+- Prominent notification card with orange border and warm glow effect
+- Displays up to 3 nearby customer cards showing:
+  - Customer name, service type, and location
+  - Distance from operator
+  - Customer rating and last service date
+  - Estimated earnings potential
+- Individual "Contact" buttons per customer
+- "Contact All Customers" bulk action button
+- "Snooze for Later" and manual dismiss options
+- Auto-dismiss when timer reaches 0:00
+- Proper interval cleanup to prevent memory leaks
+
 ## System Architecture
 
 ### Frontend Architecture
