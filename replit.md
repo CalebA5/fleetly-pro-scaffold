@@ -3,6 +3,19 @@
 ## Overview
 Fleetly is a professional on-demand service platform that connects customers with verified operators for trucking, snow plowing, towing, hauling, and courier services. It functions as a two-sided marketplace, offering separate dashboards for customers and operators. The platform aims to provide real-time service booking, job tracking, and professional service delivery. The business vision is to create a seamless and efficient service booking experience, inspired by the clean, modern interface of Uber, with an emphasis on simplicity and ease of use.
 
+## Recent Changes (November 2025)
+
+### UI/UX Optimization - Uber-Inspired Design Overhaul
+**Completed**: Major visual redesign to align with platform vision
+- **Visual Design System**: Established strict black/white theme with warm orange (#F97316) accents for CTAs only. Removed blue gradients, pastel colors, and excessive glows. Standardized shadows to minimal black/gray borders and hover effects.
+- **Landing Page Enhancements**: Added trust statistics (10K+ completed services, 500+ operators, 4.9★ rating, 24/7 availability), cleaned up service preview cards with consistent borders, improved mobile responsiveness with better spacing and typography.
+- **Operator Dashboard Improvements**: Simplified stats cards with cleaner design, added skeleton loading states for pending requests, made Accept/Decline buttons more prominent, improved mobile layouts with responsive flex directions, added better empty states.
+- **Map Loading Fixes**: Corrected favorites API query to eliminate 404 errors, added map loading spinner for better user feedback.
+
+**Architect Review**: PASS - Design successfully aligns with Uber aesthetic, UX improvements are more user-friendly, mobile responsiveness improved across breakpoints.
+
+**Future Polish Items**: Replace remaining rgb shadows with HSL, audit legacy glow classes, validate on real mobile hardware.
+
 ## User Preferences
 Preferred communication style: Simple, everyday language.
 
