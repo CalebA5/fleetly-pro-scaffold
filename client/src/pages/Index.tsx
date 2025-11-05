@@ -4,19 +4,45 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { AuthDialog } from "@/components/AuthDialog";
+import { ProfileDropdown } from "@/components/ProfileDropdown";
+import { useAuth } from "@/contexts/AuthContext";
 import { MapPin, ArrowRight, Truck, Clock, Shield, Star, Search } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 const Index = () => {
   const [, setLocation] = useLocation();
   const [showAuthDialog, setShowAuthDialog] = useState(false);
   const [authTab, setAuthTab] = useState<"signin" | "signup">("signin");
+  const [signupRole, setSignupRole] = useState<"customer" | "operator">("customer");
   const [pickup, setPickup] = useState("");
   const [dropoff, setDropoff] = useState("");
   const [showAvailability, setShowAvailability] = useState(false);
+  const { isAuthenticated, user } = useAuth();
+  const { toast } = useToast();
 
-  const handleAuthClick = (tab: "signin" | "signup") => {
+  const handleAuthClick = (tab: "signin" | "signup", role: "customer" | "operator" = "customer") => {
     setAuthTab(tab);
+    setSignupRole(role);
     setShowAuthDialog(true);
+  };
+
+  const handleDriveAndEarn = () => {
+    if (isAuthenticated) {
+      // Check if operator profile is complete
+      if (user?.operatorProfileComplete) {
+        setLocation("/operator");
+      } else {
+        // Prompt to complete profile
+        toast({
+          title: "Complete Your Operator Profile",
+          description: "Please fill out your profile and vehicle information to start earning.",
+        });
+        setLocation("/operator/onboarding");
+      }
+    } else {
+      // Show signup dialog for operator role
+      handleAuthClick("signup", "operator");
+    }
   };
 
   const handleSearchService = () => {
@@ -26,8 +52,13 @@ const Index = () => {
   };
 
   const handleRequestService = (service: string) => {
-    // Show auth dialog before allowing service request
-    setShowAuthDialog(true);
+    if (!isAuthenticated) {
+      // Show auth dialog before allowing service request
+      setShowAuthDialog(true);
+    } else {
+      // Redirect to service request page
+      setLocation("/customer/service-request");
+    }
   };
 
   return (
@@ -50,26 +81,32 @@ const Index = () => {
               </Link>
               <Button 
                 variant="ghost"
-                onClick={() => handleAuthClick("signup")}
+                onClick={handleDriveAndEarn}
                 className="text-gray-700 dark:text-gray-300"
                 data-testid="button-earn"
               >
                 Drive & Earn
               </Button>
-              <Button 
-                variant="outline" 
-                onClick={() => handleAuthClick("signin")}
-                data-testid="button-sign-in"
-              >
-                Sign in
-              </Button>
-              <Button 
-                className="bg-black text-white hover:bg-gray-800 dark:bg-white dark:text-black dark:hover:bg-gray-200" 
-                onClick={() => handleAuthClick("signup")}
-                data-testid="button-sign-up"
-              >
-                Sign up
-              </Button>
+              {!isAuthenticated ? (
+                <>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => handleAuthClick("signin")}
+                    data-testid="button-sign-in"
+                  >
+                    Sign in
+                  </Button>
+                  <Button 
+                    className="bg-black text-white hover:bg-gray-800 dark:bg-white dark:text-black dark:hover:bg-gray-200" 
+                    onClick={() => handleAuthClick("signup")}
+                    data-testid="button-sign-up"
+                  >
+                    Sign up
+                  </Button>
+                </>
+              ) : (
+                <ProfileDropdown onDriveAndEarn={handleDriveAndEarn} />
+              )}
             </nav>
           </div>
         </div>
@@ -318,6 +355,7 @@ const Index = () => {
         open={showAuthDialog} 
         onOpenChange={setShowAuthDialog} 
         defaultTab={authTab}
+        signupRole={signupRole}
       />
     </div>
   );

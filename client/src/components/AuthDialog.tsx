@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useLocation } from "wouter";
 import {
   Dialog,
   DialogContent,
@@ -10,15 +11,87 @@ import { Button } from "@/components/ui/enhanced-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/hooks/use-toast";
 
 interface AuthDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   defaultTab?: "signin" | "signup";
+  signupRole?: "customer" | "operator";
+  onAuthSuccess?: () => void;
 }
 
-export const AuthDialog = ({ open, onOpenChange, defaultTab = "signin" }: AuthDialogProps) => {
+export const AuthDialog = ({ 
+  open, 
+  onOpenChange, 
+  defaultTab = "signin",
+  signupRole = "customer",
+  onAuthSuccess
+}: AuthDialogProps) => {
   const [activeTab, setActiveTab] = useState(defaultTab);
+  const [, setLocation] = useLocation();
+  const { signIn, signUp } = useAuth();
+  const { toast } = useToast();
+  
+  // Sync activeTab with defaultTab when dialog opens
+  useEffect(() => {
+    if (open) {
+      setActiveTab(defaultTab);
+    }
+  }, [open, defaultTab]);
+  
+  const [signinEmail, setSigninEmail] = useState("");
+  const [signinPassword, setSigninPassword] = useState("");
+  const [signupName, setSignupName] = useState("");
+  const [signupEmail, setSignupEmail] = useState("");
+  const [signupPassword, setSignupPassword] = useState("");
+
+  const handleSignIn = async () => {
+    try {
+      await signIn(signinEmail, signinPassword);
+      toast({
+        title: "Welcome back!",
+        description: "You've successfully signed in.",
+      });
+      onOpenChange(false);
+      if (onAuthSuccess) {
+        onAuthSuccess();
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to sign in. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleSignUp = async () => {
+    try {
+      await signUp(signupName, signupEmail, signupPassword, signupRole);
+      toast({
+        title: "Account created!",
+        description: signupRole === "operator" 
+          ? "Let's set up your operator profile."
+          : "Welcome to Fleetly!",
+      });
+      onOpenChange(false);
+      
+      // Redirect based on role
+      if (signupRole === "operator") {
+        setLocation("/operator/onboarding");
+      } else if (onAuthSuccess) {
+        onAuthSuccess();
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to create account. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -43,6 +116,8 @@ export const AuthDialog = ({ open, onOpenChange, defaultTab = "signin" }: AuthDi
                 id="email" 
                 type="email" 
                 placeholder="you@example.com"
+                value={signinEmail}
+                onChange={(e) => setSigninEmail(e.target.value)}
                 data-testid="input-signin-email"
               />
             </div>
@@ -51,11 +126,14 @@ export const AuthDialog = ({ open, onOpenChange, defaultTab = "signin" }: AuthDi
               <Input 
                 id="password" 
                 type="password"
+                value={signinPassword}
+                onChange={(e) => setSigninPassword(e.target.value)}
                 data-testid="input-signin-password"
               />
             </div>
             <Button 
               className="w-full bg-black text-white hover:bg-gray-800"
+              onClick={handleSignIn}
               data-testid="button-signin-submit"
             >
               Sign in
@@ -78,6 +156,8 @@ export const AuthDialog = ({ open, onOpenChange, defaultTab = "signin" }: AuthDi
               <Input 
                 id="name" 
                 placeholder="John Doe"
+                value={signupName}
+                onChange={(e) => setSignupName(e.target.value)}
                 data-testid="input-signup-name"
               />
             </div>
@@ -87,6 +167,8 @@ export const AuthDialog = ({ open, onOpenChange, defaultTab = "signin" }: AuthDi
                 id="signup-email" 
                 type="email" 
                 placeholder="you@example.com"
+                value={signupEmail}
+                onChange={(e) => setSignupEmail(e.target.value)}
                 data-testid="input-signup-email"
               />
             </div>
@@ -95,14 +177,17 @@ export const AuthDialog = ({ open, onOpenChange, defaultTab = "signin" }: AuthDi
               <Input 
                 id="signup-password" 
                 type="password"
+                value={signupPassword}
+                onChange={(e) => setSignupPassword(e.target.value)}
                 data-testid="input-signup-password"
               />
             </div>
             <Button 
               className="w-full bg-black text-white hover:bg-gray-800"
+              onClick={handleSignUp}
               data-testid="button-signup-submit"
             >
-              Create account
+              {signupRole === "operator" ? "Sign up as Operator" : "Create account"}
             </Button>
             <p className="text-sm text-center text-gray-600">
               Already have an account?{" "}

@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/enhanced-button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { ArrowLeft, Upload, Truck, FileText, Shield, CheckCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 
 const vehicleTypes = [
   "Pickup Truck",
@@ -33,6 +34,8 @@ const serviceTypes = [
 
 export const OperatorOnboarding = () => {
   const { toast } = useToast();
+  const { updateUser } = useAuth();
+  const [, setLocation] = useLocation();
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState({
     businessName: "",
@@ -85,10 +88,18 @@ export const OperatorOnboarding = () => {
   };
 
   const handleSubmit = () => {
+    // Mark operator profile as complete
+    updateUser({ operatorProfileComplete: true });
+    
     toast({
-      title: "Application Submitted!",
-      description: "Your operator profile is under review. You'll be notified within 24 hours.",
+      title: "Profile Complete!",
+      description: "Welcome to Fleetly. You can now start accepting jobs.",
     });
+    
+    // Redirect to operator dashboard
+    setTimeout(() => {
+      setLocation("/operator");
+    }, 1500);
   };
 
   const steps = [
