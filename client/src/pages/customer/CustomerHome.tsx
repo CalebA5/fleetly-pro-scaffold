@@ -1,9 +1,19 @@
+import { useState } from "react";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/enhanced-button";
 import { Card } from "@/components/ui/card";
+import { AuthDialog } from "@/components/AuthDialog";
 import { MapPin, ArrowRight, Truck, Clock, Shield, Star } from "lucide-react";
 
 export const CustomerHome = () => {
+  const [showAuthDialog, setShowAuthDialog] = useState(false);
+  const [authTab, setAuthTab] = useState<"signin" | "signup">("signin");
+
+  const handleAuthClick = (tab: "signin" | "signup") => {
+    setAuthTab(tab);
+    setShowAuthDialog(true);
+  };
+
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900">
       {/* Modern Header */}
@@ -20,10 +30,18 @@ export const CustomerHome = () => {
                   Find Operators
                 </Button>
               </Link>
-              <Button variant="outline" data-testid="button-sign-in">
+              <Button 
+                variant="outline" 
+                onClick={() => handleAuthClick("signin")}
+                data-testid="button-sign-in"
+              >
                 Sign in
               </Button>
-              <Button className="bg-black text-white hover:bg-gray-800 dark:bg-white dark:text-black dark:hover:bg-gray-200" data-testid="button-sign-up">
+              <Button 
+                className="bg-black text-white hover:bg-gray-800 dark:bg-white dark:text-black dark:hover:bg-gray-200" 
+                onClick={() => handleAuthClick("signup")}
+                data-testid="button-sign-up"
+              >
                 Sign up
               </Button>
             </nav>
@@ -170,6 +188,12 @@ export const CustomerHome = () => {
           </Link>
         </div>
       </section>
+
+      <AuthDialog 
+        open={showAuthDialog} 
+        onOpenChange={setShowAuthDialog} 
+        defaultTab={authTab}
+      />
     </div>
   );
 };
