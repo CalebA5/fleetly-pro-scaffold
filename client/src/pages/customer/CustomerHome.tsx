@@ -2,7 +2,7 @@ import React from "react";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/enhanced-button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Truck, Snowflake, Car, Package, MapPin, User } from "lucide-react";
+import { Truck, Snowflake, Car, Package, MapPin, User, Map } from "lucide-react";
 
 const services = [
   {
@@ -107,16 +107,32 @@ export const CustomerHome = () => {
       </div>
 
       {/* Quick Actions */}
-      <div className="bg-gradient-hero rounded-2xl p-8 text-center text-white animate-fade-in">
-        <h2 className="text-2xl font-bold mb-4">Need Help Choosing?</h2>
-        <p className="text-white/90 mb-6 max-w-md mx-auto">
-          Upload a photo and describe your needs. Our AI will recommend the best service for you.
-        </p>
-        <Link to="/customer/services">
-          <Button variant="secondary" size="lg">
-            Try AI Recommender
-          </Button>
-        </Link>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="bg-gradient-accent rounded-2xl p-8 text-center text-white">
+          <Map className="w-12 h-12 mx-auto mb-4" />
+          <h2 className="text-2xl font-bold mb-4">Find Operators Nearby</h2>
+          <p className="text-white/90 mb-6">
+            View available operators on an interactive map with satellite imagery
+          </p>
+          <Link to="/customer/operator-map">
+            <Button variant="secondary" size="lg" data-testid="button-view-map">
+              View Map
+            </Button>
+          </Link>
+        </div>
+        
+        <div className="bg-gradient-hero rounded-2xl p-8 text-center text-white">
+          <Truck className="w-12 h-12 mx-auto mb-4" />
+          <h2 className="text-2xl font-bold mb-4">Need Help Choosing?</h2>
+          <p className="text-white/90 mb-6">
+            Upload a photo and describe your needs. Our AI will recommend the best service for you.
+          </p>
+          <Link to="/customer/services">
+            <Button variant="secondary" size="lg">
+              Try AI Recommender
+            </Button>
+          </Link>
+        </div>
       </div>
     </div>
   );

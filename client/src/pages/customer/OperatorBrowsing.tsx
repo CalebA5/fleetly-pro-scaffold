@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, MapPin, Phone, Star, Truck, Filter, Navigation } from "lucide-react";
+import { ArrowLeft, MapPin, Phone, Star, Truck, Filter, Navigation, Map } from "lucide-react";
 import type { Operator, InsertServiceRequest } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 import L from "leaflet";
@@ -211,6 +211,12 @@ export const OperatorBrowsing = () => {
               <p className="text-muted-foreground">Find nearby operators in your area</p>
             </div>
           </div>
+          <Link to="/customer/operator-map">
+            <Button variant="accent" size="sm" data-testid="button-full-map">
+              <Map className="w-4 h-4 mr-2" />
+              View Full Map
+            </Button>
+          </Link>
         </div>
 
         {/* Service Filter */}
