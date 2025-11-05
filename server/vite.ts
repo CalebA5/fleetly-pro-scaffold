@@ -29,7 +29,7 @@ export async function setupVite(app: Express, server: any) {
     const url = req.originalUrl;
     
     fs.readFile(
-      path.resolve(__dirname, "..", "index.html"),
+      path.resolve(__dirname, "..", "client", "index.html"),
       "utf-8",
       async (err, template) => {
         if (err) {
