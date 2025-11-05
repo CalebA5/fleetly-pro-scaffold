@@ -1,11 +1,14 @@
 import { useState, useEffect } from "react";
 import { Link } from "wouter";
+import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/enhanced-button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Header } from "@/components/Header";
 import { AuthDialog } from "@/components/AuthDialog";
+import { ServiceRequestDetailsDialog } from "@/components/ServiceRequestDetailsDialog";
+import type { ServiceRequest } from "@shared/schema";
 import { 
   Truck, 
   MapPin, 
@@ -31,38 +34,6 @@ const mockOperatorData = {
   pendingJobs: 5,
 };
 
-const pendingJobs = [
-  {
-    id: "JOB-2024-005",
-    service: "Snow Plowing",
-    location: "456 Oak Street",
-    customerRating: 4.9,
-    estimatedEarnings: 85.00,
-    distance: "3.2 miles",
-    urgency: "high",
-    timeAgo: "2 min ago",
-  },
-  {
-    id: "JOB-2024-006",
-    service: "Towing",
-    location: "Highway 15 Exit 42",
-    customerRating: 4.5,
-    estimatedEarnings: 165.00,
-    distance: "7.8 miles",
-    urgency: "urgent",
-    timeAgo: "5 min ago",
-  },
-  {
-    id: "JOB-2024-007",
-    service: "Courier",
-    location: "Downtown Plaza",
-    customerRating: 4.7,
-    estimatedEarnings: 35.00,
-    distance: "1.5 miles",
-    urgency: "normal",
-    timeAgo: "8 min ago",
-  },
-];
 
 // Mock nearby opportunities - customers in the same area who used the service recently
 const nearbyOpportunities = [
@@ -103,6 +74,13 @@ export const OperatorHome = () => {
   const [showNearbyPrompt, setShowNearbyPrompt] = useState(true);
   const [timeRemaining, setTimeRemaining] = useState(240); // 4 minutes in seconds
   const [showAuthDialog, setShowAuthDialog] = useState(false);
+  const [selectedRequest, setSelectedRequest] = useState<ServiceRequest | null>(null);
+  const [showDetailsDialog, setShowDetailsDialog] = useState(false);
+
+  // Fetch service requests
+  const { data: serviceRequests = [], isLoading } = useQuery<ServiceRequest[]>({
+    queryKey: ['/api/service-requests'],
+  });
   const [authTab, setAuthTab] = useState<"signin" | "signup">("signin");
 
   // Countdown timer for nearby opportunities prompt
@@ -360,7 +338,7 @@ export const OperatorHome = () => {
                   Pending Job Requests
                 </h2>
                 <p className="text-gray-600 dark:text-gray-400">
-                  {mockOperatorData.pendingJobs} jobs waiting for your response
+                  {isLoading ? "..." : serviceRequests.length} {serviceRequests.length === 1 ? "job" : "jobs"} waiting for your response
                 </p>
               </div>
               <Link to="/operator/jobs">
@@ -371,56 +349,73 @@ export const OperatorHome = () => {
             </div>
             
             <div className="space-y-4">
-              {pendingJobs.map((job) => (
-                <Card key={job.id} className="border-2 border-gray-200 dark:border-gray-700 hover:shadow-lg transition-all">
-                  <CardContent className="p-6">
-                    <div className="flex justify-between items-start mb-4">
-                      <div>
-                        <div className="flex items-center space-x-2 mb-2">
-                          <h4 className="font-bold text-lg text-black dark:text-white">{job.service}</h4>
-                          <Badge className={`${getUrgencyColor(job.urgency)} text-white`}>
-                            {getUrgencyText(job.urgency)}
-                          </Badge>
+              {isLoading ? (
+                <p className="text-gray-500 dark:text-gray-400 text-center py-8">Loading requests...</p>
+              ) : serviceRequests.length === 0 ? (
+                <p className="text-gray-500 dark:text-gray-400 text-center py-8">No pending requests at the moment</p>
+              ) : (
+                serviceRequests.map((request) => (
+                  <Card key={request.id} className="border-2 border-gray-200 dark:border-gray-700 hover:shadow-lg transition-all">
+                    <CardContent className="p-6">
+                      <div className="flex justify-between items-start mb-4">
+                        <div>
+                          <div className="flex items-center space-x-2 mb-2">
+                            <h4 className="font-bold text-lg text-black dark:text-white">{request.serviceType}</h4>
+                            {request.isEmergency === 1 && (
+                              <Badge className="bg-red-600 text-white">
+                                EMERGENCY
+                              </Badge>
+                            )}
+                          </div>
+                          <div className="space-y-1 text-sm text-gray-600 dark:text-gray-400">
+                            <div className="flex items-center space-x-1">
+                              <MapPin className="w-4 h-4" />
+                              <span>{request.location}</span>
+                            </div>
+                            <div className="flex items-center space-x-4">
+                              <span>Customer: {request.customerName}</span>
+                              {request.preferredDate && (
+                                <span>Date: {request.preferredDate}</span>
+                              )}
+                            </div>
+                          </div>
                         </div>
-                        <div className="space-y-1 text-sm text-gray-600 dark:text-gray-400">
-                          <div className="flex items-center space-x-1">
-                            <MapPin className="w-4 h-4" />
-                            <span>{job.location}</span>
-                          </div>
-                          <div className="flex items-center space-x-4">
-                            <span className="flex items-center gap-1">
-                              <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
-                              {job.customerRating} customer
-                            </span>
-                            <span>{job.distance} away</span>
-                            <span>{job.timeAgo}</span>
-                          </div>
+                        <div className="text-right">
+                          {request.budgetRange && (
+                            <>
+                              <p className="text-2xl font-bold text-green-600">
+                                {request.budgetRange}
+                              </p>
+                              <p className="text-xs text-gray-500 dark:text-gray-500">Budget Range</p>
+                            </>
+                          )}
                         </div>
                       </div>
-                      <div className="text-right">
-                        <p className="text-2xl font-bold text-green-600">
-                          ${job.estimatedEarnings.toFixed(2)}
-                        </p>
-                        <p className="text-xs text-gray-500 dark:text-gray-500">Estimated</p>
+                      <div className="flex space-x-3">
+                        <Button 
+                          className="flex-1 bg-black text-white hover:bg-gray-800 dark:bg-white dark:text-black dark:hover:bg-gray-200"
+                          data-testid={`button-accept-${request.id}`}
+                        >
+                          Accept
+                        </Button>
+                        <Button variant="outline" className="flex-1" data-testid={`button-decline-${request.id}`}>
+                          Decline
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          onClick={() => {
+                            setSelectedRequest(request);
+                            setShowDetailsDialog(true);
+                          }}
+                          data-testid={`button-details-${request.id}`}
+                        >
+                          Details
+                        </Button>
                       </div>
-                    </div>
-                    <div className="flex space-x-3">
-                      <Button 
-                        className="flex-1 bg-black text-white hover:bg-gray-800 dark:bg-white dark:text-black dark:hover:bg-gray-200"
-                        data-testid={`button-accept-${job.id}`}
-                      >
-                        Accept
-                      </Button>
-                      <Button variant="outline" className="flex-1" data-testid={`button-decline-${job.id}`}>
-                        Decline
-                      </Button>
-                      <Button variant="ghost" data-testid={`button-details-${job.id}`}>
-                        Details
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+                    </CardContent>
+                  </Card>
+                ))
+              )}
             </div>
           </div>
 
@@ -479,6 +474,12 @@ export const OperatorHome = () => {
         open={showAuthDialog} 
         onOpenChange={setShowAuthDialog} 
         defaultTab={authTab}
+      />
+
+      <ServiceRequestDetailsDialog
+        request={selectedRequest}
+        open={showDetailsDialog}
+        onOpenChange={setShowDetailsDialog}
       />
     </div>
   );
