@@ -1,5 +1,4 @@
-import { Route, Switch } from "wouter";
-import { CustomerHome } from "./CustomerHome";
+import { Route, Switch, Redirect } from "wouter";
 import { ServiceSelection } from "./ServiceSelection";
 import { JobTracking } from "./JobTracking";
 import { JobHistory } from "./JobHistory";
@@ -11,7 +10,9 @@ export const CustomerDashboard = () => {
   return (
     <div className="min-h-screen bg-background">
       <Switch>
-        <Route path="/customer" component={CustomerHome} />
+        <Route path="/customer">
+          <Redirect to="/" />
+        </Route>
         <Route path="/customer/services" component={ServiceSelection} />
         <Route path="/customer/operators" component={OperatorMap} />
         <Route path="/customer/operator-map" component={OperatorMap} />

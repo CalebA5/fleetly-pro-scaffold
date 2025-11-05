@@ -20,7 +20,7 @@ export const CustomerHome = () => {
       <header className="border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
-            <Link href="/customer/">
+            <Link href="/">
               <div className="flex items-center cursor-pointer hover:opacity-80 transition-opacity" data-testid="link-home-logo">
                 <Truck className="w-8 h-8 text-black dark:text-white icon-warm-glow" />
                 <span className="ml-2 text-2xl font-bold text-black dark:text-white">Fleetly</span>
