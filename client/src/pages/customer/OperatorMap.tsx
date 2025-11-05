@@ -21,13 +21,58 @@ L.Icon.Default.mergeOptions({
   shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
 });
 
+// Custom icon for moving operators (pulsing red marker)
+const movingIcon = L.divIcon({
+  className: 'custom-div-icon',
+  html: `
+    <div style="position: relative; width: 25px; height: 41px;">
+      <svg width="25" height="41" viewBox="0 0 25 41" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12.5 0C5.6 0 0 5.6 0 12.5c0 8.8 12.5 28.5 12.5 28.5s12.5-19.7 12.5-28.5C25 5.6 19.4 0 12.5 0z" fill="#ff4444" stroke="#cc0000" stroke-width="1"/>
+        <circle cx="12.5" cy="12.5" r="4" fill="white"/>
+      </svg>
+      <div style="
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 25px;
+        height: 41px;
+        background: radial-gradient(circle, rgba(255,68,68,0.4) 0%, transparent 70%);
+        animation: pulse 1.5s ease-in-out infinite;
+      "></div>
+    </div>
+  `,
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+});
+
+// Regular icon for stationary operators
+const stationaryIcon = L.icon({
+  iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
+  iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
+  shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+});
+
 const CUSTOMER_ID = "CUST-001";
 const CUSTOMER_NAME = "John Doe";
+
+// Track operator locations for real-time updates
+interface OperatorLocation {
+  operatorId: string;
+  lat: number;
+  lng: number;
+  targetLat?: number;
+  targetLng?: number;
+  isMoving: boolean;
+}
 
 export const OperatorMap = () => {
   const mapRef = useRef<L.Map | null>(null);
   const mapContainerRef = useRef<HTMLDivElement>(null);
-  const markersRef = useRef<L.Marker[]>([]);
+  const markersRef = useRef<Map<string, L.Marker>>(new Map());
   const [selectedOperator, setSelectedOperator] = useState<Operator | null>(null);
   const [showAuthDialog, setShowAuthDialog] = useState(false);
   const [tileLayer, setTileLayer] = useState<'map' | 'satellite'>('map');
@@ -36,6 +81,7 @@ export const OperatorMap = () => {
   const [ratingOperator, setRatingOperator] = useState<Operator | null>(null);
   const [rating, setRating] = useState(5);
   const [ratingComment, setRatingComment] = useState("");
+  const [operatorLocations, setOperatorLocations] = useState<Map<string, OperatorLocation>>(new Map());
   const [, navigate] = useLocation();
   const { toast } = useToast();
 
@@ -71,10 +117,31 @@ export const OperatorMap = () => {
       
       return response;
     },
-    onSuccess: (data) => {
+    onSuccess: (data, operator) => {
+      // Start tracking this operator as moving
+      const operatorLat = parseFloat(operator.latitude as string);
+      const operatorLng = parseFloat(operator.longitude as string);
+      
+      // Simulate a destination (offset from current position)
+      const targetLat = operatorLat + (Math.random() - 0.5) * 0.05;
+      const targetLng = operatorLng + (Math.random() - 0.5) * 0.05;
+      
+      setOperatorLocations(prev => {
+        const newMap = new Map(prev);
+        newMap.set(operator.operatorId, {
+          operatorId: operator.operatorId,
+          lat: operatorLat,
+          lng: operatorLng,
+          targetLat,
+          targetLng,
+          isMoving: true,
+        });
+        return newMap;
+      });
+      
       toast({
         title: "Service Request Sent!",
-        description: `Your request has been sent to ${data.operatorName}`,
+        description: `Your request has been sent to ${data.operatorName}. Tracking en route...`,
       });
       navigate(`/customer/service-request?requestId=${data.requestId}`);
     },
@@ -216,22 +283,91 @@ export const OperatorMap = () => {
     };
   }, []);
 
+  // Real-time location updates for moving operators
+  useEffect(() => {
+    if (operatorLocations.size === 0) return;
+    
+    const interval = setInterval(() => {
+      setOperatorLocations(prev => {
+        const newMap = new Map(prev);
+        let hasChanges = false;
+        
+        prev.forEach((location, operatorId) => {
+          if (!location.isMoving || !location.targetLat || !location.targetLng) return;
+          
+          // Calculate distance to target
+          const latDiff = location.targetLat - location.lat;
+          const lngDiff = location.targetLng - location.lng;
+          const distance = Math.sqrt(latDiff * latDiff + lngDiff * lngDiff);
+          
+          // If very close to target, stop moving
+          if (distance < 0.0005) {
+            newMap.set(operatorId, { ...location, isMoving: false });
+            hasChanges = true;
+            return;
+          }
+          
+          // Move 5% of the way toward target each update
+          const newLat = location.lat + latDiff * 0.05;
+          const newLng = location.lng + lngDiff * 0.05;
+          
+          newMap.set(operatorId, {
+            ...location,
+            lat: newLat,
+            lng: newLng,
+          });
+          
+          // Update marker position
+          const marker = markersRef.current.get(operatorId);
+          if (marker) {
+            marker.setLatLng([newLat, newLng]);
+            marker.setIcon(movingIcon);
+          }
+          
+          hasChanges = true;
+        });
+        
+        return hasChanges ? newMap : prev;
+      });
+    }, 2000); // Update every 2 seconds
+    
+    return () => clearInterval(interval);
+  }, [operatorLocations]);
+
   useEffect(() => {
     if (!mapRef.current || !operators) return;
 
+    // Remove all existing markers
     markersRef.current.forEach(marker => marker.remove());
-    markersRef.current = [];
+    markersRef.current.clear();
 
     operators.forEach((operator) => {
-      const lat = parseFloat(operator.latitude as string);
-      const lon = parseFloat(operator.longitude as string);
+      // Check if operator has custom location (is moving)
+      const location = operatorLocations.get(operator.operatorId);
+      const lat = location ? location.lat : parseFloat(operator.latitude as string);
+      const lon = location ? location.lng : parseFloat(operator.longitude as string);
+      
+      // Use moving icon if operator is en route
+      const icon = location?.isMoving ? movingIcon : stationaryIcon;
 
-      const marker = L.marker([lat, lon]).addTo(mapRef.current!);
+      const marker = L.marker([lat, lon], { icon }).addTo(mapRef.current!);
+      
+      // Determine status message
+      let statusHtml = '';
+      if (location) {
+        if (location.isMoving) {
+          statusHtml = '<p style="margin: 4px 0; color: #ff4444;"><strong>Status:</strong> En Route 🚗</p>';
+        } else {
+          statusHtml = '<p style="margin: 4px 0; color: #22c55e;"><strong>Status:</strong> Arrived ✓</p>';
+        }
+      }
+      
       marker.bindPopup(`
         <div style="min-width: 200px;">
           <h3 style="margin: 0 0 8px 0; font-weight: bold;">${operator.name}</h3>
           <p style="margin: 4px 0;"><strong>Rating:</strong> ⭐ ${operator.rating}</p>
           <p style="margin: 4px 0;"><strong>Rate:</strong> $${operator.hourlyRate}/hr</p>
+          ${statusHtml}
         </div>
       `);
 
@@ -240,9 +376,9 @@ export const OperatorMap = () => {
         mapRef.current?.setView([lat, lon], 14);
       });
 
-      markersRef.current.push(marker);
+      markersRef.current.set(operator.operatorId, marker);
     });
-  }, [operators]);
+  }, [operators, operatorLocations]);
 
   useEffect(() => {
     if (!mapRef.current) return;
