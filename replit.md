@@ -15,6 +15,7 @@ Preferred communication style: Simple, everyday language.
 ## Recent Changes (November 2025)
 
 ### UI/UX Redesign - Uber-Inspired Interface
+**Customer Domain:**
 - Complete home page redesign with clean, modern Uber-style interface
 - Clean white background with bold black typography
 - Simplified header with Sign in/Sign up buttons
@@ -22,17 +23,31 @@ Preferred communication style: Simple, everyday language.
 - Features section highlighting key benefits (Fast Response, Verified Operators, Top Rated)
 - Black CTA section at bottom for conversion
 
+**Operator Domain:**
+- Applied Uber-inspired theme to operator dashboard
+- Clean black and white color scheme
+- Modern card-based layout for stats and job requests
+- Consistent typography and spacing across all pages
+
 ### Authentication System
 - Created AuthDialog component with tabbed sign-in/sign-up interface
-- Integrated authentication prompts when requesting services
+- Sign in/Sign up buttons in header trigger authentication dialog
+- Request Service buttons trigger authentication prompt before booking
 - Ready for backend authentication implementation
 
-### Map Implementation
-- Created OperatorMapSimple with Leaflet integration
-- Sidebar showing operator cards with full details
-- Map/Satellite toggle buttons
-- Click-to-select operators with map centering
+### Unified Map Implementation
+- **Consolidated** two redundant map pages (OperatorBrowsing + OperatorMapSimple) into single unified OperatorMap page
+- **Service filters** - Filter operators by service type (Snow Plowing, Towing, Hauling, etc.)
+- **Map/Satellite toggle** - Switch between map and satellite view
+- **Operator sidebar** - Detailed operator cards with ratings, services, vehicles, and pricing
+- **Interactive map** - Click markers to select operators and center map
+- **Authentication integration** - Request Service button triggers auth dialog
 - Note: Map tiles experiencing loading issues in current environment (tried OpenStreetMap, CARTO, Esri providers)
+
+### Code Cleanup
+- Removed redundant OperatorBrowsing.tsx and OperatorMapSimple.tsx files
+- Updated routing to use unified OperatorMap component
+- Both /customer/operators and /customer/operator-map routes now point to unified page
 
 ## System Architecture
 
