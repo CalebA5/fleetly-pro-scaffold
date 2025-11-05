@@ -49,26 +49,33 @@ export const Header = ({ onSignIn, onSignUp, onDriveAndEarn }: HeaderProps) => {
               <span className="ml-2 text-2xl font-bold text-black dark:text-white">Fleetly</span>
             </div>
           </Link>
-          <nav className="flex items-center space-x-4">
+          <nav className="flex items-center gap-2 md:gap-4">
+            {/* AI Assist - Show on all devices */}
             <Link href="/customer/ai-assist">
               <Button 
                 variant="ghost" 
+                size="sm"
                 className="text-purple-700 dark:text-purple-400 hover:text-purple-900 dark:hover:text-purple-300" 
                 data-testid="link-ai-assist"
               >
-                <Sparkles className="w-4 h-4 mr-2" />
-                AI Assist
+                <Sparkles className="w-4 h-4 md:mr-2" />
+                <span className="hidden md:inline">AI Assist</span>
               </Button>
             </Link>
-            <Link href="/customer/operator-map">
-              <Button variant="ghost" className="text-gray-700 dark:text-gray-300" data-testid="link-browse-operators">
+
+            {/* Browse Operators - Hide on small mobile */}
+            <Link href="/customer/operator-map" className="hidden sm:inline">
+              <Button variant="ghost" size="sm" className="text-gray-700 dark:text-gray-300" data-testid="link-browse-operators">
                 Browse Operators
               </Button>
             </Link>
+
+            {/* Drive & Earn - Hide on mobile, available via bottom nav */}
             <Button 
               variant="ghost"
+              size="sm"
               onClick={handleDriveAndEarnClick}
-              className="text-gray-700 dark:text-gray-300"
+              className="hidden md:inline-flex text-gray-700 dark:text-gray-300"
               data-testid="button-earn"
             >
               Drive & Earn
@@ -77,12 +84,14 @@ export const Header = ({ onSignIn, onSignUp, onDriveAndEarn }: HeaderProps) => {
               <>
                 <Button 
                   variant="outline" 
+                  size="sm"
                   onClick={onSignIn}
                   data-testid="button-sign-in"
                 >
                   Sign in
                 </Button>
                 <Button 
+                  size="sm"
                   className="bg-black text-white hover:bg-gray-800 dark:bg-white dark:text-black dark:hover:bg-gray-200" 
                   onClick={onSignUp}
                   data-testid="button-sign-up"

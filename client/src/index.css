@@ -124,6 +124,24 @@ All colors MUST be HSL.
     @apply border-border;
   }
 
+  /* Mobile-friendly touch targets and safe areas */
+  @supports (padding-bottom: env(safe-area-inset-bottom)) {
+    .safe-area-inset-bottom {
+      padding-bottom: env(safe-area-inset-bottom);
+    }
+  }
+
+  /* Improved scrolling on mobile */
+  html {
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+
+  /* Minimum touch target size (44x44px iOS, 48x48px Android) */
+  button, a {
+    min-height: 44px;
+  }
+
   body {
     @apply bg-background text-foreground;
   }

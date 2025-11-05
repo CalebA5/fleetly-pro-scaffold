@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { AuthDialog } from "@/components/AuthDialog";
 import { Header } from "@/components/Header";
+import { MobileBottomNav } from "@/components/MobileBottomNav";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
@@ -106,7 +107,7 @@ export const OperatorMap = () => {
         customerName: CUSTOMER_NAME,
         operatorId: operator.operatorId,
         operatorName: operator.name,
-        service: (operator.services as string[])[0], // Use operator's first service
+        serviceType: (operator.services as string[])[0], // Use operator's first service
         status: "pending",
         location: operator.address,
         estimatedCost: operator.hourlyRate,
@@ -442,7 +443,7 @@ export const OperatorMap = () => {
   }
 
   return (
-    <div className="h-screen flex flex-col bg-white dark:bg-gray-900">
+    <div className="h-screen flex flex-col bg-white dark:bg-gray-900 pb-16 md:pb-0">
       {/* Header */}
       <Header 
         onSignIn={() => {
@@ -756,6 +757,9 @@ export const OperatorMap = () => {
       </Dialog>
 
       <AuthDialog open={showAuthDialog} onOpenChange={setShowAuthDialog} />
+
+      {/* Mobile Bottom Navigation */}
+      <MobileBottomNav />
     </div>
   );
 };

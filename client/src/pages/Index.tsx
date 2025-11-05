@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { AuthDialog } from "@/components/AuthDialog";
 import { Header } from "@/components/Header";
+import { MobileBottomNav } from "@/components/MobileBottomNav";
 import { useAuth } from "@/contexts/AuthContext";
 import { MapPin, ArrowRight, Truck, Clock, Shield, Star, Search } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -333,6 +334,9 @@ const Index = () => {
         defaultTab={authTab}
         signupRole={signupRole}
       />
+
+      {/* Mobile Bottom Navigation */}
+      {isAuthenticated && user?.role === "customer" && <MobileBottomNav />}
     </div>
   );
 };
