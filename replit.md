@@ -14,14 +14,31 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes (November 2025)
 
-### UI/UX Redesign - Uber-Inspired Interface
-**Customer Domain:**
-- Complete home page redesign with clean, modern Uber-style interface
-- Clean white background with bold black typography
-- Simplified header with Sign in/Sign up buttons
-- Hero section with large heading and visual service cards
-- Features section highlighting key benefits (Fast Response, Verified Operators, Top Rated)
-- Black CTA section at bottom for conversion
+### Unified Landing Page - Uber-Inspired Redesign (November 2025)
+**Complete landing experience overhaul** to match Uber's proven customer acquisition pattern:
+
+**Single Customer-Focused Homepage**
+- Unified landing page (Index.tsx) replacing separate customer/operator landing pages
+- Clean, modern header with navigation: Browse Operators, Drive & Earn, Sign in, Sign up
+- Interactive Uber-style pickup/dropoff location inputs in hero section
+- Real-time availability preview showing "5 min away" for services after location search
+- Browse operators functionality accessible without authentication
+- "Drive & Earn" button for operators triggers auth dialog for registration
+- Professional operators shown without requiring login (similar to Uber's browse experience)
+
+**Interactive Service Discovery Flow**
+- Two-step user journey: Enter location → See availability → Sign in to book
+- Service cards (Snow Plowing, Towing, Hauling) show estimated arrival times and pricing
+- Clicking service cards triggers authentication before booking (Uber pattern)
+- "See available operators" button toggles availability preview dynamically
+- Maintains simplicity while adding engaging interactivity
+
+**Features & Content Organization**
+- Moved all key content from CustomerHome to main landing page
+- "Why choose Fleetly" features section with Fast Response, Verified Operators, Top Rated
+- Black CTA section at bottom encouraging operator sign-ups
+- Sticky header for easy navigation throughout scrolling experience
+- All proper test IDs for UI testing across interactive elements
 
 **Operator Domain:**
 - Applied Uber-inspired theme to operator dashboard
