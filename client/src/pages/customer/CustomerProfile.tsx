@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
@@ -33,7 +33,7 @@ export const CustomerProfile = () => {
   const { toast } = useToast();
 
   const { data: customer, isLoading } = useQuery<Customer>({
-    queryKey: ["/api/customers", CUSTOMER_ID],
+    queryKey: [`/api/customers/${CUSTOMER_ID}`],
   });
 
   const updateMutation = useMutation({
@@ -44,7 +44,7 @@ export const CustomerProfile = () => {
         headers: { "Content-Type": "application/json" },
       }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/customers", CUSTOMER_ID] });
+      queryClient.invalidateQueries({ queryKey: [`/api/customers/${CUSTOMER_ID}`] });
       setIsEditing(false);
       toast({
         title: "Profile Updated",
@@ -63,28 +63,30 @@ export const CustomerProfile = () => {
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileFormSchema),
     defaultValues: {
-      name: customer?.name || "",
-      email: customer?.email || "",
-      phone: customer?.phone || "",
-      address: customer?.address || "",
-      city: customer?.city || "",
-      state: customer?.state || "",
-      zipCode: customer?.zipCode || "",
+      name: "",
+      email: "",
+      phone: "",
+      address: "",
+      city: "",
+      state: "",
+      zipCode: "",
     },
   });
 
   // Update form when customer data loads
-  if (customer && !form.formState.isDirty) {
-    form.reset({
-      name: customer.name,
-      email: customer.email,
-      phone: customer.phone,
-      address: customer.address || "",
-      city: customer.city || "",
-      state: customer.state || "",
-      zipCode: customer.zipCode || "",
-    });
-  }
+  useEffect(() => {
+    if (customer) {
+      form.reset({
+        name: customer.name,
+        email: customer.email,
+        phone: customer.phone,
+        address: customer.address || "",
+        city: customer.city || "",
+        state: customer.state || "",
+        zipCode: customer.zipCode || "",
+      });
+    }
+  }, [customer, form]);
 
   const onSubmit = (data: ProfileFormValues) => {
     updateMutation.mutate(data);
