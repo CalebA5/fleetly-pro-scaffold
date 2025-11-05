@@ -35,9 +35,10 @@ export const OperatorMapSimple = () => {
 
     const map = L.map(mapContainerRef.current).setView([40.7589, -73.9851], 12);
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '&copy; OpenStreetMap contributors',
-      maxZoom: 19,
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+      attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
+      subdomains: 'abcd',
+      maxZoom: 20,
     }).addTo(map);
 
     L.control.zoom({ position: 'topright' }).addTo(map);
@@ -81,7 +82,7 @@ export const OperatorMapSimple = () => {
   useEffect(() => {
     if (!mapRef.current) return;
 
-    const currentLayers = mapRef.current.eachLayer((layer) => {
+    mapRef.current.eachLayer((layer) => {
       if (layer instanceof L.TileLayer) {
         mapRef.current?.removeLayer(layer);
       }
@@ -89,13 +90,17 @@ export const OperatorMapSimple = () => {
 
     const url = tileLayer === 'satellite'
       ? 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
-      : 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+      : 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
 
     const attribution = tileLayer === 'satellite'
       ? 'Tiles &copy; Esri'
-      : '&copy; OpenStreetMap contributors';
+      : '&copy; OpenStreetMap contributors &copy; CARTO';
 
-    L.tileLayer(url, { attribution, maxZoom: 19 }).addTo(mapRef.current);
+    const options = tileLayer === 'satellite'
+      ? { attribution, maxZoom: 19 }
+      : { attribution, subdomains: 'abcd', maxZoom: 20 };
+
+    L.tileLayer(url, options).addTo(mapRef.current);
   }, [tileLayer]);
 
   const handleRequestService = () => {
@@ -157,7 +162,7 @@ export const OperatorMapSimple = () => {
       <div className="flex-1 flex overflow-hidden">
         {/* Map */}
         <div className="flex-1 relative">
-          <div ref={mapContainerRef} className="w-full h-full" />
+          <div ref={mapContainerRef} style={{ width: '100%', height: '100%' }} className="leaflet-container" />
         </div>
 
         {/* Sidebar */}

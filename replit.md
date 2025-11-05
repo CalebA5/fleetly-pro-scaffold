@@ -6,9 +6,33 @@ Fleetly is a professional on-demand service platform connecting customers with v
 
 The platform is built as a full-stack TypeScript application using React for the frontend and Express for the backend, with a focus on real-time service booking, job tracking, and professional service delivery.
 
+**Design Philosophy:** Inspired by Uber's clean, modern interface with emphasis on simplicity and ease of use. Features a black-and-white color scheme with minimal design elements and bold typography.
+
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
+
+## Recent Changes (November 2025)
+
+### UI/UX Redesign - Uber-Inspired Interface
+- Complete home page redesign with clean, modern Uber-style interface
+- Clean white background with bold black typography
+- Simplified header with Sign in/Sign up buttons
+- Hero section with large heading and visual service cards
+- Features section highlighting key benefits (Fast Response, Verified Operators, Top Rated)
+- Black CTA section at bottom for conversion
+
+### Authentication System
+- Created AuthDialog component with tabbed sign-in/sign-up interface
+- Integrated authentication prompts when requesting services
+- Ready for backend authentication implementation
+
+### Map Implementation
+- Created OperatorMapSimple with Leaflet integration
+- Sidebar showing operator cards with full details
+- Map/Satellite toggle buttons
+- Click-to-select operators with map centering
+- Note: Map tiles experiencing loading issues in current environment (tried OpenStreetMap, CARTO, Esri providers)
 
 ## System Architecture
 
