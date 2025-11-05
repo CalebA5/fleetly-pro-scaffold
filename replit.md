@@ -46,11 +46,33 @@ Preferred communication style: Simple, everyday language.
 - Modern card-based layout for stats and job requests
 - Consistent typography and spacing across all pages
 
-### Authentication System
-- Created AuthDialog component with tabbed sign-in/sign-up interface
-- Sign in/Sign up buttons in header trigger authentication dialog
-- Request Service buttons trigger authentication prompt before booking
-- Ready for backend authentication implementation
+### Dynamic Authentication System (November 2025)
+**Unified User Experience** - Users can be customers, operators, or both with a single account
+
+**Core Components:**
+- **AuthContext** - React Context managing authentication state with in-memory user database
+  - Preserves user role (customer/operator/both) and operator profile completion across sessions
+  - Mock authentication ready for backend integration
+- **ProfileDropdown** - Authenticated user menu with Profile, Drive & Earn, Request Services, Help & Support, Sign out
+- **AuthDialog** - Tabbed sign-in/sign-up with role-based signup (customer or operator)
+  - Tab synchronization ensures correct form appears (signin/signup) when triggered
+  - Operator signups automatically redirect to onboarding after account creation
+
+**Smart Drive & Earn Flow:**
+- **Unauthenticated users:** Click Drive & Earn → Sign up dialog (operator role) → Onboarding page
+- **Authenticated without operator profile:** Click Drive & Earn → Prompt to complete profile → Onboarding page
+- **Authenticated with complete profile:** Click Drive & Earn → Direct access to operator dashboard
+
+**Header Behavior:**
+- **Not signed in:** Shows Browse Operators, Drive & Earn, Sign in, Sign up buttons
+- **Signed in:** Shows Browse Operators, Drive & Earn, and profile icon with dropdown menu
+- Sign in/Sign up buttons dynamically hidden when authenticated
+
+**Operator Onboarding:**
+- Multi-step form for business info, vehicle details, services, and documents
+- Marks operator profile as complete upon submission
+- Redirects to operator dashboard after completion
+- Profile completion state persists across sign-out/sign-in cycles
 
 ### Unified Map Implementation
 - **Consolidated** two redundant map pages (OperatorBrowsing + OperatorMapSimple) into single unified OperatorMap page
