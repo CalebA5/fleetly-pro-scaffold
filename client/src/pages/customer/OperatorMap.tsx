@@ -408,9 +408,12 @@ export const OperatorMap = () => {
 
   const handleRequestService = (operator: Operator, e: React.MouseEvent) => {
     e.stopPropagation();
-    // TODO: In future, show auth dialog first, then create request after auth
-    // For now, directly create request like the original OperatorBrowsing page
-    createServiceRequestMutation.mutate(operator);
+    // Navigate to detailed service request form
+    // Pre-fill service type if operator has services
+    const service = operator.services && (operator.services as string[]).length > 0 
+      ? (operator.services as string[])[0] 
+      : "";
+    navigate(`/customer/create-request?service=${encodeURIComponent(service)}`);
   };
 
   const services = ["All", "Snow Plowing", "Towing", "Hauling", "Courier", "Ice Removal", "Roadside Assistance"];
@@ -641,10 +644,9 @@ export const OperatorMap = () => {
                       className="flex-1 bg-black text-white hover:bg-gray-800 dark:bg-white dark:text-black dark:hover:bg-gray-200"
                       size="sm"
                       onClick={(e) => handleRequestService(operator, e)}
-                      disabled={!operator.isOnline || createServiceRequestMutation.isPending}
                       data-testid={`button-request-${operator.operatorId}`}
                     >
-                      {createServiceRequestMutation.isPending ? "Sending..." : "Request Service"}
+                      Request Service
                     </Button>
                     <Button
                       variant="outline"
