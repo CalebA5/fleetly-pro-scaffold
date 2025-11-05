@@ -20,10 +20,12 @@ export const CustomerHome = () => {
       <header className="border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
-            <div className="flex items-center">
-              <Truck className="w-8 h-8 text-black dark:text-white" />
-              <span className="ml-2 text-2xl font-bold text-black dark:text-white">Fleetly</span>
-            </div>
+            <Link href="/customer/">
+              <div className="flex items-center cursor-pointer hover:opacity-80 transition-opacity" data-testid="link-home-logo">
+                <Truck className="w-8 h-8 text-black dark:text-white icon-warm-glow" />
+                <span className="ml-2 text-2xl font-bold text-black dark:text-white">Fleetly</span>
+              </div>
+            </Link>
             <nav className="flex items-center space-x-4">
               <Link href="/customer/operator-map">
                 <Button variant="ghost" className="text-gray-700 dark:text-gray-300" data-testid="link-find-operators">
@@ -49,22 +51,29 @@ export const CustomerHome = () => {
         </div>
       </header>
 
-      {/* Hero Section */}
-      <section className="relative bg-white dark:bg-gray-900 py-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      {/* Hero Section with Animated Background */}
+      <section className="relative bg-white dark:bg-gray-900 py-20 overflow-hidden">
+        {/* Animated Background Gradient */}
+        <div className="absolute inset-0 bg-gradient-to-br from-orange-50 via-white to-amber-50 dark:from-gray-900 dark:via-gray-900 dark:to-gray-800 animate-gradient-shift"></div>
+        
+        {/* Floating Decorative Elements */}
+        <div className="absolute top-20 right-10 w-32 h-32 bg-orange-200/30 dark:bg-orange-500/10 rounded-full blur-3xl animate-float"></div>
+        <div className="absolute bottom-20 left-10 w-40 h-40 bg-amber-200/30 dark:bg-amber-500/10 rounded-full blur-3xl animate-float-delayed"></div>
+        
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 z-10">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-            <div>
-              <h1 className="text-5xl lg:text-6xl font-bold text-black dark:text-white leading-tight mb-6">
+            <div className="animate-slide-up">
+              <h1 className="text-5xl lg:text-6xl font-bold text-black dark:text-white leading-tight mb-6 text-warm-shadow">
                 On-demand trucking and specialty services
               </h1>
-              <p className="text-xl text-gray-600 dark:text-gray-400 mb-8">
+              <p className="text-xl text-gray-600 dark:text-gray-400 mb-8 animate-fade-in">
                 Request snow plowing, towing, hauling, and courier services with just a few taps. Professional operators ready to help.
               </p>
               <div className="flex flex-col sm:flex-row gap-4">
                 <Link href="/customer/operator-map">
                   <Button 
                     size="lg" 
-                    className="bg-black text-white hover:bg-gray-800 dark:bg-white dark:text-black dark:hover:bg-gray-200 text-lg px-8 py-6 h-auto"
+                    className="bg-black text-white hover:bg-gray-800 dark:bg-white dark:text-black dark:hover:bg-gray-200 text-lg px-8 py-6 h-auto shadow-warm-glow hover:scale-105 transition-all"
                     data-testid="button-get-started"
                   >
                     Get started
@@ -75,7 +84,7 @@ export const CustomerHome = () => {
                   <Button 
                     variant="outline" 
                     size="lg" 
-                    className="text-lg px-8 py-6 h-auto border-2"
+                    className="text-lg px-8 py-6 h-auto border-2 hover:scale-105 transition-all"
                     data-testid="button-browse-operators"
                   >
                     Browse operators
@@ -83,13 +92,13 @@ export const CustomerHome = () => {
                 </Link>
               </div>
             </div>
-            <div className="relative">
-              <div className="bg-gradient-to-br from-blue-50 to-gray-100 dark:from-gray-800 dark:to-gray-700 rounded-2xl p-8 shadow-2xl">
+            <div className="relative animate-slide-in-right">
+              <div className="bg-gradient-to-br from-blue-50 to-gray-100 dark:from-gray-800 dark:to-gray-700 rounded-2xl p-8 shadow-2xl shadow-warm">
                 <div className="space-y-4">
-                  <div className="flex items-center justify-between p-4 bg-white dark:bg-gray-900 rounded-lg shadow">
+                  <div className="flex items-center justify-between p-4 bg-white dark:bg-gray-900 rounded-lg shadow-warm hover:shadow-warm-glow transition-all hover:scale-105 animate-slide-up" style={{animationDelay: '0.1s'}}>
                     <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 bg-black dark:bg-white rounded-full flex items-center justify-center">
-                        <Truck className="w-6 h-6 text-white dark:text-black" />
+                      <div className="w-12 h-12 bg-black dark:bg-white rounded-full flex items-center justify-center shadow-warm">
+                        <Truck className="w-6 h-6 text-white dark:text-black icon-warm-glow" />
                       </div>
                       <div>
                         <p className="font-semibold text-black dark:text-white">Snow Plowing</p>
@@ -98,10 +107,10 @@ export const CustomerHome = () => {
                     </div>
                     <p className="font-bold text-black dark:text-white">$95/hr</p>
                   </div>
-                  <div className="flex items-center justify-between p-4 bg-white dark:bg-gray-900 rounded-lg shadow">
+                  <div className="flex items-center justify-between p-4 bg-white dark:bg-gray-900 rounded-lg shadow-warm hover:shadow-warm-glow transition-all hover:scale-105 animate-slide-up" style={{animationDelay: '0.2s'}}>
                     <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 bg-black dark:bg-white rounded-full flex items-center justify-center">
-                        <Truck className="w-6 h-6 text-white dark:text-black" />
+                      <div className="w-12 h-12 bg-black dark:bg-white rounded-full flex items-center justify-center shadow-warm">
+                        <Truck className="w-6 h-6 text-white dark:text-black icon-warm-glow" />
                       </div>
                       <div>
                         <p className="font-semibold text-black dark:text-white">Towing</p>
@@ -110,10 +119,10 @@ export const CustomerHome = () => {
                     </div>
                     <p className="font-bold text-black dark:text-white">$125/hr</p>
                   </div>
-                  <div className="flex items-center justify-between p-4 bg-white dark:bg-gray-900 rounded-lg shadow">
+                  <div className="flex items-center justify-between p-4 bg-white dark:bg-gray-900 rounded-lg shadow-warm hover:shadow-warm-glow transition-all hover:scale-105 animate-slide-up" style={{animationDelay: '0.3s'}}>
                     <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 bg-black dark:bg-white rounded-full flex items-center justify-center">
-                        <Truck className="w-6 h-6 text-white dark:text-black" />
+                      <div className="w-12 h-12 bg-black dark:bg-white rounded-full flex items-center justify-center shadow-warm">
+                        <Truck className="w-6 h-6 text-white dark:text-black icon-warm-glow" />
                       </div>
                       <div>
                         <p className="font-semibold text-black dark:text-white">Hauling</p>
@@ -136,27 +145,27 @@ export const CustomerHome = () => {
             Why choose Fleetly
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <Card className="p-8 text-center border-0 shadow-lg">
-              <div className="w-16 h-16 bg-black dark:bg-white rounded-full flex items-center justify-center mx-auto mb-4">
-                <Clock className="w-8 h-8 text-white dark:text-black" />
+            <Card className="p-8 text-center border-0 shadow-warm hover:shadow-warm-glow transition-all">
+              <div className="w-16 h-16 bg-black dark:bg-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-warm">
+                <Clock className="w-8 h-8 text-white dark:text-black icon-warm-glow" />
               </div>
               <h3 className="text-xl font-bold mb-2 text-black dark:text-white">Fast response</h3>
               <p className="text-gray-600 dark:text-gray-400">
                 Operators arrive quickly when you need them most. Real-time tracking included.
               </p>
             </Card>
-            <Card className="p-8 text-center border-0 shadow-lg">
-              <div className="w-16 h-16 bg-black dark:bg-white rounded-full flex items-center justify-center mx-auto mb-4">
-                <Shield className="w-8 h-8 text-white dark:text-black" />
+            <Card className="p-8 text-center border-0 shadow-warm hover:shadow-warm-glow transition-all">
+              <div className="w-16 h-16 bg-black dark:bg-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-warm">
+                <Shield className="w-8 h-8 text-white dark:text-black icon-warm-glow" />
               </div>
               <h3 className="text-xl font-bold mb-2 text-black dark:text-white">Verified operators</h3>
               <p className="text-gray-600 dark:text-gray-400">
                 All operators are background-checked and professionally licensed.
               </p>
             </Card>
-            <Card className="p-8 text-center border-0 shadow-lg">
-              <div className="w-16 h-16 bg-black dark:bg-white rounded-full flex items-center justify-center mx-auto mb-4">
-                <Star className="w-8 h-8 text-white dark:text-black" />
+            <Card className="p-8 text-center border-0 shadow-warm hover:shadow-warm-glow transition-all">
+              <div className="w-16 h-16 bg-black dark:bg-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-warm">
+                <Star className="w-8 h-8 text-white dark:text-black icon-warm-glow" />
               </div>
               <h3 className="text-xl font-bold mb-2 text-black dark:text-white">Top rated</h3>
               <p className="text-gray-600 dark:text-gray-400">

@@ -61,6 +61,12 @@ All colors MUST be HSL.
     --shadow-md: 0 4px 6px -1px hsl(215 85% 35% / 0.1), 0 2px 4px -1px hsl(215 85% 35% / 0.06);
     --shadow-lg: 0 10px 15px -3px hsl(215 85% 35% / 0.1), 0 4px 6px -2px hsl(215 85% 35% / 0.05);
     --shadow-glow: 0 0 20px hsl(215 85% 35% / 0.3);
+    
+    /* Warm Accent Shadows - Subtle orange/amber glows */
+    --shadow-warm: 0 2px 8px hsl(25 95% 55% / 0.15);
+    --shadow-warm-glow: 0 0 15px hsl(25 95% 55% / 0.25), 0 0 30px hsl(25 95% 55% / 0.1);
+    --text-warm-shadow: 0 2px 4px hsl(25 95% 55% / 0.2);
+    --icon-warm-glow: drop-shadow(0 2px 4px hsl(25 95% 55% / 0.3));
 
     /* Transitions */
     --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -195,6 +201,39 @@ All colors MUST be HSL.
     }
   }
 
+  @keyframes float {
+    0%, 100% {
+      transform: translateY(0px) translateX(0px);
+    }
+    33% {
+      transform: translateY(-20px) translateX(10px);
+    }
+    66% {
+      transform: translateY(-10px) translateX(-10px);
+    }
+  }
+
+  @keyframes float-delayed {
+    0%, 100% {
+      transform: translateY(0px) translateX(0px);
+    }
+    33% {
+      transform: translateY(15px) translateX(-15px);
+    }
+    66% {
+      transform: translateY(25px) translateX(10px);
+    }
+  }
+
+  @keyframes gradient-shift {
+    0%, 100% {
+      background-position: 0% 50%;
+    }
+    50% {
+      background-position: 100% 50%;
+    }
+  }
+
   .animate-fade-in {
     animation: fade-in 0.5s ease-out;
   }
@@ -226,6 +265,19 @@ All colors MUST be HSL.
     animation: pulse-glow 2s ease-in-out infinite;
   }
 
+  .animate-float {
+    animation: float 8s ease-in-out infinite;
+  }
+
+  .animate-float-delayed {
+    animation: float-delayed 10s ease-in-out infinite;
+  }
+
+  .animate-gradient-shift {
+    background-size: 200% 200%;
+    animation: gradient-shift 8s ease infinite;
+  }
+
   /* Premium Gradients */
   .bg-gradient-primary {
     background: var(--gradient-primary);
@@ -242,6 +294,23 @@ All colors MUST be HSL.
   /* Premium Shadows */
   .shadow-glow {
     box-shadow: var(--shadow-glow);
+  }
+  
+  /* Warm Accent Shadows */
+  .shadow-warm {
+    box-shadow: var(--shadow-warm);
+  }
+  
+  .shadow-warm-glow {
+    box-shadow: var(--shadow-warm-glow);
+  }
+  
+  .text-warm-shadow {
+    text-shadow: var(--text-warm-shadow);
+  }
+  
+  .icon-warm-glow {
+    filter: var(--icon-warm-glow);
   }
 
   /* Smooth Transitions */
