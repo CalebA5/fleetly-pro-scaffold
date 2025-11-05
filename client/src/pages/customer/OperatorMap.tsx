@@ -84,6 +84,7 @@ export const OperatorMap = () => {
   const [rating, setRating] = useState(5);
   const [ratingComment, setRatingComment] = useState("");
   const [operatorLocations, setOperatorLocations] = useState<Map<string, OperatorLocation>>(new Map());
+  const [mapLoaded, setMapLoaded] = useState(false);
   const [, navigate] = useLocation();
   const { toast } = useToast();
 
@@ -93,7 +94,7 @@ export const OperatorMap = () => {
 
   // Fetch customer's favorites
   const { data: favorites = [] } = useQuery<Favorite[]>({
-    queryKey: ['/api/favorites', CUSTOMER_ID],
+    queryKey: [`/api/favorites/${CUSTOMER_ID}`],
   });
 
   const createServiceRequestMutation = useMutation({
@@ -166,7 +167,7 @@ export const OperatorMap = () => {
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/favorites', CUSTOMER_ID] });
+      queryClient.invalidateQueries({ queryKey: [`/api/favorites/${CUSTOMER_ID}`] });
       toast({
         title: "Added to Favorites",
         description: "Operator added to your favorites",
@@ -189,7 +190,7 @@ export const OperatorMap = () => {
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/favorites', CUSTOMER_ID] });
+      queryClient.invalidateQueries({ queryKey: [`/api/favorites/${CUSTOMER_ID}`] });
       toast({
         title: "Removed from Favorites",
         description: "Operator removed from your favorites",
@@ -269,19 +270,30 @@ export const OperatorMap = () => {
 
     const map = L.map(mapContainerRef.current).setView([40.7589, -73.9851], 12);
 
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+    const tileLayerInstance = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
       attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
       subdomains: 'abcd',
       maxZoom: 20,
-    }).addTo(map);
+    });
+
+    tileLayerInstance.on('load', () => {
+      setMapLoaded(true);
+    });
+
+    tileLayerInstance.addTo(map);
+
+    // Set loaded after a short timeout as fallback
+    const timeoutId = setTimeout(() => setMapLoaded(true), 1000);
 
     L.control.zoom({ position: 'topright' }).addTo(map);
 
     mapRef.current = map;
 
     return () => {
+      clearTimeout(timeoutId);
       map.remove();
       mapRef.current = null;
+      setMapLoaded(false);
     };
   }, []);
 
@@ -498,6 +510,14 @@ export const OperatorMap = () => {
       <div className="flex-1 flex overflow-hidden">
         {/* Map */}
         <div className="flex-1 relative">
+          {!mapLoaded && (
+            <div className="absolute inset-0 bg-white dark:bg-gray-900 z-10 flex items-center justify-center">
+              <div className="text-center">
+                <div className="w-12 h-12 border-4 border-gray-300 border-t-black rounded-full animate-spin mx-auto mb-3"></div>
+                <p className="text-gray-600 dark:text-gray-400 text-sm">Loading map...</p>
+              </div>
+            </div>
+          )}
           <div ref={mapContainerRef} style={{ width: '100%', height: '100%' }} className="leaflet-container" />
         </div>
 
