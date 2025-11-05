@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/enhanced-button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -13,7 +13,9 @@ import {
   Users,
   TrendingUp,
   AlertCircle,
-  CheckCircle
+  CheckCircle,
+  Target,
+  Timer
 } from "lucide-react";
 
 const mockOperatorData = {
@@ -60,8 +62,68 @@ const pendingJobs = [
   },
 ];
 
+// Mock nearby opportunities - customers in the same area who used the service recently
+const nearbyOpportunities = [
+  {
+    id: "OPP-001",
+    customerName: "Sarah Johnson",
+    location: "442 Oak Street",
+    service: "Snow Plowing",
+    lastService: "3 days ago",
+    distance: "0.2 miles",
+    rating: 4.8,
+    estimatedEarnings: 90.00,
+  },
+  {
+    id: "OPP-002",
+    customerName: "David Chen",
+    location: "458 Oak Street",
+    service: "Snow Plowing",
+    lastService: "5 days ago",
+    distance: "0.3 miles",
+    rating: 4.9,
+    estimatedEarnings: 95.00,
+  },
+  {
+    id: "OPP-003",
+    customerName: "Maria Garcia",
+    location: "465 Oak Street",
+    service: "Ice Removal",
+    lastService: "2 days ago",
+    distance: "0.4 miles",
+    rating: 4.7,
+    estimatedEarnings: 65.00,
+  },
+];
+
 export const OperatorHome = () => {
   const [isOnline, setIsOnline] = useState(mockOperatorData.isOnline);
+  const [showNearbyPrompt, setShowNearbyPrompt] = useState(true);
+  const [timeRemaining, setTimeRemaining] = useState(240); // 4 minutes in seconds
+
+  // Countdown timer for nearby opportunities prompt
+  useEffect(() => {
+    if (!showNearbyPrompt) return;
+    
+    const interval = setInterval(() => {
+      setTimeRemaining(prev => {
+        if (prev <= 1) {
+          setShowNearbyPrompt(false);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    
+    return () => clearInterval(interval);
+  }, [showNearbyPrompt]);
+
+  // Format time remaining as MM:SS
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
 
   const getUrgencyColor = (urgency: string) => {
     switch (urgency) {
@@ -117,6 +179,110 @@ export const OperatorHome = () => {
       </header>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Nearby Opportunities Prompt */}
+        {showNearbyPrompt && (
+          <Card className="mb-8 border-2 border-orange-500 dark:border-orange-600 shadow-warm-glow animate-pulse-glow">
+            <CardContent className="p-6">
+              <div className="flex items-start justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-3 bg-orange-100 dark:bg-orange-900 rounded-full">
+                    <Target className="w-6 h-6 text-orange-600 dark:text-orange-400 icon-warm-glow" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold text-black dark:text-white flex items-center gap-2">
+                      Nearby Opportunities in Your Area!
+                      <Badge className="bg-orange-500 dark:bg-orange-600 text-white">
+                        Hot Lead
+                      </Badge>
+                    </h3>
+                    <p className="text-gray-600 dark:text-gray-400">
+                      {nearbyOpportunities.length} customers in the same area need service
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-4">
+                  <div className="text-right">
+                    <div className="flex items-center gap-2 text-orange-600 dark:text-orange-400 font-bold text-2xl">
+                      <Timer className="w-6 h-6 animate-pulse" />
+                      {formatTime(timeRemaining)}
+                    </div>
+                    <p className="text-xs text-gray-500 dark:text-gray-500">Time remaining</p>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowNearbyPrompt(false)}
+                    data-testid="button-dismiss-nearby"
+                  >
+                    ✕
+                  </Button>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                {nearbyOpportunities.map((opp) => (
+                  <Card key={opp.id} className="border border-gray-200 dark:border-gray-700">
+                    <CardContent className="p-4">
+                      <div className="flex justify-between items-start mb-2">
+                        <div>
+                          <h4 className="font-bold text-black dark:text-white">{opp.customerName}</h4>
+                          <p className="text-sm text-gray-600 dark:text-gray-400">{opp.service}</p>
+                        </div>
+                        <Badge variant="outline" className="text-xs">
+                          {opp.distance}
+                        </Badge>
+                      </div>
+                      <div className="space-y-1 text-sm text-gray-600 dark:text-gray-400 mb-3">
+                        <div className="flex items-center gap-1">
+                          <MapPin className="w-3 h-3" />
+                          <span>{opp.location}</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="flex items-center gap-1">
+                            <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
+                            {opp.rating}
+                          </span>
+                          <span className="text-xs">Last: {opp.lastService}</span>
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-between pt-2 border-t border-gray-200 dark:border-gray-700">
+                        <span className="font-bold text-green-600 dark:text-green-400">
+                          ${opp.estimatedEarnings.toFixed(2)}
+                        </span>
+                        <Button
+                          size="sm"
+                          className="bg-orange-500 hover:bg-orange-600 dark:bg-orange-600 dark:hover:bg-orange-700 text-white"
+                          data-testid={`button-contact-${opp.id}`}
+                        >
+                          Contact
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+
+              <div className="flex justify-center gap-3">
+                <Button
+                  size="lg"
+                  className="bg-orange-500 hover:bg-orange-600 dark:bg-orange-600 dark:hover:bg-orange-700 text-white px-8"
+                  data-testid="button-contact-all"
+                >
+                  Contact All Customers
+                </Button>
+                <Button
+                  variant="outline"
+                  size="lg"
+                  onClick={() => setShowNearbyPrompt(false)}
+                  data-testid="button-snooze"
+                >
+                  Snooze for Later
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <Card className="border-0 shadow-warm hover:shadow-warm-glow transition-all">
