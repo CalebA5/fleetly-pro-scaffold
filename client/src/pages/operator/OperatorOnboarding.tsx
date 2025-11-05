@@ -102,6 +102,19 @@ export const OperatorOnboarding = () => {
     }, 1500);
   };
 
+  const handleSkip = () => {
+    // Mark profile as complete even if they skip
+    updateUser({ operatorProfileComplete: true });
+    
+    toast({
+      title: "Welcome to Fleetly!",
+      description: "You can complete your profile later from your dashboard.",
+    });
+    
+    // Redirect to operator dashboard
+    setLocation("/operator");
+  };
+
   const steps = [
     { number: 1, title: "Business Info", icon: FileText },
     { number: 2, title: "Vehicle Details", icon: Truck },
@@ -112,17 +125,19 @@ export const OperatorOnboarding = () => {
   return (
     <div className="container mx-auto px-4 py-8">
       {/* Header */}
-      <div className="flex items-center space-x-4 mb-8">
-        <Link to="/operator">
-          <Button variant="ghost" size="sm">
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Dashboard
-          </Button>
-        </Link>
+      <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
         <div>
-          <h1 className="text-3xl font-bold">Operator Onboarding</h1>
-          <p className="text-muted-foreground">Complete your profile to start accepting jobs</p>
+          <h1 className="text-3xl font-bold text-black dark:text-white">Operator Onboarding</h1>
+          <p className="text-gray-600 dark:text-gray-400">Complete your profile to start accepting jobs</p>
         </div>
+        <Button 
+          variant="ghost" 
+          onClick={handleSkip}
+          className="text-gray-600 dark:text-gray-400 hover:text-black dark:hover:text-white"
+          data-testid="button-skip-onboarding"
+        >
+          Skip for Now →
+        </Button>
       </div>
 
       {/* Progress Steps */}
@@ -401,22 +416,34 @@ export const OperatorOnboarding = () => {
           )}
 
           {/* Navigation Buttons */}
-          <div className="flex justify-between pt-6">
+          <div className="flex flex-col sm:flex-row justify-between gap-3 pt-6 border-t border-gray-200 dark:border-gray-700">
             <Button 
               variant="outline" 
               onClick={prevStep}
               disabled={currentStep === 1}
+              className="order-2 sm:order-1"
+              data-testid="button-previous-step"
             >
-              Previous
+              ← Previous
             </Button>
             
             {currentStep < 4 ? (
-              <Button onClick={nextStep} variant="hero">
-                Next Step
+              <Button 
+                onClick={nextStep} 
+                className="bg-black text-white hover:bg-gray-800 dark:bg-white dark:text-black dark:hover:bg-gray-200 font-semibold order-1 sm:order-2"
+                size="lg"
+                data-testid="button-next-step"
+              >
+                Next Step →
               </Button>
             ) : (
-              <Button onClick={handleSubmit} variant="success">
-                Submit Application
+              <Button 
+                onClick={handleSubmit} 
+                className="bg-green-600 text-white hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600 font-semibold order-1 sm:order-2"
+                size="lg"
+                data-testid="button-submit-application"
+              >
+                Submit Application ✓
               </Button>
             )}
           </div>
