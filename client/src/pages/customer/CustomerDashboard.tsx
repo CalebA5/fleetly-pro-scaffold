@@ -3,6 +3,7 @@ import { CustomerHome } from "./CustomerHome";
 import { ServiceSelection } from "./ServiceSelection";
 import { JobTracking } from "./JobTracking";
 import { JobHistory } from "./JobHistory";
+import { OperatorBrowsing } from "./OperatorBrowsing";
 
 export const CustomerDashboard = () => {
   return (
@@ -10,6 +11,7 @@ export const CustomerDashboard = () => {
       <Switch>
         <Route path="/customer" component={CustomerHome} />
         <Route path="/customer/services" component={ServiceSelection} />
+        <Route path="/customer/operators" component={OperatorBrowsing} />
         <Route path="/customer/tracking" component={JobTracking} />
         <Route path="/customer/history" component={JobHistory} />
       </Switch>

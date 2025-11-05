@@ -181,12 +181,17 @@ export const ServiceSelection = () => {
             ) : (
               <div className="space-y-4">
                 <p className="text-muted-foreground text-center py-8">
-                  Manual service browser coming soon. For now, use the AI recommender or go back to the service grid.
+                  Browse available operators on an interactive map and see their real-time availability.
                 </p>
+                <Link to="/customer/operators">
+                  <Button variant="hero" className="w-full" data-testid="button-browse-operators">
+                    <Truck className="w-4 h-4 mr-2" />
+                    Browse Operators on Map
+                  </Button>
+                </Link>
                 <Link to="/customer">
                   <Button variant="outline" className="w-full">
-                    <Truck className="w-4 h-4 mr-2" />
-                    Browse Service Grid
+                    Back to Services
                   </Button>
                 </Link>
               </div>
