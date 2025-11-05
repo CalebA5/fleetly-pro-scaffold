@@ -19,7 +19,7 @@ The design philosophy is inspired by Uber's clean, modern interface, emphasizing
 
 ### Feature Specifications
 - **AI Assist Feature**: Recommends services and operators based on job descriptions and optional photo uploads, with estimated pricing.
-- **Enhanced Service Request Creation**: Comprehensive form for detailed job specification, photo uploads, and integration with AI Assist.
+- **Enhanced Service Request Creation**: Highly detailed, dynamic form that adapts based on service type (Snow Plowing, Towing, Hauling, Courier) with service-specific fields, emergency/scheduled toggle, time selection with flexibility options, and photo uploads.
 - **Help & Support System**: Provides live chat, email, phone support, and organized FAQ sections.
 - **Shared Header Component**: Reusable header for consistent navigation, authentication, and profile management across all pages.
 - **Unified Landing Page**: A single customer-focused homepage with interactive service discovery, real-time availability previews, and Uber-style location inputs.
