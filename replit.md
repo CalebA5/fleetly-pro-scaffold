@@ -61,10 +61,15 @@ Preferred communication style: Simple, everyday language.
 - **Authentication integration** - Request Service button triggers auth dialog
 - Note: Map tiles experiencing loading issues in current environment (tried OpenStreetMap, CARTO, Esri providers)
 
-### Code Cleanup
+### Code Cleanup & Navigation Fixes (November 2025)
 - Removed redundant OperatorBrowsing.tsx and OperatorMapSimple.tsx files
 - Updated routing to use unified OperatorMap component
 - Both /customer/operators and /customer/operator-map routes now point to unified page
+- **Fixed logo navigation** - Logo from all pages now correctly returns to homepage (/)
+- **Eliminated duplicate landing pages** - /customer route now redirects to / (main landing)
+- **Clarified operator access** - Operators access their dashboard at /operator after registration
+- Sign in/Sign up buttons always visible until authenticated
+- Request Service buttons trigger auth dialog when user not signed in
 
 ### Advanced Features (November 2025)
 
