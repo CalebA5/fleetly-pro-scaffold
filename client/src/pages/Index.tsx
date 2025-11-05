@@ -71,45 +71,38 @@ const Index = () => {
       />
 
       {/* Hero Section with Location Search */}
-      <section className="relative bg-white dark:bg-gray-900 py-20 overflow-hidden">
-        {/* Animated Background Gradient */}
-        <div className="absolute inset-0 bg-gradient-to-br from-orange-50 via-white to-amber-50 dark:from-gray-900 dark:via-gray-900 dark:to-gray-800 animate-gradient-shift"></div>
-        
-        {/* Floating Decorative Elements */}
-        <div className="absolute top-20 right-10 w-32 h-32 bg-orange-200/30 dark:bg-orange-500/10 rounded-full blur-3xl animate-float"></div>
-        <div className="absolute bottom-20 left-10 w-40 h-40 bg-amber-200/30 dark:bg-amber-500/10 rounded-full blur-3xl animate-float-delayed"></div>
-        
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 z-10">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-            <div className="animate-slide-up">
-              <h1 className="text-5xl lg:text-6xl font-bold text-black dark:text-white leading-tight mb-6 text-warm-shadow">
+      <section className="relative bg-white dark:bg-gray-900 py-12 md:py-20 overflow-hidden border-b border-gray-200 dark:border-gray-800">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-center">
+            <div>
+              <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-black dark:text-white leading-tight mb-4">
                 Get the service you need, when you need it
               </h1>
-              <p className="text-xl text-gray-600 dark:text-gray-400 mb-8 animate-fade-in">
-                Snow plowing, towing, hauling, and courier services. Professional operators ready 24/7.
+              <p className="text-lg md:text-xl text-gray-600 dark:text-gray-400 mb-8">
+                Professional snow plowing, towing, hauling, and courier services. Available 24/7.
               </p>
 
               {/* Interactive Location Search - Uber Style */}
-              <div className="space-y-4 bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-warm-glow animate-slide-up">
+              <div className="space-y-4 bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700">
                 <div className="space-y-3">
                   <div className="flex items-center gap-3">
-                    <div className="w-3 h-3 rounded-full bg-black dark:bg-white"></div>
+                    <div className="w-3 h-3 rounded-full bg-black dark:bg-white flex-shrink-0"></div>
                     <Input
                       placeholder="Enter pickup location"
                       value={pickup}
                       onChange={(e) => setPickup(e.target.value)}
-                      className="flex-1 text-lg border-0 bg-gray-50 dark:bg-gray-700 focus-visible:ring-2"
+                      className="flex-1 border-0 bg-gray-50 dark:bg-gray-700 focus-visible:ring-1 focus-visible:ring-black dark:focus-visible:ring-white text-base"
                       data-testid="input-pickup-location"
                     />
                   </div>
                   <div className="h-px bg-gray-200 dark:bg-gray-700 ml-6"></div>
                   <div className="flex items-center gap-3">
-                    <div className="w-3 h-3 rounded bg-black dark:bg-white"></div>
+                    <div className="w-3 h-3 rounded bg-black dark:bg-white flex-shrink-0"></div>
                     <Input
                       placeholder="Enter dropoff location (optional)"
                       value={dropoff}
                       onChange={(e) => setDropoff(e.target.value)}
-                      className="flex-1 text-lg border-0 bg-gray-50 dark:bg-gray-700 focus-visible:ring-2"
+                      className="flex-1 border-0 bg-gray-50 dark:bg-gray-700 focus-visible:ring-1 focus-visible:ring-black dark:focus-visible:ring-white text-base"
                       data-testid="input-dropoff-location"
                     />
                   </div>
@@ -117,7 +110,7 @@ const Index = () => {
                 <Button 
                   size="lg" 
                   onClick={handleSearchService}
-                  className="w-full bg-black text-white hover:bg-gray-800 dark:bg-white dark:text-black dark:hover:bg-gray-200 text-lg py-6 h-auto shadow-warm-glow"
+                  className="w-full bg-black text-white hover:bg-gray-800 dark:bg-white dark:text-black dark:hover:bg-gray-200 font-semibold"
                   data-testid="button-search-services"
                 >
                   <Search className="mr-2 w-5 h-5" />
@@ -126,12 +119,12 @@ const Index = () => {
               </div>
 
               {/* Quick Browse */}
-              <div className="mt-6">
-                <Link href="/customer/operator-map">
+              <div className="mt-4">
+                <Link href="/customer/operators">
                   <Button 
                     variant="outline" 
                     size="lg" 
-                    className="text-lg px-8 py-6 h-auto border-2 hover:scale-105 transition-all"
+                    className="w-full border-2 border-black dark:border-white hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black transition-colors font-semibold"
                     data-testid="button-browse-all-operators"
                   >
                     Or browse all operators
@@ -142,22 +135,21 @@ const Index = () => {
             </div>
 
             {/* Availability Preview - Shows After Search */}
-            <div className="relative animate-slide-in-right">
+            <div className="relative">
               {showAvailability ? (
-                <div className="bg-gradient-to-br from-blue-50 to-gray-100 dark:from-gray-800 dark:to-gray-700 rounded-2xl p-8 shadow-2xl shadow-warm">
-                  <h3 className="text-2xl font-bold text-black dark:text-white mb-4">
+                <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-6 md:p-8 shadow-lg border border-gray-200 dark:border-gray-700">
+                  <h3 className="text-xl md:text-2xl font-bold text-black dark:text-white mb-6">
                     Available near you
                   </h3>
-                  <div className="space-y-4">
+                  <div className="space-y-3">
                     <div 
                       onClick={() => handleRequestService("Snow Plowing")}
-                      className="flex items-center justify-between p-4 bg-white dark:bg-gray-900 rounded-lg shadow-warm hover:shadow-warm-glow transition-all hover:scale-105 cursor-pointer animate-slide-up" 
-                      style={{animationDelay: '0.1s'}}
+                      className="flex items-center justify-between p-4 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-black dark:hover:border-white transition-all cursor-pointer" 
                       data-testid="card-service-snow"
                     >
                       <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 bg-black dark:bg-white rounded-full flex items-center justify-center shadow-warm">
-                          <Truck className="w-6 h-6 text-white dark:text-black icon-warm-glow" />
+                        <div className="w-12 h-12 bg-black dark:bg-white rounded-full flex items-center justify-center">
+                          <Truck className="w-6 h-6 text-white dark:text-black" />
                         </div>
                         <div>
                           <p className="font-semibold text-black dark:text-white">Snow Plowing</p>
@@ -168,13 +160,12 @@ const Index = () => {
                     </div>
                     <div 
                       onClick={() => handleRequestService("Towing")}
-                      className="flex items-center justify-between p-4 bg-white dark:bg-gray-900 rounded-lg shadow-warm hover:shadow-warm-glow transition-all hover:scale-105 cursor-pointer animate-slide-up" 
-                      style={{animationDelay: '0.2s'}}
+                      className="flex items-center justify-between p-4 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-black dark:hover:border-white transition-all cursor-pointer" 
                       data-testid="card-service-towing"
                     >
                       <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 bg-black dark:bg-white rounded-full flex items-center justify-center shadow-warm">
-                          <Truck className="w-6 h-6 text-white dark:text-black icon-warm-glow" />
+                        <div className="w-12 h-12 bg-black dark:bg-white rounded-full flex items-center justify-center">
+                          <Truck className="w-6 h-6 text-white dark:text-black" />
                         </div>
                         <div>
                           <p className="font-semibold text-black dark:text-white">Towing</p>
@@ -185,13 +176,12 @@ const Index = () => {
                     </div>
                     <div 
                       onClick={() => handleRequestService("Hauling")}
-                      className="flex items-center justify-between p-4 bg-white dark:bg-gray-900 rounded-lg shadow-warm hover:shadow-warm-glow transition-all hover:scale-105 cursor-pointer animate-slide-up" 
-                      style={{animationDelay: '0.3s'}}
+                      className="flex items-center justify-between p-4 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-black dark:hover:border-white transition-all cursor-pointer" 
                       data-testid="card-service-hauling"
                     >
                       <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 bg-black dark:bg-white rounded-full flex items-center justify-center shadow-warm">
-                          <Truck className="w-6 h-6 text-white dark:text-black icon-warm-glow" />
+                        <div className="w-12 h-12 bg-black dark:bg-white rounded-full flex items-center justify-center">
+                          <Truck className="w-6 h-6 text-white dark:text-black" />
                         </div>
                         <div>
                           <p className="font-semibold text-black dark:text-white">Hauling</p>
@@ -201,17 +191,20 @@ const Index = () => {
                       <p className="font-bold text-black dark:text-white">$110/hr</p>
                     </div>
                   </div>
-                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-4 text-center">
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-6 text-center">
                     Click any service to continue
                   </p>
                 </div>
               ) : (
-                <div className="bg-gradient-to-br from-blue-50 to-gray-100 dark:from-gray-800 dark:to-gray-700 rounded-2xl p-8 shadow-2xl shadow-warm">
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between p-4 bg-white dark:bg-gray-900 rounded-lg shadow-warm hover:shadow-warm-glow transition-all hover:scale-105 animate-slide-up" style={{animationDelay: '0.1s'}}>
+                <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-6 md:p-8 shadow-lg border border-gray-200 dark:border-gray-700">
+                  <h3 className="text-xl md:text-2xl font-bold text-black dark:text-white mb-6">
+                    Our Services
+                  </h3>
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between p-4 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700">
                       <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 bg-black dark:bg-white rounded-full flex items-center justify-center shadow-warm">
-                          <Truck className="w-6 h-6 text-white dark:text-black icon-warm-glow" />
+                        <div className="w-12 h-12 bg-black dark:bg-white rounded-full flex items-center justify-center">
+                          <Truck className="w-6 h-6 text-white dark:text-black" />
                         </div>
                         <div>
                           <p className="font-semibold text-black dark:text-white">Snow Plowing</p>
@@ -219,10 +212,10 @@ const Index = () => {
                         </div>
                       </div>
                     </div>
-                    <div className="flex items-center justify-between p-4 bg-white dark:bg-gray-900 rounded-lg shadow-warm hover:shadow-warm-glow transition-all hover:scale-105 animate-slide-up" style={{animationDelay: '0.2s'}}>
+                    <div className="flex items-center justify-between p-4 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700">
                       <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 bg-black dark:bg-white rounded-full flex items-center justify-center shadow-warm">
-                          <Truck className="w-6 h-6 text-white dark:text-black icon-warm-glow" />
+                        <div className="w-12 h-12 bg-black dark:bg-white rounded-full flex items-center justify-center">
+                          <Truck className="w-6 h-6 text-white dark:text-black" />
                         </div>
                         <div>
                           <p className="font-semibold text-black dark:text-white">Towing</p>
@@ -230,10 +223,10 @@ const Index = () => {
                         </div>
                       </div>
                     </div>
-                    <div className="flex items-center justify-between p-4 bg-white dark:bg-gray-900 rounded-lg shadow-warm hover:shadow-warm-glow transition-all hover:scale-105 animate-slide-up" style={{animationDelay: '0.3s'}}>
+                    <div className="flex items-center justify-between p-4 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700">
                       <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 bg-black dark:bg-white rounded-full flex items-center justify-center shadow-warm">
-                          <Truck className="w-6 h-6 text-white dark:text-black icon-warm-glow" />
+                        <div className="w-12 h-12 bg-black dark:bg-white rounded-full flex items-center justify-center">
+                          <Truck className="w-6 h-6 text-white dark:text-black" />
                         </div>
                         <div>
                           <p className="font-semibold text-black dark:text-white">Hauling</p>
@@ -249,57 +242,82 @@ const Index = () => {
         </div>
       </section>
 
-      {/* Features Section */}
-      <section className="py-20 bg-gray-50 dark:bg-gray-800">
+      {/* Trust & Features Section */}
+      <section className="py-12 md:py-16 bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-3xl font-bold text-center text-black dark:text-white mb-12">
-            Why choose Fleetly
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <Card className="p-8 text-center border-0 shadow-warm hover:shadow-warm-glow transition-all">
-              <div className="w-16 h-16 bg-black dark:bg-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-warm">
-                <Clock className="w-8 h-8 text-white dark:text-black icon-warm-glow" />
+          <div className="text-center mb-12">
+            <h2 className="text-3xl md:text-4xl font-bold text-black dark:text-white mb-3">
+              Why choose Fleetly
+            </h2>
+            <p className="text-lg text-gray-600 dark:text-gray-400">
+              Professional service you can trust
+            </p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
+            <Card className="p-6 md:p-8 text-center bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 hover:border-black dark:hover:border-white transition-all">
+              <div className="w-14 h-14 md:w-16 md:h-16 bg-black dark:bg-white rounded-full flex items-center justify-center mx-auto mb-4">
+                <Clock className="w-7 h-7 md:w-8 md:h-8 text-white dark:text-black" />
               </div>
-              <h3 className="text-xl font-bold mb-2 text-black dark:text-white">Fast response</h3>
+              <h3 className="text-xl font-bold mb-2 text-black dark:text-white">Fast Response</h3>
               <p className="text-gray-600 dark:text-gray-400">
                 Operators arrive quickly when you need them most. Real-time tracking included.
               </p>
             </Card>
-            <Card className="p-8 text-center border-0 shadow-warm hover:shadow-warm-glow transition-all">
-              <div className="w-16 h-16 bg-black dark:bg-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-warm">
-                <Shield className="w-8 h-8 text-white dark:text-black icon-warm-glow" />
+            <Card className="p-6 md:p-8 text-center bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 hover:border-black dark:hover:border-white transition-all">
+              <div className="w-14 h-14 md:w-16 md:h-16 bg-black dark:bg-white rounded-full flex items-center justify-center mx-auto mb-4">
+                <Shield className="w-7 h-7 md:w-8 md:h-8 text-white dark:text-black" />
               </div>
-              <h3 className="text-xl font-bold mb-2 text-black dark:text-white">Verified operators</h3>
+              <h3 className="text-xl font-bold mb-2 text-black dark:text-white">Verified Operators</h3>
               <p className="text-gray-600 dark:text-gray-400">
-                All operators are background-checked and professionally licensed.
+                All operators are background-checked and professionally licensed for your safety.
               </p>
             </Card>
-            <Card className="p-8 text-center border-0 shadow-warm hover:shadow-warm-glow transition-all">
-              <div className="w-16 h-16 bg-black dark:bg-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-warm">
-                <Star className="w-8 h-8 text-white dark:text-black icon-warm-glow" />
+            <Card className="p-6 md:p-8 text-center bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 hover:border-black dark:hover:border-white transition-all">
+              <div className="w-14 h-14 md:w-16 md:h-16 bg-black dark:bg-white rounded-full flex items-center justify-center mx-auto mb-4">
+                <Star className="w-7 h-7 md:w-8 md:h-8 text-white dark:text-black" />
               </div>
-              <h3 className="text-xl font-bold mb-2 text-black dark:text-white">Top rated</h3>
+              <h3 className="text-xl font-bold mb-2 text-black dark:text-white">Top-Rated Service</h3>
               <p className="text-gray-600 dark:text-gray-400">
-                Read reviews and ratings from other customers before you book.
+                Choose from highly-rated professionals with verified customer reviews.
               </p>
             </Card>
+          </div>
+
+          {/* Trust Statistics */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mt-12 pt-12 border-t border-gray-200 dark:border-gray-700">
+            <div className="text-center">
+              <div className="text-3xl md:text-4xl font-bold text-black dark:text-white mb-2">10K+</div>
+              <div className="text-sm text-gray-600 dark:text-gray-400">Completed Services</div>
+            </div>
+            <div className="text-center">
+              <div className="text-3xl md:text-4xl font-bold text-black dark:text-white mb-2">500+</div>
+              <div className="text-sm text-gray-600 dark:text-gray-400">Verified Operators</div>
+            </div>
+            <div className="text-center">
+              <div className="text-3xl md:text-4xl font-bold text-black dark:text-white mb-2">4.9★</div>
+              <div className="text-sm text-gray-600 dark:text-gray-400">Average Rating</div>
+            </div>
+            <div className="text-center">
+              <div className="text-3xl md:text-4xl font-bold text-black dark:text-white mb-2">24/7</div>
+              <div className="text-sm text-gray-600 dark:text-gray-400">Always Available</div>
+            </div>
           </div>
         </div>
       </section>
 
       {/* CTA Section */}
-      <section className="py-20 bg-black dark:bg-white">
+      <section className="py-16 md:py-20 bg-black dark:bg-white border-b border-gray-800 dark:border-gray-200">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-4xl font-bold text-white dark:text-black mb-6">
+          <h2 className="text-3xl md:text-4xl font-bold text-white dark:text-black mb-4">
             Ready to get started?
           </h2>
-          <p className="text-xl text-gray-300 dark:text-gray-700 mb-8">
-            Join thousands of customers who trust Fleetly for their trucking and specialty service needs.
+          <p className="text-lg md:text-xl text-gray-300 dark:text-gray-700 mb-8">
+            Join thousands of customers who trust Fleetly for their service needs.
           </p>
-          <Link href="/customer/operator-map">
+          <Link href="/customer/operators">
             <Button 
               size="lg" 
-              className="bg-white text-black hover:bg-gray-100 dark:bg-black dark:text-white dark:hover:bg-gray-800 text-lg px-8 py-6 h-auto"
+              className="bg-white text-black hover:bg-gray-200 dark:bg-black dark:text-white dark:hover:bg-gray-800 font-semibold text-lg px-8 h-12 transition-colors"
               data-testid="button-cta-find-operators"
             >
               Find operators near you

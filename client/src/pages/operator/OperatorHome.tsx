@@ -272,58 +272,53 @@ export const OperatorHome = () => {
           </Card>
         )}
 
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <Card className="border-0 shadow-warm hover:shadow-warm-glow transition-all">
-            <CardContent className="p-6">
+        {/* Stats Grid - Simplified */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 mb-8">
+          <Card className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700">
+            <CardContent className="p-4 md:p-6">
               <div className="flex items-center space-x-2 mb-2">
-                <DollarSign className="w-5 h-5 text-green-600 icon-warm-glow" />
-                <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Today's Earnings</span>
+                <DollarSign className="w-4 h-4 md:w-5 md:h-5 text-green-600" />
+                <span className="text-xs md:text-sm font-medium text-gray-600 dark:text-gray-400">Today</span>
               </div>
-              <p className="text-3xl font-bold text-black dark:text-white">
+              <p className="text-2xl md:text-3xl font-bold text-black dark:text-white">
                 ${mockOperatorData.todayEarnings.toFixed(2)}
               </p>
-              <p className="text-sm text-gray-500 dark:text-gray-500">+12% from yesterday</p>
             </CardContent>
           </Card>
 
-          <Card className="border-0 shadow-warm hover:shadow-warm-glow transition-all">
-            <CardContent className="p-6">
+          <Card className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700">
+            <CardContent className="p-4 md:p-6">
               <div className="flex items-center space-x-2 mb-2">
-                <TrendingUp className="w-5 h-5 text-black dark:text-white icon-warm-glow" />
-                <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Weekly Total</span>
+                <TrendingUp className="w-4 h-4 md:w-5 md:h-5 text-black dark:text-white" />
+                <span className="text-xs md:text-sm font-medium text-gray-600 dark:text-gray-400">Week</span>
               </div>
-              <p className="text-3xl font-bold text-black dark:text-white">
+              <p className="text-2xl md:text-3xl font-bold text-black dark:text-white">
                 ${mockOperatorData.weeklyEarnings.toFixed(2)}
               </p>
-              <p className="text-sm text-gray-500 dark:text-gray-500">7 days</p>
             </CardContent>
           </Card>
 
-          <Card className="border-0 shadow-warm hover:shadow-warm-glow transition-all">
-            <CardContent className="p-6">
+          <Card className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700">
+            <CardContent className="p-4 md:p-6">
               <div className="flex items-center space-x-2 mb-2">
-                <CheckCircle className="w-5 h-5 text-black dark:text-white icon-warm-glow" />
-                <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Jobs Completed</span>
+                <CheckCircle className="w-4 h-4 md:w-5 md:h-5 text-black dark:text-white" />
+                <span className="text-xs md:text-sm font-medium text-gray-600 dark:text-gray-400">Completed</span>
               </div>
-              <p className="text-3xl font-bold text-black dark:text-white">
+              <p className="text-2xl md:text-3xl font-bold text-black dark:text-white">
                 {mockOperatorData.completedJobs}
               </p>
-              <p className="text-sm text-gray-500 dark:text-gray-500">This month</p>
             </CardContent>
           </Card>
 
-          <Card className="border-0 shadow-warm hover:shadow-warm-glow transition-all">
-            <CardContent className="p-6">
+          <Card className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700">
+            <CardContent className="p-4 md:p-6">
               <div className="flex items-center space-x-2 mb-2">
-                <Star className="w-5 h-5 text-yellow-500 icon-warm-glow" />
-                <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Rating</span>
+                <Star className="w-4 h-4 md:w-5 md:h-5 text-yellow-500" />
+                <span className="text-xs md:text-sm font-medium text-gray-600 dark:text-gray-400">Rating</span>
               </div>
-              <p className="text-3xl font-bold text-black dark:text-white">
-                {mockOperatorData.rating}
-                <Star className="w-6 h-6 inline fill-yellow-500 text-yellow-500 ml-1" />
+              <p className="text-2xl md:text-3xl font-bold text-black dark:text-white">
+                {mockOperatorData.rating}★
               </p>
-              <p className="text-sm text-gray-500 dark:text-gray-500">Based on 156 reviews</p>
             </CardContent>
           </Card>
         </div>
@@ -350,66 +345,90 @@ export const OperatorHome = () => {
             
             <div className="space-y-4">
               {isLoading ? (
-                <p className="text-gray-500 dark:text-gray-400 text-center py-8">Loading requests...</p>
+                <div className="space-y-4">
+                  {/* Skeleton loader */}
+                  {[1, 2].map((i) => (
+                    <Card key={i} className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700">
+                      <CardContent className="p-6">
+                        <div className="animate-pulse space-y-4">
+                          <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded w-1/3"></div>
+                          <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-2/3"></div>
+                          <div className="flex gap-3">
+                            <div className="h-10 bg-gray-200 dark:bg-gray-700 rounded flex-1"></div>
+                            <div className="h-10 bg-gray-200 dark:bg-gray-700 rounded flex-1"></div>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
               ) : serviceRequests.length === 0 ? (
-                <p className="text-gray-500 dark:text-gray-400 text-center py-8">No pending requests at the moment</p>
+                <Card className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700">
+                  <CardContent className="p-8 text-center">
+                    <AlertCircle className="w-12 h-12 text-gray-300 dark:text-gray-700 mx-auto mb-3" />
+                    <p className="text-gray-500 dark:text-gray-400">No pending requests at the moment</p>
+                  </CardContent>
+                </Card>
               ) : (
                 serviceRequests.map((request) => (
-                  <Card key={request.id} className="border-2 border-gray-200 dark:border-gray-700 hover:shadow-lg transition-all">
-                    <CardContent className="p-6">
-                      <div className="flex justify-between items-start mb-4">
-                        <div>
-                          <div className="flex items-center space-x-2 mb-2">
-                            <h4 className="font-bold text-lg text-black dark:text-white">{request.serviceType}</h4>
+                  <Card key={request.id} className="bg-white dark:bg-gray-900 border-2 border-gray-200 dark:border-gray-700 hover:border-black dark:hover:border-white transition-all">
+                    <CardContent className="p-4 md:p-6">
+                      <div className="flex flex-col md:flex-row md:justify-between md:items-start mb-4 gap-3">
+                        <div className="flex-1">
+                          <div className="flex items-center flex-wrap gap-2 mb-2">
+                            <h4 className="font-bold text-lg md:text-xl text-black dark:text-white">{request.serviceType}</h4>
                             {request.isEmergency === 1 && (
-                              <Badge className="bg-red-600 text-white">
+                              <Badge className="bg-red-600 text-white font-semibold">
                                 EMERGENCY
                               </Badge>
                             )}
                           </div>
                           <div className="space-y-1 text-sm text-gray-600 dark:text-gray-400">
-                            <div className="flex items-center space-x-1">
-                              <MapPin className="w-4 h-4" />
+                            <div className="flex items-center gap-1">
+                              <MapPin className="w-4 h-4 flex-shrink-0" />
                               <span>{request.location}</span>
                             </div>
-                            <div className="flex items-center space-x-4">
-                              <span>Customer: {request.customerName}</span>
+                            <div className="flex items-center gap-3 flex-wrap">
+                              <span>{request.customerName}</span>
                               {request.preferredDate && (
-                                <span>Date: {request.preferredDate}</span>
+                                <span className="text-xs">📅 {request.preferredDate}</span>
                               )}
                             </div>
                           </div>
                         </div>
-                        <div className="text-right">
-                          {request.budgetRange && (
-                            <>
-                              <p className="text-2xl font-bold text-green-600">
-                                {request.budgetRange}
-                              </p>
-                              <p className="text-xs text-gray-500 dark:text-gray-500">Budget Range</p>
-                            </>
-                          )}
-                        </div>
+                        {request.budgetRange && (
+                          <div className="text-left md:text-right">
+                            <p className="text-xl md:text-2xl font-bold text-green-600">
+                              {request.budgetRange}
+                            </p>
+                            <p className="text-xs text-gray-500 dark:text-gray-500">Budget</p>
+                          </div>
+                        )}
                       </div>
-                      <div className="flex space-x-3">
+                      <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
                         <Button 
-                          className="flex-1 bg-black text-white hover:bg-gray-800 dark:bg-white dark:text-black dark:hover:bg-gray-200"
+                          className="flex-1 bg-black text-white hover:bg-gray-800 dark:bg-white dark:text-black dark:hover:bg-gray-200 font-semibold h-11"
                           data-testid={`button-accept-${request.id}`}
                         >
-                          Accept
+                          Accept Job
                         </Button>
-                        <Button variant="outline" className="flex-1" data-testid={`button-decline-${request.id}`}>
+                        <Button 
+                          variant="outline" 
+                          className="flex-1 border-2 h-11" 
+                          data-testid={`button-decline-${request.id}`}
+                        >
                           Decline
                         </Button>
                         <Button 
-                          variant="ghost" 
+                          variant="outline" 
+                          className="border-2 h-11"
                           onClick={() => {
                             setSelectedRequest(request);
                             setShowDetailsDialog(true);
                           }}
                           data-testid={`button-details-${request.id}`}
                         >
-                          Details
+                          View Details
                         </Button>
                       </div>
                     </CardContent>
