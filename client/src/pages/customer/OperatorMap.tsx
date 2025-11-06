@@ -271,27 +271,43 @@ export const OperatorMap = () => {
 
     const map = L.map(mapContainerRef.current).setView([40.7589, -73.9851], 12);
 
-    const tileLayerInstance = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-      attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
-      subdomains: 'abcd',
-      maxZoom: 20,
-    });
-
-    tileLayerInstance.on('load', () => {
-      setMapLoaded(true);
-    });
+    const mapboxToken = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN;
+    
+    // Use Mapbox tiles if token is available, otherwise fallback to CARTO (free)
+    let tileLayerInstance: L.TileLayer;
+    
+    if (mapboxToken) {
+      tileLayerInstance = L.tileLayer(
+        `https://api.mapbox.com/styles/v1/mapbox/light-v11/tiles/{z}/{x}/{y}?access_token=${encodeURIComponent(mapboxToken)}`,
+        {
+          attribution: '© <a href="https://www.mapbox.com/">Mapbox</a> © <a href="https://www.openstreetmap.org/">OpenStreetMap</a>',
+          tileSize: 512,
+          zoomOffset: -1,
+          maxZoom: 20,
+        }
+      );
+    } else {
+      // Fallback to free CARTO tiles
+      tileLayerInstance = L.tileLayer(
+        'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
+        {
+          attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
+          subdomains: 'abcd',
+          maxZoom: 20,
+        }
+      );
+    }
 
     tileLayerInstance.addTo(map);
-
-    // Set loaded after a short timeout as fallback
-    const timeoutId = setTimeout(() => setMapLoaded(true), 1000);
 
     L.control.zoom({ position: 'topright' }).addTo(map);
 
     mapRef.current = map;
 
+    // Show map immediately, let tiles load progressively in background
+    setMapLoaded(true);
+
     return () => {
-      clearTimeout(timeoutId);
       map.remove();
       mapRef.current = null;
       setMapLoaded(false);
@@ -404,17 +420,40 @@ export const OperatorMap = () => {
       }
     });
 
-    const url = tileLayer === 'satellite'
-      ? 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
-      : 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
-
-    const attribution = tileLayer === 'satellite'
-      ? 'Tiles &copy; Esri'
-      : '&copy; OpenStreetMap contributors &copy; CARTO';
-
-    const options = tileLayer === 'satellite'
-      ? { attribution, maxZoom: 19 }
-      : { attribution, subdomains: 'abcd', maxZoom: 20 };
+    const mapboxToken = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN;
+    
+    let url: string;
+    let attribution: string;
+    let options: L.TileLayerOptions;
+    
+    if (mapboxToken) {
+      // Use Mapbox tiles (premium)
+      url = tileLayer === 'satellite'
+        ? `https://api.mapbox.com/styles/v1/mapbox/satellite-streets-v12/tiles/{z}/{x}/{y}?access_token=${encodeURIComponent(mapboxToken)}`
+        : `https://api.mapbox.com/styles/v1/mapbox/light-v11/tiles/{z}/{x}/{y}?access_token=${encodeURIComponent(mapboxToken)}`;
+      
+      attribution = '© <a href="https://www.mapbox.com/">Mapbox</a> © <a href="https://www.openstreetmap.org/">OpenStreetMap</a>';
+      
+      options = {
+        attribution,
+        tileSize: 512,
+        zoomOffset: -1,
+        maxZoom: 20,
+      };
+    } else {
+      // Fallback to free tiles
+      url = tileLayer === 'satellite'
+        ? 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
+        : 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
+      
+      attribution = tileLayer === 'satellite'
+        ? 'Tiles &copy; Esri'
+        : '&copy; OpenStreetMap contributors &copy; CARTO';
+      
+      options = tileLayer === 'satellite'
+        ? { attribution, maxZoom: 19 }
+        : { attribution, subdomains: 'abcd', maxZoom: 20 };
+    }
 
     L.tileLayer(url, options).addTo(mapRef.current);
   }, [tileLayer]);
