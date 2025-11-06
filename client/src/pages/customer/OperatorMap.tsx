@@ -550,14 +550,6 @@ export const OperatorMap = () => {
       <div className="flex-1 flex overflow-hidden">
         {/* Map */}
         <div className="flex-1 relative">
-          {!mapLoaded && (
-            <div className="absolute inset-0 bg-white dark:bg-gray-900 z-10 flex items-center justify-center">
-              <div className="text-center">
-                <div className="w-12 h-12 border-4 border-gray-300 border-t-black rounded-full animate-spin mx-auto mb-3"></div>
-                <p className="text-gray-600 dark:text-gray-400 text-sm">Loading map...</p>
-              </div>
-            </div>
-          )}
           <div ref={mapContainerRef} style={{ width: '100%', height: '100%' }} className="leaflet-container" />
         </div>
 
