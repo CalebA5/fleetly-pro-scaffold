@@ -5,6 +5,16 @@ Fleetly is a professional on-demand service platform that connects customers wit
 
 ## Recent Changes (November 2025)
 
+### Map Performance & AI Assist Accuracy Upgrades
+**Completed**: Critical performance and intelligence improvements
+- **Mapbox GL JS Migration**: Replaced slower Leaflet library with high-performance Mapbox GL JS for faster map loading, smoother panning/zooming, and better tile caching. Preserved all existing features: map/satellite toggle, blue/red operator markers (stationary/moving), real-time location tracking, popups, sidebar integration, and service filters.
+- **Intelligent AI Assist**: Implemented keyword-based service matching with comprehensive keyword lists for accurate service identification. Now correctly identifies Hauling for "transport 1000kg of goods" (matches: transport, kg, goods), Courier for "move 6 packages" (matches: move, packages), Snow Plowing for winter keywords, Towing for breakdowns, etc. Calculates confidence scores, generates contextual reasoning, and customizes pricing/urgency per service type.
+- **Security**: Mapbox API token managed via Replit secrets (`VITE_MAPBOX_ACCESS_TOKEN`) for secure deployment.
+
+**Architect Review**: PASS - Mapbox integration initializes correctly with token validation, preserves all map features without regressions, includes proper cleanup. AI assist logic correctly scores services by keyword matches, surfaces highest-confidence recommendations, and provides sensible fallbacks for unknown inputs.
+
+**Technical Details**: Map uses native `mapbox-gl` (not react-map-gl) for direct control. AI assist keywords include Courier (package, deliver, parcel), Hauling (haul, transport, freight, cargo, kg, tons, goods), Snow Plowing (snow, plow, winter), Towing (tow, stuck, breakdown), Ice Removal (ice, de-ice, salt), and Roadside Assistance (roadside, flat tire, battery).
+
 ### UI/UX Optimization - Uber-Inspired Design Overhaul
 **Completed**: Major visual redesign to align with platform vision
 - **Visual Design System**: Established strict black/white theme with warm orange (#F97316) accents for CTAs only. Removed blue gradients, pastel colors, and excessive glows. Standardized shadows to minimal black/gray borders and hover effects.
