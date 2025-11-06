@@ -13,50 +13,11 @@ import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, MapPin, Star, Truck, Filter, Heart } from "lucide-react";
 import type { Operator, InsertServiceRequest, Favorite } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import L from "leaflet";
-import "leaflet/dist/leaflet.css";
+import mapboxgl from "mapbox-gl";
+import "mapbox-gl/dist/mapbox-gl.css";
 
-delete (L.Icon.Default.prototype as any)._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
-  iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
-  shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
-});
-
-// Custom icon for moving operators (pulsing red marker)
-const movingIcon = L.divIcon({
-  className: 'custom-div-icon',
-  html: `
-    <div style="position: relative; width: 25px; height: 41px;">
-      <svg width="25" height="41" viewBox="0 0 25 41" xmlns="http://www.w3.org/2000/svg">
-        <path d="M12.5 0C5.6 0 0 5.6 0 12.5c0 8.8 12.5 28.5 12.5 28.5s12.5-19.7 12.5-28.5C25 5.6 19.4 0 12.5 0z" fill="#ff4444" stroke="#cc0000" stroke-width="1"/>
-        <circle cx="12.5" cy="12.5" r="4" fill="white"/>
-      </svg>
-      <div style="
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 25px;
-        height: 41px;
-        background: radial-gradient(circle, rgba(255,68,68,0.4) 0%, transparent 70%);
-        animation: pulse 1.5s ease-in-out infinite;
-      "></div>
-    </div>
-  `,
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-});
-
-// Regular icon for stationary operators
-const stationaryIcon = L.icon({
-  iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
-  iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
-  shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-});
+const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN;
+mapboxgl.accessToken = MAPBOX_TOKEN;
 
 const CUSTOMER_ID = "CUST-001";
 const CUSTOMER_NAME = "John Doe";
@@ -72,13 +33,14 @@ interface OperatorLocation {
 }
 
 export const OperatorMap = () => {
-  const mapRef = useRef<L.Map | null>(null);
+  const mapRef = useRef<mapboxgl.Map | null>(null);
   const mapContainerRef = useRef<HTMLDivElement>(null);
-  const markersRef = useRef<Map<string, L.Marker>>(new Map());
+  const markersRef = useRef<Map<string, mapboxgl.Marker>>(new Map());
+  const popupRef = useRef<mapboxgl.Popup | null>(null);
   const [showAuthDialog, setShowAuthDialog] = useState(false);
   const [authTab, setAuthTab] = useState<"signin" | "signup">("signin");
   const [selectedOperator, setSelectedOperator] = useState<Operator | null>(null);
-  const [tileLayer, setTileLayer] = useState<'map' | 'satellite'>('map');
+  const [mapStyle, setMapStyle] = useState<'streets' | 'satellite'>('streets');
   const [selectedService, setSelectedService] = useState<string>("");
   const [showRatingDialog, setShowRatingDialog] = useState(false);
   const [ratingOperator, setRatingOperator] = useState<Operator | null>(null);
@@ -266,37 +228,214 @@ export const OperatorMap = () => {
     ? allOperators?.filter(op => (op.services as string[]).includes(selectedService))
     : allOperators;
 
+  // Get map style URL based on selection
+  const getMapStyle = () => {
+    return mapStyle === 'satellite'
+      ? 'mapbox://styles/mapbox/satellite-streets-v12'
+      : 'mapbox://styles/mapbox/streets-v12';
+  };
+
+  // Initialize map
   useEffect(() => {
     if (!mapContainerRef.current || mapRef.current) return;
 
-    const map = L.map(mapContainerRef.current).setView([40.7589, -73.9851], 12);
-
-    const tileLayerInstance = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-      attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
-      subdomains: 'abcd',
-      maxZoom: 20,
-    });
-
-    tileLayerInstance.on('load', () => {
+    if (!MAPBOX_TOKEN) {
+      console.error('Mapbox token is missing!');
+      toast({
+        title: "Map Configuration Error",
+        description: "Mapbox access token is not configured",
+        variant: "destructive",
+      });
       setMapLoaded(true);
+      return;
+    }
+
+    try {
+      const map = new mapboxgl.Map({
+        container: mapContainerRef.current,
+        style: getMapStyle(),
+        center: [-73.9851, 40.7589],
+        zoom: 12,
+      });
+
+      map.addControl(new mapboxgl.NavigationControl(), 'top-right');
+
+      map.on('load', () => {
+        setMapLoaded(true);
+      });
+
+      map.on('error', (e) => {
+        console.error('Mapbox error:', e);
+        setMapLoaded(true);
+      });
+
+      mapRef.current = map;
+
+      return () => {
+        map.remove();
+        mapRef.current = null;
+      };
+    } catch (error) {
+      console.error('Error initializing map:', error);
+      setMapLoaded(true);
+    }
+  }, []);
+
+  // Handle map style changes
+  useEffect(() => {
+    if (!mapRef.current || !mapLoaded) return;
+    mapRef.current.setStyle(getMapStyle());
+  }, [mapStyle, mapLoaded]);
+
+  // Create and update markers for operators
+  useEffect(() => {
+    if (!mapRef.current || !mapLoaded || !operators) return;
+
+    const map = mapRef.current;
+    const currentMarkers = markersRef.current;
+
+    // Remove markers that are no longer in the operators list
+    const currentOperatorIds = new Set(operators.map(op => op.operatorId));
+    currentMarkers.forEach((marker, operatorId) => {
+      if (!currentOperatorIds.has(operatorId)) {
+        marker.remove();
+        currentMarkers.delete(operatorId);
+      }
     });
 
-    tileLayerInstance.addTo(map);
+    // Add or update markers for each operator
+    operators.forEach((operator) => {
+      const location = operatorLocations.get(operator.operatorId);
+      const lat = location ? location.lat : parseFloat(operator.latitude as string);
+      const lng = location ? location.lng : parseFloat(operator.longitude as string);
+      const isMoving = location?.isMoving || false;
 
-    // Set loaded after a short timeout as fallback
-    const timeoutId = setTimeout(() => setMapLoaded(true), 1000);
+      let marker = currentMarkers.get(operator.operatorId);
 
-    L.control.zoom({ position: 'topright' }).addTo(map);
+      if (!marker) {
+        // Create marker element
+        const el = document.createElement('div');
+        el.className = 'cursor-pointer relative';
+        el.innerHTML = isMoving
+          ? `<div class="relative">
+              <svg width="30" height="45" viewBox="0 0 30 45" class="animate-pulse">
+                <path d="M15 0C6.7 0 0 6.7 0 15c0 10.5 15 30 15 30s15-19.5 15-30C30 6.7 23.3 0 15 0z" fill="#ff4444" stroke="#cc0000" stroke-width="1"/>
+                <circle cx="15" cy="15" r="5" fill="white"/>
+              </svg>
+            </div>`
+          : `<svg width="30" height="45" viewBox="0 0 30 45">
+              <path d="M15 0C6.7 0 0 6.7 0 15c0 10.5 15 30 15 30s15-19.5 15-30C30 6.7 23.3 0 15 0z" fill="#3b82f6" stroke="#1e40af" stroke-width="1"/>
+              <circle cx="15" cy="15" r="5" fill="white"/>
+            </svg>`;
 
-    mapRef.current = map;
+        marker = new mapboxgl.Marker(el)
+          .setLngLat([lng, lat])
+          .addTo(map);
 
-    return () => {
-      clearTimeout(timeoutId);
-      map.remove();
-      mapRef.current = null;
-      setMapLoaded(false);
-    };
-  }, []);
+        // Add click handler
+        el.addEventListener('click', () => {
+          setSelectedOperator(operator);
+          
+          // Remove existing popup
+          if (popupRef.current) {
+            popupRef.current.remove();
+          }
+
+          // Create popup content
+          const popupContent = document.createElement('div');
+          popupContent.className = 'p-2 min-w-[200px]';
+          const trackingStatus = operatorLocations.get(operator.operatorId);
+          popupContent.innerHTML = `
+            <h3 class="font-bold text-black mb-2">${operator.name}</h3>
+            <p class="text-sm text-gray-700"><strong>Rating:</strong> ⭐ ${operator.rating}</p>
+            <p class="text-sm text-gray-700"><strong>Rate:</strong> $${operator.hourlyRate}/hr</p>
+            ${trackingStatus ? `
+              <p class="text-sm mt-1">
+                <strong>Status:</strong>
+                <span class="${trackingStatus.isMoving ? 'text-red-600' : 'text-green-600'}">
+                  ${trackingStatus.isMoving ? 'En Route 🚗' : 'Arrived ✓'}
+                </span>
+              </p>
+            ` : ''}
+          `;
+
+          const popup = new mapboxgl.Popup({ offset: 25 })
+            .setLngLat([lng, lat])
+            .setDOMContent(popupContent)
+            .addTo(map);
+
+          popupRef.current = popup;
+        });
+
+        currentMarkers.set(operator.operatorId, marker);
+      } else {
+        // Update existing marker position and appearance
+        marker.setLngLat([lng, lat]);
+        
+        // Update marker appearance based on moving status
+        const el = marker.getElement();
+        el.innerHTML = isMoving
+          ? `<div class="relative">
+              <svg width="30" height="45" viewBox="0 0 30 45" class="animate-pulse">
+                <path d="M15 0C6.7 0 0 6.7 0 15c0 10.5 15 30 15 30s15-19.5 15-30C30 6.7 23.3 0 15 0z" fill="#ff4444" stroke="#cc0000" stroke-width="1"/>
+                <circle cx="15" cy="15" r="5" fill="white"/>
+              </svg>
+            </div>`
+          : `<svg width="30" height="45" viewBox="0 0 30 45">
+              <path d="M15 0C6.7 0 0 6.7 0 15c0 10.5 15 30 15 30s15-19.5 15-30C30 6.7 23.3 0 15 0z" fill="#3b82f6" stroke="#1e40af" stroke-width="1"/>
+              <circle cx="15" cy="15" r="5" fill="white"/>
+            </svg>`;
+      }
+    });
+  }, [operators, operatorLocations, mapLoaded]);
+
+  // Pan map to operator location
+  const panToOperator = (operator: Operator) => {
+    if (!mapRef.current) return;
+    
+    const location = operatorLocations.get(operator.operatorId);
+    const lat = location ? location.lat : parseFloat(operator.latitude as string);
+    const lng = location ? location.lng : parseFloat(operator.longitude as string);
+    
+    mapRef.current.flyTo({
+      center: [lng, lat],
+      zoom: 14,
+      duration: 1000,
+    });
+
+    setSelectedOperator(operator);
+
+    // Show popup
+    setTimeout(() => {
+      if (popupRef.current) {
+        popupRef.current.remove();
+      }
+
+      const popupContent = document.createElement('div');
+      popupContent.className = 'p-2 min-w-[200px]';
+      const trackingStatus = operatorLocations.get(operator.operatorId);
+      popupContent.innerHTML = `
+        <h3 class="font-bold text-black mb-2">${operator.name}</h3>
+        <p class="text-sm text-gray-700"><strong>Rating:</strong> ⭐ ${operator.rating}</p>
+        <p class="text-sm text-gray-700"><strong>Rate:</strong> $${operator.hourlyRate}/hr</p>
+        ${trackingStatus ? `
+          <p class="text-sm mt-1">
+            <strong>Status:</strong>
+            <span class="${trackingStatus.isMoving ? 'text-red-600' : 'text-green-600'}">
+              ${trackingStatus.isMoving ? 'En Route 🚗' : 'Arrived ✓'}
+            </span>
+          </p>
+        ` : ''}
+      `;
+
+      const popup = new mapboxgl.Popup({ offset: 25 })
+        .setLngLat([lng, lat])
+        .setDOMContent(popupContent)
+        .addTo(mapRef.current!);
+
+      popupRef.current = popup;
+    }, 1000);
+  };
 
   // Real-time location updates for moving operators
   useEffect(() => {
@@ -332,13 +471,6 @@ export const OperatorMap = () => {
             lng: newLng,
           });
           
-          // Update marker position
-          const marker = markersRef.current.get(operatorId);
-          if (marker) {
-            marker.setLatLng([newLat, newLng]);
-            marker.setIcon(movingIcon);
-          }
-          
           hasChanges = true;
         });
         
@@ -349,75 +481,6 @@ export const OperatorMap = () => {
     return () => clearInterval(interval);
   }, [operatorLocations]);
 
-  useEffect(() => {
-    if (!mapRef.current || !operators) return;
-
-    // Remove all existing markers
-    markersRef.current.forEach(marker => marker.remove());
-    markersRef.current.clear();
-
-    operators.forEach((operator) => {
-      // Check if operator has custom location (is moving)
-      const location = operatorLocations.get(operator.operatorId);
-      const lat = location ? location.lat : parseFloat(operator.latitude as string);
-      const lon = location ? location.lng : parseFloat(operator.longitude as string);
-      
-      // Use moving icon if operator is en route
-      const icon = location?.isMoving ? movingIcon : stationaryIcon;
-
-      const marker = L.marker([lat, lon], { icon }).addTo(mapRef.current!);
-      
-      // Determine status message
-      let statusHtml = '';
-      if (location) {
-        if (location.isMoving) {
-          statusHtml = '<p style="margin: 4px 0; color: #ff4444;"><strong>Status:</strong> En Route 🚗</p>';
-        } else {
-          statusHtml = '<p style="margin: 4px 0; color: #22c55e;"><strong>Status:</strong> Arrived ✓</p>';
-        }
-      }
-      
-      marker.bindPopup(`
-        <div style="min-width: 200px;">
-          <h3 style="margin: 0 0 8px 0; font-weight: bold;">${operator.name}</h3>
-          <p style="margin: 4px 0;"><strong>Rating:</strong> ⭐ ${operator.rating}</p>
-          <p style="margin: 4px 0;"><strong>Rate:</strong> $${operator.hourlyRate}/hr</p>
-          ${statusHtml}
-        </div>
-      `);
-
-      marker.on("click", () => {
-        setSelectedOperator(operator);
-        mapRef.current?.setView([lat, lon], 14);
-      });
-
-      markersRef.current.set(operator.operatorId, marker);
-    });
-  }, [operators, operatorLocations]);
-
-  useEffect(() => {
-    if (!mapRef.current) return;
-
-    mapRef.current.eachLayer((layer) => {
-      if (layer instanceof L.TileLayer) {
-        mapRef.current?.removeLayer(layer);
-      }
-    });
-
-    const url = tileLayer === 'satellite'
-      ? 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
-      : 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
-
-    const attribution = tileLayer === 'satellite'
-      ? 'Tiles &copy; Esri'
-      : '&copy; OpenStreetMap contributors &copy; CARTO';
-
-    const options = tileLayer === 'satellite'
-      ? { attribution, maxZoom: 19 }
-      : { attribution, subdomains: 'abcd', maxZoom: 20 };
-
-    L.tileLayer(url, options).addTo(mapRef.current);
-  }, [tileLayer]);
 
   const handleRequestService = (operator: Operator, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -465,19 +528,19 @@ export const OperatorMap = () => {
           </div>
           <div className="flex gap-2">
             <Button
-              variant={tileLayer === 'map' ? 'default' : 'outline'}
+              variant={mapStyle === 'streets' ? 'default' : 'outline'}
               size="sm"
-              onClick={() => setTileLayer('map')}
-              className={tileLayer === 'map' ? 'bg-black text-white hover:bg-gray-800 dark:bg-white dark:text-black' : ''}
+              onClick={() => setMapStyle('streets')}
+              className={mapStyle === 'streets' ? 'bg-black text-white hover:bg-gray-800 dark:bg-white dark:text-black' : ''}
               data-testid="button-map-view"
             >
               Map
             </Button>
             <Button
-              variant={tileLayer === 'satellite' ? 'default' : 'outline'}
+              variant={mapStyle === 'satellite' ? 'default' : 'outline'}
               size="sm"
-              onClick={() => setTileLayer('satellite')}
-              className={tileLayer === 'satellite' ? 'bg-black text-white hover:bg-gray-800 dark:bg-white dark:text-black' : ''}
+              onClick={() => setMapStyle('satellite')}
+              className={mapStyle === 'satellite' ? 'bg-black text-white hover:bg-gray-800 dark:bg-white dark:text-black' : ''}
               data-testid="button-satellite-view"
             >
               Satellite
@@ -510,16 +573,16 @@ export const OperatorMap = () => {
       {/* Map and Sidebar */}
       <div className="flex-1 flex overflow-hidden">
         {/* Map */}
-        <div className="flex-1 relative">
+        <div className="flex-1 relative bg-gray-100 dark:bg-gray-900">
+          <div ref={mapContainerRef} className="absolute inset-0" />
           {!mapLoaded && (
-            <div className="absolute inset-0 bg-white dark:bg-gray-900 z-10 flex items-center justify-center">
+            <div className="absolute inset-0 flex items-center justify-center bg-gray-100 dark:bg-gray-900">
               <div className="text-center">
-                <div className="w-12 h-12 border-4 border-gray-300 border-t-black rounded-full animate-spin mx-auto mb-3"></div>
-                <p className="text-gray-600 dark:text-gray-400 text-sm">Loading map...</p>
+                <div className="w-12 h-12 border-4 border-gray-300 border-t-black rounded-full animate-spin mx-auto mb-4"></div>
+                <p className="text-gray-600 dark:text-gray-400">Loading map...</p>
               </div>
             </div>
           )}
-          <div ref={mapContainerRef} style={{ width: '100%', height: '100%' }} className="leaflet-container" />
         </div>
 
         {/* Sidebar */}
@@ -544,12 +607,7 @@ export const OperatorMap = () => {
                           <div
                             key={operator.operatorId}
                             className="p-3 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 shadow-warm cursor-pointer hover:shadow-warm-glow transition-all"
-                            onClick={() => {
-                              setSelectedOperator(operator);
-                              const lat = parseFloat(operator.latitude as string);
-                              const lon = parseFloat(operator.longitude as string);
-                              mapRef.current?.setView([lat, lon], 14);
-                            }}
+                            onClick={() => panToOperator(operator)}
                             data-testid={`favorite-${operator.operatorId}`}
                           >
                             <div className="flex items-center justify-between">
@@ -596,12 +654,7 @@ export const OperatorMap = () => {
                       ? 'ring-2 ring-black dark:ring-white'
                       : ''
                   }`}
-                  onClick={() => {
-                    setSelectedOperator(operator);
-                    const lat = parseFloat(operator.latitude as string);
-                    const lon = parseFloat(operator.longitude as string);
-                    mapRef.current?.setView([lat, lon], 14);
-                  }}
+                  onClick={() => panToOperator(operator)}
                   data-testid={`card-operator-${operator.operatorId}`}
                 >
                   <div className="flex items-start justify-between mb-3">
