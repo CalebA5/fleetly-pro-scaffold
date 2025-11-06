@@ -5,18 +5,6 @@ Fleetly is a professional on-demand service platform that connects customers wit
 
 ## Recent Changes (November 2025)
 
-### Map Enhancement - Mapbox Integration
-**Completed**: Upgraded map tiles from basic CARTO to professional Mapbox tiles
-- **Mapbox Tile Integration**: Implemented hybrid Leaflet + Mapbox approach using `mapbox/light-v11` for standard view and `mapbox/satellite-streets-v12` for satellite view, providing Uber-style aesthetics
-- **Smart Fallback System**: Added graceful degradation - uses premium Mapbox tiles when `VITE_MAPBOX_ACCESS_TOKEN` is configured, otherwise falls back to free CARTO/Esri tiles
-- **Instant Loading Performance**: Completely removed loading spinner overlay and timeout delays - map container appears immediately with tiles streaming progressively in background (Google Maps/Uber-style UX)
-- **Token Security**: Implemented `encodeURIComponent()` for safe URL token encoding
-- **Cost-Effective**: Leverages Mapbox free tier (50k loads/month) while maintaining backward compatibility with free alternatives
-
-**Technical Details**: Kept all existing Leaflet functionality (custom markers, real-time tracking, popups) while upgrading visual quality. Easy future migration path to full Mapbox GL JS if WebGL features needed later.
-
-**Architect Review**: PASS
-
 ### UI/UX Optimization - Uber-Inspired Design Overhaul
 **Completed**: Major visual redesign to align with platform vision
 - **Visual Design System**: Established strict black/white theme with warm orange (#F97316) accents for CTAs only. Removed blue gradients, pastel colors, and excessive glows. Standardized shadows to minimal black/gray borders and hover effects.
