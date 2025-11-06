@@ -85,7 +85,6 @@ export const OperatorMap = () => {
   const [rating, setRating] = useState(5);
   const [ratingComment, setRatingComment] = useState("");
   const [operatorLocations, setOperatorLocations] = useState<Map<string, OperatorLocation>>(new Map());
-  const [mapLoaded, setMapLoaded] = useState(false);
   const [, navigate] = useLocation();
   const { toast } = useToast();
 
@@ -269,49 +268,51 @@ export const OperatorMap = () => {
   useEffect(() => {
     if (!mapContainerRef.current || mapRef.current) return;
 
-    const map = L.map(mapContainerRef.current).setView([40.7589, -73.9851], 12);
+    try {
+      const map = L.map(mapContainerRef.current).setView([40.7589, -73.9851], 12);
 
-    const mapboxToken = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN;
-    
-    // Use Mapbox tiles if token is available, otherwise fallback to CARTO (free)
-    let tileLayerInstance: L.TileLayer;
-    
-    if (mapboxToken) {
-      tileLayerInstance = L.tileLayer(
-        `https://api.mapbox.com/styles/v1/mapbox/light-v11/tiles/{z}/{x}/{y}?access_token=${encodeURIComponent(mapboxToken)}`,
-        {
-          attribution: '© <a href="https://www.mapbox.com/">Mapbox</a> © <a href="https://www.openstreetmap.org/">OpenStreetMap</a>',
-          tileSize: 512,
-          zoomOffset: -1,
-          maxZoom: 20,
+      const mapboxToken = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN;
+      
+      // Use Mapbox tiles if token is available, otherwise fallback to CARTO (free)
+      let tileLayerInstance: L.TileLayer;
+      
+      if (mapboxToken) {
+        tileLayerInstance = L.tileLayer(
+          `https://api.mapbox.com/styles/v1/mapbox/light-v11/tiles/{z}/{x}/{y}?access_token=${encodeURIComponent(mapboxToken)}`,
+          {
+            attribution: '© <a href="https://www.mapbox.com/">Mapbox</a> © <a href="https://www.openstreetmap.org/">OpenStreetMap</a>',
+            tileSize: 512,
+            zoomOffset: -1,
+            maxZoom: 20,
+          }
+        );
+      } else {
+        // Fallback to free CARTO tiles
+        tileLayerInstance = L.tileLayer(
+          'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
+          {
+            attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
+            subdomains: 'abcd',
+            maxZoom: 20,
+          }
+        );
+      }
+
+      tileLayerInstance.addTo(map);
+
+      L.control.zoom({ position: 'topright' }).addTo(map);
+
+      mapRef.current = map;
+
+      return () => {
+        if (mapRef.current) {
+          mapRef.current.remove();
+          mapRef.current = null;
         }
-      );
-    } else {
-      // Fallback to free CARTO tiles
-      tileLayerInstance = L.tileLayer(
-        'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
-        {
-          attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
-          subdomains: 'abcd',
-          maxZoom: 20,
-        }
-      );
+      };
+    } catch (error) {
+      console.error('Error initializing map:', error);
     }
-
-    tileLayerInstance.addTo(map);
-
-    L.control.zoom({ position: 'topright' }).addTo(map);
-
-    mapRef.current = map;
-
-    // Show map immediately, let tiles load progressively in background
-    setMapLoaded(true);
-
-    return () => {
-      map.remove();
-      mapRef.current = null;
-      setMapLoaded(false);
-    };
   }, []);
 
   // Real-time location updates for moving operators
