@@ -7,6 +7,7 @@ export interface User {
   role: "customer" | "operator" | "both";
   operatorProfileComplete?: boolean;
   operatorTier?: "professional" | "equipped" | "manual";
+  operatorId?: string;
 }
 
 interface AuthContextType {

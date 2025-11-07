@@ -12,6 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, MapPin, Star, Truck, Filter, Heart } from "lucide-react";
 import type { Operator, InsertServiceRequest, Favorite } from "@shared/schema";
+import { OPERATOR_TIER_INFO } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
@@ -661,6 +662,23 @@ export const OperatorMap = () => {
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1">
                         <h3 className="font-bold text-black dark:text-white">{operator.name}</h3>
+                        {(() => {
+                          const tier = operator.operatorTier || "professional";
+                          const tierInfo = OPERATOR_TIER_INFO[tier as keyof typeof OPERATOR_TIER_INFO];
+                          const tierColors = {
+                            professional: "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200 border-amber-300 dark:border-amber-700",
+                            equipped: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 border-blue-300 dark:border-blue-700",
+                            manual: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 border-green-300 dark:border-green-700",
+                          };
+                          return (
+                            <Badge 
+                              variant="outline" 
+                              className={`text-xs font-medium border ${tierColors[tier as keyof typeof tierColors]}`}
+                            >
+                              {tierInfo.badge} {tier === "professional" ? "Pro" : tier === "equipped" ? "Equipped" : "Manual"}
+                            </Badge>
+                          );
+                        })()}
                         <button
                           onClick={(e) => toggleFavorite(operator.operatorId, e)}
                           className="hover:scale-110 transition-transform"
@@ -682,6 +700,22 @@ export const OperatorMap = () => {
                         </div>
                         <span className="text-gray-500 dark:text-gray-400">•</span>
                         <span className="text-gray-600 dark:text-gray-400">{operator.totalJobs} jobs</span>
+                        {(() => {
+                          const tier = operator.operatorTier || "professional";
+                          const tierInfo = OPERATOR_TIER_INFO[tier as keyof typeof OPERATOR_TIER_INFO];
+                          const multiplier = tierInfo.pricingMultiplier;
+                          if (multiplier !== 1.0) {
+                            return (
+                              <>
+                                <span className="text-gray-500 dark:text-gray-400">•</span>
+                                <span className="text-orange-600 dark:text-orange-400 font-semibold">
+                                  {multiplier > 1 ? `${multiplier}x` : `${multiplier}x`} price
+                                </span>
+                              </>
+                            );
+                          }
+                          return null;
+                        })()}
                       </div>
                     </div>
                     <Badge variant={operator.isOnline ? "default" : "secondary"} className={operator.isOnline ? "bg-green-500 dark:bg-green-600" : ""}>

@@ -360,6 +360,15 @@ export class MemStorage implements IStorage {
       details = { type: 'courier', payload: request.courierDetails };
     }
     
+    // TODO: Implement proper Mapbox Geocoding API integration to convert address to coordinates
+    // For now, use mock coordinates (Toronto area) with slight randomization for testing
+    const baseLat = 43.6532;
+    const baseLon = -79.3832;
+    const randomOffset = () => (Math.random() - 0.5) * 0.1; // Random offset within ~5km
+    
+    const latitude = request.latitude || String(baseLat + randomOffset());
+    const longitude = request.longitude || String(baseLon + randomOffset());
+    
     const newRequest: ServiceRequest = {
       id: this.nextServiceRequestId++,
       requestId: request.requestId,
@@ -372,6 +381,8 @@ export class MemStorage implements IStorage {
       description: request.description,
       status: request.status || "pending",
       location: request.location,
+      latitude,
+      longitude,
       preferredDate: request.preferredDate || null,
       preferredTime: request.preferredTime || null,
       timeFlexibility: request.timeFlexibility || null,

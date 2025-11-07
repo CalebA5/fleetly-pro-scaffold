@@ -1,6 +1,7 @@
 import { Router } from "express";
 import type { IStorage } from "./storage";
-import { insertJobSchema, insertServiceRequestSchema, insertCustomerSchema, insertRatingSchema, insertFavoriteSchema, insertOperatorLocationSchema, insertCustomerServiceHistorySchema } from "@shared/schema";
+import { insertJobSchema, insertServiceRequestSchema, insertCustomerSchema, insertRatingSchema, insertFavoriteSchema, insertOperatorLocationSchema, insertCustomerServiceHistorySchema, OPERATOR_TIER_INFO } from "@shared/schema";
+import { isWithinRadius } from "./utils/distance";
 
 export function registerRoutes(storage: IStorage) {
   const router = Router();
@@ -78,6 +79,60 @@ export function registerRoutes(storage: IStorage) {
     const customerId = req.query.customerId as string | undefined;
     const requests = await storage.getServiceRequests(customerId);
     res.json(requests);
+  });
+
+  router.get("/api/service-requests/for-operator/:operatorId", async (req, res) => {
+    try {
+      const operatorId = req.params.operatorId;
+      
+      // Get all operators to find this one
+      const operators = await storage.getOperators();
+      const operator = operators.find(op => op.operatorId === operatorId);
+      
+      if (!operator) {
+        return res.status(404).json({ message: "Operator not found" });
+      }
+      
+      // Get operator's tier info
+      const tierInfo = OPERATOR_TIER_INFO[operator.operatorTier as keyof typeof OPERATOR_TIER_INFO];
+      if (!tierInfo) {
+        return res.status(400).json({ message: "Invalid operator tier" });
+      }
+      
+      // Get all pending service requests
+      const allRequests = await storage.getServiceRequests();
+      const pendingRequests = allRequests.filter(req => req.status === "pending");
+      
+      // Filter by service type based on tier
+      let filteredRequests = pendingRequests;
+      if (operator.operatorTier === "manual") {
+        // Manual operators only see snow plowing jobs
+        filteredRequests = pendingRequests.filter(req => req.serviceType === "Snow Plowing");
+      }
+      
+      // Filter by radius if operator has location and tier has radius restriction
+      if (operator.homeLatitude && operator.homeLongitude && tierInfo.radiusKm !== null) {
+        const operatorLat = parseFloat(operator.homeLatitude);
+        const operatorLon = parseFloat(operator.homeLongitude);
+        
+        filteredRequests = filteredRequests.filter(req => {
+          // If request doesn't have coordinates, include it (backward compatibility)
+          if (!req.latitude || !req.longitude) {
+            return true;
+          }
+          
+          const jobLat = parseFloat(req.latitude);
+          const jobLon = parseFloat(req.longitude);
+          
+          return isWithinRadius(operatorLat, operatorLon, jobLat, jobLon, tierInfo.radiusKm);
+        });
+      }
+      
+      res.json(filteredRequests);
+    } catch (error) {
+      console.error("Error filtering service requests:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
   });
 
   router.get("/api/service-requests/:id", async (req, res) => {

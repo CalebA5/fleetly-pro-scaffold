@@ -25,15 +25,18 @@ export default function EquippedOperatorDashboard() {
   const [acceptedJobs, setAcceptedJobs] = useState<number[]>([]);
   const [serviceFilter, setServiceFilter] = useState<string>("all");
 
+  // Use operator-specific endpoint that filters by tier and radius (15km for equipped operators)
+  const operatorId = user?.operatorId || "OP-EQUIPPED-001";
+
   const { data: requests = [], isLoading } = useQuery<ServiceRequest[]>({
-    queryKey: ["/api/service-requests"],
+    queryKey: [`/api/service-requests/for-operator/${operatorId}`],
+    enabled: !!operatorId,
   });
 
-  // Filter for requests within 15km radius and by service type
+  // Filter by service type (backend already filtered by radius and tier)
   const nearbyRequests = requests.filter((req) => {
-    const withinRadius = !req.distance || req.distance <= 15;
     const matchesService = serviceFilter === "all" || req.serviceType === serviceFilter;
-    return withinRadius && matchesService && req.serviceType !== "Snow Plowing"; // Manual operators handle snow plowing
+    return matchesService;
   });
 
   const emergencyRequests = nearbyRequests.filter(req => req.isEmergency === 1);

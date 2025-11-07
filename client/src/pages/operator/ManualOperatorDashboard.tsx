@@ -68,14 +68,13 @@ export default function ManualOperatorDashboard() {
     },
   ];
 
-  const { data: requests = [], isLoading } = useQuery<ServiceRequest[]>({
-    queryKey: ["/api/service-requests"],
+  // Use operator-specific endpoint that filters by tier and radius
+  const operatorId = user?.operatorId || "OP-MANUAL-001";
+  
+  const { data: nearbySnowRequests = [], isLoading } = useQuery<ServiceRequest[]>({
+    queryKey: [`/api/service-requests/for-operator/${operatorId}`],
+    enabled: !!operatorId,
   });
-
-  // Filter for snow plowing requests within 5km radius
-  const nearbySnowRequests = requests.filter(
-    (req) => req.serviceType === "Snow Plowing" && (!req.distance || req.distance <= 5)
-  );
 
   const handleAcceptJob = (requestId: number) => {
     setAcceptedJobs([...acceptedJobs, requestId]);
