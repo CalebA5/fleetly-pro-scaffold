@@ -462,5 +462,34 @@ export function registerRoutes(storage: IStorage) {
     }
   });
 
+  // Tier Switching Routes
+  router.post("/api/operators/:operatorId/switch-tier", async (req, res) => {
+    try {
+      const { newTier } = req.body;
+      const success = await storage.switchOperatorTier(req.params.operatorId, newTier);
+      if (!success) {
+        return res.status(400).json({ message: "Unable to switch tier. Tier not subscribed or operator not found." });
+      }
+      res.json({ message: "Tier switched successfully" });
+    } catch (error) {
+      console.error("Error switching tier:", error);
+      res.status(500).json({ message: "Failed to switch tier" });
+    }
+  });
+
+  router.post("/api/operators/:operatorId/add-tier", async (req, res) => {
+    try {
+      const { tier, details } = req.body;
+      const success = await storage.addOperatorTier(req.params.operatorId, tier, details);
+      if (!success) {
+        return res.status(400).json({ message: "Unable to add tier. Tier already subscribed or operator not found." });
+      }
+      res.json({ message: "Tier added successfully" });
+    } catch (error) {
+      console.error("Error adding tier:", error);
+      res.status(500).json({ message: "Failed to add tier" });
+    }
+  });
+
   return router;
 }

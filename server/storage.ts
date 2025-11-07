@@ -54,6 +54,10 @@ export interface IStorage {
   getBusinessDrivers(businessId: string): Promise<Operator[]>;
   createDriver(driver: InsertOperator): Promise<Operator>;
   removeDriver(driverId: string): Promise<boolean>;
+
+  // Tier switching
+  switchOperatorTier(operatorId: string, newTier: string): Promise<boolean>;
+  addOperatorTier(operatorId: string, tier: string, details: any): Promise<boolean>;
 }
 
 export class MemStorage implements IStorage {
@@ -107,6 +111,8 @@ export class MemStorage implements IStorage {
         availability: "available",
         photo: null,
         operatorTier: "professional",
+        subscribedTiers: ["professional"],
+        activeTier: "professional",
         isCertified: 1,
         businessLicense: "NYC-SNW-2023-001",
         homeLatitude: "40.7580",
@@ -136,6 +142,8 @@ export class MemStorage implements IStorage {
         availability: "available",
         photo: null,
         operatorTier: "professional",
+        subscribedTiers: ["professional"],
+        activeTier: "professional",
         isCertified: 1,
         businessLicense: "NYC-TOW-2023-002",
         homeLatitude: "40.7489",
@@ -165,6 +173,8 @@ export class MemStorage implements IStorage {
         availability: "available",
         photo: null,
         operatorTier: "professional",
+        subscribedTiers: ["professional", "equipped"],
+        activeTier: "professional",
         isCertified: 1,
         businessLicense: "NYC-HVY-2023-003",
         homeLatitude: "40.7306",
@@ -194,6 +204,8 @@ export class MemStorage implements IStorage {
         availability: "available",
         photo: null,
         operatorTier: "professional",
+        subscribedTiers: ["professional"],
+        activeTier: "professional",
         isCertified: 1,
         businessLicense: "NYC-CRR-2023-004",
         homeLatitude: "40.7614",
@@ -223,11 +235,13 @@ export class MemStorage implements IStorage {
         availability: "busy",
         photo: null,
         operatorTier: "professional",
+        subscribedTiers: ["manual", "equipped", "professional"],
+        activeTier: "equipped",
         isCertified: 1,
         businessLicense: "NYC-PLW-2023-005",
         homeLatitude: "40.7829",
         homeLongitude: "-73.9654",
-        operatingRadius: null,
+        operatingRadius: "15.00",
         businessId: null,
         businessName: null,
         driverName: null,
@@ -739,6 +753,51 @@ export class MemStorage implements IStorage {
           totalDrivers: Math.max(0, business.totalDrivers - 1),
         });
       }
+    }
+
+    return true;
+  }
+
+  async switchOperatorTier(operatorId: string, newTier: string): Promise<boolean> {
+    const operator = this.operators.find((op) => op.operatorId === operatorId);
+    if (!operator) return false;
+
+    const subscribedTiers = operator.subscribedTiers || [operator.operatorTier];
+    if (!subscribedTiers.includes(newTier)) return false;
+
+    operator.activeTier = newTier;
+    operator.operatorTier = newTier;
+
+    return true;
+  }
+
+  async addOperatorTier(operatorId: string, tier: string, details: any): Promise<boolean> {
+    const operator = this.operators.find((op) => op.operatorId === operatorId);
+    if (!operator) return false;
+
+    const subscribedTiers = operator.subscribedTiers || [operator.operatorTier];
+    if (subscribedTiers.includes(tier)) return false;
+
+    subscribedTiers.push(tier);
+    operator.subscribedTiers = subscribedTiers;
+    operator.activeTier = tier;
+    operator.operatorTier = tier;
+
+    if (details.vehicle) operator.vehicle = details.vehicle;
+    if (details.licensePlate) operator.licensePlate = details.licensePlate;
+    if (details.businessLicense) operator.businessLicense = details.businessLicense;
+    if (details.services) {
+      const servicesArray = details.services.split(',').map((s: string) => s.trim());
+      operator.services = servicesArray;
+    }
+
+    if (tier === "professional") {
+      operator.isCertified = 1;
+      operator.operatingRadius = null;
+    } else if (tier === "equipped") {
+      operator.operatingRadius = "15.00";
+    } else if (tier === "manual") {
+      operator.operatingRadius = "5.00";
     }
 
     return true;

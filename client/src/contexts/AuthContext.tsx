@@ -7,6 +7,8 @@ export interface User {
   role: "customer" | "operator" | "both" | "business";
   operatorProfileComplete?: boolean;
   operatorTier?: "professional" | "equipped" | "manual";
+  subscribedTiers?: ("professional" | "equipped" | "manual")[];
+  activeTier?: "professional" | "equipped" | "manual";
   operatorId?: string;
   businessId?: string;
 }
