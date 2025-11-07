@@ -5,6 +5,14 @@ Fleetly is a professional on-demand service platform connecting customers with v
 
 ## Recent Updates (November 2025)
 
+### Demo Business Integration ✅
+Arctic Express Services demo business is now accessible through regular sign-in:
+- **Demo Credentials**: Email: `demo@arcticexpress.com`, Password: `demo`
+- **Pre-Seeded Data**: 5 drivers (Sarah Mitchell, Marcus Johnson, Elena Rodriguez, David Chen, Aisha Patel) and 4 fleet vehicles
+- **Business Dashboard Access**: Sign in with demo credentials to view full business management features
+- **Removed Separate Demo Button**: Cleaner UX with single authentication flow for all users
+- **Regular Sign-In Flow**: Demo business accessible through standard authentication, no special UI elements needed
+
 ### Tier Switching System ✅
 Operators can now subscribe to multiple tiers and switch between them at any time:
 - **Multi-Tier Subscriptions**: Operators can subscribe to any combination of manual (⛏️), equipped (🚛), and professional (🏆) tiers, enabling flexibility to work across different service types

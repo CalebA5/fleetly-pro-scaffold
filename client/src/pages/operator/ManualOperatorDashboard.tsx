@@ -39,36 +39,9 @@ export default function ManualOperatorDashboard() {
   const [, setLocation] = useLocation();
   const [acceptedJobs, setAcceptedJobs] = useState<number[]>([]);
 
-  // Mock data for customer grouping - in production, this would come from backend
-  const mockCustomerGroups: CustomerGroup[] = [
-    {
-      id: "CG-001",
-      location: "Oak Street Area",
-      customerCount: 4,
-      totalValue: "$180-240",
-      customers: [
-        { name: "John Smith", address: "123 Oak St", service: "Driveway snow removal" },
-        { name: "Mary Johnson", address: "125 Oak St", service: "Walkway clearing" },
-        { name: "Bob Wilson", address: "127 Oak St", service: "Driveway & walkway" },
-        { name: "Sarah Davis", address: "131 Oak St", service: "Full property clearing" },
-      ],
-      distance: 1.2,
-      expiresIn: 45,
-    },
-    {
-      id: "CG-002",
-      location: "Maple Avenue",
-      customerCount: 3,
-      totalValue: "$120-180",
-      customers: [
-        { name: "Tom Brown", address: "456 Maple Ave", service: "Driveway clearing" },
-        { name: "Lisa Green", address: "458 Maple Ave", service: "Walkway & steps" },
-        { name: "Mike Taylor", address: "462 Maple Ave", service: "Driveway snow removal" },
-      ],
-      distance: 2.8,
-      expiresIn: 30,
-    },
-  ];
+  // Customer grouping - in production, this would come from backend
+  // Empty for now - will be populated with real data
+  const mockCustomerGroups: CustomerGroup[] = [];
 
   // Use operator-specific endpoint that filters by tier and radius
   const operatorId = user?.operatorId || "OP-MANUAL-001";

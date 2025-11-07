@@ -8,6 +8,7 @@ import { Switch } from "@/components/ui/switch";
 import { Header } from "@/components/Header";
 import { AuthDialog } from "@/components/AuthDialog";
 import { ServiceRequestDetailsDialog } from "@/components/ServiceRequestDetailsDialog";
+import { useAuth } from "@/contexts/AuthContext";
 import type { ServiceRequest } from "@shared/schema";
 import { 
   Truck, 
@@ -22,17 +23,6 @@ import {
   Target,
   Timer
 } from "lucide-react";
-
-const mockOperatorData = {
-  name: "Mike's Snow Service",
-  isOnline: true,
-  todayEarnings: 425.50,
-  weeklyEarnings: 1247.75,
-  completedJobs: 23,
-  rating: 4.8,
-  activeJobs: 2,
-  pendingJobs: 5,
-};
 
 
 // Mock nearby opportunities - customers in the same area who used the service recently
@@ -70,7 +60,8 @@ const nearbyOpportunities = [
 ];
 
 export const OperatorHome = () => {
-  const [isOnline, setIsOnline] = useState(mockOperatorData.isOnline);
+  const { user } = useAuth();
+  const [isOnline, setIsOnline] = useState(true);
   const [showNearbyPrompt, setShowNearbyPrompt] = useState(true);
   const [timeRemaining, setTimeRemaining] = useState(240); // 4 minutes in seconds
   const [showAuthDialog, setShowAuthDialog] = useState(false);
@@ -82,6 +73,15 @@ export const OperatorHome = () => {
     queryKey: ['/api/service-requests'],
   });
   const [authTab, setAuthTab] = useState<"signin" | "signup">("signin");
+  
+  // Use real user data, fallback to defaults
+  const operatorName = user?.name || "Operator";
+  const todayEarnings = 0; // Could be fetched from API
+  const weeklyEarnings = 0; // Could be fetched from API
+  const completedJobs = 0; // Could be fetched from API
+  const rating = 5.0; // Could be fetched from API
+  const activeJobs = serviceRequests.filter(r => r.status === 'accepted').length;
+  const pendingJobs = serviceRequests.filter(r => r.status === 'pending').length;
 
   // Countdown timer for nearby opportunities prompt
   useEffect(() => {
@@ -145,7 +145,7 @@ export const OperatorHome = () => {
           <div className="flex justify-between items-center">
             <div>
               <h1 className="text-2xl font-bold text-black dark:text-white">Operator Dashboard</h1>
-              <p className="text-sm text-gray-600 dark:text-gray-400">Welcome back, {mockOperatorData.name}</p>
+              <p className="text-sm text-gray-600 dark:text-gray-400">Welcome back, {operatorName}</p>
             </div>
             
             <div className="flex items-center space-x-4">
@@ -281,7 +281,7 @@ export const OperatorHome = () => {
                 <span className="text-xs md:text-sm font-medium text-gray-600 dark:text-gray-400">Today</span>
               </div>
               <p className="text-2xl md:text-3xl font-bold text-black dark:text-white">
-                ${mockOperatorData.todayEarnings.toFixed(2)}
+                ${todayEarnings.toFixed(2)}
               </p>
             </CardContent>
           </Card>
@@ -293,7 +293,7 @@ export const OperatorHome = () => {
                 <span className="text-xs md:text-sm font-medium text-gray-600 dark:text-gray-400">Week</span>
               </div>
               <p className="text-2xl md:text-3xl font-bold text-black dark:text-white">
-                ${mockOperatorData.weeklyEarnings.toFixed(2)}
+                ${weeklyEarnings.toFixed(2)}
               </p>
             </CardContent>
           </Card>
@@ -305,7 +305,7 @@ export const OperatorHome = () => {
                 <span className="text-xs md:text-sm font-medium text-gray-600 dark:text-gray-400">Completed</span>
               </div>
               <p className="text-2xl md:text-3xl font-bold text-black dark:text-white">
-                {mockOperatorData.completedJobs}
+                {completedJobs}
               </p>
             </CardContent>
           </Card>
@@ -317,7 +317,7 @@ export const OperatorHome = () => {
                 <span className="text-xs md:text-sm font-medium text-gray-600 dark:text-gray-400">Rating</span>
               </div>
               <p className="text-2xl md:text-3xl font-bold text-black dark:text-white">
-                {mockOperatorData.rating}★
+                {rating}★
               </p>
             </CardContent>
           </Card>
@@ -449,7 +449,7 @@ export const OperatorHome = () => {
                 </h3>
                 <div className="text-center py-6">
                   <p className="text-5xl font-bold text-black dark:text-white mb-2">
-                    {mockOperatorData.activeJobs}
+                    {activeJobs}
                   </p>
                   <p className="text-gray-600 dark:text-gray-400 mb-6">Jobs in progress</p>
                   <Link to="/operator/jobs">

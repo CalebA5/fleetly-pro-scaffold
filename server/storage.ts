@@ -105,37 +105,6 @@ export class MemStorage implements IStorage {
       {
         id: this.nextOperatorId++,
         operatorId: "OP-001",
-        name: "Mike's Snow Service",
-        rating: "4.9",
-        totalJobs: 234,
-        services: ["Snow Plowing", "Ice Removal"],
-        vehicle: "2023 Ford F-350 with V-Plow",
-        licensePlate: "SNW-123",
-        phone: "(555) 123-4567",
-        email: "mike@snowservice.com",
-        latitude: "40.7580",
-        longitude: "-73.9855",
-        address: "Manhattan, NY",
-        isOnline: 1,
-        hourlyRate: "95.00",
-        availability: "available",
-        photo: null,
-        operatorTier: "professional",
-        subscribedTiers: ["professional"],
-        activeTier: "professional",
-        isCertified: 1,
-        businessLicense: "NYC-SNW-2023-001",
-        homeLatitude: "40.7580",
-        homeLongitude: "-73.9855",
-        operatingRadius: null,
-        businessId: null,
-        businessName: null,
-        driverName: null,
-        createdAt: new Date(),
-      },
-      {
-        id: this.nextOperatorId++,
-        operatorId: "OP-002",
         name: "QuickTow Express",
         rating: "4.7",
         totalJobs: 189,
@@ -693,8 +662,8 @@ export class MemStorage implements IStorage {
     const baseLon = -79.3832;
     const randomOffset = () => (Math.random() - 0.5) * 0.1; // Random offset within ~5km
     
-    const latitude = request.latitude || String(baseLat + randomOffset());
-    const longitude = request.longitude || String(baseLon + randomOffset());
+    const latitude = request.latitude ? String(request.latitude) : String(baseLat + randomOffset());
+    const longitude = request.longitude ? String(request.longitude) : String(baseLon + randomOffset());
     
     const newRequest: ServiceRequest = {
       id: this.nextServiceRequestId++,

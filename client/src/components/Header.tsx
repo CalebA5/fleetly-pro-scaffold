@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { ProfileDropdown } from "@/components/ProfileDropdown";
 import { TierSwitcher } from "@/components/TierSwitcher";
 import { useAuth } from "@/contexts/AuthContext";
-import { Truck, Sparkles, Star } from "lucide-react";
+import { Truck, Sparkles } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface HeaderProps {
@@ -13,7 +13,7 @@ interface HeaderProps {
 }
 
 export const Header = ({ onSignIn, onSignUp, onDriveAndEarn }: HeaderProps) => {
-  const { isAuthenticated, user, loginAsDemo } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const [location, setLocation] = useLocation();
   const { toast } = useToast();
 
@@ -53,15 +53,6 @@ export const Header = ({ onSignIn, onSignUp, onDriveAndEarn }: HeaderProps) => {
     }
   };
 
-  const handleViewDemo = () => {
-    loginAsDemo();
-    toast({
-      title: "Demo Mode Activated",
-      description: "Viewing Arctic Express Services - 5 drivers, 4 vehicles",
-    });
-    setLocation("/business");
-  };
-
   return (
     <header className="border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -92,20 +83,6 @@ export const Header = ({ onSignIn, onSignUp, onDriveAndEarn }: HeaderProps) => {
                 Browse Operators
               </Button>
             </Link>
-
-            {/* Demo Business Button - Always visible unless already logged in as demo */}
-            {(!isAuthenticated || user?.role !== "business") && (
-              <Button 
-                variant="ghost"
-                size="sm"
-                onClick={handleViewDemo}
-                className="hidden md:inline-flex text-orange-600 dark:text-orange-400 hover:text-orange-700 dark:hover:text-orange-300 font-semibold"
-                data-testid="button-view-demo"
-              >
-                <Star className="w-4 h-4 mr-1 fill-current" />
-                Demo
-              </Button>
-            )}
 
             {/* Drive & Earn - Hide on mobile, available via bottom nav */}
             <Button 

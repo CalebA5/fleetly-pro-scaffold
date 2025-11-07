@@ -18,7 +18,7 @@ const Index = () => {
   const [pickup, setPickup] = useState("");
   const [dropoff, setDropoff] = useState("");
   const [showAvailability, setShowAvailability] = useState(false);
-  const { isAuthenticated, user, loginAsDemo } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const { toast } = useToast();
 
   const handleAuthClick = (tab: "signin" | "signup", role: "customer" | "operator" = "customer") => {
@@ -60,15 +60,6 @@ const Index = () => {
       // Redirect to service request page
       setLocation("/customer/service-request");
     }
-  };
-
-  const handleViewDemo = () => {
-    loginAsDemo();
-    toast({
-      title: "Logged in as Demo Business",
-      description: "You're now viewing Arctic Express Services - a professional business with 5 drivers and 4 vehicles.",
-    });
-    setLocation("/business");
   };
 
   return (
@@ -129,7 +120,7 @@ const Index = () => {
               </div>
 
               {/* Quick Browse */}
-              <div className="mt-4 space-y-3">
+              <div className="mt-4">
                 <Link href="/customer/operators">
                   <Button 
                     variant="outline" 
@@ -141,17 +132,6 @@ const Index = () => {
                     <ArrowRight className="ml-2 w-5 h-5" />
                   </Button>
                 </Link>
-                
-                {/* Demo Business Access */}
-                <Button 
-                  onClick={handleViewDemo}
-                  size="lg" 
-                  className="w-full bg-orange-500 text-white hover:bg-orange-600 dark:bg-orange-500 dark:hover:bg-orange-600 font-semibold shadow-lg"
-                  data-testid="button-view-demo-business"
-                >
-                  <Star className="mr-2 w-5 h-5 fill-current" />
-                  View Demo Business Dashboard
-                </Button>
               </div>
             </div>
 
