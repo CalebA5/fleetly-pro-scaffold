@@ -14,6 +14,17 @@ Operators can now subscribe to multiple tiers and switch between them at any tim
 - **PostgreSQL Database**: Schema includes `subscribedTiers` array and `activeTier` fields, database ready for production
 - **Backend API**: POST /api/operators/:operatorId/switch-tier and /api/operators/:operatorId/add-tier endpoints
 
+### Multi-Vehicle Management System ✅
+Professional and equipped operators can now register and manage multiple vehicles:
+- **Professional Tier**: Register unlimited vehicles, all can be used simultaneously, assign specific services to each vehicle
+- **Equipped Tier**: Register multiple vehicles but only one can be active at a time, with easy switching via dashboard
+- **Vehicle Details**: Each vehicle includes make, model, year, license plate, type, and service capabilities
+- **Service Selection**: Operators choose which services each vehicle can perform (Snow Plowing, Towing, Hauling, etc.)
+- **Dashboard Integration**: Tabbed interface in both EquippedOperatorDashboard and BusinessDashboard separating Jobs/Drivers and Fleet management
+- **Full CRUD Operations**: Add, edit, delete vehicles with form validation and confirmation dialogs
+- **Database Schema**: Vehicles table with operatorId reference, vehicle details, services JSONB array, and isActive flag
+- **Backend API**: RESTful endpoints (GET/POST/PATCH/DELETE /api/operators/:operatorId/vehicles, POST set-active)
+
 ## User Preferences
 Preferred communication style: Simple, everyday language.
 
