@@ -8,7 +8,9 @@ import type {
   OperatorLocation, InsertOperatorLocation,
   CustomerServiceHistory, InsertCustomerServiceHistory,
   Business, InsertBusiness,
-  Vehicle, InsertVehicle
+  Vehicle, InsertVehicle,
+  User, InsertUser,
+  Session, InsertSession
 } from "@shared/schema";
 
 export interface IStorage {
@@ -70,6 +72,18 @@ export interface IStorage {
   updateVehicle(vehicleId: string, updates: Partial<InsertVehicle>): Promise<Vehicle | undefined>;
   deleteVehicle(vehicleId: string): Promise<boolean>;
   setActiveVehicle(operatorId: string, vehicleId: string): Promise<boolean>;
+
+  // Authentication & Users
+  createUser(user: InsertUser): Promise<User>;
+  getUserByEmail(email: string): Promise<User | undefined>;
+  getUserByUserId(userId: string): Promise<User | undefined>;
+  updateUser(userId: string, updates: Partial<InsertUser>): Promise<User | undefined>;
+  
+  // Sessions
+  createSession(session: InsertSession): Promise<Session>;
+  getSession(sessionId: string): Promise<Session | undefined>;
+  deleteSession(sessionId: string): Promise<boolean>;
+  deleteExpiredSessions(): Promise<number>;
 }
 
 export class MemStorage implements IStorage {
@@ -82,6 +96,9 @@ export class MemStorage implements IStorage {
   private operatorLocations: OperatorLocation[] = [];
   private customerServiceHistory: CustomerServiceHistory[] = [];
   private businesses: Business[] = [];
+  private users: User[] = [];
+  private sessions: Session[] = [];
+  private vehicles: Vehicle[] = [];
   private nextJobId = 1;
   private nextOperatorId = 1;
   private nextServiceRequestId = 1;
@@ -91,6 +108,9 @@ export class MemStorage implements IStorage {
   private nextLocationId = 1;
   private nextHistoryId = 1;
   private nextBusinessId = 1;
+  private nextUserId = 1;
+  private nextSessionId = 1;
+  private nextVehicleId = 1;
 
   constructor() {
     // No demo data - clean slate for all operators

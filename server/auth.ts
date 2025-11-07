@@ -1,0 +1,303 @@
+import { Router } from 'express';
+import bcrypt from 'bcryptjs';
+import crypto from 'crypto';
+import { eq, and, gt } from 'drizzle-orm';
+import { db } from './db';
+import { users, operators, sessions } from '@shared/schema';
+import type { InsertUser, InsertOperator, InsertSession } from '@shared/schema';
+
+const router = Router();
+
+// Helper to generate session ID
+function generateSessionId(): string {
+  return crypto.randomBytes(32).toString('hex');
+}
+
+// Helper to generate user ID
+function generateUserId(): string {
+  return `user-${Date.now()}-${crypto.randomBytes(4).toString('hex')}`;
+}
+
+// Helper to generate operator ID
+function generateOperatorId(): string {
+  return `OP-${Date.now()}-${crypto.randomBytes(4).toString('hex')}`;
+}
+
+// POST /api/auth/signup - Create new account
+router.post('/signup', async (req, res) => {
+  try {
+    const { name, email, password, role } = req.body;
+
+    if (!name || !email || !password || !role) {
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
+
+    if (role !== 'customer' && role !== 'operator') {
+      return res.status(400).json({ error: 'Invalid role' });
+    }
+
+    // Check if user already exists
+    const existingUser = await db.query.users.findFirst({
+      where: eq(users.email, email)
+    });
+
+    if (existingUser) {
+      return res.status(409).json({ error: 'Email already registered' });
+    }
+
+    // Hash password
+    const passwordHash = await bcrypt.hash(password, 10);
+
+    // Create user ID
+    const userId = generateUserId();
+    
+    // Create operator ID if role is operator
+    const operatorId = role === 'operator' ? generateOperatorId() : null;
+
+    // Create user
+    const newUser: InsertUser = {
+      userId,
+      name,
+      email,
+      passwordHash,
+      role,
+      operatorId,
+      businessId: null,
+    };
+
+    const [createdUser] = await db.insert(users).values(newUser).returning();
+
+    // If operator, create operator profile
+    if (role === 'operator' && operatorId) {
+      const newOperator: InsertOperator = {
+        operatorId,
+        name,
+        email,
+        phone: '',
+        rating: '0.0',
+        totalJobs: 0,
+        services: [],
+        vehicle: 'Not set',
+        licensePlate: 'Not set',
+        latitude: '0',
+        longitude: '0',
+        address: 'Not set',
+        isOnline: 0,
+        hourlyRate: '0.00',
+        availability: 'available',
+        photo: null,
+        operatorTier: 'manual',
+        subscribedTiers: ['manual'],
+        activeTier: 'manual',
+        isCertified: 0,
+        businessLicense: null,
+        homeLatitude: null,
+        homeLongitude: null,
+        operatingRadius: '5.00',
+        businessId: null,
+        businessName: null,
+        driverName: null,
+      };
+
+      await db.insert(operators).values(newOperator);
+    }
+
+    // Create session
+    const sessionId = generateSessionId();
+    const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days
+
+    const newSession: InsertSession = {
+      sessionId,
+      userId: createdUser.userId,
+      expiresAt,
+    };
+
+    await db.insert(sessions).values(newSession);
+
+    // Set session cookie
+    res.cookie('sessionId', sessionId, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 30 * 24 * 60 * 60 * 1000,
+    });
+
+    // Fetch operator data if applicable
+    let operatorData = null;
+    if (role === 'operator' && operatorId) {
+      operatorData = await db.query.operators.findFirst({
+        where: eq(operators.operatorId, operatorId)
+      });
+    }
+
+    // Return user data (without password hash)
+    res.json({
+      id: createdUser.id,
+      userId: createdUser.userId,
+      name: createdUser.name,
+      email: createdUser.email,
+      role: createdUser.role,
+      operatorId: createdUser.operatorId,
+      businessId: createdUser.businessId,
+      operatorProfileComplete: role === 'operator' ? false : undefined,
+      operatorTier: operatorData?.operatorTier,
+      subscribedTiers: operatorData?.subscribedTiers,
+      activeTier: operatorData?.activeTier,
+    });
+  } catch (error) {
+    console.error('Signup error:', error);
+    res.status(500).json({ error: 'Failed to create account' });
+  }
+});
+
+// POST /api/auth/signin - Sign in existing user
+router.post('/signin', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({ error: 'Missing email or password' });
+    }
+
+    // Find user by email
+    const user = await db.query.users.findFirst({
+      where: eq(users.email, email)
+    });
+
+    if (!user || !user.passwordHash) {
+      return res.status(401).json({ error: 'Invalid email or password' });
+    }
+
+    // Verify password
+    const isValidPassword = await bcrypt.compare(password, user.passwordHash);
+    if (!isValidPassword) {
+      return res.status(401).json({ error: 'Invalid email or password' });
+    }
+
+    // Create new session
+    const sessionId = generateSessionId();
+    const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days
+
+    const newSession: InsertSession = {
+      sessionId,
+      userId: user.userId,
+      expiresAt,
+    };
+
+    await db.insert(sessions).values(newSession);
+
+    // Set session cookie
+    res.cookie('sessionId', sessionId, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 30 * 24 * 60 * 60 * 1000,
+    });
+
+    // Fetch operator data if applicable
+    let operatorData = null;
+    if (user.role === 'operator' && user.operatorId) {
+      operatorData = await db.query.operators.findFirst({
+        where: eq(operators.operatorId, user.operatorId)
+      });
+    }
+
+    // Return user data (without password hash)
+    res.json({
+      id: user.id,
+      userId: user.userId,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      operatorId: user.operatorId,
+      businessId: user.businessId,
+      operatorProfileComplete: user.role === 'operator',
+      operatorTier: operatorData?.operatorTier,
+      subscribedTiers: operatorData?.subscribedTiers,
+      activeTier: operatorData?.activeTier,
+    });
+  } catch (error) {
+    console.error('Signin error:', error);
+    res.status(500).json({ error: 'Failed to sign in' });
+  }
+});
+
+// GET /api/auth/session - Get current session
+router.get('/session', async (req, res) => {
+  try {
+    const sessionId = req.cookies.sessionId;
+
+    if (!sessionId) {
+      return res.status(401).json({ error: 'No session' });
+    }
+
+    // Find session
+    const session = await db.query.sessions.findFirst({
+      where: and(
+        eq(sessions.sessionId, sessionId),
+        gt(sessions.expiresAt, new Date())
+      )
+    });
+
+    if (!session) {
+      res.clearCookie('sessionId');
+      return res.status(401).json({ error: 'Invalid or expired session' });
+    }
+
+    // Find user
+    const user = await db.query.users.findFirst({
+      where: eq(users.userId, session.userId)
+    });
+
+    if (!user) {
+      await db.delete(sessions).where(eq(sessions.sessionId, sessionId));
+      res.clearCookie('sessionId');
+      return res.status(401).json({ error: 'User not found' });
+    }
+
+    // Fetch operator data if applicable
+    let operatorData = null;
+    if (user.role === 'operator' && user.operatorId) {
+      operatorData = await db.query.operators.findFirst({
+        where: eq(operators.operatorId, user.operatorId)
+      });
+    }
+
+    // Return user data (without password hash)
+    res.json({
+      id: user.id,
+      userId: user.userId,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      operatorId: user.operatorId,
+      businessId: user.businessId,
+      operatorProfileComplete: user.role === 'operator',
+      operatorTier: operatorData?.operatorTier,
+      subscribedTiers: operatorData?.subscribedTiers,
+      activeTier: operatorData?.activeTier,
+    });
+  } catch (error) {
+    console.error('Session error:', error);
+    res.status(500).json({ error: 'Failed to get session' });
+  }
+});
+
+// POST /api/auth/signout - Sign out current user
+router.post('/signout', async (req, res) => {
+  try {
+    const sessionId = req.cookies.sessionId;
+
+    if (sessionId) {
+      await db.delete(sessions).where(eq(sessions.sessionId, sessionId));
+    }
+
+    res.clearCookie('sessionId');
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Signout error:', error);
+    res.status(500).json({ error: 'Failed to sign out' });
+  }
+});
+
+export default router;

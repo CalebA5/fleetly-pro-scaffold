@@ -1,12 +1,15 @@
 import express, { type Request, Response, NextFunction } from "express";
+import cookieParser from "cookie-parser";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic } from "./vite";
 import { MemStorage } from "./storage";
 import { createServer } from "http";
+import authRouter from "./auth";
 
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+app.use(cookieParser());
 
 const storage = new MemStorage();
 
@@ -40,6 +43,10 @@ app.use((req, res, next) => {
   next();
 });
 
+// Auth routes (database-backed)
+app.use('/api/auth', authRouter);
+
+// Other API routes (memory-backed for now)
 const router = registerRoutes(storage);
 app.use(router);
 
