@@ -3,10 +3,12 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/enhanced-button";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { MapPin, Clock, DollarSign, Truck, AlertCircle, CheckCircle, Filter } from "lucide-react";
 import { Header } from "@/components/Header";
 import { useAuth } from "@/contexts/AuthContext";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { VehicleManagement } from "@/components/VehicleManagement";
 
 interface ServiceRequest {
   id: number;
@@ -72,6 +74,14 @@ export default function EquippedOperatorDashboard() {
             </div>
           </div>
         </div>
+
+        <Tabs defaultValue="jobs" className="space-y-8">
+          <TabsList className="grid w-full max-w-md grid-cols-2">
+            <TabsTrigger value="jobs" data-testid="tab-jobs">Available Jobs</TabsTrigger>
+            <TabsTrigger value="vehicles" data-testid="tab-vehicles">My Vehicles</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="jobs" className="space-y-8">
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
@@ -327,6 +337,12 @@ export default function EquippedOperatorDashboard() {
             </CardContent>
           </Card>
         </div>
+          </TabsContent>
+
+          <TabsContent value="vehicles">
+            <VehicleManagement tierType="equipped" />
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );

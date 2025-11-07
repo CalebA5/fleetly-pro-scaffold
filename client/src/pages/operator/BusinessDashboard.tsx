@@ -8,9 +8,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Users, DollarSign, Star, TrendingUp, Plus, Trash2 } from "lucide-react";
+import { VehicleManagement } from "@/components/VehicleManagement";
 import type { Operator, Business } from "@shared/schema";
 
 export const BusinessDashboard = () => {
@@ -192,6 +194,13 @@ export const BusinessDashboard = () => {
           </Card>
         </div>
 
+        <Tabs defaultValue="drivers" className="space-y-8">
+          <TabsList className="grid w-full max-w-md grid-cols-2">
+            <TabsTrigger value="drivers" data-testid="tab-drivers">Drivers</TabsTrigger>
+            <TabsTrigger value="vehicles" data-testid="tab-vehicles">Fleet</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="drivers" className="space-y-6">
         {/* Driver Roster */}
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-2xl font-bold text-black dark:text-white">Your Drivers</h2>
@@ -359,6 +368,12 @@ export const BusinessDashboard = () => {
             ))}
           </div>
         )}
+          </TabsContent>
+
+          <TabsContent value="vehicles">
+            <VehicleManagement tierType="professional" />
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );
