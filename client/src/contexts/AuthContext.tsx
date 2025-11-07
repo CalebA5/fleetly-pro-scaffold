@@ -59,44 +59,64 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
     
-    // Look up existing user or create a default customer
+    // Look up existing user in memory
     let existingUser = Array.from(userDatabase.values()).find(u => u.email === email);
     
     if (!existingUser) {
-      // Create new customer user if not found
-      existingUser = {
-        id: `user-${Date.now()}`,
-        name: email.split('@')[0],
-        email: email,
-        role: "customer",
-        operatorProfileComplete: false,
-      };
-      userDatabase.set(existingUser.id, existingUser);
-    }
-    
-    // Migrate existing operators: create backend record if missing
-    if (existingUser.role === "operator" && existingUser.operatorId) {
+      // Check if this email belongs to an existing operator in the backend
       try {
-        // Try to create operator in backend (will fail gracefully if already exists)
-        const response = await fetch("/api/operators", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            operatorId: existingUser.operatorId,
-            name: existingUser.name,
-            email: existingUser.email,
-            operatorTier: existingUser.operatorTier || "manual",
-          }),
-        });
-        
-        // 409 means already exists, which is fine
-        if (!response.ok && response.status !== 409) {
-          console.error("Failed to create operator in backend");
+        const response = await fetch("/api/operators");
+        if (response.ok) {
+          const operators = await response.json();
+          const operatorRecord = operators.find((op: any) => op.email === email);
+          
+          if (operatorRecord) {
+            // Recreate operator user from backend data
+            existingUser = {
+              id: `user-${Date.now()}`,
+              name: operatorRecord.name,
+              email: operatorRecord.email,
+              role: "operator",
+              operatorProfileComplete: true,
+              operatorId: operatorRecord.operatorId,
+              operatorTier: operatorRecord.operatorTier || "manual",
+              subscribedTiers: operatorRecord.subscribedTiers || [operatorRecord.operatorTier || "manual"],
+              activeTier: operatorRecord.activeTier || operatorRecord.operatorTier || "manual",
+              businessId: operatorRecord.businessId,
+            };
+          } else {
+            // Create new customer user if not found in backend either
+            existingUser = {
+              id: `user-${Date.now()}`,
+              name: email.split('@')[0],
+              email: email,
+              role: "customer",
+              operatorProfileComplete: false,
+            };
+          }
+        } else {
+          // If backend fails, default to customer
+          existingUser = {
+            id: `user-${Date.now()}`,
+            name: email.split('@')[0],
+            email: email,
+            role: "customer",
+            operatorProfileComplete: false,
+          };
         }
       } catch (error) {
-        console.error("Error creating operator:", error);
-        // Continue with signin even if backend fails
+        console.error("Error checking backend for operator:", error);
+        // Default to customer if backend check fails
+        existingUser = {
+          id: `user-${Date.now()}`,
+          name: email.split('@')[0],
+          email: email,
+          role: "customer",
+          operatorProfileComplete: false,
+        };
       }
+      
+      userDatabase.set(existingUser.id, existingUser);
     }
     
     setUser(existingUser);
