@@ -491,5 +491,71 @@ export function registerRoutes(storage: IStorage) {
     }
   });
 
+  // Vehicle Management Routes
+  router.get("/api/operators/:operatorId/vehicles", async (req, res) => {
+    try {
+      const vehicles = await storage.getOperatorVehicles(req.params.operatorId);
+      res.json(vehicles);
+    } catch (error) {
+      console.error("Error fetching vehicles:", error);
+      res.status(500).json({ message: "Failed to fetch vehicles" });
+    }
+  });
+
+  router.post("/api/operators/:operatorId/vehicles", async (req, res) => {
+    try {
+      const vehicleId = `VEH-${Date.now()}`;
+      const vehicleData = {
+        ...req.body,
+        vehicleId,
+        operatorId: req.params.operatorId,
+      };
+      const vehicle = await storage.createVehicle(vehicleData);
+      res.status(201).json(vehicle);
+    } catch (error) {
+      console.error("Error creating vehicle:", error);
+      res.status(500).json({ message: "Failed to create vehicle" });
+    }
+  });
+
+  router.patch("/api/vehicles/:vehicleId", async (req, res) => {
+    try {
+      const vehicle = await storage.updateVehicle(req.params.vehicleId, req.body);
+      if (!vehicle) {
+        return res.status(404).json({ message: "Vehicle not found" });
+      }
+      res.json(vehicle);
+    } catch (error) {
+      console.error("Error updating vehicle:", error);
+      res.status(500).json({ message: "Failed to update vehicle" });
+    }
+  });
+
+  router.delete("/api/vehicles/:vehicleId", async (req, res) => {
+    try {
+      const success = await storage.deleteVehicle(req.params.vehicleId);
+      if (!success) {
+        return res.status(404).json({ message: "Vehicle not found" });
+      }
+      res.json({ message: "Vehicle deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting vehicle:", error);
+      res.status(500).json({ message: "Failed to delete vehicle" });
+    }
+  });
+
+  router.post("/api/operators/:operatorId/vehicles/:vehicleId/set-active", async (req, res) => {
+    try {
+      const success = await storage.setActiveVehicle(req.params.operatorId, req.params.vehicleId);
+      if (!success) {
+        return res.status(404).json({ message: "Vehicle not found" });
+      }
+      res.json({ message: "Active vehicle updated successfully" });
+    } catch (error) {
+      console.error("Error setting active vehicle:", error);
+      res.status(500).json({ message: "Failed to set active vehicle" });
+    }
+  });
+
   return router;
 }
