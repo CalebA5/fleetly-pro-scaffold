@@ -1,6 +1,6 @@
 import { Router } from "express";
 import type { IStorage } from "./storage";
-import { insertJobSchema, insertServiceRequestSchema, insertCustomerSchema, insertRatingSchema, insertFavoriteSchema, insertOperatorLocationSchema, insertCustomerServiceHistorySchema, OPERATOR_TIER_INFO } from "@shared/schema";
+import { insertJobSchema, insertServiceRequestSchema, insertCustomerSchema, insertOperatorSchema, insertRatingSchema, insertFavoriteSchema, insertOperatorLocationSchema, insertCustomerServiceHistorySchema, OPERATOR_TIER_INFO } from "@shared/schema";
 import { isWithinRadius } from "./utils/distance";
 
 export function registerRoutes(storage: IStorage) {
@@ -73,6 +73,36 @@ export function registerRoutes(storage: IStorage) {
       return res.status(404).json({ message: "Operator not found" });
     }
     res.json(operator);
+  });
+
+  router.post("/api/operators", async (req, res) => {
+    try {
+      const result = insertOperatorSchema.safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ errors: result.error.issues });
+      }
+      const operator = await storage.createOperator(result.data);
+      res.status(201).json(operator);
+    } catch (error: any) {
+      if (error.message?.includes("already exists")) {
+        return res.status(409).json({ message: error.message });
+      }
+      console.error("Error creating operator:", error);
+      res.status(500).json({ message: "Failed to create operator" });
+    }
+  });
+
+  router.patch("/api/operators/:operatorId", async (req, res) => {
+    try {
+      const operator = await storage.updateOperator(req.params.operatorId, req.body);
+      if (!operator) {
+        return res.status(404).json({ message: "Operator not found" });
+      }
+      res.json(operator);
+    } catch (error) {
+      console.error("Error updating operator:", error);
+      res.status(500).json({ message: "Failed to update operator" });
+    }
   });
 
   router.get("/api/service-requests", async (req, res) => {

@@ -80,6 +80,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const signUp = async (name: string, email: string, password: string, role: "customer" | "operator") => {
     // Mock sign up - create and store new user
     const userId = `user-${Date.now()}`;
+    const operatorId = role === "operator" ? `OP-${userId}` : undefined;
+    
     const newUser: User = {
       id: userId,
       name: name,
@@ -87,8 +89,32 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       role: role,
       operatorProfileComplete: false,
       // Assign operatorId immediately for operators so they can see TierSwitcher
-      operatorId: role === "operator" ? `OP-${userId}` : undefined,
+      operatorId,
     };
+    
+    // If creating an operator, also create operator record in backend
+    if (role === "operator" && operatorId) {
+      try {
+        const response = await fetch("/api/operators", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            operatorId,
+            name,
+            email,
+            operatorTier: "manual",
+          }),
+        });
+        
+        if (!response.ok && response.status !== 409) {
+          // 409 means already exists, which is okay (duplicate signup attempt)
+          console.error("Failed to create operator in backend");
+        }
+      } catch (error) {
+        console.error("Error creating operator:", error);
+        // Continue with signup even if backend fails
+      }
+    }
     
     userDatabase.set(newUser.id, newUser);
     setUser(newUser);

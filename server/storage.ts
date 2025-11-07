@@ -19,6 +19,9 @@ export interface IStorage {
   updateJob(id: number, job: UpdateJob): Promise<Job | undefined>;
   getOperators(service?: string): Promise<Operator[]>;
   getOperator(id: number): Promise<Operator | undefined>;
+  getOperatorByOperatorId(operatorId: string): Promise<Operator | undefined>;
+  createOperator(operator: InsertOperator): Promise<Operator>;
+  updateOperator(operatorId: string, updates: Partial<InsertOperator>): Promise<Operator | undefined>;
   getNearbyOperators(lat: number, lon: number, radiusMiles?: number): Promise<Operator[]>;
   getServiceRequests(customerId?: string): Promise<ServiceRequest[]>;
   getServiceRequest(id: number): Promise<ServiceRequest | undefined>;
@@ -633,6 +636,72 @@ export class MemStorage implements IStorage {
     return this.operators.find((op) => op.id === id);
   }
 
+  async getOperatorByOperatorId(operatorId: string): Promise<Operator | undefined> {
+    return this.operators.find((op) => op.operatorId === operatorId);
+  }
+
+  async createOperator(operator: InsertOperator): Promise<Operator> {
+    // Check for duplicate operatorId
+    const existing = await this.getOperatorByOperatorId(operator.operatorId);
+    if (existing) {
+      throw new Error(`Operator with ID ${operator.operatorId} already exists`);
+    }
+
+    const tier = operator.operatorTier || "manual";
+    const subscribedTiers: string[] = operator.subscribedTiers ? [...operator.subscribedTiers] : [tier];
+    const activeTier = operator.activeTier || tier;
+
+    // Ensure activeTier is in subscribedTiers
+    if (!subscribedTiers.includes(activeTier)) {
+      subscribedTiers.push(activeTier);
+    }
+
+    const newOperator: Operator = {
+      id: this.nextOperatorId++,
+      operatorId: operator.operatorId,
+      name: operator.name,
+      driverName: operator.driverName || operator.name,
+      rating: "0",
+      totalJobs: 0,
+      services: operator.services || [],
+      vehicle: operator.vehicle || "Not specified",
+      licensePlate: operator.licensePlate || "N/A",
+      phone: operator.phone || "",
+      email: operator.email,
+      latitude: operator.latitude || "0",
+      longitude: operator.longitude || "0",
+      address: operator.address || "",
+      isOnline: operator.isOnline || 0,
+      hourlyRate: operator.hourlyRate || "0",
+      availability: operator.availability || "available",
+      photo: operator.photo || null,
+      operatorTier: tier,
+      subscribedTiers,
+      activeTier,
+      isCertified: operator.isCertified || 0,
+      businessLicense: operator.businessLicense || null,
+      businessId: operator.businessId || null,
+      businessName: operator.businessName || null,
+      homeLatitude: operator.homeLatitude || operator.latitude || "0",
+      homeLongitude: operator.homeLongitude || operator.longitude || "0",
+      operatingRadius: operator.operatingRadius || null,
+      createdAt: new Date(),
+    };
+    this.operators.push(newOperator);
+    return newOperator;
+  }
+
+  async updateOperator(operatorId: string, updates: Partial<InsertOperator>): Promise<Operator | undefined> {
+    const index = this.operators.findIndex((op) => op.operatorId === operatorId);
+    if (index === -1) return undefined;
+
+    this.operators[index] = {
+      ...this.operators[index],
+      ...updates,
+    };
+    return this.operators[index];
+  }
+
   async getNearbyOperators(lat: number, lon: number, radiusMiles: number = 10): Promise<Operator[]> {
     const toRadians = (deg: number) => deg * (Math.PI / 180);
     const earthRadiusMiles = 3959;
@@ -949,6 +1018,7 @@ export class MemStorage implements IStorage {
   }
 
   async createDriver(driver: InsertOperator): Promise<Operator> {
+    const tier = driver.operatorTier || "professional";
     const newDriver: Operator = {
       id: this.nextOperatorId++,
       operatorId: driver.operatorId,
@@ -967,7 +1037,9 @@ export class MemStorage implements IStorage {
       hourlyRate: driver.hourlyRate || null,
       availability: driver.availability || "available",
       photo: driver.photo || null,
-      operatorTier: driver.operatorTier || "professional",
+      operatorTier: tier,
+      subscribedTiers: driver.subscribedTiers || [tier],
+      activeTier: driver.activeTier || tier,
       isCertified: driver.isCertified || 1,
       businessLicense: driver.businessLicense || null,
       homeLatitude: driver.homeLatitude || null,
@@ -984,9 +1056,10 @@ export class MemStorage implements IStorage {
     if (driver.businessId) {
       const business = await this.getBusiness(driver.businessId);
       if (business) {
+        const totalDrivers = business.totalDrivers + 1;
         await this.updateBusiness(driver.businessId, {
           ...business,
-          totalDrivers: business.totalDrivers + 1,
+          totalDrivers,
         });
       }
     }
@@ -1008,9 +1081,10 @@ export class MemStorage implements IStorage {
     if (businessId) {
       const business = await this.getBusiness(businessId);
       if (business) {
+        const totalDrivers = Math.max(0, business.totalDrivers - 1);
         await this.updateBusiness(businessId, {
           ...business,
-          totalDrivers: Math.max(0, business.totalDrivers - 1),
+          totalDrivers,
         });
       }
     }
