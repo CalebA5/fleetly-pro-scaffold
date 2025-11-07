@@ -9,6 +9,7 @@ import { Header } from "@/components/Header";
 import { useAuth } from "@/contexts/AuthContext";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { VehicleManagement } from "@/components/VehicleManagement";
+import { useLocation } from "wouter";
 
 interface ServiceRequest {
   id: number;
@@ -24,6 +25,7 @@ interface ServiceRequest {
 
 export default function EquippedOperatorDashboard() {
   const { user } = useAuth();
+  const [, setLocation] = useLocation();
   const [acceptedJobs, setAcceptedJobs] = useState<number[]>([]);
   const [serviceFilter, setServiceFilter] = useState<string>("all");
 
@@ -55,6 +57,7 @@ export default function EquippedOperatorDashboard() {
       <Header
         onSignIn={() => {}}
         onSignUp={() => {}}
+        onDriveAndEarn={() => setLocation("/operator/onboarding")}
       />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">

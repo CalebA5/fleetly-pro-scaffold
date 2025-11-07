@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { MapPin, Clock, DollarSign, Users, Snowflake, AlertCircle, CheckCircle } from "lucide-react";
 import { Header } from "@/components/Header";
 import { useAuth } from "@/contexts/AuthContext";
+import { useLocation } from "wouter";
 
 interface ServiceRequest {
   id: number;
@@ -35,6 +36,7 @@ interface CustomerGroup {
 
 export default function ManualOperatorDashboard() {
   const { user } = useAuth();
+  const [, setLocation] = useLocation();
   const [acceptedJobs, setAcceptedJobs] = useState<number[]>([]);
 
   // Mock data for customer grouping - in production, this would come from backend
@@ -91,6 +93,7 @@ export default function ManualOperatorDashboard() {
       <Header
         onSignIn={() => {}}
         onSignUp={() => {}}
+        onDriveAndEarn={() => setLocation("/operator/onboarding")}
       />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">

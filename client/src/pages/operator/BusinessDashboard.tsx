@@ -13,11 +13,13 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Users, DollarSign, Star, TrendingUp, Plus, Trash2 } from "lucide-react";
 import { VehicleManagement } from "@/components/VehicleManagement";
+import { useLocation } from "wouter";
 import type { Operator, Business } from "@shared/schema";
 
 export const BusinessDashboard = () => {
   const { user } = useAuth();
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
   const [showAddDriverDialog, setShowAddDriverDialog] = useState(false);
 
   // Fetch business data
@@ -118,7 +120,7 @@ export const BusinessDashboard = () => {
   if (businessLoading || driversLoading) {
     return (
       <div className="min-h-screen bg-white dark:bg-black">
-        <Header />
+        <Header onDriveAndEarn={() => setLocation("/operator/onboarding")} />
         <div className="flex items-center justify-center min-h-[60vh]">
           <div className="text-lg text-black dark:text-white">Loading business dashboard...</div>
         </div>
@@ -129,7 +131,7 @@ export const BusinessDashboard = () => {
   if (!business) {
     return (
       <div className="min-h-screen bg-white dark:bg-black">
-        <Header />
+        <Header onDriveAndEarn={() => setLocation("/operator/onboarding")} />
         <div className="flex items-center justify-center min-h-[60vh]">
           <div className="text-lg text-black dark:text-white">Business not found</div>
         </div>
@@ -139,7 +141,7 @@ export const BusinessDashboard = () => {
 
   return (
     <div className="min-h-screen bg-white dark:bg-black">
-      <Header />
+      <Header onDriveAndEarn={() => setLocation("/operator/onboarding")} />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Business Header */}
         <div className="mb-8">
