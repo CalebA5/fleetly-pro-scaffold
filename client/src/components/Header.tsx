@@ -14,8 +14,11 @@ interface HeaderProps {
 
 export const Header = ({ onSignIn, onSignUp, onDriveAndEarn }: HeaderProps) => {
   const { isAuthenticated, user, loginAsDemo } = useAuth();
-  const [, setLocation] = useLocation();
+  const [location, setLocation] = useLocation();
   const { toast } = useToast();
+
+  // Check if user is on an operator dashboard route
+  const isOnOperatorDashboard = ['/operator', '/manual-operator', '/equipped-operator', '/business'].includes(location);
 
   const handleDriveAndEarnClick = () => {
     if (onDriveAndEarn) {
@@ -24,7 +27,17 @@ export const Header = ({ onSignIn, onSignUp, onDriveAndEarn }: HeaderProps) => {
       // Default behavior if no handler provided
       if (isAuthenticated) {
         if (user?.operatorProfileComplete) {
-          setLocation("/operator");
+          // Route based on active tier
+          const activeTier = user?.activeTier || user?.operatorTier;
+          if (activeTier === 'manual') {
+            setLocation("/manual-operator");
+          } else if (activeTier === 'equipped') {
+            setLocation("/equipped-operator");
+          } else if (activeTier === 'professional') {
+            setLocation("/business");
+          } else {
+            setLocation("/operator");
+          }
         } else {
           toast({
             title: "Complete Your Operator Profile",
@@ -125,7 +138,7 @@ export const Header = ({ onSignIn, onSignUp, onDriveAndEarn }: HeaderProps) => {
               </>
             ) : (
               <>
-                {user?.operatorId && <TierSwitcher />}
+                {user?.operatorId && isOnOperatorDashboard && <TierSwitcher />}
                 <ProfileDropdown onDriveAndEarn={handleDriveAndEarnClick} />
               </>
             )}

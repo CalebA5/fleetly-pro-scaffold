@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useLocation } from "wouter";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -43,6 +44,7 @@ const professionalTierSchema = z.object({
 export function TierSwitcher() {
   const { user, updateUser } = useAuth();
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
   const [showUpgradeDialog, setShowUpgradeDialog] = useState(false);
   const [selectedTier, setSelectedTier] = useState<"professional" | "equipped" | "manual" | null>(null);
 
@@ -103,6 +105,15 @@ export function TierSwitcher() {
       });
       setShowUpgradeDialog(false);
       setSelectedTier(null);
+      
+      // Navigate to the appropriate dashboard for the new tier
+      if (variables.tier === 'manual') {
+        setLocation('/manual-operator');
+      } else if (variables.tier === 'equipped') {
+        setLocation('/equipped-operator');
+      } else if (variables.tier === 'professional') {
+        setLocation('/business');
+      }
     },
   });
 
