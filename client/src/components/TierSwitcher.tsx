@@ -85,12 +85,19 @@ export function TierSwitcher() {
       });
       
       // Navigate to the appropriate dashboard for the switched tier
-      if (newTier === 'manual') {
-        setLocation('/manual-operator');
-      } else if (newTier === 'equipped') {
-        setLocation('/equipped-operator');
-      } else if (newTier === 'professional') {
+      if (user?.businessId) {
+        // Business owners always go to business dashboard
         setLocation('/business');
+      } else {
+        // Individual operators route based on tier
+        if (newTier === 'manual') {
+          setLocation('/manual-operator');
+        } else if (newTier === 'equipped') {
+          setLocation('/equipped-operator');
+        } else {
+          // Professional individual operators go to /operator
+          setLocation('/operator');
+        }
       }
     },
   });
@@ -116,12 +123,19 @@ export function TierSwitcher() {
       setSelectedTier(null);
       
       // Navigate to the appropriate dashboard for the new tier
-      if (variables.tier === 'manual') {
-        setLocation('/manual-operator');
-      } else if (variables.tier === 'equipped') {
-        setLocation('/equipped-operator');
-      } else if (variables.tier === 'professional') {
+      if (user?.businessId) {
+        // Business owners always go to business dashboard
         setLocation('/business');
+      } else {
+        // Individual operators route based on tier
+        if (variables.tier === 'manual') {
+          setLocation('/manual-operator');
+        } else if (variables.tier === 'equipped') {
+          setLocation('/equipped-operator');
+        } else {
+          // Professional individual operators go to /operator
+          setLocation('/operator');
+        }
       }
     },
   });

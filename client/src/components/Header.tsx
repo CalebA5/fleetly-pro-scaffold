@@ -27,16 +27,21 @@ export const Header = ({ onSignIn, onSignUp, onDriveAndEarn }: HeaderProps) => {
       // Default behavior if no handler provided
       if (isAuthenticated) {
         if (user?.operatorProfileComplete) {
-          // Route based on active tier
-          const activeTier = user?.activeTier || user?.operatorTier;
-          if (activeTier === 'manual') {
-            setLocation("/manual-operator");
-          } else if (activeTier === 'equipped') {
-            setLocation("/equipped-operator");
-          } else if (activeTier === 'professional') {
+          // Route based on businessId first (business owners), then active tier
+          if (user?.businessId) {
+            // Business owner with multiple drivers
             setLocation("/business");
           } else {
-            setLocation("/operator");
+            // Individual operator - route based on active tier
+            const activeTier = user?.activeTier || user?.operatorTier;
+            if (activeTier === 'manual') {
+              setLocation("/manual-operator");
+            } else if (activeTier === 'equipped') {
+              setLocation("/equipped-operator");
+            } else {
+              // Professional individual operators go to /operator
+              setLocation("/operator");
+            }
           }
         } else {
           toast({
