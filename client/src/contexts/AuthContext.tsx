@@ -20,6 +20,7 @@ interface AuthContextType {
   signUp: (name: string, email: string, password: string, role: "customer" | "operator") => Promise<void>;
   signOut: () => void;
   updateUser: (updates: Partial<User>) => void;
+  loginAsDemo: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -78,6 +79,25 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const loginAsDemo = () => {
+    // Log in as the demo business owner (Arctic Express Services)
+    const demoUser: User = {
+      id: "demo-business-owner",
+      name: "Demo Business Owner",
+      email: "demo@arcticexpress.com",
+      role: "business",
+      operatorProfileComplete: true,
+      operatorTier: "professional",
+      subscribedTiers: ["professional"],
+      activeTier: "professional",
+      operatorId: "BIZ-DEMO-001",
+      businessId: "BIZ-DEMO-001",
+    };
+    
+    userDatabase.set(demoUser.id, demoUser);
+    setUser(demoUser);
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -87,6 +107,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         signUp,
         signOut,
         updateUser,
+        loginAsDemo,
       }}
     >
       {children}
