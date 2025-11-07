@@ -74,6 +74,31 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       userDatabase.set(existingUser.id, existingUser);
     }
     
+    // Migrate existing operators: create backend record if missing
+    if (existingUser.role === "operator" && existingUser.operatorId) {
+      try {
+        // Try to create operator in backend (will fail gracefully if already exists)
+        const response = await fetch("/api/operators", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            operatorId: existingUser.operatorId,
+            name: existingUser.name,
+            email: existingUser.email,
+            operatorTier: existingUser.operatorTier || "manual",
+          }),
+        });
+        
+        // 409 means already exists, which is fine
+        if (!response.ok && response.status !== 409) {
+          console.error("Failed to create operator in backend");
+        }
+      } catch (error) {
+        console.error("Error creating operator:", error);
+        // Continue with signin even if backend fails
+      }
+    }
+    
     setUser(existingUser);
   };
 
