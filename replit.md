@@ -19,8 +19,10 @@ Operators can now subscribe to multiple tiers and switch between them at any tim
 - **Active Tier Selection**: TierSwitcher dropdown in header with visual indicators (green checkmark for subscribed tiers, badge for active tier)
 - **Tier-Specific Onboarding**: Upgrading to a new tier collects required details (instant join for manual, vehicle details for equipped, business license for professional)
 - **Dynamic Dashboard Routing**: Operators see different dashboards based on active tier selection
-- **PostgreSQL Database**: Schema includes `subscribedTiers` array and `activeTier` fields, database ready for production
-- **Backend API**: POST /api/operators/:operatorId/switch-tier and /api/operators/:operatorId/add-tier endpoints
+- **Backend Integration**: AuthContext creates operator records during signup, POST/PATCH /api/operators endpoints handle operator creation and updates
+- **Tier Switching API**: POST /api/operators/:operatorId/switch-tier and /api/operators/:operatorId/add-tier endpoints
+- **Added Missing Routes**: Routes for /manual-operator and /equipped-operator now registered in App.tsx
+- **TierSwitcher Visibility**: Only displays when operator is on dashboard routes (/operator, /manual-operator, /equipped-operator, /business)
 
 ### Multi-Vehicle Management System ✅
 Professional and equipped operators can now register and manage multiple vehicles:

@@ -6,6 +6,8 @@ import { Route, Switch } from "wouter";
 import { CustomerDashboard } from "./pages/customer/CustomerDashboard";
 import { OperatorDashboard } from "./pages/operator/OperatorDashboard";
 import { BusinessDashboard } from "./pages/operator/BusinessDashboard";
+import ManualOperatorDashboard from "./pages/operator/ManualOperatorDashboard";
+import EquippedOperatorDashboard from "./pages/operator/EquippedOperatorDashboard";
 import { HelpSupport } from "./pages/HelpSupport";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
@@ -24,6 +26,8 @@ const App = () => (
           <Route path="/customer" component={CustomerDashboard} />
           <Route path="/customer/:rest+" component={CustomerDashboard} />
           <Route path="/business" component={BusinessDashboard} />
+          <Route path="/manual-operator" component={ManualOperatorDashboard} />
+          <Route path="/equipped-operator" component={EquippedOperatorDashboard} />
           <Route path="/operator" component={OperatorDashboard} />
           <Route path="/operator/:rest+" component={OperatorDashboard} />
           <Route component={NotFound} />
