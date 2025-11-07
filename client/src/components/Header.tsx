@@ -1,6 +1,7 @@
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { ProfileDropdown } from "@/components/ProfileDropdown";
+import { TierSwitcher } from "@/components/TierSwitcher";
 import { useAuth } from "@/contexts/AuthContext";
 import { Truck, Sparkles } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -100,7 +101,10 @@ export const Header = ({ onSignIn, onSignUp, onDriveAndEarn }: HeaderProps) => {
                 </Button>
               </>
             ) : (
-              <ProfileDropdown onDriveAndEarn={handleDriveAndEarnClick} />
+              <>
+                {user?.operatorId && <TierSwitcher />}
+                <ProfileDropdown onDriveAndEarn={handleDriveAndEarnClick} />
+              </>
             )}
           </nav>
         </div>

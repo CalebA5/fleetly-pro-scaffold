@@ -20,10 +20,12 @@ const OperatorHomeRouter = () => {
     }
   }, [user, setLocation]);
 
-  // Route to appropriate dashboard based on tier
-  if (user?.operatorTier === "manual") {
+  // Route to appropriate dashboard based on active tier
+  const activeTier = user?.activeTier || user?.operatorTier || "professional";
+  
+  if (activeTier === "manual") {
     return <ManualOperatorDashboard />;
-  } else if (user?.operatorTier === "equipped") {
+  } else if (activeTier === "equipped") {
     return <EquippedOperatorDashboard />;
   } else {
     // Default to professional (OperatorHome)

@@ -120,9 +120,6 @@ export function TierSwitcher() {
     addTierMutation.mutate({ tier: selectedTier, details: values });
   };
 
-  const currentForm = selectedTier === "professional" ? professionalForm : equippedForm;
-  const currentSchema = selectedTier === "professional" ? professionalTierSchema : equippedTierSchema;
-
   if (!user?.operatorId) return null;
 
   return (
@@ -204,27 +201,25 @@ export function TierSwitcher() {
                 Join Manual Tier
               </Button>
             </div>
-          ) : (
-            <Form {...currentForm}>
-              <form onSubmit={currentForm.handleSubmit(handleUpgradeSubmit)} className="space-y-4">
-                {selectedTier === "professional" && (
-                  <FormField
-                    control={professionalForm.control}
-                    name="businessLicense"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Business License Number</FormLabel>
-                        <FormControl>
-                          <Input {...field} data-testid="input-business-license" />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                )}
+          ) : selectedTier === "professional" ? (
+            <Form {...professionalForm}>
+              <form onSubmit={professionalForm.handleSubmit(handleUpgradeSubmit)} className="space-y-4">
+                <FormField
+                  control={professionalForm.control}
+                  name="businessLicense"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Business License Number</FormLabel>
+                      <FormControl>
+                        <Input {...field} data-testid="input-business-license" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
                 <FormField
-                  control={currentForm.control}
+                  control={professionalForm.control}
                   name="vehicle"
                   render={({ field }) => (
                     <FormItem>
@@ -238,7 +233,7 @@ export function TierSwitcher() {
                 />
 
                 <FormField
-                  control={currentForm.control}
+                  control={professionalForm.control}
                   name="licensePlate"
                   render={({ field }) => (
                     <FormItem>
@@ -252,7 +247,7 @@ export function TierSwitcher() {
                 />
 
                 <FormField
-                  control={currentForm.control}
+                  control={professionalForm.control}
                   name="services"
                   render={({ field }) => (
                     <FormItem>
@@ -275,7 +270,66 @@ export function TierSwitcher() {
                   className="w-full bg-black dark:bg-white text-white dark:text-black hover:bg-gray-800 dark:hover:bg-gray-200"
                   data-testid="button-submit-tier-upgrade"
                 >
-                  {addTierMutation.isPending ? "Adding..." : `Join ${selectedTier && TIER_INFO[selectedTier].label}`}
+                  {addTierMutation.isPending ? "Adding..." : "Join Professional & Certified"}
+                </Button>
+              </form>
+            </Form>
+          ) : (
+            <Form {...equippedForm}>
+              <form onSubmit={equippedForm.handleSubmit(handleUpgradeSubmit)} className="space-y-4">
+                <FormField
+                  control={equippedForm.control}
+                  name="vehicle"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Vehicle</FormLabel>
+                      <FormControl>
+                        <Input {...field} placeholder="e.g., 2023 Ford F-350" data-testid="input-vehicle" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={equippedForm.control}
+                  name="licensePlate"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>License Plate</FormLabel>
+                      <FormControl>
+                        <Input {...field} data-testid="input-license-plate" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={equippedForm.control}
+                  name="services"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Services Offered</FormLabel>
+                      <FormControl>
+                        <Textarea 
+                          {...field} 
+                          placeholder="e.g., Snow Plowing, Towing, Hauling"
+                          data-testid="input-services"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <Button
+                  type="submit"
+                  disabled={addTierMutation.isPending}
+                  className="w-full bg-black dark:bg-white text-white dark:text-black hover:bg-gray-800 dark:hover:bg-gray-200"
+                  data-testid="button-submit-tier-upgrade"
+                >
+                  {addTierMutation.isPending ? "Adding..." : "Join Skilled & Equipped"}
                 </Button>
               </form>
             </Form>
