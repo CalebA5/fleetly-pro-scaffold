@@ -6,6 +6,7 @@ export interface User {
   email: string;
   role: "customer" | "operator" | "both";
   operatorProfileComplete?: boolean;
+  operatorTier?: "professional" | "equipped" | "manual";
 }
 
 interface AuthContextType {

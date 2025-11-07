@@ -5,6 +5,24 @@ Fleetly is a professional on-demand service platform that connects customers wit
 
 ## Recent Changes (November 2025)
 
+### Three-Tier Operator System Implementation
+**In Progress**: Comprehensive multi-tier operator marketplace
+- **Operator Tier Structure**: Implemented three distinct operator tiers with different capabilities, pricing, and radius restrictions:
+  - **Professional & Certified** (🏆): Licensed businesses with full equipment, city-wide operation, 1.5x pricing multiplier, access to all services
+  - **Skilled & Equipped** (🚛): Operators with trucks/vehicles but no formal certification, 15km operating radius, standard pricing, most services available
+  - **Manual Operators** (⛏️): On-foot operators with basic equipment (shovels, snow blowers), 5km radius from home, 0.6x pricing multiplier, focus on snow plowing ("Plow to Earn" program)
+- **Reformed Onboarding**: Completely redesigned "Drive & Earn" onboarding page with tier selection as first step, followed by tier-specific onboarding flows with appropriate fields and requirements for each tier
+- **Tier-Specific Dashboards**: Created three separate operator dashboards:
+  - **Manual Operator Dashboard**: "Plow to Earn" branding with prominent customer grouping feature, nearby snow plowing jobs within 5km radius, simplified interface for side-income earners
+  - **Equipped Operator Dashboard**: Multi-service support with 15km radius filtering, emergency request priority section, service-based job filtering
+  - **Professional Dashboard** (existing OperatorHome): Updated routing to serve as professional tier dashboard with unrestricted city-wide operation
+- **Smart Routing**: Automatic dashboard routing based on operator tier stored in user profile
+- **Data Model Updates**: Added operatorTier, isCertified, businessLicense, homeLatitude, homeLongitude, and operatingRadius fields to operators schema
+
+**Status**: Core implementation complete. Remaining work: backend radius calculation logic, customer-facing tier badges, testing of complete flow.
+
+**Technical Implementation**: Tier information stored in `shared/schema.ts` with `OPERATOR_TIER_INFO` constant defining capabilities and multipliers for each tier. AuthContext updated to support `operatorTier` field. Operator routing handled in `OperatorDashboard.tsx` component.
+
 ### Map Performance & AI Assist Accuracy Upgrades
 **Completed**: Critical performance and intelligence improvements
 - **Mapbox GL JS Migration**: Replaced slower Leaflet library with high-performance Mapbox GL JS for faster map loading, smoother panning/zooming, and better tile caching. Preserved all existing features: map/satellite toggle, blue/red operator markers (stationary/moving), real-time location tracking, popups, sidebar integration, and service filters.
