@@ -58,6 +58,14 @@ export interface IStorage {
   // Tier switching
   switchOperatorTier(operatorId: string, newTier: string): Promise<boolean>;
   addOperatorTier(operatorId: string, tier: string, details: any): Promise<boolean>;
+
+  // Vehicle management
+  getOperatorVehicles(operatorId: string): Promise<Vehicle[]>;
+  getVehicle(vehicleId: string): Promise<Vehicle | undefined>;
+  createVehicle(vehicle: InsertVehicle): Promise<Vehicle>;
+  updateVehicle(vehicleId: string, updates: Partial<InsertVehicle>): Promise<Vehicle | undefined>;
+  deleteVehicle(vehicleId: string): Promise<boolean>;
+  setActiveVehicle(operatorId: string, vehicleId: string): Promise<boolean>;
 }
 
 export class MemStorage implements IStorage {
@@ -800,6 +808,58 @@ export class MemStorage implements IStorage {
       operator.operatingRadius = "5.00";
     }
 
+    return true;
+  }
+
+  // Vehicle management methods
+  private vehicles: Vehicle[] = [];
+  private nextVehicleId = 1;
+
+  async getOperatorVehicles(operatorId: string): Promise<Vehicle[]> {
+    return this.vehicles.filter((v) => v.operatorId === operatorId);
+  }
+
+  async getVehicle(vehicleId: string): Promise<Vehicle | undefined> {
+    return this.vehicles.find((v) => v.vehicleId === vehicleId);
+  }
+
+  async createVehicle(vehicle: InsertVehicle): Promise<Vehicle> {
+    const newVehicle: Vehicle = {
+      id: this.nextVehicleId++,
+      ...vehicle,
+      createdAt: new Date(),
+    };
+    this.vehicles.push(newVehicle);
+    return newVehicle;
+  }
+
+  async updateVehicle(vehicleId: string, updates: Partial<InsertVehicle>): Promise<Vehicle | undefined> {
+    const vehicle = this.vehicles.find((v) => v.vehicleId === vehicleId);
+    if (!vehicle) return undefined;
+
+    Object.assign(vehicle, updates);
+    return vehicle;
+  }
+
+  async deleteVehicle(vehicleId: string): Promise<boolean> {
+    const index = this.vehicles.findIndex((v) => v.vehicleId === vehicleId);
+    if (index === -1) return false;
+    this.vehicles.splice(index, 1);
+    return true;
+  }
+
+  async setActiveVehicle(operatorId: string, vehicleId: string): Promise<boolean> {
+    // For equipped tier: deactivate all vehicles, then activate the selected one
+    const operatorVehicles = this.vehicles.filter((v) => v.operatorId === operatorId);
+    
+    // Deactivate all vehicles for this operator
+    operatorVehicles.forEach((v) => (v.isActive = 0));
+    
+    // Activate the selected vehicle
+    const targetVehicle = this.vehicles.find((v) => v.vehicleId === vehicleId);
+    if (!targetVehicle) return false;
+    
+    targetVehicle.isActive = 1;
     return true;
   }
 }

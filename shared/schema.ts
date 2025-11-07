@@ -338,3 +338,28 @@ export const insertBusinessSchema = createInsertSchema(businesses).omit({
 
 export type InsertBusiness = z.infer<typeof insertBusinessSchema>;
 export type Business = typeof businesses.$inferSelect;
+
+// Vehicles table - for multi-vehicle/equipment management
+export const vehicles = pgTable("vehicles", {
+  id: serial("id").primaryKey(),
+  vehicleId: text("vehicle_id").notNull().unique(),
+  operatorId: text("operator_id").notNull(),
+  name: text("name").notNull(), // e.g., "Truck #1", "Snow Plow A"
+  vehicleType: text("vehicle_type").notNull(), // "Pickup Truck", "Box Truck", "Snow Plow", etc.
+  make: text("make").notNull(),
+  model: text("model").notNull(),
+  year: text("year").notNull(),
+  licensePlate: text("license_plate").notNull(),
+  services: jsonb("services").notNull(), // Array of services this vehicle can perform
+  isActive: integer("is_active").notNull().default(0), // For equipped tier: only one can be active
+  photo: text("photo"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertVehicleSchema = createInsertSchema(vehicles).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertVehicle = z.infer<typeof insertVehicleSchema>;
+export type Vehicle = typeof vehicles.$inferSelect;
