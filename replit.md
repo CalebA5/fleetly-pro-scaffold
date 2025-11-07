@@ -5,13 +5,14 @@ Fleetly is a professional on-demand service platform connecting customers with v
 
 ## Recent Updates (November 2025)
 
-### Demo Business Integration ✅
-Arctic Express Services demo business is now accessible through regular sign-in:
-- **Demo Credentials**: Email: `demo@arcticexpress.com`, Password: `demo`
-- **Pre-Seeded Data**: 5 drivers (Sarah Mitchell, Marcus Johnson, Elena Rodriguez, David Chen, Aisha Patel) and 4 fleet vehicles
-- **Business Dashboard Access**: Sign in with demo credentials to view full business management features
-- **Removed Separate Demo Button**: Cleaner UX with single authentication flow for all users
-- **Regular Sign-In Flow**: Demo business accessible through standard authentication, no special UI elements needed
+### Clean Database Migration (November 7, 2025) ✅
+Migrated to PostgreSQL database and removed all mock/demo data:
+- **PostgreSQL Database**: Full migration from in-memory storage to persistent PostgreSQL database with Drizzle ORM
+- **Users Table**: Added users table for proper authentication and user management
+- **No Demo Accounts**: Removed all pre-seeded demo data (Arctic Express, demo drivers, mock operators)
+- **Universal Operator System**: All operator features now work for ANY account that signs up, not just specific demo accounts
+- **Backend Operator Persistence**: Operator records stored in database, survive page refreshes and server restarts
+- **How businessId Works**: businessId is ONLY assigned when an operator explicitly registers as a business (via "Register as Business" flow with company name, business license, etc.). Regular operators (including professional tier) do NOT receive a businessId - they are individual operators.
 
 ### Tier Switching System ✅
 Operators can now subscribe to multiple tiers and switch between them at any time:
@@ -50,10 +51,11 @@ Enhanced operator experience with intelligent routing and context-aware UI:
 
 ### Dynamic Dashboards ✅
 Removed hardcoded mock data and implemented real user data integration:
-- **OperatorHome**: Now displays actual operator name, calculated earnings, and real job counts from service requests instead of hardcoded "Mike's Snow Service" data
-- **Clean Data Architecture**: Removed all mock operator data from storage.ts, keeping only Arctic Express Services demo business
+- **OperatorHome**: Now displays actual operator name, calculated earnings, and real job counts from service requests instead of hardcoded data
+- **Clean Data Architecture**: Removed all mock operator data from storage.ts - completely clean database
 - **Real-Time Statistics**: Dashboard metrics (active jobs, pending jobs) derived from actual serviceRequests query
 - **User-Specific Data**: All operator dashboards now pull data from authenticated user context via useAuth()
+- **PostgreSQL Backend**: All user and operator data persisted in database, no in-memory data loss on refresh
 
 ## User Preferences
 Preferred communication style: Simple, everyday language.
@@ -64,7 +66,7 @@ Preferred communication style: Simple, everyday language.
 The frontend is built with React 18, TypeScript, and Vite, utilizing Wouter for routing. UI components leverage Radix UI primitives and shadcn/ui, styled with Tailwind CSS, adhering to an Uber-inspired black-and-white theme with orange accents. State management uses TanStack Query for server state and React Hook Form with Zod for form validation. The application features distinct customer and operator dashboards, an AI-powered service assistant, enhanced service request creation, a unified landing page, dynamic authentication supporting multiple user roles, and an interactive map with service filters. Advanced features include favorite drivers, customer rating, real-time driver tracking, and location-based customer grouping for operators. Mobile-first optimizations include a fixed bottom navigation bar for authenticated customers, 44px minimum touch targets, and a responsive header.
 
 ### Backend Architecture
-The backend is an Express.js server managing API routes and static file serving. It uses an in-memory storage for development, with Drizzle ORM configured for future PostgreSQL integration, and Zod for schema validation. API endpoints are RESTful under the `/api` prefix, with centralized error handling. Vite middleware is integrated for HMR in development, and static files are served from `dist/public` in production.
+The backend is an Express.js server managing API routes and static file serving. It uses **PostgreSQL database with Drizzle ORM** for all data persistence, with Zod for schema validation. API endpoints are RESTful under the `/api` prefix, with centralized error handling. Vite middleware is integrated for HMR in development, and static files are served from `dist/public` in production. The in-memory storage (MemStorage) is only used temporarily until full database migration is complete.
 
 ### Data Model
 The service request schema combines normalized fields (e.g., `serviceType`, `isEmergency`, `description`, `location`) with a JSONB `details` field for service-specific payloads (e.g., snow plowing, towing, hauling, courier details). `operatorId` and `operatorName` are nullable, as requests are not initially assigned. Operator profiles include `operatorTier`, `isCertified`, `businessLicense`, `homeLatitude`, `homeLongitude`, and `operatingRadius`.
