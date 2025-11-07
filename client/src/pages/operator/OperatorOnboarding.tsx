@@ -7,9 +7,10 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ArrowLeft, Upload, Truck, FileText, Shield, CheckCircle } from "lucide-react";
+import { ArrowLeft, Upload, Truck, FileText, Shield, CheckCircle, Award, Wrench, Users } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
+import { OPERATOR_TIER_INFO, type OperatorTier } from "@shared/schema";
 
 const vehicleTypes = [
   "Pickup Truck",
@@ -20,6 +21,15 @@ const vehicleTypes = [
   "Snow Plow",
   "Cargo Van",
   "Other",
+];
+
+const manualEquipment = [
+  "Snow Shovel",
+  "Snow Blower",
+  "Ice Scraper",
+  "Salt Spreader",
+  "Broom",
+  "De-icing Tools",
 ];
 
 const serviceTypes = [
@@ -36,20 +46,33 @@ export const OperatorOnboarding = () => {
   const { toast } = useToast();
   const { updateUser } = useAuth();
   const [, setLocation] = useLocation();
-  const [currentStep, setCurrentStep] = useState(1);
+  const [selectedTier, setSelectedTier] = useState<OperatorTier | null>(null);
+  const [currentStep, setCurrentStep] = useState(0); // 0 = tier selection
   const [formData, setFormData] = useState({
-    businessName: "",
+    // Common fields
     contactName: "",
     phone: "",
     email: "",
-    businessAddress: "",
+    address: "",
+    
+    // Professional tier
+    businessName: "",
     licenseNumber: "",
     insuranceProvider: "",
+    
+    // Equipped & Professional
     vehicleType: "",
     vehicleMake: "",
     vehicleModel: "",
     vehicleYear: "",
     licensePlate: "",
+    
+    // Manual tier
+    equipment: [] as string[],
+    homeAddress: "",
+    availableHours: "",
+    
+    // Services
     services: [] as string[],
     serviceArea: "",
     emergencyAvailable: false,
@@ -68,6 +91,15 @@ export const OperatorOnboarding = () => {
     }));
   };
 
+  const handleEquipmentToggle = (equipment: string) => {
+    setFormData(prev => ({
+      ...prev,
+      equipment: prev.equipment.includes(equipment)
+        ? prev.equipment.filter(e => e !== equipment)
+        : [...prev.equipment, equipment]
+    }));
+  };
+
   const handleFileUpload = (type: string) => {
     toast({
       title: "File uploaded",
@@ -75,8 +107,14 @@ export const OperatorOnboarding = () => {
     });
   };
 
+  const handleTierSelection = (tier: OperatorTier) => {
+    setSelectedTier(tier);
+    setCurrentStep(1);
+  };
+
   const nextStep = () => {
-    if (currentStep < 4) {
+    const maxSteps = selectedTier === "manual" ? 3 : 4;
+    if (currentStep < maxSteps) {
       setCurrentStep(currentStep + 1);
     }
   };
@@ -84,371 +122,771 @@ export const OperatorOnboarding = () => {
   const prevStep = () => {
     if (currentStep > 1) {
       setCurrentStep(currentStep - 1);
+    } else if (currentStep === 1) {
+      setCurrentStep(0);
+      setSelectedTier(null);
     }
   };
 
   const handleSubmit = () => {
-    // Mark operator profile as complete
-    updateUser({ operatorProfileComplete: true });
+    updateUser({ 
+      operatorProfileComplete: true,
+      operatorTier: selectedTier 
+    });
     
     toast({
       title: "Profile Complete!",
-      description: "Welcome to Fleetly. You can now start accepting jobs.",
+      description: `Welcome to Fleetly as a ${OPERATOR_TIER_INFO[selectedTier!].label}. You can now start accepting jobs.`,
     });
     
-    // Redirect to operator dashboard
     setTimeout(() => {
       setLocation("/operator");
     }, 1500);
   };
 
   const handleSkip = () => {
-    // Mark profile as complete even if they skip
-    updateUser({ operatorProfileComplete: true });
+    updateUser({ 
+      operatorProfileComplete: true,
+      operatorTier: selectedTier || "professional"
+    });
     
     toast({
       title: "Welcome to Fleetly!",
       description: "You can complete your profile later from your dashboard.",
     });
     
-    // Redirect to operator dashboard
     setLocation("/operator");
   };
 
-  const steps = [
-    { number: 1, title: "Business Info", icon: FileText },
-    { number: 2, title: "Vehicle Details", icon: Truck },
-    { number: 3, title: "Services & Area", icon: Shield },
-    { number: 4, title: "Documents", icon: CheckCircle },
-  ];
+  // Tier Selection Screen
+  if (currentStep === 0) {
+    return (
+      <div className="min-h-screen bg-white dark:bg-gray-900 flex flex-col">
+        <header className="border-b border-gray-200 dark:border-gray-800 px-4 sm:px-6 lg:px-8 py-4">
+          <div className="max-w-7xl mx-auto flex items-center justify-between">
+            <Link href="/">
+              <Button variant="ghost" size="sm" data-testid="button-back">
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Back
+              </Button>
+            </Link>
+            <h1 className="text-2xl font-bold text-black dark:text-white">Drive & Earn</h1>
+            <div className="w-20"></div>
+          </div>
+        </header>
+
+        <div className="flex-1 px-4 sm:px-6 lg:px-8 py-12">
+          <div className="max-w-5xl mx-auto">
+            <div className="text-center mb-12">
+              <h2 className="text-3xl font-bold text-black dark:text-white mb-4">
+                Choose Your Operator Type
+              </h2>
+              <p className="text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
+                Select the tier that best matches your credentials and equipment. Each tier has different requirements and earning potential.
+              </p>
+            </div>
+
+            <div className="grid md:grid-cols-3 gap-6">
+              {/* Professional Tier */}
+              <Card 
+                className="cursor-pointer hover:border-orange-500 dark:hover:border-orange-500 transition-all hover:shadow-lg"
+                onClick={() => handleTierSelection("professional")}
+                data-testid="card-tier-professional"
+              >
+                <CardHeader>
+                  <div className="w-12 h-12 bg-orange-100 dark:bg-orange-900 rounded-full flex items-center justify-center mb-4">
+                    <Award className="w-6 h-6 text-orange-600 dark:text-orange-400" />
+                  </div>
+                  <CardTitle className="text-black dark:text-white">
+                    {OPERATOR_TIER_INFO.professional.label}
+                  </CardTitle>
+                  <CardDescription className="text-gray-600 dark:text-gray-400">
+                    {OPERATOR_TIER_INFO.professional.description}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
+                      <CheckCircle className="w-4 h-4 mr-2 text-green-600" />
+                      All services available
+                    </div>
+                    <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
+                      <CheckCircle className="w-4 h-4 mr-2 text-green-600" />
+                      City-wide operation
+                    </div>
+                    <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
+                      <CheckCircle className="w-4 h-4 mr-2 text-green-600" />
+                      1.5x pricing multiplier
+                    </div>
+                    <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
+                      <CheckCircle className="w-4 h-4 mr-2 text-green-600" />
+                      Premium customer access
+                    </div>
+                  </div>
+                  <div className="pt-4 border-t border-gray-200 dark:border-gray-800">
+                    <p className="text-xs text-gray-500 dark:text-gray-500">
+                      Requires: Business license, certification
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Equipped Tier */}
+              <Card 
+                className="cursor-pointer hover:border-orange-500 dark:hover:border-orange-500 transition-all hover:shadow-lg"
+                onClick={() => handleTierSelection("equipped")}
+                data-testid="card-tier-equipped"
+              >
+                <CardHeader>
+                  <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center mb-4">
+                    <Truck className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+                  </div>
+                  <CardTitle className="text-black dark:text-white">
+                    {OPERATOR_TIER_INFO.equipped.label}
+                  </CardTitle>
+                  <CardDescription className="text-gray-600 dark:text-gray-400">
+                    {OPERATOR_TIER_INFO.equipped.description}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
+                      <CheckCircle className="w-4 h-4 mr-2 text-green-600" />
+                      Most services available
+                    </div>
+                    <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
+                      <CheckCircle className="w-4 h-4 mr-2 text-green-600" />
+                      15km operation radius
+                    </div>
+                    <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
+                      <CheckCircle className="w-4 h-4 mr-2 text-green-600" />
+                      Standard pricing
+                    </div>
+                    <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
+                      <CheckCircle className="w-4 h-4 mr-2 text-green-600" />
+                      Flexible scheduling
+                    </div>
+                  </div>
+                  <div className="pt-4 border-t border-gray-200 dark:border-gray-800">
+                    <p className="text-xs text-gray-500 dark:text-gray-500">
+                      Requires: Vehicle/truck ownership
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Manual Tier */}
+              <Card 
+                className="cursor-pointer hover:border-orange-500 dark:hover:border-orange-500 transition-all hover:shadow-lg border-2 border-orange-200 dark:border-orange-800"
+                onClick={() => handleTierSelection("manual")}
+                data-testid="card-tier-manual"
+              >
+                <CardHeader>
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="w-12 h-12 bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center">
+                      <Users className="w-6 h-6 text-green-600 dark:text-green-400" />
+                    </div>
+                    <span className="text-xs font-semibold text-orange-600 dark:text-orange-400 bg-orange-100 dark:bg-orange-900 px-2 py-1 rounded">
+                      PLOW TO EARN
+                    </span>
+                  </div>
+                  <CardTitle className="text-black dark:text-white">
+                    {OPERATOR_TIER_INFO.manual.label}
+                  </CardTitle>
+                  <CardDescription className="text-gray-600 dark:text-gray-400">
+                    {OPERATOR_TIER_INFO.manual.description}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
+                      <CheckCircle className="w-4 h-4 mr-2 text-green-600" />
+                      Snow plowing focus
+                    </div>
+                    <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
+                      <CheckCircle className="w-4 h-4 mr-2 text-green-600" />
+                      5km radius from home
+                    </div>
+                    <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
+                      <CheckCircle className="w-4 h-4 mr-2 text-green-600" />
+                      Easy to start earning
+                    </div>
+                    <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
+                      <CheckCircle className="w-4 h-4 mr-2 text-green-600" />
+                      Perfect for side income
+                    </div>
+                  </div>
+                  <div className="pt-4 border-t border-gray-200 dark:border-gray-800">
+                    <p className="text-xs text-gray-500 dark:text-gray-500">
+                      Requires: Basic snow equipment
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Get steps based on tier
+  const getSteps = () => {
+    if (selectedTier === "professional") {
+      return [
+        { number: 1, title: "Business Info", icon: FileText },
+        { number: 2, title: "Vehicle Details", icon: Truck },
+        { number: 3, title: "Services & Area", icon: Shield },
+        { number: 4, title: "Documents", icon: CheckCircle },
+      ];
+    } else if (selectedTier === "equipped") {
+      return [
+        { number: 1, title: "Contact Info", icon: FileText },
+        { number: 2, title: "Vehicle Details", icon: Truck },
+        { number: 3, title: "Services & Area", icon: Shield },
+        { number: 4, title: "Complete", icon: CheckCircle },
+      ];
+    } else {
+      return [
+        { number: 1, title: "Contact Info", icon: FileText },
+        { number: 2, title: "Equipment & Area", icon: Wrench },
+        { number: 3, title: "Complete", icon: CheckCircle },
+      ];
+    }
+  };
+
+  const steps = getSteps();
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-black dark:text-white">Operator Onboarding</h1>
-          <p className="text-gray-600 dark:text-gray-400">Complete your profile to start accepting jobs</p>
+    <div className="min-h-screen bg-white dark:bg-gray-900 flex flex-col pb-16 md:pb-0">
+      <header className="border-b border-gray-200 dark:border-gray-800 px-4 sm:px-6 lg:px-8 py-4">
+        <div className="max-w-3xl mx-auto flex items-center justify-between">
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={prevStep}
+            data-testid="button-back-step"
+          >
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Back
+          </Button>
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-semibold text-orange-600 dark:text-orange-400">
+              {OPERATOR_TIER_INFO[selectedTier!].badge} {OPERATOR_TIER_INFO[selectedTier!].label}
+            </span>
+          </div>
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={handleSkip}
+            data-testid="button-skip"
+          >
+            Skip for Now
+          </Button>
         </div>
-        <Button 
-          variant="ghost" 
-          onClick={handleSkip}
-          className="text-gray-600 dark:text-gray-400 hover:text-black dark:hover:text-white"
-          data-testid="button-skip-onboarding"
-        >
-          Skip for Now →
-        </Button>
-      </div>
+      </header>
 
-      {/* Progress Steps */}
-      <div className="mb-8">
-        <div className="flex items-center justify-between max-w-2xl mx-auto">
-          {steps.map((step, index) => {
-            const Icon = step.icon;
-            const isActive = currentStep === step.number;
-            const isCompleted = currentStep > step.number;
-            
-            return (
-              <div key={step.number} className="flex items-center">
-                <div className={`flex items-center justify-center w-10 h-10 rounded-full border-2 ${
-                  isCompleted 
-                    ? "bg-success text-success-foreground border-success"
-                    : isActive 
-                      ? "bg-primary text-primary-foreground border-primary"
-                      : "border-muted text-muted-foreground"
-                }`}>
-                  {isCompleted ? (
-                    <CheckCircle className="w-5 h-5" />
-                  ) : (
-                    <Icon className="w-5 h-5" />
-                  )}
+      <div className="flex-1 px-4 sm:px-6 lg:px-8 py-8">
+        <div className="max-w-3xl mx-auto">
+          {/* Progress Steps */}
+          <div className="mb-8">
+            <div className="flex items-center justify-between">
+              {steps.map((step, index) => {
+                const Icon = step.icon;
+                const isActive = currentStep === step.number;
+                const isCompleted = currentStep > step.number;
+                
+                return (
+                  <React.Fragment key={step.number}>
+                    <div className="flex flex-col items-center">
+                      <div className={`
+                        w-12 h-12 rounded-full flex items-center justify-center mb-2
+                        ${isActive ? 'bg-orange-500 text-white' : ''}
+                        ${isCompleted ? 'bg-green-500 text-white' : ''}
+                        ${!isActive && !isCompleted ? 'bg-gray-200 dark:bg-gray-800 text-gray-500' : ''}
+                      `}>
+                        <Icon className="w-5 h-5" />
+                      </div>
+                      <span className={`text-xs font-medium ${isActive ? 'text-black dark:text-white' : 'text-gray-500'}`}>
+                        {step.title}
+                      </span>
+                    </div>
+                    {index < steps.length - 1 && (
+                      <div className={`flex-1 h-1 mx-2 ${isCompleted ? 'bg-green-500' : 'bg-gray-200 dark:bg-gray-800'}`} />
+                    )}
+                  </React.Fragment>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Step Content */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-black dark:text-white">
+                {steps[currentStep - 1]?.title}
+              </CardTitle>
+              <CardDescription className="text-gray-600 dark:text-gray-400">
+                {selectedTier === "professional" && currentStep === 1 && "Enter your business information"}
+                {selectedTier === "professional" && currentStep === 2 && "Tell us about your vehicle"}
+                {selectedTier === "professional" && currentStep === 3 && "Select services and operating area"}
+                {selectedTier === "professional" && currentStep === 4 && "Upload required documents"}
+                {selectedTier === "equipped" && currentStep === 1 && "Enter your contact information"}
+                {selectedTier === "equipped" && currentStep === 2 && "Tell us about your vehicle"}
+                {selectedTier === "equipped" && currentStep === 3 && "Select services and operating area"}
+                {selectedTier === "equipped" && currentStep === 4 && "Review and complete your profile"}
+                {selectedTier === "manual" && currentStep === 1 && "Enter your contact information"}
+                {selectedTier === "manual" && currentStep === 2 && "Select equipment and set your operating area"}
+                {selectedTier === "manual" && currentStep === 3 && "Review and complete your profile"}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {/* Professional - Step 1: Business Info */}
+              {selectedTier === "professional" && currentStep === 1 && (
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="businessName">Business Name *</Label>
+                    <Input
+                      id="businessName"
+                      value={formData.businessName}
+                      onChange={(e) => handleInputChange("businessName", e.target.value)}
+                      placeholder="ABC Towing & Hauling LLC"
+                      data-testid="input-business-name"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="licenseNumber">Business License Number *</Label>
+                    <Input
+                      id="licenseNumber"
+                      value={formData.licenseNumber}
+                      onChange={(e) => handleInputChange("licenseNumber", e.target.value)}
+                      placeholder="BL-123456"
+                      data-testid="input-license-number"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="contactName">Contact Name *</Label>
+                    <Input
+                      id="contactName"
+                      value={formData.contactName}
+                      onChange={(e) => handleInputChange("contactName", e.target.value)}
+                      placeholder="John Smith"
+                      data-testid="input-contact-name"
+                    />
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="phone">Phone *</Label>
+                      <Input
+                        id="phone"
+                        type="tel"
+                        value={formData.phone}
+                        onChange={(e) => handleInputChange("phone", e.target.value)}
+                        placeholder="(555) 123-4567"
+                        data-testid="input-phone"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="email">Email *</Label>
+                      <Input
+                        id="email"
+                        type="email"
+                        value={formData.email}
+                        onChange={(e) => handleInputChange("email", e.target.value)}
+                        placeholder="john@company.com"
+                        data-testid="input-email"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <Label htmlFor="address">Business Address *</Label>
+                    <Input
+                      id="address"
+                      value={formData.address}
+                      onChange={(e) => handleInputChange("address", e.target.value)}
+                      placeholder="123 Main St, City, State ZIP"
+                      data-testid="input-address"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="insuranceProvider">Insurance Provider *</Label>
+                    <Input
+                      id="insuranceProvider"
+                      value={formData.insuranceProvider}
+                      onChange={(e) => handleInputChange("insuranceProvider", e.target.value)}
+                      placeholder="State Farm, Geico, etc."
+                      data-testid="input-insurance"
+                    />
+                  </div>
                 </div>
-                <div className="ml-2 hidden sm:block">
-                  <p className={`text-sm font-medium ${isActive ? "text-primary" : "text-muted-foreground"}`}>
-                    {step.title}
-                  </p>
+              )}
+
+              {/* Equipped/Manual - Step 1: Contact Info */}
+              {(selectedTier === "equipped" || selectedTier === "manual") && currentStep === 1 && (
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="contactName">Full Name *</Label>
+                    <Input
+                      id="contactName"
+                      value={formData.contactName}
+                      onChange={(e) => handleInputChange("contactName", e.target.value)}
+                      placeholder="John Smith"
+                      data-testid="input-contact-name"
+                    />
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="phone">Phone *</Label>
+                      <Input
+                        id="phone"
+                        type="tel"
+                        value={formData.phone}
+                        onChange={(e) => handleInputChange("phone", e.target.value)}
+                        placeholder="(555) 123-4567"
+                        data-testid="input-phone"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="email">Email *</Label>
+                      <Input
+                        id="email"
+                        type="email"
+                        value={formData.email}
+                        onChange={(e) => handleInputChange("email", e.target.value)}
+                        placeholder="john@email.com"
+                        data-testid="input-email"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <Label htmlFor="address">{selectedTier === "manual" ? "Home Address *" : "Address *"}</Label>
+                    <Input
+                      id="address"
+                      value={formData.address}
+                      onChange={(e) => handleInputChange("address", e.target.value)}
+                      placeholder="123 Main St, City, State ZIP"
+                      data-testid="input-address"
+                    />
+                    {selectedTier === "manual" && (
+                      <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                        You can only accept jobs within {OPERATOR_TIER_INFO.manual.radiusKm}km of your home
+                      </p>
+                    )}
+                  </div>
                 </div>
-                {index < steps.length - 1 && (
-                  <div className={`w-8 h-0.5 mx-4 ${
-                    isCompleted ? "bg-success" : "bg-muted"
-                  }`} />
+              )}
+
+              {/* Professional/Equipped - Step 2: Vehicle Details */}
+              {(selectedTier === "professional" || selectedTier === "equipped") && currentStep === 2 && (
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="vehicleType">Vehicle Type *</Label>
+                    <Select
+                      value={formData.vehicleType}
+                      onValueChange={(value) => handleInputChange("vehicleType", value)}
+                    >
+                      <SelectTrigger data-testid="select-vehicle-type">
+                        <SelectValue placeholder="Select vehicle type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {vehicleTypes.map((type) => (
+                          <SelectItem key={type} value={type}>
+                            {type}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <Label htmlFor="vehicleMake">Make *</Label>
+                      <Input
+                        id="vehicleMake"
+                        value={formData.vehicleMake}
+                        onChange={(e) => handleInputChange("vehicleMake", e.target.value)}
+                        placeholder="Ford"
+                        data-testid="input-vehicle-make"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="vehicleModel">Model *</Label>
+                      <Input
+                        id="vehicleModel"
+                        value={formData.vehicleModel}
+                        onChange={(e) => handleInputChange("vehicleModel", e.target.value)}
+                        placeholder="F-350"
+                        data-testid="input-vehicle-model"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="vehicleYear">Year *</Label>
+                      <Input
+                        id="vehicleYear"
+                        value={formData.vehicleYear}
+                        onChange={(e) => handleInputChange("vehicleYear", e.target.value)}
+                        placeholder="2023"
+                        data-testid="input-vehicle-year"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <Label htmlFor="licensePlate">License Plate *</Label>
+                    <Input
+                      id="licensePlate"
+                      value={formData.licensePlate}
+                      onChange={(e) => handleInputChange("licensePlate", e.target.value)}
+                      placeholder="ABC-1234"
+                      data-testid="input-license-plate"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Manual - Step 2: Equipment & Area */}
+              {selectedTier === "manual" && currentStep === 2 && (
+                <div className="space-y-4">
+                  <div>
+                    <Label>Your Equipment *</Label>
+                    <p className="text-sm text-gray-500 dark:text-gray-500 mb-3">
+                      Select all equipment you have available
+                    </p>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                      {manualEquipment.map((equipment) => (
+                        <div 
+                          key={equipment}
+                          className="flex items-center space-x-2"
+                        >
+                          <Checkbox
+                            id={equipment}
+                            checked={formData.equipment.includes(equipment)}
+                            onCheckedChange={() => handleEquipmentToggle(equipment)}
+                            data-testid={`checkbox-equipment-${equipment.toLowerCase().replace(/\s+/g, '-')}`}
+                          />
+                          <label
+                            htmlFor={equipment}
+                            className="text-sm text-black dark:text-white cursor-pointer"
+                          >
+                            {equipment}
+                          </label>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <Label htmlFor="availableHours">Available Hours</Label>
+                    <Input
+                      id="availableHours"
+                      value={formData.availableHours}
+                      onChange={(e) => handleInputChange("availableHours", e.target.value)}
+                      placeholder="e.g., Mornings, Evenings, Weekends"
+                      data-testid="input-available-hours"
+                    />
+                  </div>
+                  <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                    <h4 className="font-semibold text-black dark:text-white mb-2">Operating Radius</h4>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      As a manual operator, you can accept jobs within <strong>{OPERATOR_TIER_INFO.manual.radiusKm}km</strong> from your home address. This ensures efficient service delivery and prevents operator clashing in neighborhoods.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* Professional/Equipped - Step 3: Services */}
+              {(selectedTier === "professional" || selectedTier === "equipped") && currentStep === 3 && (
+                <div className="space-y-4">
+                  <div>
+                    <Label>Services Offered *</Label>
+                    <p className="text-sm text-gray-500 dark:text-gray-500 mb-3">
+                      Select all services you can provide
+                    </p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {serviceTypes.map((service) => (
+                        <div 
+                          key={service}
+                          className="flex items-center space-x-2"
+                        >
+                          <Checkbox
+                            id={service}
+                            checked={formData.services.includes(service)}
+                            onCheckedChange={() => handleServiceToggle(service)}
+                            data-testid={`checkbox-service-${service.toLowerCase().replace(/\s+/g, '-')}`}
+                          />
+                          <label
+                            htmlFor={service}
+                            className="text-sm text-black dark:text-white cursor-pointer"
+                          >
+                            {service}
+                          </label>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <Label htmlFor="serviceArea">Service Area</Label>
+                    <Textarea
+                      id="serviceArea"
+                      value={formData.serviceArea}
+                      onChange={(e) => handleInputChange("serviceArea", e.target.value)}
+                      placeholder="e.g., Manhattan, Queens, Brooklyn"
+                      rows={3}
+                      data-testid="input-service-area"
+                    />
+                    {selectedTier === "equipped" && (
+                      <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                        You can operate within {OPERATOR_TIER_INFO.equipped.radiusKm}km from your location
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="emergencyAvailable"
+                      checked={formData.emergencyAvailable}
+                      onCheckedChange={(checked) => handleInputChange("emergencyAvailable", !!checked)}
+                      data-testid="checkbox-emergency"
+                    />
+                    <label
+                      htmlFor="emergencyAvailable"
+                      className="text-sm text-black dark:text-white cursor-pointer"
+                    >
+                      Available for emergency calls (24/7)
+                    </label>
+                  </div>
+                </div>
+              )}
+
+              {/* Professional - Step 4: Documents */}
+              {selectedTier === "professional" && currentStep === 4 && (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-lg p-6 text-center">
+                      <Upload className="w-8 h-8 mx-auto mb-2 text-gray-400" />
+                      <p className="text-sm font-medium text-black dark:text-white mb-1">Business License</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-500 mb-3">Upload PDF or image</p>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleFileUpload("Business License")}
+                        data-testid="button-upload-license"
+                      >
+                        Upload
+                      </Button>
+                    </div>
+                    <div className="border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-lg p-6 text-center">
+                      <Upload className="w-8 h-8 mx-auto mb-2 text-gray-400" />
+                      <p className="text-sm font-medium text-black dark:text-white mb-1">Insurance Certificate</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-500 mb-3">Upload PDF or image</p>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleFileUpload("Insurance Certificate")}
+                        data-testid="button-upload-insurance"
+                      >
+                        Upload
+                      </Button>
+                    </div>
+                    <div className="border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-lg p-6 text-center">
+                      <Upload className="w-8 h-8 mx-auto mb-2 text-gray-400" />
+                      <p className="text-sm font-medium text-black dark:text-white mb-1">Vehicle Registration</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-500 mb-3">Upload PDF or image</p>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleFileUpload("Vehicle Registration")}
+                        data-testid="button-upload-registration"
+                      >
+                        Upload
+                      </Button>
+                    </div>
+                    <div className="border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-lg p-6 text-center">
+                      <Upload className="w-8 h-8 mx-auto mb-2 text-gray-400" />
+                      <p className="text-sm font-medium text-black dark:text-white mb-1">Driver's License</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-500 mb-3">Upload PDF or image</p>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleFileUpload("Driver's License")}
+                        data-testid="button-upload-drivers-license"
+                      >
+                        Upload
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Completion screens */}
+              {((selectedTier === "equipped" && currentStep === 4) || (selectedTier === "manual" && currentStep === 3)) && (
+                <div className="space-y-6 text-center py-8">
+                  <div className="w-20 h-20 bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center mx-auto">
+                    <CheckCircle className="w-10 h-10 text-green-600 dark:text-green-400" />
+                  </div>
+                  <div>
+                    <h3 className="text-2xl font-bold text-black dark:text-white mb-2">
+                      You're All Set!
+                    </h3>
+                    <p className="text-gray-600 dark:text-gray-400">
+                      Your profile is complete. You can start accepting jobs right away.
+                    </p>
+                  </div>
+                  <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-6 max-w-md mx-auto">
+                    <h4 className="font-semibold text-black dark:text-white mb-3">Next Steps:</h4>
+                    <ul className="space-y-2 text-sm text-left">
+                      <li className="flex items-start">
+                        <CheckCircle className="w-4 h-4 text-green-600 mr-2 mt-0.5 flex-shrink-0" />
+                        <span className="text-gray-600 dark:text-gray-400">Browse available service requests</span>
+                      </li>
+                      <li className="flex items-start">
+                        <CheckCircle className="w-4 h-4 text-green-600 mr-2 mt-0.5 flex-shrink-0" />
+                        <span className="text-gray-600 dark:text-gray-400">Set your availability status</span>
+                      </li>
+                      {selectedTier === "manual" && (
+                        <li className="flex items-start">
+                          <CheckCircle className="w-4 h-4 text-green-600 mr-2 mt-0.5 flex-shrink-0" />
+                          <span className="text-gray-600 dark:text-gray-400">Check customer grouping for nearby jobs</span>
+                        </li>
+                      )}
+                      <li className="flex items-start">
+                        <CheckCircle className="w-4 h-4 text-green-600 mr-2 mt-0.5 flex-shrink-0" />
+                        <span className="text-gray-600 dark:text-gray-400">Start earning with Fleetly!</span>
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+              )}
+
+              {/* Action Buttons */}
+              <div className="flex justify-between mt-8 pt-6 border-t border-gray-200 dark:border-gray-800">
+                {currentStep > 1 && (
+                  <Button
+                    variant="outline"
+                    onClick={prevStep}
+                    data-testid="button-previous"
+                  >
+                    Previous
+                  </Button>
+                )}
+                {currentStep === steps.length ? (
+                  <Button
+                    onClick={handleSubmit}
+                    className="ml-auto bg-orange-500 hover:bg-orange-600 text-white"
+                    data-testid="button-complete"
+                  >
+                    Complete Profile
+                  </Button>
+                ) : (
+                  <Button
+                    onClick={nextStep}
+                    className="ml-auto bg-orange-500 hover:bg-orange-600 text-white"
+                    data-testid="button-next"
+                  >
+                    Next Step
+                  </Button>
                 )}
               </div>
-            );
-          })}
+            </CardContent>
+          </Card>
         </div>
       </div>
-
-      {/* Form Content */}
-      <Card className="max-w-2xl mx-auto animate-fade-in">
-        <CardHeader>
-          <CardTitle>Step {currentStep}: {steps[currentStep - 1].title}</CardTitle>
-          <CardDescription>
-            {currentStep === 1 && "Tell us about your business"}
-            {currentStep === 2 && "Add your vehicle information"}
-            {currentStep === 3 && "Select services and coverage area"}
-            {currentStep === 4 && "Upload required documents"}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {/* Step 1: Business Info */}
-          {currentStep === 1 && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="businessName">Business Name *</Label>
-                  <Input
-                    id="businessName"
-                    value={formData.businessName}
-                    onChange={(e) => handleInputChange("businessName", e.target.value)}
-                    placeholder="Mike's Snow Service"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="contactName">Contact Name *</Label>
-                  <Input
-                    id="contactName"
-                    value={formData.contactName}
-                    onChange={(e) => handleInputChange("contactName", e.target.value)}
-                    placeholder="Mike Johnson"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="phone">Phone Number *</Label>
-                  <Input
-                    id="phone"
-                    type="tel"
-                    value={formData.phone}
-                    onChange={(e) => handleInputChange("phone", e.target.value)}
-                    placeholder="(555) 123-4567"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="email">Email Address *</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={formData.email}
-                    onChange={(e) => handleInputChange("email", e.target.value)}
-                    placeholder="mike@snowservice.com"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <Label htmlFor="businessAddress">Business Address *</Label>
-                <Textarea
-                  id="businessAddress"
-                  value={formData.businessAddress}
-                  onChange={(e) => handleInputChange("businessAddress", e.target.value)}
-                  placeholder="123 Main Street, Springfield, State 12345"
-                  rows={3}
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="licenseNumber">Business License Number</Label>
-                <Input
-                  id="licenseNumber"
-                  value={formData.licenseNumber}
-                  onChange={(e) => handleInputChange("licenseNumber", e.target.value)}
-                  placeholder="BL-123456789"
-                />
-              </div>
-            </div>
-          )}
-
-          {/* Step 2: Vehicle Details */}
-          {currentStep === 2 && (
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="vehicleType">Vehicle Type *</Label>
-                <Select value={formData.vehicleType} onValueChange={(value) => handleInputChange("vehicleType", value)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select vehicle type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {vehicleTypes.map(type => (
-                      <SelectItem key={type} value={type}>{type}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <Label htmlFor="vehicleMake">Make *</Label>
-                  <Input
-                    id="vehicleMake"
-                    value={formData.vehicleMake}
-                    onChange={(e) => handleInputChange("vehicleMake", e.target.value)}
-                    placeholder="Ford"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="vehicleModel">Model *</Label>
-                  <Input
-                    id="vehicleModel"
-                    value={formData.vehicleModel}
-                    onChange={(e) => handleInputChange("vehicleModel", e.target.value)}
-                    placeholder="F-350"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="vehicleYear">Year *</Label>
-                  <Input
-                    id="vehicleYear"
-                    value={formData.vehicleYear}
-                    onChange={(e) => handleInputChange("vehicleYear", e.target.value)}
-                    placeholder="2023"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <Label htmlFor="licensePlate">License Plate *</Label>
-                <Input
-                  id="licensePlate"
-                  value={formData.licensePlate}
-                  onChange={(e) => handleInputChange("licensePlate", e.target.value)}
-                  placeholder="SNW-123"
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="insuranceProvider">Insurance Provider *</Label>
-                <Input
-                  id="insuranceProvider"
-                  value={formData.insuranceProvider}
-                  onChange={(e) => handleInputChange("insuranceProvider", e.target.value)}
-                  placeholder="State Farm, Progressive, etc."
-                />
-              </div>
-            </div>
-          )}
-
-          {/* Step 3: Services & Area */}
-          {currentStep === 3 && (
-            <div className="space-y-4">
-              <div>
-                <Label>Services Offered *</Label>
-                <div className="grid grid-cols-2 gap-3 mt-2">
-                  {serviceTypes.map(service => (
-                    <div key={service} className="flex items-center space-x-2">
-                      <Checkbox
-                        id={service}
-                        checked={formData.services.includes(service)}
-                        onCheckedChange={() => handleServiceToggle(service)}
-                      />
-                      <Label htmlFor={service} className="text-sm">{service}</Label>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <Label htmlFor="serviceArea">Service Area *</Label>
-                <Textarea
-                  id="serviceArea"
-                  value={formData.serviceArea}
-                  onChange={(e) => handleInputChange("serviceArea", e.target.value)}
-                  placeholder="Springfield metro area, within 25 miles of downtown"
-                  rows={3}
-                />
-              </div>
-
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="emergencyAvailable"
-                  checked={formData.emergencyAvailable}
-                  onCheckedChange={(checked) => handleInputChange("emergencyAvailable", checked)}
-                />
-                <Label htmlFor="emergencyAvailable">Available for emergency/24-hour services</Label>
-              </div>
-            </div>
-          )}
-
-          {/* Step 4: Documents */}
-          {currentStep === 4 && (
-            <div className="space-y-6">
-              <div className="space-y-4">
-                <div className="border-2 border-dashed border-muted rounded-lg p-6 text-center">
-                  <Upload className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
-                  <h4 className="font-medium mb-2">Commercial Insurance Certificate *</h4>
-                  <p className="text-sm text-muted-foreground mb-4">Upload proof of commercial insurance</p>
-                  <Button variant="outline" onClick={() => handleFileUpload("Insurance Certificate")}>
-                    Upload File
-                  </Button>
-                </div>
-
-                <div className="border-2 border-dashed border-muted rounded-lg p-6 text-center">
-                  <Upload className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
-                  <h4 className="font-medium mb-2">Driver's License *</h4>
-                  <p className="text-sm text-muted-foreground mb-4">Upload a copy of your driver's license</p>
-                  <Button variant="outline" onClick={() => handleFileUpload("Driver's License")}>
-                    Upload File
-                  </Button>
-                </div>
-
-                <div className="border-2 border-dashed border-muted rounded-lg p-6 text-center">
-                  <Upload className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
-                  <h4 className="font-medium mb-2">Vehicle Registration</h4>
-                  <p className="text-sm text-muted-foreground mb-4">Upload vehicle registration document</p>
-                  <Button variant="outline" onClick={() => handleFileUpload("Vehicle Registration")}>
-                    Upload File
-                  </Button>
-                </div>
-              </div>
-
-              <div className="bg-accent/10 border border-accent/20 rounded-lg p-4">
-                <h4 className="font-medium text-accent mb-2">Application Review Process</h4>
-                <ul className="text-sm text-muted-foreground space-y-1">
-                  <li>• Background check (2-3 business days)</li>
-                  <li>• Insurance verification</li>
-                  <li>• Vehicle inspection scheduling</li>
-                  <li>• Account activation notification</li>
-                </ul>
-              </div>
-            </div>
-          )}
-
-          {/* Navigation Buttons */}
-          <div className="flex flex-col sm:flex-row justify-between gap-3 pt-6 border-t border-gray-200 dark:border-gray-700">
-            <Button 
-              variant="outline" 
-              onClick={prevStep}
-              disabled={currentStep === 1}
-              className="order-2 sm:order-1"
-              data-testid="button-previous-step"
-            >
-              ← Previous
-            </Button>
-            
-            {currentStep < 4 ? (
-              <Button 
-                onClick={nextStep} 
-                className="bg-black text-white hover:bg-gray-800 dark:bg-white dark:text-black dark:hover:bg-gray-200 font-semibold order-1 sm:order-2"
-                size="lg"
-                data-testid="button-next-step"
-              >
-                Next Step →
-              </Button>
-            ) : (
-              <Button 
-                onClick={handleSubmit} 
-                className="bg-green-600 text-white hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600 font-semibold order-1 sm:order-2"
-                size="lg"
-                data-testid="button-submit-application"
-              >
-                Submit Application ✓
-              </Button>
-            )}
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 };

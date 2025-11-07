@@ -63,6 +63,12 @@ export const operators = pgTable("operators", {
   hourlyRate: decimal("hourly_rate", { precision: 10, scale: 2 }),
   availability: text("availability").notNull().default("available"),
   photo: text("photo"),
+  operatorTier: text("operator_tier").notNull().default("professional"),
+  isCertified: integer("is_certified").notNull().default(1),
+  businessLicense: text("business_license"),
+  homeLatitude: decimal("home_latitude", { precision: 10, scale: 7 }),
+  homeLongitude: decimal("home_longitude", { precision: 10, scale: 7 }),
+  operatingRadius: decimal("operating_radius", { precision: 10, scale: 2 }),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -73,6 +79,32 @@ export const insertOperatorSchema = createInsertSchema(operators).omit({
 
 export type InsertOperator = z.infer<typeof insertOperatorSchema>;
 export type Operator = typeof operators.$inferSelect;
+
+export type OperatorTier = "professional" | "equipped" | "manual";
+
+export const OPERATOR_TIER_INFO = {
+  professional: {
+    label: "Professional & Certified",
+    description: "Licensed business with professional equipment and certification",
+    pricingMultiplier: 1.5,
+    radiusKm: null, // No radius restriction
+    badge: "🏆",
+  },
+  equipped: {
+    label: "Skilled & Equipped",
+    description: "Have trucks/vehicles but no formal certification",
+    pricingMultiplier: 1.0,
+    radiusKm: 15, // 15km radius
+    badge: "🚛",
+  },
+  manual: {
+    label: "Manual Operator",
+    description: "On-foot with basic equipment (shovels, snow blowers)",
+    pricingMultiplier: 0.6,
+    radiusKm: 5, // 5km radius from home
+    badge: "⛏️",
+  },
+};
 
 export const serviceRequests = pgTable("service_requests", {
   id: serial("id").primaryKey(),
