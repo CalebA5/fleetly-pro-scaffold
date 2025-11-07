@@ -419,5 +419,48 @@ export function registerRoutes(storage: IStorage) {
     }
   });
 
+  // Business management routes
+  router.get("/api/business/:businessId", async (req, res) => {
+    const business = await storage.getBusiness(req.params.businessId);
+    if (!business) {
+      return res.status(404).json({ message: "Business not found" });
+    }
+    res.json(business);
+  });
+
+  router.get("/api/business/drivers/:businessId", async (req, res) => {
+    const drivers = await storage.getBusinessDrivers(req.params.businessId);
+    res.json(drivers);
+  });
+
+  router.post("/api/business/drivers", async (req, res) => {
+    try {
+      const operatorId = `DRV-${Date.now()}`;
+      const driverData = {
+        ...req.body,
+        operatorId,
+        rating: "5.00",
+      };
+      const driver = await storage.createDriver(driverData);
+      res.status(201).json(driver);
+    } catch (error) {
+      console.error("Error creating driver:", error);
+      res.status(500).json({ message: "Failed to create driver" });
+    }
+  });
+
+  router.delete("/api/business/drivers/:driverId", async (req, res) => {
+    try {
+      const success = await storage.removeDriver(req.params.driverId);
+      if (!success) {
+        return res.status(404).json({ message: "Driver not found" });
+      }
+      res.json({ message: "Driver removed successfully" });
+    } catch (error) {
+      console.error("Error removing driver:", error);
+      res.status(500).json({ message: "Failed to remove driver" });
+    }
+  });
+
   return router;
 }

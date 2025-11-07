@@ -4,10 +4,11 @@ export interface User {
   id: string;
   name: string;
   email: string;
-  role: "customer" | "operator" | "both";
+  role: "customer" | "operator" | "both" | "business";
   operatorProfileComplete?: boolean;
   operatorTier?: "professional" | "equipped" | "manual";
   operatorId?: string;
+  businessId?: string;
 }
 
 interface AuthContextType {

@@ -6,7 +6,8 @@ import type {
   Rating, InsertRating,
   Favorite, InsertFavorite,
   OperatorLocation, InsertOperatorLocation,
-  CustomerServiceHistory, InsertCustomerServiceHistory
+  CustomerServiceHistory, InsertCustomerServiceHistory,
+  Business, InsertBusiness
 } from "@shared/schema";
 
 export interface IStorage {
@@ -45,6 +46,14 @@ export interface IStorage {
   // Customer Service History (for location-based grouping)
   getCustomerServiceHistory(operatorId: string, service: string, lat: number, lon: number, radiusMiles?: number): Promise<CustomerServiceHistory[]>;
   addServiceHistory(history: InsertCustomerServiceHistory): Promise<CustomerServiceHistory>;
+  
+  // Businesses (multi-driver management)
+  getBusiness(businessId: string): Promise<Business | undefined>;
+  createBusiness(business: InsertBusiness): Promise<Business>;
+  updateBusiness(businessId: string, updates: Partial<InsertBusiness>): Promise<Business | undefined>;
+  getBusinessDrivers(businessId: string): Promise<Operator[]>;
+  createDriver(driver: InsertOperator): Promise<Operator>;
+  removeDriver(driverId: string): Promise<boolean>;
 }
 
 export class MemStorage implements IStorage {
@@ -56,6 +65,7 @@ export class MemStorage implements IStorage {
   private favorites: Favorite[] = [];
   private operatorLocations: OperatorLocation[] = [];
   private customerServiceHistory: CustomerServiceHistory[] = [];
+  private businesses: Business[] = [];
   private nextJobId = 1;
   private nextOperatorId = 1;
   private nextServiceRequestId = 1;
@@ -64,6 +74,7 @@ export class MemStorage implements IStorage {
   private nextFavoriteId = 1;
   private nextLocationId = 1;
   private nextHistoryId = 1;
+  private nextBusinessId = 1;
 
   constructor() {
     this.seedSampleData();
@@ -95,6 +106,15 @@ export class MemStorage implements IStorage {
         hourlyRate: "95.00",
         availability: "available",
         photo: null,
+        operatorTier: "professional",
+        isCertified: 1,
+        businessLicense: "NYC-SNW-2023-001",
+        homeLatitude: "40.7580",
+        homeLongitude: "-73.9855",
+        operatingRadius: null,
+        businessId: null,
+        businessName: null,
+        driverName: null,
         createdAt: new Date(),
       },
       {
@@ -115,6 +135,15 @@ export class MemStorage implements IStorage {
         hourlyRate: "125.00",
         availability: "available",
         photo: null,
+        operatorTier: "professional",
+        isCertified: 1,
+        businessLicense: "NYC-TOW-2023-002",
+        homeLatitude: "40.7489",
+        homeLongitude: "-73.9680",
+        operatingRadius: null,
+        businessId: null,
+        businessName: null,
+        driverName: null,
         createdAt: new Date(),
       },
       {
@@ -135,6 +164,15 @@ export class MemStorage implements IStorage {
         hourlyRate: "110.00",
         availability: "available",
         photo: null,
+        operatorTier: "professional",
+        isCertified: 1,
+        businessLicense: "NYC-HVY-2023-003",
+        homeLatitude: "40.7306",
+        homeLongitude: "-73.9352",
+        operatingRadius: null,
+        businessId: null,
+        businessName: null,
+        driverName: null,
         createdAt: new Date(),
       },
       {
@@ -155,6 +193,15 @@ export class MemStorage implements IStorage {
         hourlyRate: "65.00",
         availability: "available",
         photo: null,
+        operatorTier: "professional",
+        isCertified: 1,
+        businessLicense: "NYC-CRR-2023-004",
+        homeLatitude: "40.7614",
+        homeLongitude: "-73.9776",
+        operatingRadius: null,
+        businessId: null,
+        businessName: null,
+        driverName: null,
         createdAt: new Date(),
       },
       {
@@ -175,6 +222,15 @@ export class MemStorage implements IStorage {
         hourlyRate: "85.00",
         availability: "busy",
         photo: null,
+        operatorTier: "professional",
+        isCertified: 1,
+        businessLicense: "NYC-PLW-2023-005",
+        homeLatitude: "40.7829",
+        homeLongitude: "-73.9654",
+        operatingRadius: null,
+        businessId: null,
+        businessName: null,
+        driverName: null,
         createdAt: new Date(),
       },
     ];
@@ -574,5 +630,117 @@ export class MemStorage implements IStorage {
         Math.sin(dLon / 2);
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     return R * c;
+  }
+
+  // Business management implementation
+  async getBusiness(businessId: string): Promise<Business | undefined> {
+    return this.businesses.find((b) => b.businessId === businessId);
+  }
+
+  async createBusiness(business: InsertBusiness): Promise<Business> {
+    const newBusiness: Business = {
+      id: this.nextBusinessId++,
+      businessId: business.businessId,
+      name: business.name,
+      email: business.email,
+      phone: business.phone,
+      businessLicense: business.businessLicense,
+      address: business.address,
+      city: business.city,
+      state: business.state,
+      zipCode: business.zipCode,
+      totalDrivers: 0,
+      totalJobs: 0,
+      totalEarnings: "0.00",
+      rating: "5.00",
+      createdAt: new Date(),
+    };
+    this.businesses.push(newBusiness);
+    return newBusiness;
+  }
+
+  async updateBusiness(businessId: string, updates: Partial<InsertBusiness>): Promise<Business | undefined> {
+    const index = this.businesses.findIndex((b) => b.businessId === businessId);
+    if (index === -1) return undefined;
+
+    this.businesses[index] = {
+      ...this.businesses[index],
+      ...updates,
+    };
+    return this.businesses[index];
+  }
+
+  async getBusinessDrivers(businessId: string): Promise<Operator[]> {
+    return this.operators.filter((op) => op.businessId === businessId);
+  }
+
+  async createDriver(driver: InsertOperator): Promise<Operator> {
+    const newDriver: Operator = {
+      id: this.nextOperatorId++,
+      operatorId: driver.operatorId,
+      name: driver.name,
+      rating: driver.rating,
+      totalJobs: driver.totalJobs || 0,
+      services: driver.services,
+      vehicle: driver.vehicle,
+      licensePlate: driver.licensePlate,
+      phone: driver.phone,
+      email: driver.email || null,
+      latitude: driver.latitude,
+      longitude: driver.longitude,
+      address: driver.address,
+      isOnline: driver.isOnline || 0,
+      hourlyRate: driver.hourlyRate || null,
+      availability: driver.availability || "available",
+      photo: driver.photo || null,
+      operatorTier: driver.operatorTier || "professional",
+      isCertified: driver.isCertified || 1,
+      businessLicense: driver.businessLicense || null,
+      homeLatitude: driver.homeLatitude || null,
+      homeLongitude: driver.homeLongitude || null,
+      operatingRadius: driver.operatingRadius || null,
+      businessId: driver.businessId || null,
+      businessName: driver.businessName || null,
+      driverName: driver.driverName || null,
+      createdAt: new Date(),
+    };
+    this.operators.push(newDriver);
+
+    // Update business total drivers count if applicable
+    if (driver.businessId) {
+      const business = await this.getBusiness(driver.businessId);
+      if (business) {
+        await this.updateBusiness(driver.businessId, {
+          ...business,
+          totalDrivers: business.totalDrivers + 1,
+        });
+      }
+    }
+
+    return newDriver;
+  }
+
+  async removeDriver(driverId: string): Promise<boolean> {
+    const driverIndex = this.operators.findIndex((op) => op.operatorId === driverId);
+    if (driverIndex === -1) return false;
+
+    const driver = this.operators[driverIndex];
+    const businessId = driver.businessId;
+
+    // Remove driver from operators array
+    this.operators.splice(driverIndex, 1);
+
+    // Update business total drivers count if applicable
+    if (businessId) {
+      const business = await this.getBusiness(businessId);
+      if (business) {
+        await this.updateBusiness(businessId, {
+          ...business,
+          totalDrivers: Math.max(0, business.totalDrivers - 1),
+        });
+      }
+    }
+
+    return true;
   }
 }

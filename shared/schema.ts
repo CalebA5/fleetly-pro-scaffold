@@ -69,6 +69,9 @@ export const operators = pgTable("operators", {
   homeLatitude: decimal("home_latitude", { precision: 10, scale: 7 }),
   homeLongitude: decimal("home_longitude", { precision: 10, scale: 7 }),
   operatingRadius: decimal("operating_radius", { precision: 10, scale: 2 }),
+  businessId: text("business_id"),
+  businessName: text("business_name"),
+  driverName: text("driver_name"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -302,3 +305,34 @@ export const insertCustomerServiceHistorySchema = createInsertSchema(customerSer
 
 export type InsertCustomerServiceHistory = z.infer<typeof insertCustomerServiceHistorySchema>;
 export type CustomerServiceHistory = typeof customerServiceHistory.$inferSelect;
+
+// Businesses table - for multi-driver business management
+export const businesses = pgTable("businesses", {
+  id: serial("id").primaryKey(),
+  businessId: text("business_id").notNull().unique(),
+  name: text("name").notNull(),
+  email: text("email").notNull(),
+  phone: text("phone").notNull(),
+  businessLicense: text("business_license").notNull(),
+  address: text("address").notNull(),
+  city: text("city").notNull(),
+  state: text("state").notNull(),
+  zipCode: text("zip_code").notNull(),
+  totalDrivers: integer("total_drivers").notNull().default(0),
+  totalJobs: integer("total_jobs").notNull().default(0),
+  totalEarnings: decimal("total_earnings", { precision: 12, scale: 2 }).notNull().default("0"),
+  rating: decimal("rating", { precision: 3, scale: 2 }).notNull().default("5.00"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertBusinessSchema = createInsertSchema(businesses).omit({
+  id: true,
+  createdAt: true,
+  totalDrivers: true,
+  totalJobs: true,
+  totalEarnings: true,
+  rating: true,
+});
+
+export type InsertBusiness = z.infer<typeof insertBusinessSchema>;
+export type Business = typeof businesses.$inferSelect;

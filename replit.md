@@ -1,58 +1,7 @@
 # Fleetly - On-Demand Trucks & Snow Services Platform
 
 ## Overview
-Fleetly is a professional on-demand service platform that connects customers with verified operators for trucking, snow plowing, towing, hauling, and courier services. It functions as a two-sided marketplace, offering separate dashboards for customers and operators. The platform aims to provide real-time service booking, job tracking, and professional service delivery. The business vision is to create a seamless and efficient service booking experience, inspired by the clean, modern interface of Uber, with an emphasis on simplicity and ease of use.
-
-## Recent Changes (November 2025)
-
-### Three-Tier Operator System Implementation
-**In Progress**: Comprehensive multi-tier operator marketplace
-- **Operator Tier Structure**: Implemented three distinct operator tiers with different capabilities, pricing, and radius restrictions:
-  - **Professional & Certified** (🏆): Licensed businesses with full equipment, city-wide operation, 1.5x pricing multiplier, access to all services
-  - **Skilled & Equipped** (🚛): Operators with trucks/vehicles but no formal certification, 15km operating radius, standard pricing, most services available
-  - **Manual Operators** (⛏️): On-foot operators with basic equipment (shovels, snow blowers), 5km radius from home, 0.6x pricing multiplier, focus on snow plowing ("Plow to Earn" program)
-- **Reformed Onboarding**: Completely redesigned "Drive & Earn" onboarding page with tier selection as first step, followed by tier-specific onboarding flows with appropriate fields and requirements for each tier
-- **Tier-Specific Dashboards**: Created three separate operator dashboards:
-  - **Manual Operator Dashboard**: "Plow to Earn" branding with prominent customer grouping feature, nearby snow plowing jobs within 5km radius, simplified interface for side-income earners
-  - **Equipped Operator Dashboard**: Multi-service support with 15km radius filtering, emergency request priority section, service-based job filtering
-  - **Professional Dashboard** (existing OperatorHome): Updated routing to serve as professional tier dashboard with unrestricted city-wide operation
-- **Smart Routing**: Automatic dashboard routing based on operator tier stored in user profile
-- **Data Model Updates**: Added operatorTier, isCertified, businessLicense, homeLatitude, homeLongitude, and operatingRadius fields to operators schema
-
-**Status**: Core implementation complete. Remaining work: backend radius calculation logic, customer-facing tier badges, testing of complete flow.
-
-**Technical Implementation**: Tier information stored in `shared/schema.ts` with `OPERATOR_TIER_INFO` constant defining capabilities and multipliers for each tier. AuthContext updated to support `operatorTier` field. Operator routing handled in `OperatorDashboard.tsx` component.
-
-### Map Performance & AI Assist Accuracy Upgrades
-**Completed**: Critical performance and intelligence improvements
-- **Mapbox GL JS Migration**: Replaced slower Leaflet library with high-performance Mapbox GL JS for faster map loading, smoother panning/zooming, and better tile caching. Preserved all existing features: map/satellite toggle, blue/red operator markers (stationary/moving), real-time location tracking, popups, sidebar integration, and service filters.
-- **Intelligent AI Assist**: Implemented keyword-based service matching with comprehensive keyword lists for accurate service identification. Now correctly identifies Hauling for "transport 1000kg of goods" (matches: transport, kg, goods), Courier for "move 6 packages" (matches: move, packages), Snow Plowing for winter keywords, Towing for breakdowns, etc. Calculates confidence scores, generates contextual reasoning, and customizes pricing/urgency per service type.
-- **Security**: Mapbox API token managed via Replit secrets (`VITE_MAPBOX_ACCESS_TOKEN`) for secure deployment.
-
-**Architect Review**: PASS - Mapbox integration initializes correctly with token validation, preserves all map features without regressions, includes proper cleanup. AI assist logic correctly scores services by keyword matches, surfaces highest-confidence recommendations, and provides sensible fallbacks for unknown inputs.
-
-**Technical Details**: Map uses native `mapbox-gl` (not react-map-gl) for direct control. AI assist keywords include Courier (package, deliver, parcel), Hauling (haul, transport, freight, cargo, kg, tons, goods), Snow Plowing (snow, plow, winter), Towing (tow, stuck, breakdown), Ice Removal (ice, de-ice, salt), and Roadside Assistance (roadside, flat tire, battery).
-
-### UI/UX Optimization - Uber-Inspired Design Overhaul
-**Completed**: Major visual redesign to align with platform vision
-- **Visual Design System**: Established strict black/white theme with warm orange (#F97316) accents for CTAs only. Removed blue gradients, pastel colors, and excessive glows. Standardized shadows to minimal black/gray borders and hover effects.
-- **Landing Page Enhancements**: Added trust statistics (10K+ completed services, 500+ operators, 4.9★ rating, 24/7 availability), cleaned up service preview cards with consistent borders, improved mobile responsiveness with better spacing and typography.
-- **Operator Dashboard Improvements**: Simplified stats cards with cleaner design, added skeleton loading states for pending requests, made Accept/Decline buttons more prominent, improved mobile layouts with responsive flex directions, added better empty states.
-- **Map Loading Fixes**: Corrected favorites API query to eliminate 404 errors, added map loading spinner for better user feedback.
-
-**Architect Review**: PASS - Design successfully aligns with Uber aesthetic, UX improvements are more user-friendly, mobile responsiveness improved across breakpoints.
-
-### Mobile & Desktop User-Friendliness Optimization
-**Completed**: Comprehensive mobile-first improvements for better accessibility
-- **Mobile Bottom Navigation**: Created fixed bottom nav bar for authenticated customers with 5 key actions (Home, Browse, Requests, Favorites, Profile). Features safe area insets for modern iOS/Android devices, active state highlighting, and auto-hides on desktop.
-- **Touch-Friendly Interface**: Implemented 44px minimum touch targets for all buttons and links (iOS/Android guidelines), disabled tap highlight color for cleaner interaction, added touch-action manipulation for better responsiveness.
-- **Responsive Header**: Optimized navigation for mobile - AI Assist shows icon-only on small screens, less critical items hidden on mobile and accessible via bottom nav, smaller button sizes with adaptive spacing.
-- **Page Layout Optimization**: Added bottom padding (pb-16) on mobile pages to prevent content overlap with bottom navigation, automatically removes on desktop breakpoints.
-- **Bug Fixes**: Corrected service request schema field from "service" to "serviceType" for proper TypeScript typing.
-
-**Architect Review**: PASS - Authentication flow accessible on all devices, bottom nav properly positioned with safe areas, touch targets meet accessibility guidelines, responsive behavior works across breakpoints.
-
-**Future Enhancements**: Improve form inputs for mobile, add keyboard navigation support, audit non-button interactive cards for touch targets, validate on real mobile hardware.
+Fleetly is a professional on-demand service platform connecting customers with verified operators for trucking, snow plowing, towing, hauling, and courier services. It operates as a two-sided marketplace with distinct customer and operator dashboards, aiming for real-time booking, job tracking, and professional service delivery. The business vision is to provide a seamless, efficient service booking experience, inspired by Uber's clean and modern interface, emphasizing simplicity and ease of use. The platform supports a multi-driver business management system, allowing professional businesses to track and manage their drivers, and features a three-tier operator system with proximity-based job filtering.
 
 ## User Preferences
 Preferred communication style: Simple, everyday language.
@@ -60,33 +9,31 @@ Preferred communication style: Simple, everyday language.
 ## System Architecture
 
 ### Frontend Architecture
-The frontend is built with React 18 and TypeScript, using Vite for fast development and Wouter for lightweight routing. UI components are built using Radix UI primitives and shadcn/ui, styled with Tailwind CSS following an Uber-inspired black-and-white theme with bold typography and custom color schemes. State management relies on TanStack Query for server state and React Hook Form with Zod for form validation. The application features distinct customer and operator dashboards and uses a component-based architecture with path aliases for clean imports. Key features include an AI-powered service assistant, enhanced service request creation, a unified landing page, a dynamic authentication system supporting multiple user roles, and a unified interactive map with service filters. Advanced features like favorite drivers, customer rating, real-time driver tracking with animated markers, and location-based customer grouping for operators are also integrated.
+The frontend is built with React 18, TypeScript, and Vite, utilizing Wouter for routing. UI components leverage Radix UI primitives and shadcn/ui, styled with Tailwind CSS, adhering to an Uber-inspired black-and-white theme with orange accents. State management uses TanStack Query for server state and React Hook Form with Zod for form validation. The application features distinct customer and operator dashboards, an AI-powered service assistant, enhanced service request creation, a unified landing page, dynamic authentication supporting multiple user roles, and an interactive map with service filters. Advanced features include favorite drivers, customer rating, real-time driver tracking, and location-based customer grouping for operators. Mobile-first optimizations include a fixed bottom navigation bar for authenticated customers, 44px minimum touch targets, and a responsive header.
 
 ### Backend Architecture
-The backend is an Express.js server handling both API routes and static file serving. It uses an in-memory storage implementation for development, with Drizzle ORM configured for future PostgreSQL integration, leveraging Zod for schema validation. API endpoints are RESTful under the `/api` prefix, with centralized error handling. Vite middleware is integrated for HMR in development, and the server serves static files from `dist/public` in production.
+The backend is an Express.js server managing API routes and static file serving. It uses an in-memory storage for development, with Drizzle ORM configured for future PostgreSQL integration, and Zod for schema validation. API endpoints are RESTful under the `/api` prefix, with centralized error handling. Vite middleware is integrated for HMR in development, and static files are served from `dist/public` in production.
 
 ### Data Model
-The service request schema uses a hybrid approach combining normalized fields with JSON storage for service-specific details:
-- **Normalized Fields**: serviceType, isEmergency, description, location, preferredDate, preferredTime, timeFlexibility, budgetRange, imageCount
-- **JSONB Details Field**: Stores service-specific payloads (snow plowing, towing, hauling, courier details) in a structured format: `{type: 'snow'|'towing'|'hauling'|'courier', payload: {...}}`
-- **Nullable Operator Fields**: operatorId and operatorName are nullable since new requests aren't assigned initially
+The service request schema combines normalized fields (e.g., `serviceType`, `isEmergency`, `description`, `location`) with a JSONB `details` field for service-specific payloads (e.g., snow plowing, towing, hauling, courier details). `operatorId` and `operatorName` are nullable, as requests are not initially assigned. Operator profiles include `operatorTier`, `isCertified`, `businessLicense`, `homeLatitude`, `homeLongitude`, and `operatingRadius`.
 
 ### UI/UX Decisions
-The design philosophy is inspired by Uber's clean, modern interface, emphasizing simplicity and ease of use. It features a black-and-white color scheme with minimal design elements and bold typography. Custom "enhanced-button" components and gradients are used for premium UI elements. Dark mode is supported.
+The design is inspired by Uber's clean, modern interface, focusing on simplicity. It employs a black-and-white color scheme with orange accents for CTAs, minimal design elements, and bold typography. Custom "enhanced-button" components and gradients are used for premium UI elements. Dark mode is supported.
 
 ### Feature Specifications
-- **AI Assist Feature**: Recommends services and operators based on job descriptions and optional photo uploads, with estimated pricing.
-- **Enhanced Service Request Creation**: Highly detailed, dynamic form that adapts based on service type (Snow Plowing, Towing, Hauling, Courier) with service-specific fields, emergency/scheduled toggle, time selection with flexibility options, and photo uploads.
-- **Operator Dashboard with Comprehensive Request Details**: Operators can view all detailed information from service requests including emergency status, time preferences, budget ranges, and service-specific details (snow depth, vehicle info, package details, etc.) through a dedicated details dialog. The dashboard fetches real-time service request data and displays pending requests with Accept/Decline/Details actions.
-- **Help & Support System**: Provides live chat, email, phone support, and organized FAQ sections.
-- **Shared Header Component**: Reusable header for consistent navigation, authentication, and profile management across all pages.
-- **Unified Landing Page**: A single customer-focused homepage with interactive service discovery, real-time availability previews, and Uber-style location inputs.
-- **Dynamic Authentication System**: Unified user accounts supporting customer, operator, or both roles, with a multi-step operator onboarding process.
-- **Unified Map Implementation**: Consolidates map functionalities, offering service filters, map/satellite toggle, operator sidebar, and interactive operator selection.
-- **Favorite Drivers System**: Allows customers to favorite operators, displaying online favorited operators.
-- **Customer Rating System**: Post-service rating dialog with star selection and optional comments.
-- **Real-Time Driver Tracking**: Interactive map with live operator location updates, custom animated markers, and status transitions.
-- **Location-Based Customer Grouping**: Automated opportunity detection for operators to serve nearby customers, with countdown timers and bulk contact options.
+- **Multi-Driver Business Management System**: Allows businesses to manage multiple drivers, track performance, and add/remove drivers.
+- **Three-Tier Operator System**: Implements Professional & Certified (unlimited radius, 1.5x pricing), Skilled & Equipped (15km radius), and Manual Operators (5km radius, 0.6x pricing for snow plowing). Includes tier-specific onboarding, dashboards, and proximity-based job filtering.
+- **AI Assist Feature**: Recommends services and operators based on job descriptions and keywords, with estimated pricing and confidence scores.
+- **Enhanced Service Request Creation**: Dynamic form adapting to service type with service-specific fields, emergency/scheduled toggles, time selection, and photo uploads.
+- **Operator Dashboard**: Displays comprehensive service request details, with options to accept, decline, or view details for pending requests.
+- **Help & Support System**: Provides live chat, email, phone support, and FAQs.
+- **Unified Landing Page**: A single customer-focused homepage with interactive service discovery, real-time availability previews, and location inputs.
+- **Dynamic Authentication System**: Unified user accounts supporting customer, operator, or both roles, with multi-step operator onboarding.
+- **Unified Map Implementation**: Features Mapbox GL JS for performance, service filters, map/satellite toggle, operator sidebar, and interactive operator selection. Displays color-coded tier badges and pricing multipliers.
+- **Favorite Drivers System**: Allows customers to favorite operators.
+- **Customer Rating System**: Post-service rating with stars and comments.
+- **Real-Time Driver Tracking**: Interactive map with live operator location updates and animated markers.
+- **Location-Based Customer Grouping**: Automated opportunity detection for operators to serve nearby customers.
 
 ## External Dependencies
 
@@ -98,21 +45,22 @@ The design philosophy is inspired by Uber's clean, modern interface, emphasizing
 - `lucide-react`
 - `date-fns`
 - `vaul`
+- `mapbox-gl`
 
 **Data & Validation:**
-- `drizzle-orm` (with PostgreSQL driver preparation)
+- `drizzle-orm`
 - `drizzle-zod`
 - `zod`
-- `@tanstack/react-query` (for async state management)
+- `@tanstack/react-query`
 
 **Development Tools:**
 - `typescript`
-- `eslint` (with TypeScript and React plugins)
+- `eslint`
 - `tsx`
-- `lovable` (component tagger)
+- `lovable`
 
 **Build & Deployment:**
-- `vite` (with SWC plugin)
+- `vite`
 - `postcss`
 - `tailwindcss`
 - `autoprefixer`

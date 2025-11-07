@@ -5,6 +5,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Route, Switch } from "wouter";
 import { CustomerDashboard } from "./pages/customer/CustomerDashboard";
 import { OperatorDashboard } from "./pages/operator/OperatorDashboard";
+import { BusinessDashboard } from "./pages/operator/BusinessDashboard";
 import { HelpSupport } from "./pages/HelpSupport";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
@@ -22,6 +23,7 @@ const App = () => (
           <Route path="/help" component={HelpSupport} />
           <Route path="/customer" component={CustomerDashboard} />
           <Route path="/customer/:rest+" component={CustomerDashboard} />
+          <Route path="/business" component={BusinessDashboard} />
           <Route path="/operator" component={OperatorDashboard} />
           <Route path="/operator/:rest+" component={OperatorDashboard} />
           <Route component={NotFound} />
