@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/enhanced-button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { MapPin, Clock, DollarSign, Truck, AlertCircle, CheckCircle, Filter } from "lucide-react";
+import { MapPin, Clock, DollarSign, Truck, AlertCircle, CheckCircle, Filter, Users } from "lucide-react";
 import { Header } from "@/components/Header";
 import { useAuth } from "@/contexts/AuthContext";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -23,11 +23,54 @@ interface ServiceRequest {
   distance?: number; // Distance from operator in km
 }
 
+interface CustomerGroup {
+  id: string;
+  location: string;
+  customerCount: number;
+  totalValue: string;
+  customers: Array<{
+    name: string;
+    address: string;
+    service: string;
+  }>;
+  distance: number;
+  expiresIn: number; // minutes
+}
+
 export default function EquippedOperatorDashboard() {
   const { user } = useAuth();
   const [, setLocation] = useLocation();
   const [acceptedJobs, setAcceptedJobs] = useState<number[]>([]);
   const [serviceFilter, setServiceFilter] = useState<string>("all");
+
+  // Mock data for customer grouping - in production, this would come from backend
+  const mockCustomerGroups: CustomerGroup[] = [
+    {
+      id: "CG-001",
+      location: "Downtown District",
+      customerCount: 3,
+      totalValue: "$240-320",
+      customers: [
+        { name: "ABC Corp", address: "100 Main St", service: "Towing" },
+        { name: "XYZ Logistics", address: "102 Main St", service: "Hauling" },
+        { name: "Quick Delivery", address: "104 Main St", service: "Courier" },
+      ],
+      distance: 3.5,
+      expiresIn: 25,
+    },
+    {
+      id: "CG-002",
+      location: "Industrial Park",
+      customerCount: 2,
+      totalValue: "$180-240",
+      customers: [
+        { name: "Factory Direct", address: "50 Industrial Ave", service: "Equipment Transport" },
+        { name: "Warehouse Plus", address: "52 Industrial Ave", service: "Hauling" },
+      ],
+      distance: 8.2,
+      expiresIn: 40,
+    },
+  ];
 
   // Use operator-specific endpoint that filters by tier and radius (15km for equipped operators)
   const operatorId = user?.operatorId || "OP-EQUIPPED-001";
@@ -50,6 +93,11 @@ export default function EquippedOperatorDashboard() {
     // In production, send accept request to backend
   };
 
+  const handleAcceptGroup = (groupId: string) => {
+    // In production, send bulk accept to backend
+    alert(`Accepted all ${mockCustomerGroups.find(g => g.id === groupId)?.customerCount} customers in group!`);
+  };
+
   const availableServices = ["Towing", "Hauling", "Courier", "Roadside Assistance"];
 
   return (
@@ -63,18 +111,13 @@ export default function EquippedOperatorDashboard() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header Section */}
         <div className="mb-8">
-          <div className="flex items-center gap-3 mb-2">
+          <div className="flex items-center gap-3">
             <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center">
               <Truck className="w-6 h-6 text-blue-600 dark:text-blue-400" />
             </div>
-            <div>
-              <h1 className="text-3xl font-bold text-black dark:text-white">
-                Equipped Operator Dashboard
-              </h1>
-              <p className="text-gray-600 dark:text-gray-400">
-                Skilled & Equipped • 15km Operating Radius
-              </p>
-            </div>
+            <p className="text-gray-600 dark:text-gray-400">
+              15km Operating Radius
+            </p>
           </div>
         </div>
 
@@ -116,10 +159,10 @@ export default function EquippedOperatorDashboard() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">Emergency Requests</p>
-                  <p className="text-2xl font-bold text-red-600">{emergencyRequests.length}</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">Customer Groups</p>
+                  <p className="text-2xl font-bold text-black dark:text-white">{mockCustomerGroups.length}</p>
                 </div>
-                <AlertCircle className="w-8 h-8 text-red-600" />
+                <Users className="w-8 h-8 text-orange-600" />
               </div>
             </CardContent>
           </Card>
@@ -133,6 +176,96 @@ export default function EquippedOperatorDashboard() {
                 </div>
                 <CheckCircle className="w-8 h-8 text-green-600" />
               </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Customer Grouping Section */}
+        <div className="mb-8">
+          <Card className="border-2 border-orange-200 dark:border-orange-800">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-orange-100 dark:bg-orange-900 rounded-full flex items-center justify-center">
+                    <Users className="w-5 h-5 text-orange-600 dark:text-orange-400" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-black dark:text-white">
+                      Nearby Customer Groups
+                    </CardTitle>
+                    <CardDescription className="text-gray-600 dark:text-gray-400">
+                      Accept multiple customers in the same area for maximum efficiency
+                    </CardDescription>
+                  </div>
+                </div>
+                <Badge className="bg-orange-500 text-white">
+                  BOOST EARNINGS
+                </Badge>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {mockCustomerGroups.length > 0 ? (
+                mockCustomerGroups.map((group) => (
+                  <div
+                    key={group.id}
+                    className="border border-gray-200 dark:border-gray-800 rounded-lg p-4 hover:border-orange-500 dark:hover:border-orange-500 transition-colors"
+                  >
+                    <div className="flex items-start justify-between mb-4">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-2">
+                          <h3 className="font-semibold text-black dark:text-white">
+                            {group.location}
+                          </h3>
+                          <Badge variant="outline" className="text-xs">
+                            {group.customerCount} customers
+                          </Badge>
+                        </div>
+                        <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400">
+                          <span className="flex items-center gap-1">
+                            <MapPin className="w-4 h-4" />
+                            {group.distance}km away
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <DollarSign className="w-4 h-4" />
+                            {group.totalValue}
+                          </span>
+                          <span className="flex items-center gap-1 text-orange-600 dark:text-orange-400">
+                            <Clock className="w-4 h-4" />
+                            Expires in {group.expiresIn}min
+                          </span>
+                        </div>
+                      </div>
+                      <Button
+                        onClick={() => handleAcceptGroup(group.id)}
+                        className="bg-orange-500 hover:bg-orange-600 text-white"
+                        data-testid={`button-accept-group-${group.id}`}
+                      >
+                        Accept All ({group.customerCount})
+                      </Button>
+                    </div>
+
+                    {/* Customer List */}
+                    <div className="pl-4 border-l-2 border-gray-200 dark:border-gray-800 space-y-2">
+                      {group.customers.map((customer, idx) => (
+                        <div key={idx} className="flex items-center justify-between text-sm">
+                          <div>
+                            <p className="font-medium text-black dark:text-white">{customer.name}</p>
+                            <p className="text-gray-500 dark:text-gray-500">{customer.address}</p>
+                          </div>
+                          <Badge variant="outline" className="text-xs">
+                            {customer.service}
+                          </Badge>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="text-center py-8">
+                  <Users className="w-12 h-12 text-gray-300 dark:text-gray-700 mx-auto mb-3" />
+                  <p className="text-gray-500 dark:text-gray-500">No customer groups available</p>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>

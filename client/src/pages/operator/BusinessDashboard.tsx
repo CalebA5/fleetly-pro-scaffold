@@ -143,14 +143,16 @@ export const BusinessDashboard = () => {
     <div className="min-h-screen bg-white dark:bg-black">
       <Header onDriveAndEarn={() => setLocation("/operator/onboarding")} />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Business Header */}
+        {/* Header Section */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-black dark:text-white mb-2">
-            {business.name}
-          </h1>
-          <p className="text-gray-600 dark:text-gray-400">
-            Business Dashboard - Manage Your Drivers & Performance
-          </p>
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 bg-orange-100 dark:bg-orange-900 rounded-full flex items-center justify-center">
+              <Star className="w-6 h-6 text-orange-600 dark:text-orange-400 fill-orange-600 dark:fill-orange-400" />
+            </div>
+            <p className="text-gray-600 dark:text-gray-400">
+              Unlimited Operating Radius
+            </p>
+          </div>
         </div>
 
         {/* Performance Stats */}
