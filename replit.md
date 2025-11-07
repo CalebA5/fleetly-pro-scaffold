@@ -3,6 +3,17 @@
 ## Overview
 Fleetly is a professional on-demand service platform connecting customers with verified operators for trucking, snow plowing, towing, hauling, and courier services. It operates as a two-sided marketplace with distinct customer and operator dashboards, aiming for real-time booking, job tracking, and professional service delivery. The business vision is to provide a seamless, efficient service booking experience, inspired by Uber's clean and modern interface, emphasizing simplicity and ease of use. The platform supports a multi-driver business management system, allowing professional businesses to track and manage their drivers, and features a three-tier operator system with proximity-based job filtering.
 
+## Recent Updates (November 2025)
+
+### Tier Switching System ✅
+Operators can now subscribe to multiple tiers and switch between them at any time:
+- **Multi-Tier Subscriptions**: Operators can subscribe to any combination of manual (⛏️), equipped (🚛), and professional (🏆) tiers, enabling flexibility to work across different service types
+- **Active Tier Selection**: TierSwitcher dropdown in header with visual indicators (green checkmark for subscribed tiers, badge for active tier)
+- **Tier-Specific Onboarding**: Upgrading to a new tier collects required details (instant join for manual, vehicle details for equipped, business license for professional)
+- **Dynamic Dashboard Routing**: Operators see different dashboards based on active tier selection
+- **PostgreSQL Database**: Schema includes `subscribedTiers` array and `activeTier` fields, database ready for production
+- **Backend API**: POST /api/operators/:operatorId/switch-tier and /api/operators/:operatorId/add-tier endpoints
+
 ## User Preferences
 Preferred communication style: Simple, everyday language.
 
