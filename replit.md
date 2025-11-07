@@ -25,6 +25,14 @@ Professional and equipped operators can now register and manage multiple vehicle
 - **Database Schema**: Vehicles table with operatorId reference, vehicle details, services JSONB array, and isActive flag
 - **Backend API**: RESTful endpoints (GET/POST/PATCH/DELETE /api/operators/:operatorId/vehicles, POST set-active)
 
+### Navigation & UX Improvements ✅
+Enhanced operator experience with intelligent routing and context-aware UI:
+- **Context-Aware TierSwitcher**: TierSwitcher dropdown only appears when operators are on dashboard routes (/operator, /manual-operator, /equipped-operator, /business), keeping the homepage and customer pages clean
+- **Tier-Aware Drive & Earn**: Drive & Earn button intelligently routes based on active tier (manual → /manual-operator, equipped → /equipped-operator, professional → /business)
+- **Automatic Dashboard Navigation**: After adding a new tier and entering details, operators are automatically redirected to the appropriate tier-specific dashboard
+- **Seamless Tier Switching**: Clicking a subscribed tier in the dropdown instantly switches and shows the corresponding dashboard
+- **Visual Tier Indicators**: Green checkmarks for subscribed tiers, "Active" badge for current tier, emoji badges (🏆 🚛 ⛏️) with color coding
+
 ## User Preferences
 Preferred communication style: Simple, everyday language.
 
