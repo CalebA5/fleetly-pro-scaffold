@@ -28,37 +28,12 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 // In production, this would be persisted in a real database
 const userDatabase = new Map<string, User>();
 
-// Seed demo business user credentials
-const demoCredentials = {
-  email: "demo@arcticexpress.com",
-  password: "demo", // In production, this would be hashed
-};
-
-// Pre-seed the demo business user
-const demoUser: User = {
-  id: "demo-business-owner",
-  name: "Arctic Express Services",
-  email: "demo@arcticexpress.com",
-  role: "business",
-  operatorProfileComplete: true,
-  operatorTier: "professional",
-  subscribedTiers: ["professional"],
-  activeTier: "professional",
-  operatorId: "BIZ-DEMO-001",
-  businessId: "BIZ-DEMO-001",
-};
-userDatabase.set(demoUser.id, demoUser);
+// No demo accounts - clean slate for all users
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
 
   const signIn = async (email: string, password: string) => {
-    // Check for demo business credentials
-    if (email === demoCredentials.email && password === demoCredentials.password) {
-      setUser(demoUser);
-      return;
-    }
-    
     // Look up existing user in memory
     let existingUser = Array.from(userDatabase.values()).find(u => u.email === email);
     

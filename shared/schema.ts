@@ -363,3 +363,24 @@ export const insertVehicleSchema = createInsertSchema(vehicles).omit({
 
 export type InsertVehicle = z.infer<typeof insertVehicleSchema>;
 export type Vehicle = typeof vehicles.$inferSelect;
+
+// Users table - for authentication and user management
+export const users = pgTable("users", {
+  id: serial("id").primaryKey(),
+  userId: text("user_id").notNull().unique(),
+  name: text("name").notNull(),
+  email: text("email").notNull().unique(),
+  passwordHash: text("password_hash"), // Will be null for mock auth
+  role: text("role").notNull().default("customer"), // "customer" | "operator" | "business"
+  operatorId: text("operator_id"), // Links to operators table if role is operator
+  businessId: text("business_id"), // Links to businesses table if role is business
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertUserSchema = createInsertSchema(users).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertUser = z.infer<typeof insertUserSchema>;
+export type User = typeof users.$inferSelect;
