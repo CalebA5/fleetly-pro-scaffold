@@ -83,6 +83,15 @@ export function TierSwitcher() {
         title: "Tier Switched",
         description: `You are now operating as ${TIER_INFO[newTier].label}`,
       });
+      
+      // Navigate to the appropriate dashboard for the switched tier
+      if (newTier === 'manual') {
+        setLocation('/manual-operator');
+      } else if (newTier === 'equipped') {
+        setLocation('/equipped-operator');
+      } else if (newTier === 'professional') {
+        setLocation('/business');
+      }
     },
   });
 

@@ -303,6 +303,40 @@ export class MemStorage implements IStorage {
     };
     this.businesses.push(demoBusiness);
 
+    // Create operator record for business owner
+    const businessOwnerOperator: Operator = {
+      id: this.nextOperatorId++,
+      operatorId: "BIZ-DEMO-001",
+      name: "Arctic Express Services",
+      driverName: "Arctic Express Services",
+      rating: "4.8",
+      totalJobs: 487,
+      services: ["Snow Plowing", "Towing", "Hauling", "Courier"],
+      vehicle: "Multiple Vehicles",
+      licensePlate: "FLEET",
+      phone: "(555) 444-5000",
+      email: "demo@arcticexpress.com",
+      latitude: "40.7489",
+      longitude: "-73.9680",
+      address: "450 Industrial Parkway, Queens, NY 11101",
+      isOnline: 1,
+      hourlyRate: "135.00",
+      availability: "available",
+      photo: null,
+      operatorTier: "professional",
+      subscribedTiers: ["professional"],
+      activeTier: "professional",
+      isCertified: 1,
+      businessLicense: "NYC-AES-2024-PRO",
+      businessId: "BIZ-DEMO-001",
+      businessName: "Arctic Express Services",
+      homeLatitude: "40.7489",
+      homeLongitude: "-73.9680",
+      operatingRadius: null,
+      createdAt: new Date(),
+    };
+    this.operators.push(businessOwnerOperator);
+
     // Create 5 demo drivers for the business
     const demoDrivers: Operator[] = [
       {

@@ -79,12 +79,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const signUp = async (name: string, email: string, password: string, role: "customer" | "operator") => {
     // Mock sign up - create and store new user
+    const userId = `user-${Date.now()}`;
     const newUser: User = {
-      id: `user-${Date.now()}`,
+      id: userId,
       name: name,
       email: email,
       role: role,
       operatorProfileComplete: false,
+      // Assign operatorId immediately for operators so they can see TierSwitcher
+      operatorId: role === "operator" ? `OP-${userId}` : undefined,
     };
     
     userDatabase.set(newUser.id, newUser);
