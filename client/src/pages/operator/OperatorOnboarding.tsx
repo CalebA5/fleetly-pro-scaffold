@@ -130,20 +130,89 @@ export const OperatorOnboarding = () => {
     }
   };
 
-  const submitTierRegistration = () => {
-    updateUser({ 
-      operatorProfileComplete: true,
-      operatorTier: selectedTier 
-    });
+  const submitTierRegistration = async () => {
+    if (!user) return;
     
-    toast({
-      title: "Profile Complete!",
-      description: `Welcome to Fleetly as a ${OPERATOR_TIER_INFO[selectedTier!].label}. You can now start accepting jobs.`,
-    });
-    
-    setTimeout(() => {
-      setLocation("/operator");
-    }, 1500);
+    try {
+      // Generate a unique operatorId based on user email
+      const operatorId = `op-${user.email.replace(/[^a-zA-Z0-9]/g, '-')}-${Date.now()}`;
+      
+      // Ensure services array is not empty (default to Snow Plowing)
+      const services = formData.services.length > 0 ? formData.services : ["Snow Plowing"];
+      
+      // Prepare operator data based on tier
+      const operatorData = {
+        operatorId,
+        name: formData.contactName || user.name,
+        driverName: formData.contactName || user.name,
+        rating: "5.00",
+        totalJobs: 0,
+        services,
+        vehicle: formData.vehicleType || "Not specified",
+        licensePlate: formData.licensePlate || "N/A",
+        phone: formData.phone || "",
+        email: formData.email || user.email,
+        latitude: "0",
+        longitude: "0",
+        address: formData.address || formData.homeAddress || "",
+        isOnline: 1,
+        availability: "available",
+        operatorTier: selectedTier || "professional",
+        subscribedTiers: [selectedTier || "professional"],
+        activeTier: selectedTier || "professional",
+        isCertified: selectedTier === "professional" ? 1 : 0,
+        businessLicense: formData.licenseNumber || null,
+        businessName: formData.businessName || null,
+        homeLatitude: null,
+        homeLongitude: null,
+        operatingRadius: null,
+      };
+
+      // Create operator record in database
+      const response = await fetch("/api/operators", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(operatorData),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error("Operator creation failed:", errorData);
+        throw new Error(errorData.message || "Failed to create operator profile");
+      }
+
+      const operator = await response.json();
+
+      // Verify we got an operatorId back
+      if (!operator.operatorId) {
+        throw new Error("Operator created but no operatorId returned");
+      }
+
+      // Update user with operatorId
+      await updateUser({ 
+        operatorId: operator.operatorId,
+        operatorProfileComplete: true,
+        operatorTier: selectedTier 
+      });
+      
+      toast({
+        title: "Profile Complete!",
+        description: `Welcome to Fleetly as a ${OPERATOR_TIER_INFO[selectedTier!].label}. You can now start accepting jobs.`,
+      });
+      
+      setTimeout(() => {
+        setLocation("/operator");
+      }, 1500);
+    } catch (error: any) {
+      console.error("Error creating operator:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create operator profile. Please try again.",
+        variant: "destructive",
+      });
+      // Don't redirect on error - let user retry
+    }
   };
 
   const handleSubmit = () => {
@@ -163,18 +232,86 @@ export const OperatorOnboarding = () => {
     submitTierRegistration();
   };
 
-  const handleSkip = () => {
-    updateUser({ 
-      operatorProfileComplete: true,
-      operatorTier: selectedTier || "professional"
-    });
+  const handleSkip = async () => {
+    if (!user) return;
     
-    toast({
-      title: "Welcome to Fleetly!",
-      description: "You can complete your profile later from your dashboard.",
-    });
-    
-    setLocation("/operator");
+    try {
+      // Generate a unique operatorId based on user email
+      const operatorId = `op-${user.email.replace(/[^a-zA-Z0-9]/g, '-')}-${Date.now()}`;
+      
+      const tier = selectedTier || "professional";
+      
+      // Create minimal operator profile with required fields
+      const operatorData = {
+        operatorId,
+        name: user.name,
+        driverName: user.name,
+        rating: "5.00",
+        totalJobs: 0,
+        services: ["Snow Plowing"], // Default service (required, can't be empty)
+        vehicle: "Not specified",
+        licensePlate: "N/A",
+        phone: "",
+        email: user.email,
+        latitude: "0",
+        longitude: "0",
+        address: "",
+        isOnline: 1,
+        availability: "available",
+        operatorTier: tier,
+        subscribedTiers: [tier],
+        activeTier: tier,
+        isCertified: tier === "professional" ? 1 : 0,
+        businessLicense: null,
+        businessName: null,
+        homeLatitude: null,
+        homeLongitude: null,
+        operatingRadius: null,
+      };
+
+      // Create operator record in database
+      const response = await fetch("/api/operators", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(operatorData),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error("Operator creation failed:", errorData);
+        throw new Error(errorData.message || "Failed to create operator profile");
+      }
+
+      const operator = await response.json();
+
+      // Verify we got an operatorId back
+      if (!operator.operatorId) {
+        throw new Error("Operator created but no operatorId returned");
+      }
+
+      // Update user with operatorId
+      await updateUser({ 
+        operatorId: operator.operatorId,
+        operatorProfileComplete: true,
+        operatorTier: tier
+      });
+      
+      toast({
+        title: "Welcome to Fleetly!",
+        description: "You can complete your profile later from your dashboard.",
+      });
+      
+      setLocation("/operator");
+    } catch (error: any) {
+      console.error("Error creating operator:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create operator profile. Please try again.",
+        variant: "destructive",
+      });
+      // Don't redirect on error - let user retry
+    }
   };
 
   // Tier Selection Screen
