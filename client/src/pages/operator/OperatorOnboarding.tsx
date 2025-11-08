@@ -7,11 +7,13 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ArrowLeft, Upload, Truck, FileText, Shield, CheckCircle, Award, Wrench, Users } from "lucide-react";
+import { ArrowLeft, Upload, Truck, FileText, Shield, CheckCircle, Award, Wrench, Users, Star, TrendingUp, UserCircle, Sparkles } from "lucide-react";
+import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
-import { OPERATOR_TIER_INFO, type OperatorTier } from "@shared/schema";
+import { OPERATOR_TIER_INFO, type OperatorTier, type Operator } from "@shared/schema";
 import { AuthDialog } from "@/components/AuthDialog";
+import { useQuery } from "@tanstack/react-query";
 
 const vehicleTypes = [
   "Pickup Truck",
@@ -50,6 +52,13 @@ export const OperatorOnboarding = () => {
   const [selectedTier, setSelectedTier] = useState<OperatorTier | null>(null);
   const [currentStep, setCurrentStep] = useState(0); // 0 = tier selection
   const [showAuthDialog, setShowAuthDialog] = useState(false);
+  
+  // Fetch operator data if user has operatorId
+  const { data: operatorData, isLoading: isLoadingOperator } = useQuery<Operator>({
+    queryKey: [`/api/operators/by-id/${user?.operatorId}`],
+    enabled: !!user?.operatorId, // Only fetch if user has operatorId
+  });
+  
   const [formData, setFormData] = useState({
     // Common fields
     contactName: "",
@@ -110,6 +119,24 @@ export const OperatorOnboarding = () => {
   };
 
   const handleTierSelection = (tier: OperatorTier) => {
+    // If user is already subscribed to this tier, redirect to dashboard
+    if (operatorData?.subscribedTiers?.includes(tier)) {
+      // Redirect to appropriate dashboard based on tier
+      if (tier === "manual") {
+        setLocation("/manual-operator");
+      } else if (tier === "equipped") {
+        setLocation("/equipped-operator");
+      } else if (tier === "professional") {
+        if (user?.businessId) {
+          setLocation("/business");
+        } else {
+          setLocation("/operator");
+        }
+      }
+      return;
+    }
+    
+    // New tier - show onboarding form
     setSelectedTier(tier);
     setCurrentStep(1);
   };
@@ -314,6 +341,170 @@ export const OperatorOnboarding = () => {
     }
   };
 
+  // Tier-to-class mapping for fixed Tailwind classes
+  const tierStyles: Record<OperatorTier, {
+    bgGradient: string;
+    ring: string;
+    avatarBg: string;
+    avatarBorder: string;
+    iconBg: string;
+    iconColor: string;
+    icon: typeof Award;
+    dashboardRoute: string;
+  }> = {
+    professional: {
+      bgGradient: "bg-gradient-to-br from-white to-orange-50 dark:from-gray-800 dark:to-orange-900/20",
+      ring: "ring-orange-500",
+      avatarBg: "bg-orange-100 dark:bg-orange-900",
+      avatarBorder: "border-orange-500",
+      iconBg: "bg-orange-100 dark:bg-orange-900",
+      iconColor: "text-orange-600 dark:text-orange-400",
+      icon: Award,
+      dashboardRoute: "/operator"
+    },
+    equipped: {
+      bgGradient: "bg-gradient-to-br from-white to-blue-50 dark:from-gray-800 dark:to-blue-900/20",
+      ring: "ring-blue-500",
+      avatarBg: "bg-blue-100 dark:bg-blue-900",
+      avatarBorder: "border-blue-500",
+      iconBg: "bg-blue-100 dark:bg-blue-900",
+      iconColor: "text-blue-600 dark:text-blue-400",
+      icon: Truck,
+      dashboardRoute: "/equipped-operator"
+    },
+    manual: {
+      bgGradient: "bg-gradient-to-br from-white to-green-50 dark:from-gray-800 dark:to-green-900/20",
+      ring: "ring-green-500",
+      avatarBg: "bg-green-100 dark:bg-green-900",
+      avatarBorder: "border-green-500",
+      iconBg: "bg-green-100 dark:bg-green-900",
+      iconColor: "text-green-600 dark:text-green-400",
+      icon: Users,
+      dashboardRoute: "/manual-operator"
+    }
+  };
+
+  // Helper function to get dashboard route based on tier
+  const getDashboardRoute = (tier: OperatorTier) => {
+    if (tier === "professional" && user?.businessId) {
+      return "/business";
+    }
+    return tierStyles[tier].dashboardRoute;
+  };
+
+  // Helper function to render achievement badges
+  const getAchievementBadges = (totalJobs: number, rating: string) => {
+    const badges = [];
+    if (parseFloat(rating) >= 4.9) {
+      badges.push({ icon: Star, label: "Top Rated", color: "text-yellow-600" });
+    }
+    if (totalJobs >= 100) {
+      badges.push({ icon: Award, label: "100+ Jobs", color: "text-purple-600" });
+    } else if (totalJobs >= 50) {
+      badges.push({ icon: TrendingUp, label: "50+ Jobs", color: "text-blue-600" });
+    } else if (totalJobs >= 10) {
+      badges.push({ icon: Sparkles, label: "10+ Jobs", color: "text-green-600" });
+    }
+    return badges;
+  };
+
+  // Helper function to render personalized tier card for subscribed tiers
+  const renderSubscribedTierCard = (tier: OperatorTier) => {
+    const isActive = operatorData?.activeTier === tier;
+    const badges = getAchievementBadges(operatorData?.totalJobs || 0, operatorData?.rating || "0");
+    const memberSince = operatorData?.createdAt ? format(new Date(operatorData.createdAt), "MMM yyyy") : "";
+    const style = tierStyles[tier];
+    const TierIcon = style.icon;
+    
+    return (
+      <Card 
+        className={`cursor-pointer transition-all hover:shadow-2xl relative overflow-hidden group
+          ${isActive ? `ring-2 ring-offset-2 ${style.ring}` : ''} 
+          shadow-lg ${style.bgGradient}`}
+        onClick={() => handleTierSelection(tier)}
+        data-testid={`card-tier-${tier}`}
+      >
+        {/* Shimmer effect on hover */}
+        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-200%] group-hover:translate-x-[200%] transition-transform duration-1000"></div>
+        
+        {/* Operator avatar badge in top-right */}
+        <div className={`absolute top-4 right-4 w-10 h-10 rounded-full ${style.avatarBg} flex items-center justify-center border-2 ${style.avatarBorder} shadow-lg`}>
+          <UserCircle className={`w-6 h-6 ${style.iconColor}`} />
+        </div>
+        
+        <CardHeader>
+          <div className={`w-12 h-12 ${style.iconBg} rounded-full flex items-center justify-center mb-4`}>
+            <TierIcon className={`w-6 h-6 ${style.iconColor}`} />
+          </div>
+          <CardTitle className="text-black dark:text-white flex items-center gap-2">
+            {OPERATOR_TIER_INFO[tier].label}
+            {isActive && (
+              <span className="text-xs font-semibold text-green-600 dark:text-green-400 bg-green-100 dark:bg-green-900 px-2 py-0.5 rounded">
+                ACTIVE
+              </span>
+            )}
+          </CardTitle>
+          <CardDescription className="text-gray-700 dark:text-gray-300 font-medium">
+            Welcome back, {user?.name}! You've completed {operatorData?.totalJobs || 0} jobs.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Stats Display */}
+          <div className="bg-white/50 dark:bg-gray-800/50 rounded-lg p-3 space-y-2">
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-gray-600 dark:text-gray-400">Rating</span>
+              <div className="flex items-center gap-1">
+                <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
+                <span className="font-semibold text-black dark:text-white">
+                  {parseFloat(operatorData?.rating || "0").toFixed(1)}
+                </span>
+              </div>
+            </div>
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-gray-600 dark:text-gray-400">Total Jobs</span>
+              <span className="font-semibold text-black dark:text-white">
+                {operatorData?.totalJobs || 0}
+              </span>
+            </div>
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-gray-600 dark:text-gray-400">Member Since</span>
+              <span className="font-semibold text-black dark:text-white">
+                {memberSince}
+              </span>
+            </div>
+          </div>
+
+          {/* Achievement Badges */}
+          {badges.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {badges.map((badge, idx) => (
+                <div 
+                  key={idx}
+                  className="flex items-center gap-1 bg-white dark:bg-gray-800 px-2 py-1 rounded-full text-xs border"
+                >
+                  {React.createElement(badge.icon, { className: `w-3 h-3 ${badge.color}` })}
+                  <span className="font-medium text-gray-700 dark:text-gray-300">{badge.label}</span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Go to Dashboard Button */}
+          <Button 
+            className="w-full bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white"
+            onClick={(e) => {
+              e.stopPropagation();
+              setLocation(getDashboardRoute(tier));
+            }}
+            data-testid={`button-goto-dashboard-${tier}`}
+          >
+            Go to Dashboard →
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  };
+
   // Tier Selection Screen
   if (currentStep === 0) {
     return (
@@ -342,50 +533,83 @@ export const OperatorOnboarding = () => {
               </p>
             </div>
 
+            {/* Tier Progress Indicator */}
+            {operatorData && (
+              <div className="flex items-center justify-center gap-2 mb-8">
+                <span className="text-sm text-gray-600 dark:text-gray-400">Tiers Unlocked:</span>
+                <div className="flex gap-2">
+                  {["professional", "equipped", "manual"].map((tier) => (
+                    <div
+                      key={tier}
+                      className={`w-3 h-3 rounded-full ${
+                        operatorData.subscribedTiers?.includes(tier)
+                          ? "bg-orange-500"
+                          : "bg-gray-300 dark:bg-gray-700"
+                      }`}
+                    />
+                  ))}
+                </div>
+                <span className="text-sm font-semibold text-black dark:text-white">
+                  {operatorData.subscribedTiers?.length || 0}/3
+                </span>
+              </div>
+            )}
+
             <div className="grid md:grid-cols-3 gap-6">
               {/* Professional Tier */}
-              <Card 
-                className="cursor-pointer hover:border-orange-500 dark:hover:border-orange-500 transition-all hover:shadow-lg"
-                onClick={() => handleTierSelection("professional")}
-                data-testid="card-tier-professional"
-              >
-                <CardHeader>
-                  <div className="w-12 h-12 bg-orange-100 dark:bg-orange-900 rounded-full flex items-center justify-center mb-4">
-                    <Award className="w-6 h-6 text-orange-600 dark:text-orange-400" />
-                  </div>
-                  <CardTitle className="text-black dark:text-white">
-                    {OPERATOR_TIER_INFO.professional.label}
-                  </CardTitle>
-                  <CardDescription className="text-gray-600 dark:text-gray-400">
-                    {OPERATOR_TIER_INFO.professional.description}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
-                      <CheckCircle className="w-4 h-4 mr-2 text-green-600" />
-                      All services available
+              {operatorData?.subscribedTiers?.includes("professional") ? 
+                renderProfessionalSubscribedCard()
+                : (
+                <Card 
+                  className="cursor-pointer hover:border-orange-500 dark:hover:border-orange-500 transition-all hover:shadow-lg relative"
+                  onClick={() => handleTierSelection("professional")}
+                  data-testid="card-tier-professional"
+                >
+                  {operatorData && (
+                    <div className="absolute top-4 right-4">
+                      <span className="text-xs font-semibold text-orange-600 dark:text-orange-400 bg-orange-100 dark:bg-orange-900 px-2 py-1 rounded">
+                        + Add This Tier
+                      </span>
                     </div>
-                    <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
-                      <CheckCircle className="w-4 h-4 mr-2 text-green-600" />
-                      City-wide operation
+                  )}
+                  <CardHeader>
+                    <div className="w-12 h-12 bg-orange-100 dark:bg-orange-900 rounded-full flex items-center justify-center mb-4">
+                      <Award className="w-6 h-6 text-orange-600 dark:text-orange-400" />
                     </div>
-                    <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
-                      <CheckCircle className="w-4 h-4 mr-2 text-green-600" />
-                      1.5x pricing multiplier
+                    <CardTitle className="text-black dark:text-white">
+                      {OPERATOR_TIER_INFO.professional.label}
+                    </CardTitle>
+                    <CardDescription className="text-gray-600 dark:text-gray-400">
+                      {OPERATOR_TIER_INFO.professional.description}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="space-y-2">
+                      <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
+                        <CheckCircle className="w-4 h-4 mr-2 text-green-600" />
+                        All services available
+                      </div>
+                      <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
+                        <CheckCircle className="w-4 h-4 mr-2 text-green-600" />
+                        City-wide operation
+                      </div>
+                      <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
+                        <CheckCircle className="w-4 h-4 mr-2 text-green-600" />
+                        1.5x pricing multiplier
+                      </div>
+                      <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
+                        <CheckCircle className="w-4 h-4 mr-2 text-green-600" />
+                        Premium customer access
+                      </div>
                     </div>
-                    <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
-                      <CheckCircle className="w-4 h-4 mr-2 text-green-600" />
-                      Premium customer access
+                    <div className="pt-4 border-t border-gray-200 dark:border-gray-800">
+                      <p className="text-xs text-gray-500 dark:text-gray-500">
+                        Requires: Business license, certification
+                      </p>
                     </div>
-                  </div>
-                  <div className="pt-4 border-t border-gray-200 dark:border-gray-800">
-                    <p className="text-xs text-gray-500 dark:text-gray-500">
-                      Requires: Business license, certification
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
+                  </CardContent>
+                </Card>
+              )}
 
               {/* Equipped Tier */}
               <Card 
