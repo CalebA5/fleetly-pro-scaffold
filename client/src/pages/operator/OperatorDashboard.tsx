@@ -1,6 +1,5 @@
 import { Route, Switch } from "wouter";
 import { OperatorHome } from "./OperatorHome";
-import { OperatorOnboarding } from "./OperatorOnboarding";
 import { JobManagement } from "./JobManagement";
 import ManualOperatorDashboard from "./ManualOperatorDashboard";
 import EquippedOperatorDashboard from "./EquippedOperatorDashboard";
@@ -38,7 +37,6 @@ export const OperatorDashboard = () => {
     <div className="min-h-screen bg-background">
       <Switch>
         <Route path="/operator" component={OperatorHomeRouter} />
-        <Route path="/operator/onboarding" component={OperatorOnboarding} />
         <Route path="/operator/jobs" component={JobManagement} />
       </Switch>
     </div>

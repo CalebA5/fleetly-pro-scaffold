@@ -87,11 +87,12 @@ export const AuthDialog = ({
       });
       onOpenChange(false);
       
-      // Redirect based on role
-      if (signupRole === "operator") {
-        setLocation("/operator/onboarding");
-      } else if (onAuthSuccess) {
+      // Call onAuthSuccess callback if provided (e.g., for tier registration)
+      if (onAuthSuccess) {
         onAuthSuccess();
+      } else if (signupRole === "operator") {
+        // Only redirect if no callback (default behavior)
+        setLocation("/operator/onboarding");
       }
     } catch (error) {
       toast({
