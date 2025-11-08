@@ -591,17 +591,17 @@ export const OperatorMap = () => {
         <div className={`relative border-l border-gray-200 dark:border-gray-800 overflow-y-auto bg-gray-50 dark:bg-gray-800 transition-all duration-300 ${
           isSidebarMinimized ? 'w-12' : 'w-96'
         }`}>
-          {/* Toggle Button */}
+          {/* Toggle Button - Prominent for all devices */}
           <button
             onClick={() => setIsSidebarMinimized(!isSidebarMinimized)}
-            className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-1/2 z-10 bg-black dark:bg-white text-white dark:text-black rounded-full p-2 shadow-lg hover:scale-110 transition-transform"
+            className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-1/2 z-50 bg-black dark:bg-white text-white dark:text-black rounded-full p-3 shadow-2xl hover:shadow-orange-500/50 hover:scale-110 transition-all ring-2 ring-white dark:ring-black"
             aria-label={isSidebarMinimized ? "Expand sidebar" : "Minimize sidebar"}
             data-testid="button-toggle-sidebar"
           >
             {isSidebarMinimized ? (
-              <ChevronLeft className="w-4 h-4" />
+              <ChevronLeft className="w-5 h-5" />
             ) : (
-              <ChevronRight className="w-4 h-4" />
+              <ChevronRight className="w-5 h-5" />
             )}
           </button>
 

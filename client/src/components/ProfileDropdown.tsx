@@ -1,5 +1,5 @@
 import { User, LogOut, HelpCircle, FileText, Truck } from "lucide-react";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -17,6 +17,12 @@ interface ProfileDropdownProps {
 
 export const ProfileDropdown = ({ onDriveAndEarn }: ProfileDropdownProps) => {
   const { user, signOut } = useAuth();
+  const [, setLocation] = useLocation();
+
+  const handleSignOut = async () => {
+    await signOut();
+    setLocation("/");
+  };
 
   if (!user) return null;
 
@@ -78,7 +84,7 @@ export const ProfileDropdown = ({ onDriveAndEarn }: ProfileDropdownProps) => {
           </DropdownMenuItem>
         </Link>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={signOut} data-testid="menu-sign-out">
+        <DropdownMenuItem onClick={handleSignOut} data-testid="menu-sign-out">
           <LogOut className="mr-2 h-4 w-4" />
           <span>Sign out</span>
         </DropdownMenuItem>
