@@ -58,12 +58,15 @@ Removed hardcoded mock data and implemented real user data integration:
 - **PostgreSQL Backend**: All user and operator data persisted in database, no in-memory data loss on refresh
 
 ### Public Operator Onboarding Flow (November 8, 2025) ✅
-Implemented frictionless "explore before signup" flow for Drive & Earn with proper security:
+Implemented frictionless "explore before signup" flow for Drive & Earn with proper security and operator record creation:
 - **Public Tier Selection**: `/operator/onboarding` accessible to everyone without authentication, encouraging exploration
 - **Auth-Gated Submission**: Unauthenticated users can browse tiers and fill out forms, but auth is required before submission
 - **Pre-filled Signup**: When unauthenticated user submits tier form, AuthDialog opens with name pre-filled from the form
-- **Automatic Registration**: After successful signup, tier registration auto-submits and user navigates to appropriate dashboard
-- **Protected Dashboards**: All operator dashboards (`/operator`, `/business`, `/manual-operator`, `/equipped-operator`) require operator authentication with ProtectedRoute guards
+- **Automatic Operator Creation**: After successful signup, system creates operator record in database via POST /api/operators with unique operatorId
+- **Database Integration**: Operator records include tier, services, vehicle info (if applicable), and all required fields with sensible defaults
+- **OperatorId Assignment**: User object updated with operatorId from created operator record, enabling access to protected operator dashboards
+- **Protected Dashboards**: All operator dashboards (`/operator`, `/business`, `/manual-operator`, `/equipped-operator`) require operator authentication with ProtectedRoute guards checking for user.operatorId
+- **Error Handling**: Validation errors shown to user, failed operator creation prevents redirect, allowing retry
 - **Toast Auto-Dismiss**: Success toasts (non-destructive) auto-dismiss after 4 seconds for better UX
 - **Secure Architecture**: Public onboarding route extracted from protected OperatorDashboard component and registered separately in App.tsx
 
