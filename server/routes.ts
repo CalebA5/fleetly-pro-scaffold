@@ -1,5 +1,8 @@
 import { Router } from "express";
 import type { IStorage } from "./storage";
+import { db } from "./db";
+import { operators } from "@shared/schema";
+import { eq, sql } from "drizzle-orm";
 import { insertJobSchema, insertServiceRequestSchema, insertCustomerSchema, insertOperatorSchema, insertRatingSchema, insertFavoriteSchema, insertOperatorLocationSchema, insertCustomerServiceHistorySchema, OPERATOR_TIER_INFO } from "@shared/schema";
 import { isWithinRadius } from "./utils/distance";
 
@@ -48,9 +51,14 @@ export function registerRoutes(storage: IStorage) {
   });
 
   router.get("/api/operators", async (req, res) => {
-    const service = req.query.service as string | undefined;
-    const operators = await storage.getOperators(service);
-    res.json(operators);
+    try {
+      // Get operators from database
+      const dbOperators = await db.query.operators.findMany();
+      res.json(dbOperators);
+    } catch (error) {
+      console.error("Error fetching operators:", error);
+      res.status(500).json({ error: "Failed to fetch operators" });
+    }
   });
 
   router.get("/api/operators/nearby", async (req, res) => {
@@ -496,10 +504,27 @@ export function registerRoutes(storage: IStorage) {
   router.post("/api/operators/:operatorId/switch-tier", async (req, res) => {
     try {
       const { newTier } = req.body;
-      const success = await storage.switchOperatorTier(req.params.operatorId, newTier);
-      if (!success) {
-        return res.status(400).json({ message: "Unable to switch tier. Tier not subscribed or operator not found." });
+      const operatorId = req.params.operatorId;
+      
+      // Get operator from database
+      const operator = await db.query.operators.findFirst({
+        where: eq(operators.operatorId, operatorId)
+      });
+      
+      if (!operator) {
+        return res.status(404).json({ message: "Operator not found" });
       }
+      
+      // Check if tier is subscribed
+      if (!operator.subscribedTiers.includes(newTier)) {
+        return res.status(400).json({ message: "Tier not subscribed" });
+      }
+      
+      // Update active tier in database
+      await db.update(operators)
+        .set({ activeTier: newTier })
+        .where(eq(operators.operatorId, operatorId));
+      
       res.json({ message: "Tier switched successfully" });
     } catch (error) {
       console.error("Error switching tier:", error);
@@ -510,10 +535,28 @@ export function registerRoutes(storage: IStorage) {
   router.post("/api/operators/:operatorId/add-tier", async (req, res) => {
     try {
       const { tier, details } = req.body;
-      const success = await storage.addOperatorTier(req.params.operatorId, tier, details);
-      if (!success) {
-        return res.status(400).json({ message: "Unable to add tier. Tier already subscribed or operator not found." });
+      const operatorId = req.params.operatorId;
+      
+      // Get operator from database
+      const operator = await db.query.operators.findFirst({
+        where: eq(operators.operatorId, operatorId)
+      });
+      
+      if (!operator) {
+        return res.status(404).json({ message: "Operator not found" });
       }
+      
+      // Check if tier is already subscribed
+      if (operator.subscribedTiers.includes(tier)) {
+        return res.status(400).json({ message: "Tier already subscribed" });
+      }
+      
+      // Add tier to subscribed tiers in database
+      const updatedTiers = [...operator.subscribedTiers, tier];
+      await db.update(operators)
+        .set({ subscribedTiers: updatedTiers })
+        .where(eq(operators.operatorId, operatorId));
+      
       res.json({ message: "Tier added successfully" });
     } catch (error) {
       console.error("Error adding tier:", error);

@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 
 export interface User {
   id: string;
@@ -16,141 +16,134 @@ export interface User {
 interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
+  isLoading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (name: string, email: string, password: string, role: "customer" | "operator") => Promise<void>;
-  signOut: () => void;
+  signOut: () => Promise<void>;
   updateUser: (updates: Partial<User>) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Simple in-memory user database for demo purposes
-// In production, this would be persisted in a real database
-const userDatabase = new Map<string, User>();
-
-// No demo accounts - clean slate for all users
-
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const signIn = async (email: string, password: string) => {
-    // Look up existing user in memory
-    let existingUser = Array.from(userDatabase.values()).find(u => u.email === email);
-    
-    if (!existingUser) {
-      // Check if this email belongs to an existing operator in the backend
+  // Restore session on mount
+  useEffect(() => {
+    const restoreSession = async () => {
       try {
-        const response = await fetch("/api/operators");
+        const response = await fetch("/api/auth/session", {
+          credentials: "include",
+        });
+
         if (response.ok) {
-          const operators = await response.json();
-          const operatorRecord = operators.find((op: any) => op.email === email);
-          
-          if (operatorRecord) {
-            // Recreate operator user from backend data
-            existingUser = {
-              id: `user-${Date.now()}`,
-              name: operatorRecord.name,
-              email: operatorRecord.email,
-              role: "operator",
-              operatorProfileComplete: true,
-              operatorId: operatorRecord.operatorId,
-              operatorTier: operatorRecord.operatorTier || "manual",
-              subscribedTiers: operatorRecord.subscribedTiers || [operatorRecord.operatorTier || "manual"],
-              activeTier: operatorRecord.activeTier || operatorRecord.operatorTier || "manual",
-              businessId: operatorRecord.businessId,
-            };
-          } else {
-            // Create new customer user if not found in backend either
-            existingUser = {
-              id: `user-${Date.now()}`,
-              name: email.split('@')[0],
-              email: email,
-              role: "customer",
-              operatorProfileComplete: false,
-            };
-          }
-        } else {
-          // If backend fails, default to customer
-          existingUser = {
-            id: `user-${Date.now()}`,
-            name: email.split('@')[0],
-            email: email,
-            role: "customer",
-            operatorProfileComplete: false,
-          };
+          const userData = await response.json();
+          setUser({
+            id: userData.id || userData.userId,
+            name: userData.name,
+            email: userData.email,
+            role: userData.role,
+            operatorProfileComplete: userData.operatorProfileComplete,
+            operatorTier: userData.operatorTier,
+            subscribedTiers: userData.subscribedTiers,
+            activeTier: userData.activeTier,
+            operatorId: userData.operatorId,
+            businessId: userData.businessId,
+          });
         }
       } catch (error) {
-        console.error("Error checking backend for operator:", error);
-        // Default to customer if backend check fails
-        existingUser = {
-          id: `user-${Date.now()}`,
-          name: email.split('@')[0],
-          email: email,
-          role: "customer",
-          operatorProfileComplete: false,
-        };
+        console.error("Failed to restore session:", error);
+      } finally {
+        setIsLoading(false);
       }
-      
-      userDatabase.set(existingUser.id, existingUser);
+    };
+
+    restoreSession();
+  }, []);
+
+  const signIn = async (email: string, password: string) => {
+    try {
+      const response = await fetch("/api/auth/signin", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+        credentials: "include",
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to sign in");
+      }
+
+      const userData = await response.json();
+      setUser({
+        id: userData.id || userData.userId,
+        name: userData.name,
+        email: userData.email,
+        role: userData.role,
+        operatorProfileComplete: userData.operatorProfileComplete,
+        operatorTier: userData.operatorTier,
+        subscribedTiers: userData.subscribedTiers,
+        activeTier: userData.activeTier,
+        operatorId: userData.operatorId,
+        businessId: userData.businessId,
+      });
+    } catch (error) {
+      console.error("Sign in error:", error);
+      throw error;
     }
-    
-    setUser(existingUser);
   };
 
   const signUp = async (name: string, email: string, password: string, role: "customer" | "operator") => {
-    // Mock sign up - create and store new user
-    const userId = `user-${Date.now()}`;
-    const operatorId = role === "operator" ? `OP-${userId}` : undefined;
-    
-    const newUser: User = {
-      id: userId,
-      name: name,
-      email: email,
-      role: role,
-      operatorProfileComplete: false,
-      // Assign operatorId immediately for operators so they can see TierSwitcher
-      operatorId,
-    };
-    
-    // If creating an operator, also create operator record in backend
-    if (role === "operator" && operatorId) {
-      try {
-        const response = await fetch("/api/operators", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            operatorId,
-            name,
-            email,
-            operatorTier: "manual",
-          }),
-        });
-        
-        if (!response.ok && response.status !== 409) {
-          // 409 means already exists, which is okay (duplicate signup attempt)
-          console.error("Failed to create operator in backend");
-        }
-      } catch (error) {
-        console.error("Error creating operator:", error);
-        // Continue with signup even if backend fails
+    try {
+      const response = await fetch("/api/auth/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, email, password, role }),
+        credentials: "include",
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to sign up");
       }
+
+      const userData = await response.json();
+      setUser({
+        id: userData.id || userData.userId,
+        name: userData.name,
+        email: userData.email,
+        role: userData.role,
+        operatorProfileComplete: userData.operatorProfileComplete,
+        operatorTier: userData.operatorTier,
+        subscribedTiers: userData.subscribedTiers,
+        activeTier: userData.activeTier,
+        operatorId: userData.operatorId,
+        businessId: userData.businessId,
+      });
+    } catch (error) {
+      console.error("Sign up error:", error);
+      throw error;
     }
-    
-    userDatabase.set(newUser.id, newUser);
-    setUser(newUser);
   };
 
-  const signOut = () => {
-    setUser(null);
+  const signOut = async () => {
+    try {
+      await fetch("/api/auth/signout", {
+        method: "POST",
+        credentials: "include",
+      });
+    } catch (error) {
+      console.error("Sign out error:", error);
+    } finally {
+      setUser(null);
+    }
   };
 
   const updateUser = (updates: Partial<User>) => {
     if (user) {
-      const updatedUser = { ...user, ...updates };
-      // Update in database
-      userDatabase.set(user.id, updatedUser);
-      // Update in state
-      setUser(updatedUser);
+      setUser({ ...user, ...updates });
     }
   };
 
@@ -159,6 +152,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       value={{
         user,
         isAuthenticated: !!user,
+        isLoading,
         signIn,
         signUp,
         signOut,
