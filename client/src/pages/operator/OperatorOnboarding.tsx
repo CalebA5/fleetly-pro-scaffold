@@ -11,6 +11,7 @@ import { ArrowLeft, Upload, Truck, FileText, Shield, CheckCircle, Award, Wrench,
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { OPERATOR_TIER_INFO, type OperatorTier } from "@shared/schema";
+import { AuthDialog } from "@/components/AuthDialog";
 
 const vehicleTypes = [
   "Pickup Truck",
@@ -44,10 +45,11 @@ const serviceTypes = [
 
 export const OperatorOnboarding = () => {
   const { toast } = useToast();
-  const { updateUser } = useAuth();
+  const { user, isAuthenticated, updateUser } = useAuth();
   const [, setLocation] = useLocation();
   const [selectedTier, setSelectedTier] = useState<OperatorTier | null>(null);
   const [currentStep, setCurrentStep] = useState(0); // 0 = tier selection
+  const [showAuthDialog, setShowAuthDialog] = useState(false);
   const [formData, setFormData] = useState({
     // Common fields
     contactName: "",
@@ -128,7 +130,7 @@ export const OperatorOnboarding = () => {
     }
   };
 
-  const handleSubmit = () => {
+  const submitTierRegistration = () => {
     updateUser({ 
       operatorProfileComplete: true,
       operatorTier: selectedTier 
@@ -142,6 +144,23 @@ export const OperatorOnboarding = () => {
     setTimeout(() => {
       setLocation("/operator");
     }, 1500);
+  };
+
+  const handleSubmit = () => {
+    // Check if user is authenticated
+    if (!isAuthenticated) {
+      // Show auth dialog with pre-filled name
+      setShowAuthDialog(true);
+      return;
+    }
+    
+    // User is authenticated, proceed with registration
+    submitTierRegistration();
+  };
+
+  const handleAuthSuccess = () => {
+    // After successful auth, submit the tier registration
+    submitTierRegistration();
   };
 
   const handleSkip = () => {
@@ -887,6 +906,16 @@ export const OperatorOnboarding = () => {
           </Card>
         </div>
       </div>
+      
+      {/* Auth Dialog - shown when unauthenticated user tries to submit */}
+      <AuthDialog
+        open={showAuthDialog}
+        onOpenChange={setShowAuthDialog}
+        defaultTab="signup"
+        signupRole="operator"
+        prefillName={formData.contactName}
+        onAuthSuccess={handleAuthSuccess}
+      />
     </div>
   );
 };

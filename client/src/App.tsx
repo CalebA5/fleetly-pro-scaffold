@@ -26,31 +26,11 @@ const App = () => (
           <Route path="/help" component={HelpSupport} />
           <Route path="/customer" component={CustomerDashboard} />
           <Route path="/customer/:rest+" component={CustomerDashboard} />
-          <Route path="/business">
-            <ProtectedRoute requireOperator>
-              <BusinessDashboard />
-            </ProtectedRoute>
-          </Route>
-          <Route path="/manual-operator">
-            <ProtectedRoute requireOperator>
-              <ManualOperatorDashboard />
-            </ProtectedRoute>
-          </Route>
-          <Route path="/equipped-operator">
-            <ProtectedRoute requireOperator>
-              <EquippedOperatorDashboard />
-            </ProtectedRoute>
-          </Route>
-          <Route path="/operator">
-            <ProtectedRoute requireOperator>
-              <OperatorDashboard />
-            </ProtectedRoute>
-          </Route>
-          <Route path="/operator/:rest+">
-            <ProtectedRoute requireOperator>
-              <OperatorDashboard />
-            </ProtectedRoute>
-          </Route>
+          <Route path="/business" component={BusinessDashboard} />
+          <Route path="/manual-operator" component={ManualOperatorDashboard} />
+          <Route path="/equipped-operator" component={EquippedOperatorDashboard} />
+          <Route path="/operator" component={OperatorDashboard} />
+          <Route path="/operator/:rest+" component={OperatorDashboard} />
           <Route component={NotFound} />
         </Switch>
       </TooltipProvider>

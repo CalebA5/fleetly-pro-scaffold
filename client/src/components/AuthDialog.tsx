@@ -20,6 +20,7 @@ interface AuthDialogProps {
   defaultTab?: "signin" | "signup";
   signupRole?: "customer" | "operator";
   onAuthSuccess?: () => void;
+  prefillName?: string;
 }
 
 export const AuthDialog = ({ 
@@ -27,7 +28,8 @@ export const AuthDialog = ({
   onOpenChange, 
   defaultTab = "signin",
   signupRole = "customer",
-  onAuthSuccess
+  onAuthSuccess,
+  prefillName = ""
 }: AuthDialogProps) => {
   const [activeTab, setActiveTab] = useState(defaultTab);
   const [, setLocation] = useLocation();
@@ -43,9 +45,16 @@ export const AuthDialog = ({
   
   const [signinEmail, setSigninEmail] = useState("");
   const [signinPassword, setSigninPassword] = useState("");
-  const [signupName, setSignupName] = useState("");
+  const [signupName, setSignupName] = useState(prefillName);
   const [signupEmail, setSignupEmail] = useState("");
   const [signupPassword, setSignupPassword] = useState("");
+  
+  // Update signup name when prefillName changes
+  useEffect(() => {
+    if (prefillName) {
+      setSignupName(prefillName);
+    }
+  }, [prefillName]);
 
   const handleSignIn = async () => {
     try {
