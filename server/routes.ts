@@ -1,8 +1,8 @@
 import { Router } from "express";
 import type { IStorage } from "./storage";
 import { db } from "./db";
-import { operators } from "@shared/schema";
-import { eq, sql } from "drizzle-orm";
+import { operators, favorites } from "@shared/schema";
+import { eq, sql, and } from "drizzle-orm";
 import { insertJobSchema, insertServiceRequestSchema, insertCustomerSchema, insertOperatorSchema, insertRatingSchema, insertFavoriteSchema, insertOperatorLocationSchema, insertCustomerServiceHistorySchema, OPERATOR_TIER_INFO } from "@shared/schema";
 import { isWithinRadius } from "./utils/distance";
 
@@ -52,8 +52,19 @@ export function registerRoutes(storage: IStorage) {
 
   router.get("/api/operators", async (req, res) => {
     try {
-      // Get operators from database
-      const dbOperators = await db.query.operators.findMany();
+      const service = req.query.service as string | undefined;
+      
+      // Get operators from database with optional service filter
+      let dbOperators;
+      if (service) {
+        // Filter by service using Drizzle
+        dbOperators = await db.query.operators.findMany({
+          where: sql`${operators.services}::jsonb @> ${JSON.stringify([service])}::jsonb`
+        });
+      } else {
+        dbOperators = await db.query.operators.findMany();
+      }
+      
       res.json(dbOperators);
     } catch (error) {
       console.error("Error fetching operators:", error);
@@ -62,25 +73,44 @@ export function registerRoutes(storage: IStorage) {
   });
 
   router.get("/api/operators/nearby", async (req, res) => {
-    const lat = parseFloat(req.query.lat as string);
-    const lon = parseFloat(req.query.lon as string);
-    const radius = req.query.radius ? parseFloat(req.query.radius as string) : 10;
-    
-    if (isNaN(lat) || isNaN(lon)) {
-      return res.status(400).json({ message: "Valid latitude and longitude required" });
+    try {
+      const lat = parseFloat(req.query.lat as string);
+      const lon = parseFloat(req.query.lon as string);
+      const radius = req.query.radius ? parseFloat(req.query.radius as string) : 10;
+      
+      if (isNaN(lat) || isNaN(lon)) {
+        return res.status(400).json({ message: "Valid latitude and longitude required" });
+      }
+      
+      // Get all operators from database and filter by proximity
+      const allOperators = await db.query.operators.findMany();
+      const nearbyOperators = allOperators.filter(op => {
+        const opLat = parseFloat(String(op.latitude));
+        const opLon = parseFloat(String(op.longitude));
+        return isWithinRadius(lat, lon, opLat, opLon, radius);
+      });
+      
+      res.json(nearbyOperators);
+    } catch (error) {
+      console.error("Error fetching nearby operators:", error);
+      res.status(500).json({ message: "Failed to fetch nearby operators" });
     }
-    
-    const operators = await storage.getNearbyOperators(lat, lon, radius);
-    res.json(operators);
   });
 
   router.get("/api/operators/:id", async (req, res) => {
-    const id = parseInt(req.params.id);
-    const operator = await storage.getOperator(id);
-    if (!operator) {
-      return res.status(404).json({ message: "Operator not found" });
+    try {
+      const id = parseInt(req.params.id);
+      const operator = await db.query.operators.findFirst({
+        where: eq(operators.id, id)
+      });
+      if (!operator) {
+        return res.status(404).json({ message: "Operator not found" });
+      }
+      res.json(operator);
+    } catch (error) {
+      console.error("Error fetching operator:", error);
+      res.status(500).json({ message: "Failed to fetch operator" });
     }
-    res.json(operator);
   });
 
   router.post("/api/operators", async (req, res) => {
@@ -89,12 +119,60 @@ export function registerRoutes(storage: IStorage) {
       if (!result.success) {
         return res.status(400).json({ errors: result.error.issues });
       }
-      const operator = await storage.createOperator(result.data);
+      
+      // Check for duplicate operatorId
+      const existing = await db.query.operators.findFirst({
+        where: eq(operators.operatorId, result.data.operatorId)
+      });
+      if (existing) {
+        return res.status(409).json({ message: `Operator with ID ${result.data.operatorId} already exists` });
+      }
+      
+      // Set up tier defaults
+      const tier = result.data.operatorTier || "manual";
+      const subscribedTiers: string[] = result.data.subscribedTiers || [tier];
+      const activeTier = result.data.activeTier || tier;
+      
+      // Ensure activeTier is in subscribedTiers
+      if (!subscribedTiers.includes(activeTier)) {
+        subscribedTiers.push(activeTier);
+      }
+      
+      // Create operator in database with proper defaults
+      const operatorData = {
+        operatorId: result.data.operatorId,
+        name: result.data.name,
+        driverName: result.data.driverName || result.data.name,
+        rating: result.data.rating || "0",
+        totalJobs: result.data.totalJobs || 0,
+        services: result.data.services || [],
+        vehicle: result.data.vehicle || "Not specified",
+        licensePlate: result.data.licensePlate || "N/A",
+        phone: result.data.phone || "",
+        email: result.data.email || null,
+        latitude: result.data.latitude || "0",
+        longitude: result.data.longitude || "0",
+        address: result.data.address || "",
+        isOnline: result.data.isOnline || 0,
+        hourlyRate: result.data.hourlyRate || null,
+        availability: result.data.availability || "available",
+        photo: result.data.photo || null,
+        operatorTier: tier,
+        subscribedTiers,
+        activeTier,
+        isCertified: result.data.isCertified ?? 1,
+        businessLicense: result.data.businessLicense || null,
+        homeLatitude: result.data.homeLatitude || null,
+        homeLongitude: result.data.homeLongitude || null,
+        operatingRadius: result.data.operatingRadius || null,
+        businessId: result.data.businessId || null,
+        businessName: result.data.businessName || null
+      };
+      
+      const [operator] = await db.insert(operators).values(operatorData).returning();
+      
       res.status(201).json(operator);
     } catch (error: any) {
-      if (error.message?.includes("already exists")) {
-        return res.status(409).json({ message: error.message });
-      }
       console.error("Error creating operator:", error);
       res.status(500).json({ message: "Failed to create operator" });
     }
@@ -102,10 +180,22 @@ export function registerRoutes(storage: IStorage) {
 
   router.patch("/api/operators/:operatorId", async (req, res) => {
     try {
-      const operator = await storage.updateOperator(req.params.operatorId, req.body);
-      if (!operator) {
+      const operatorId = req.params.operatorId;
+      
+      // Check if operator exists
+      const existing = await db.query.operators.findFirst({
+        where: eq(operators.operatorId, operatorId)
+      });
+      if (!existing) {
         return res.status(404).json({ message: "Operator not found" });
       }
+      
+      // Update operator in database
+      const [operator] = await db.update(operators)
+        .set(req.body)
+        .where(eq(operators.operatorId, operatorId))
+        .returning();
+      
       res.json(operator);
     } catch (error) {
       console.error("Error updating operator:", error);
@@ -123,9 +213,10 @@ export function registerRoutes(storage: IStorage) {
     try {
       const operatorId = req.params.operatorId;
       
-      // Get all operators to find this one
-      const operators = await storage.getOperators();
-      const operator = operators.find(op => op.operatorId === operatorId);
+      // Get operator from database
+      const operator = await db.query.operators.findFirst({
+        where: eq(operators.operatorId, operatorId)
+      });
       
       if (!operator) {
         return res.status(404).json({ message: "Operator not found" });
@@ -236,33 +327,87 @@ export function registerRoutes(storage: IStorage) {
 
   // Favorites routes
   router.get("/api/favorites/:customerId", async (req, res) => {
-    const favorites = await storage.getFavorites(req.params.customerId);
-    res.json(favorites);
+    try {
+      const customerFavorites = await db.query.favorites.findMany({
+        where: eq(favorites.customerId, req.params.customerId)
+      });
+      res.json(customerFavorites);
+    } catch (error) {
+      console.error("Error fetching favorites:", error);
+      res.status(500).json({ message: "Failed to fetch favorites" });
+    }
   });
 
   router.post("/api/favorites", async (req, res) => {
-    const favoriteSchema = insertFavoriteSchema.pick({ customerId: true, operatorId: true });
-    const result = favoriteSchema.safeParse(req.body);
-    if (!result.success) {
-      return res.status(400).json({ errors: result.error.issues });
+    try {
+      const favoriteSchema = insertFavoriteSchema.pick({ customerId: true, operatorId: true });
+      const result = favoriteSchema.safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ errors: result.error.issues });
+      }
+      
+      // Check if favorite already exists
+      const existing = await db.query.favorites.findFirst({
+        where: and(
+          eq(favorites.customerId, result.data.customerId),
+          eq(favorites.operatorId, result.data.operatorId)
+        )
+      });
+      
+      if (existing) {
+        return res.status(200).json(existing); // Return existing favorite
+      }
+      
+      // Create new favorite
+      const [favorite] = await db.insert(favorites).values({
+        customerId: result.data.customerId,
+        operatorId: result.data.operatorId
+      }).returning();
+      res.status(201).json(favorite);
+    } catch (error) {
+      console.error("Error adding favorite:", error);
+      res.status(500).json({ message: "Failed to add favorite" });
     }
-    const favorite = await storage.addFavorite(result.data.customerId, result.data.operatorId);
-    res.status(201).json(favorite);
   });
 
   router.delete("/api/favorites/:customerId/:operatorId", async (req, res) => {
-    const { customerId, operatorId } = req.params;
-    const success = await storage.removeFavorite(customerId, operatorId);
-    if (!success) {
-      return res.status(404).json({ message: "Favorite not found" });
+    try {
+      const { customerId, operatorId } = req.params;
+      
+      const deleted = await db.delete(favorites)
+        .where(and(
+          eq(favorites.customerId, customerId),
+          eq(favorites.operatorId, operatorId)
+        ))
+        .returning();
+      
+      if (deleted.length === 0) {
+        return res.status(404).json({ message: "Favorite not found" });
+      }
+      
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error removing favorite:", error);
+      res.status(500).json({ message: "Failed to remove favorite" });
     }
-    res.status(204).send();
   });
 
   router.get("/api/favorites/:customerId/:operatorId/check", async (req, res) => {
-    const { customerId, operatorId } = req.params;
-    const isFavorite = await storage.isFavorite(customerId, operatorId);
-    res.json({ isFavorite });
+    try {
+      const { customerId, operatorId } = req.params;
+      
+      const favorite = await db.query.favorites.findFirst({
+        where: and(
+          eq(favorites.customerId, customerId),
+          eq(favorites.operatorId, operatorId)
+        )
+      });
+      
+      res.json({ isFavorite: !!favorite });
+    } catch (error) {
+      console.error("Error checking favorite:", error);
+      res.status(500).json({ message: "Failed to check favorite" });
+    }
   });
 
   // Ratings routes

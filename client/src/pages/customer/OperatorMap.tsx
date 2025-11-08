@@ -10,7 +10,7 @@ import { MobileBottomNav } from "@/components/MobileBottomNav";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, MapPin, Star, Truck, Filter, Heart } from "lucide-react";
+import { ArrowLeft, MapPin, Star, Truck, Filter, Heart, ChevronLeft, ChevronRight } from "lucide-react";
 import type { Operator, InsertServiceRequest, Favorite } from "@shared/schema";
 import { OPERATOR_TIER_INFO } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -49,6 +49,7 @@ export const OperatorMap = () => {
   const [ratingComment, setRatingComment] = useState("");
   const [operatorLocations, setOperatorLocations] = useState<Map<string, OperatorLocation>>(new Map());
   const [mapLoaded, setMapLoaded] = useState(false);
+  const [isSidebarMinimized, setIsSidebarMinimized] = useState(false);
   const [, navigate] = useLocation();
   const { toast } = useToast();
 
@@ -586,9 +587,26 @@ export const OperatorMap = () => {
           )}
         </div>
 
-        {/* Sidebar */}
-        <div className="w-96 border-l border-gray-200 dark:border-gray-800 overflow-y-auto bg-gray-50 dark:bg-gray-800">
-          <div className="p-4 space-y-4">
+        {/* Sidebar with minimize toggle */}
+        <div className={`relative border-l border-gray-200 dark:border-gray-800 overflow-y-auto bg-gray-50 dark:bg-gray-800 transition-all duration-300 ${
+          isSidebarMinimized ? 'w-12' : 'w-96'
+        }`}>
+          {/* Toggle Button */}
+          <button
+            onClick={() => setIsSidebarMinimized(!isSidebarMinimized)}
+            className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-1/2 z-10 bg-black dark:bg-white text-white dark:text-black rounded-full p-2 shadow-lg hover:scale-110 transition-transform"
+            aria-label={isSidebarMinimized ? "Expand sidebar" : "Minimize sidebar"}
+            data-testid="button-toggle-sidebar"
+          >
+            {isSidebarMinimized ? (
+              <ChevronLeft className="w-4 h-4" />
+            ) : (
+              <ChevronRight className="w-4 h-4" />
+            )}
+          </button>
+
+          {!isSidebarMinimized && (
+            <div className="p-4 space-y-4">
             {/* Favorite Operators Section */}
             {favorites.length > 0 && allOperators && (
               <>
@@ -769,7 +787,20 @@ export const OperatorMap = () => {
                 </Card>
               ))
             )}
-          </div>
+            </div>
+          )}
+
+          {/* Minimized State - Show compact vertical icons */}
+          {isSidebarMinimized && (
+            <div className="flex flex-col items-center py-4 space-y-4">
+              <div className="text-xs font-semibold text-gray-600 dark:text-gray-400 writing-mode-vertical-rl rotate-180">
+                Operators ({operators?.length || 0})
+              </div>
+              {favorites.length > 0 && (
+                <Heart className="w-5 h-5 fill-red-500 text-red-500" />
+              )}
+            </div>
+          )}
         </div>
       </div>
 
