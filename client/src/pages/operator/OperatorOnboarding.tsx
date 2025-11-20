@@ -558,7 +558,7 @@ export const OperatorOnboarding = () => {
             <div className="grid md:grid-cols-3 gap-6">
               {/* Professional Tier */}
               {operatorData?.subscribedTiers?.includes("professional") ? 
-                renderProfessionalSubscribedCard()
+                renderSubscribedTierCard("professional")
                 : (
                 <Card 
                   className="cursor-pointer hover:border-orange-500 dark:hover:border-orange-500 transition-all hover:shadow-lg relative"
@@ -612,97 +612,112 @@ export const OperatorOnboarding = () => {
               )}
 
               {/* Equipped Tier */}
-              <Card 
-                className="cursor-pointer hover:border-orange-500 dark:hover:border-orange-500 transition-all hover:shadow-lg"
-                onClick={() => handleTierSelection("equipped")}
-                data-testid="card-tier-equipped"
-              >
-                <CardHeader>
-                  <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center mb-4">
-                    <Truck className="w-6 h-6 text-blue-600 dark:text-blue-400" />
-                  </div>
-                  <CardTitle className="text-black dark:text-white">
-                    {OPERATOR_TIER_INFO.equipped.label}
-                  </CardTitle>
-                  <CardDescription className="text-gray-600 dark:text-gray-400">
-                    {OPERATOR_TIER_INFO.equipped.description}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
-                      <CheckCircle className="w-4 h-4 mr-2 text-green-600" />
-                      Most services available
+              {operatorData?.subscribedTiers?.includes("equipped") ? 
+                renderSubscribedTierCard("equipped")
+                : (
+                <Card 
+                  className="cursor-pointer hover:border-blue-500 dark:hover:border-blue-500 transition-all hover:shadow-lg relative"
+                  onClick={() => handleTierSelection("equipped")}
+                  data-testid="card-tier-equipped"
+                >
+                  {operatorData && (
+                    <div className="absolute top-4 right-4">
+                      <span className="text-xs font-semibold text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-900 px-2 py-1 rounded">
+                        + Add This Tier
+                      </span>
                     </div>
-                    <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
-                      <CheckCircle className="w-4 h-4 mr-2 text-green-600" />
-                      15km operation radius
+                  )}
+                  <CardHeader>
+                    <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center mb-4">
+                      <Truck className="w-6 h-6 text-blue-600 dark:text-blue-400" />
                     </div>
-                    <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
-                      <CheckCircle className="w-4 h-4 mr-2 text-green-600" />
-                      Standard pricing
+                    <CardTitle className="text-black dark:text-white">
+                      {OPERATOR_TIER_INFO.equipped.label}
+                    </CardTitle>
+                    <CardDescription className="text-gray-600 dark:text-gray-400">
+                      {OPERATOR_TIER_INFO.equipped.description}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="space-y-2">
+                      <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
+                        <CheckCircle className="w-4 h-4 mr-2 text-green-600" />
+                        Most services available
+                      </div>
+                      <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
+                        <CheckCircle className="w-4 h-4 mr-2 text-green-600" />
+                        15km operation radius
+                      </div>
+                      <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
+                        <CheckCircle className="w-4 h-4 mr-2 text-green-600" />
+                        Standard pricing
+                      </div>
+                      <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
+                        <CheckCircle className="w-4 h-4 mr-2 text-green-600" />
+                        Flexible scheduling
+                      </div>
                     </div>
-                    <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
-                      <CheckCircle className="w-4 h-4 mr-2 text-green-600" />
-                      Flexible scheduling
+                    <div className="pt-4 border-t border-gray-200 dark:border-gray-800">
+                      <p className="text-xs text-gray-500 dark:text-gray-500">
+                        Requires: Vehicle/truck ownership
+                      </p>
                     </div>
-                  </div>
-                  <div className="pt-4 border-t border-gray-200 dark:border-gray-800">
-                    <p className="text-xs text-gray-500 dark:text-gray-500">
-                      Requires: Vehicle/truck ownership
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
+                  </CardContent>
+                </Card>
+              )}
 
               {/* Manual Tier */}
-              <Card 
-                className="cursor-pointer hover:border-orange-500 dark:hover:border-orange-500 transition-all hover:shadow-lg border-2 border-orange-200 dark:border-orange-800"
-                onClick={() => handleTierSelection("manual")}
-                data-testid="card-tier-manual"
-              >
-                <CardHeader>
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="w-12 h-12 bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center">
-                      <Users className="w-6 h-6 text-green-600 dark:text-green-400" />
+              {operatorData?.subscribedTiers?.includes("manual") ? 
+                renderSubscribedTierCard("manual")
+                : (
+                <Card 
+                  className="cursor-pointer hover:border-orange-500 dark:hover:border-orange-500 transition-all hover:shadow-lg border-2 border-orange-200 dark:border-orange-800 relative"
+                  onClick={() => handleTierSelection("manual")}
+                  data-testid="card-tier-manual"
+                >
+                  <CardHeader>
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="w-12 h-12 bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center">
+                        <Users className="w-6 h-6 text-green-600 dark:text-green-400" />
+                      </div>
+                      <span className="text-xs font-semibold text-orange-600 dark:text-orange-400 bg-orange-100 dark:bg-orange-900 px-2 py-1 rounded">
+                        {operatorData ? "+ Add This Tier" : "PLOW TO EARN"}
+                      </span>
                     </div>
-                    <span className="text-xs font-semibold text-orange-600 dark:text-orange-400 bg-orange-100 dark:bg-orange-900 px-2 py-1 rounded">
-                      PLOW TO EARN
-                    </span>
-                  </div>
-                  <CardTitle className="text-black dark:text-white">
-                    {OPERATOR_TIER_INFO.manual.label}
-                  </CardTitle>
-                  <CardDescription className="text-gray-600 dark:text-gray-400">
-                    {OPERATOR_TIER_INFO.manual.description}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
-                      <CheckCircle className="w-4 h-4 mr-2 text-green-600" />
-                      Snow plowing focus
+                    <CardTitle className="text-black dark:text-white">
+                      {OPERATOR_TIER_INFO.manual.label}
+                    </CardTitle>
+                    <CardDescription className="text-gray-600 dark:text-gray-400">
+                      {OPERATOR_TIER_INFO.manual.description}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="space-y-2">
+                      <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
+                        <CheckCircle className="w-4 h-4 mr-2 text-green-600" />
+                        Snow plowing focus
+                      </div>
+                      <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
+                        <CheckCircle className="w-4 h-4 mr-2 text-green-600" />
+                        5km radius from home
+                      </div>
+                      <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
+                        <CheckCircle className="w-4 h-4 mr-2 text-green-600" />
+                        Easy to start earning
+                      </div>
+                      <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
+                        <CheckCircle className="w-4 h-4 mr-2 text-green-600" />
+                        Perfect for side income
+                      </div>
                     </div>
-                    <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
-                      <CheckCircle className="w-4 h-4 mr-2 text-green-600" />
-                      5km radius from home
+                    <div className="pt-4 border-t border-gray-200 dark:border-gray-800">
+                      <p className="text-xs text-gray-500 dark:text-gray-500">
+                        Requires: Basic snow equipment
+                      </p>
                     </div>
-                    <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
-                      <CheckCircle className="w-4 h-4 mr-2 text-green-600" />
-                      Easy to start earning
-                    </div>
-                    <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
-                      <CheckCircle className="w-4 h-4 mr-2 text-green-600" />
-                      Perfect for side income
-                    </div>
-                  </div>
-                  <div className="pt-4 border-t border-gray-200 dark:border-gray-800">
-                    <p className="text-xs text-gray-500 dark:text-gray-500">
-                      Requires: Basic snow equipment
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
+                  </CardContent>
+                </Card>
+              )}
             </div>
           </div>
         </div>
