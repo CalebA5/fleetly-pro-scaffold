@@ -21,6 +21,7 @@ interface AuthContextType {
   signUp: (name: string, email: string, password: string, role: "customer" | "operator") => Promise<void>;
   signOut: () => Promise<void>;
   updateUser: (updates: Partial<User>) => void;
+  refetchUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -142,8 +143,32 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const updateUser = (updates: Partial<User>) => {
-    if (user) {
-      setUser({ ...user, ...updates });
+    setUser((prevUser) => prevUser ? { ...prevUser, ...updates } : null);
+  };
+
+  const refetchUser = async () => {
+    try {
+      const response = await fetch("/api/auth/session", {
+        credentials: "include",
+      });
+
+      if (response.ok) {
+        const userData = await response.json();
+        setUser({
+          id: userData.id || userData.userId,
+          name: userData.name,
+          email: userData.email,
+          role: userData.role,
+          operatorProfileComplete: userData.operatorProfileComplete,
+          operatorTier: userData.operatorTier,
+          subscribedTiers: userData.subscribedTiers,
+          activeTier: userData.activeTier,
+          operatorId: userData.operatorId,
+          businessId: userData.businessId,
+        });
+      }
+    } catch (error) {
+      console.error("Failed to refetch user:", error);
     }
   };
 
@@ -157,6 +182,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         signUp,
         signOut,
         updateUser,
+        refetchUser,
       }}
     >
       {children}

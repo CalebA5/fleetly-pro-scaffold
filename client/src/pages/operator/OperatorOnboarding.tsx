@@ -48,7 +48,7 @@ const serviceTypes = [
 
 export const OperatorOnboarding = () => {
   const { toast } = useToast();
-  const { user, isAuthenticated, updateUser } = useAuth();
+  const { user, isAuthenticated, updateUser, refetchUser } = useAuth();
   const [, setLocation] = useLocation();
   const [selectedTier, setSelectedTier] = useState<OperatorTier | null>(null);
   const [currentStep, setCurrentStep] = useState(0); // 0 = tier selection
@@ -204,8 +204,11 @@ export const OperatorOnboarding = () => {
           throw new Error(errorData.message || "Failed to add tier");
         }
 
-        // Update user's active tier
-        await updateUser({ 
+        // Refetch user from server first to get authoritative state
+        await refetchUser();
+        
+        // Then update local state if needed
+        updateUser({ 
           activeTier: selectedTier,
           operatorTier: selectedTier 
         });
@@ -279,8 +282,11 @@ export const OperatorOnboarding = () => {
           throw new Error("Operator created but no operatorId returned");
         }
 
-        // Update user with operatorId
-        await updateUser({ 
+        // Refetch user from server first to get authoritative state
+        await refetchUser();
+        
+        // Then update local state to match
+        updateUser({ 
           operatorId: operator.operatorId,
           operatorProfileComplete: true,
           operatorTier: selectedTier 

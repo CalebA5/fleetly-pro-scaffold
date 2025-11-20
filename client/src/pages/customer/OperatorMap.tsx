@@ -4,13 +4,14 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/enhanced-button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AuthDialog } from "@/components/AuthDialog";
 import { Header } from "@/components/Header";
 import { MobileBottomNav } from "@/components/MobileBottomNav";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, MapPin, Star, Truck, Filter, Heart, ChevronLeft, ChevronRight } from "lucide-react";
+import { ArrowLeft, MapPin, Star, Truck, Filter, Heart, ChevronLeft, ChevronRight, List, Map as MapIcon } from "lucide-react";
 import type { Operator, InsertServiceRequest, Favorite } from "@shared/schema";
 import { OPERATOR_TIER_INFO } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -48,6 +49,33 @@ export const OperatorMap = () => {
   const [operatorLocations, setOperatorLocations] = useState<Map<string, OperatorLocation>>(new Map());
   const [mapLoaded, setMapLoaded] = useState(false);
   const [isSidebarMinimized, setIsSidebarMinimized] = useState(false);
+  const [viewMode, setViewMode] = useState<'map' | 'list'>('map');
+  
+  // Reset sidebar minimize state when switching to list view and disable map interactions
+  useEffect(() => {
+    if (viewMode === 'list') {
+      setIsSidebarMinimized(false);
+      // Disable map interactions in list view
+      if (mapRef.current) {
+        mapRef.current.scrollZoom.disable();
+        mapRef.current.boxZoom.disable();
+        mapRef.current.dragRotate.disable();
+        mapRef.current.dragPan.disable();
+        mapRef.current.keyboard.disable();
+        mapRef.current.doubleClickZoom.disable();
+        mapRef.current.touchZoomRotate.disable();
+      }
+    } else if (viewMode === 'map' && mapRef.current) {
+      // Re-enable map interactions in map view
+      mapRef.current.scrollZoom.enable();
+      mapRef.current.boxZoom.enable();
+      mapRef.current.dragRotate.enable();
+      mapRef.current.dragPan.enable();
+      mapRef.current.keyboard.enable();
+      mapRef.current.doubleClickZoom.enable();
+      mapRef.current.touchZoomRotate.enable();
+    }
+  }, [viewMode]);
   const [, navigate] = useLocation();
   const { toast } = useToast();
   const { user } = useAuth();
@@ -302,8 +330,18 @@ export const OperatorMap = () => {
     return () => clearTimeout(resizeTimer);
   }, [isSidebarMinimized, mapLoaded]);
 
+  // Pause marker updates when in list view on mobile to improve performance
+  useEffect(() => {
+    if (viewMode === 'list' && window.innerWidth < 768) {
+      // Don't update markers when in mobile list view
+      return;
+    }
+  }, [viewMode]);
+
   // Create and update markers for operators
   useEffect(() => {
+    // Skip marker updates in mobile list view
+    if (viewMode === 'list' && window.innerWidth < 768) return;
     if (!mapRef.current || !mapLoaded || !operators) return;
 
     const map = mapRef.current;
@@ -578,46 +616,67 @@ export const OperatorMap = () => {
         </div>
       </div>
 
-      {/* Modern Service Filters */}
-      <div className="border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 px-4 sm:px-6 lg:px-8 py-4">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex items-center gap-3 mb-2">
+      {/* Modern Service Filters & View Toggle */}
+      <div className="border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 px-4 sm:px-6 lg:px-8 py-3">
+        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          {/* Service Filter Dropdown */}
+          <div className="flex items-center gap-3 w-full sm:w-auto">
             <Filter className="w-4 h-4 text-gray-600 dark:text-gray-400 flex-shrink-0" />
-            <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">Filter by Service</span>
+            <Select
+              value={selectedService || "all"}
+              onValueChange={(value) => setSelectedService(value === "all" ? "" : value)}
+            >
+              <SelectTrigger className="w-full sm:w-[220px]" data-testid="select-service-filter">
+                <SelectValue placeholder="All Services" />
+              </SelectTrigger>
+              <SelectContent>
+                {services.map((service) => (
+                  <SelectItem 
+                    key={service} 
+                    value={service === "All" ? "all" : service}
+                  >
+                    {service}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <span className="text-sm text-gray-600 dark:text-gray-400 whitespace-nowrap">
+              {operators?.length || 0} available
+            </span>
           </div>
-          <div className="flex items-center gap-2 overflow-x-auto pb-1 hide-scrollbar">
-            {services.map((service) => (
-              <button
-                key={service}
-                onClick={() => setSelectedService(service === "All" ? "" : service)}
-                className={`px-4 py-2 rounded-full text-sm font-medium transition-all whitespace-nowrap flex-shrink-0 ${
-                  selectedService === (service === "All" ? "" : service)
-                    ? 'bg-orange-500 text-white shadow-md hover:bg-orange-600 scale-105'
-                    : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 hover:scale-105'
-                }`}
-                data-testid={`filter-${service.toLowerCase().replace(/\s+/g, "-")}`}
-              >
-                {service}
-              </button>
-            ))}
+
+          {/* View Mode Toggle - Mobile Only */}
+          <div className="flex gap-2 md:hidden">
+            <Button
+              variant={viewMode === 'map' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setViewMode('map')}
+              className={`transition-all ${viewMode === 'map' ? 'bg-black text-white hover:bg-gray-800 dark:bg-white dark:text-black' : ''}`}
+              data-testid="button-map-view-toggle"
+            >
+              <MapIcon className="w-4 h-4 mr-1" />
+              Map
+            </Button>
+            <Button
+              variant={viewMode === 'list' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setViewMode('list')}
+              className={`transition-all ${viewMode === 'list' ? 'bg-black text-white hover:bg-gray-800 dark:bg-white dark:text-black' : ''}`}
+              data-testid="button-list-view-toggle"
+            >
+              <List className="w-4 h-4 mr-1" />
+              List
+            </Button>
           </div>
         </div>
       </div>
 
-      <style>{`
-        .hide-scrollbar::-webkit-scrollbar {
-          display: none;
-        }
-        .hide-scrollbar {
-          -ms-overflow-style: none;
-          scrollbar-width: none;
-        }
-      `}</style>
-
       {/* Map and Sidebar */}
       <div className="flex-1 flex overflow-hidden">
-        {/* Map */}
-        <div className="flex-1 relative bg-gray-100 dark:bg-gray-900">
+        {/* Map - Disabled on mobile when in list view */}
+        <div className={`flex-1 relative bg-gray-100 dark:bg-gray-900 ${
+          viewMode === 'list' ? 'hidden md:flex' : 'flex'
+        } ${viewMode === 'list' ? 'pointer-events-none' : ''}`}>
           <div ref={mapContainerRef} className="absolute inset-0" />
           {!mapLoaded && (
             <div className="absolute inset-0 flex items-center justify-center bg-gray-100 dark:bg-gray-900">
@@ -629,23 +688,34 @@ export const OperatorMap = () => {
           )}
         </div>
 
-        {/* Sidebar with minimize toggle */}
+        {/* Sidebar with minimize toggle - Full width on mobile in list view */}
         <div className={`relative border-l border-gray-200 dark:border-gray-800 overflow-y-auto bg-gray-50 dark:bg-gray-800 transition-all duration-300 ${
-          isSidebarMinimized ? 'w-12' : 'w-96'
+          viewMode === 'list' 
+            ? 'w-full md:w-96' 
+            : isSidebarMinimized 
+              ? 'hidden md:block md:w-12' 
+              : 'hidden md:block md:w-96'
         }`}>
-          {/* Toggle Button - Prominent for all devices */}
-          <button
-            onClick={() => setIsSidebarMinimized(!isSidebarMinimized)}
-            className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-1/2 z-50 bg-black dark:bg-white text-white dark:text-black rounded-full p-3 shadow-2xl hover:shadow-orange-500/50 hover:scale-110 transition-all ring-2 ring-white dark:ring-black"
-            aria-label={isSidebarMinimized ? "Expand sidebar" : "Minimize sidebar"}
-            data-testid="button-toggle-sidebar"
-          >
-            {isSidebarMinimized ? (
-              <ChevronLeft className="w-5 h-5" />
-            ) : (
-              <ChevronRight className="w-5 h-5" />
-            )}
-          </button>
+          {/* Toggle Button - Only visible and functional on desktop in map view */}
+          {viewMode === 'map' && (
+            <button
+              onClick={() => {
+                // Only allow toggle in map view
+                if (viewMode === 'map') {
+                  setIsSidebarMinimized(!isSidebarMinimized);
+                }
+              }}
+              className="hidden md:block absolute left-0 top-1/2 -translate-y-1/2 -translate-x-1/2 z-50 bg-black dark:bg-white text-white dark:text-black rounded-full p-3 shadow-2xl hover:shadow-orange-500/50 hover:scale-110 transition-all ring-2 ring-white dark:ring-black"
+              aria-label={isSidebarMinimized ? "Expand sidebar" : "Minimize sidebar"}
+              data-testid="button-toggle-sidebar"
+            >
+              {isSidebarMinimized ? (
+                <ChevronLeft className="w-5 h-5" />
+              ) : (
+                <ChevronRight className="w-5 h-5" />
+              )}
+            </button>
+          )}
 
           {!isSidebarMinimized && (
             <div className="p-4 space-y-4">
