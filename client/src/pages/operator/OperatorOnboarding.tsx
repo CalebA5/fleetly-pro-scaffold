@@ -54,7 +54,18 @@ export const OperatorOnboarding = () => {
   const [showAuthDialog, setShowAuthDialog] = useState(false);
   
   // Fetch operator data if user has operatorId
-  const { data: operatorData, isLoading: isLoadingOperator } = useQuery<Operator>({
+  // Type for operator with tier stats
+  type OperatorWithTierStats = Operator & {
+    tierStats?: Record<string, {
+      jobsCompleted: number;
+      totalEarnings: string;
+      rating: string;
+      totalRatings: number;
+      lastActiveAt: Date | null;
+    }>;
+  };
+
+  const { data: operatorData, isLoading: isLoadingOperator } = useQuery<OperatorWithTierStats>({
     queryKey: [`/api/operators/by-id/${user?.operatorId}`],
     enabled: !!user?.operatorId, // Only fetch if user has operatorId
   });
@@ -411,8 +422,15 @@ export const OperatorOnboarding = () => {
   // Helper function to render personalized tier card for subscribed tiers
   const renderSubscribedTierCard = (tier: OperatorTier) => {
     const isActive = operatorData?.activeTier === tier;
-    const badges = getAchievementBadges(operatorData?.totalJobs || 0, operatorData?.rating || "0");
+    
+    // Get tier-specific stats
+    const tierStats = operatorData?.tierStats?.[tier];
+    const tierJobsCompleted = tierStats?.jobsCompleted || 0;
+    const tierRating = tierStats?.rating || "0";
     const memberSince = operatorData?.createdAt ? format(new Date(operatorData.createdAt), "MMM yyyy") : "";
+    
+    // Use tier-specific stats for achievement badges
+    const badges = getAchievementBadges(tierJobsCompleted, tierRating);
     const style = tierStyles[tier];
     const TierIcon = style.icon;
     
@@ -445,25 +463,25 @@ export const OperatorOnboarding = () => {
             )}
           </CardTitle>
           <CardDescription className="text-gray-700 dark:text-gray-300 font-medium">
-            Welcome back, {user?.name}! You've completed {operatorData?.totalJobs || 0} jobs.
+            Welcome back, {user?.name}! You've completed {tierJobsCompleted} jobs in this tier.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           {/* Stats Display */}
           <div className="bg-white/50 dark:bg-gray-800/50 rounded-lg p-3 space-y-2">
             <div className="flex items-center justify-between text-sm">
-              <span className="text-gray-600 dark:text-gray-400">Rating</span>
+              <span className="text-gray-600 dark:text-gray-400">Tier Rating</span>
               <div className="flex items-center gap-1">
                 <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
                 <span className="font-semibold text-black dark:text-white">
-                  {parseFloat(operatorData?.rating || "0").toFixed(1)}
+                  {parseFloat(tierRating).toFixed(1)}
                 </span>
               </div>
             </div>
             <div className="flex items-center justify-between text-sm">
-              <span className="text-gray-600 dark:text-gray-400">Total Jobs</span>
+              <span className="text-gray-600 dark:text-gray-400">Tier Jobs</span>
               <span className="font-semibold text-black dark:text-white">
-                {operatorData?.totalJobs || 0}
+                {tierJobsCompleted}
               </span>
             </div>
             <div className="flex items-center justify-between text-sm">

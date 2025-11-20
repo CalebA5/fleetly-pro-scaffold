@@ -111,6 +111,26 @@ export const OPERATOR_TIER_INFO = {
   },
 };
 
+export const operatorTierStats = pgTable("operator_tier_stats", {
+  id: serial("id").primaryKey(),
+  operatorId: text("operator_id").notNull(),
+  tier: text("tier").notNull(),
+  jobsCompleted: integer("jobs_completed").notNull().default(0),
+  totalEarnings: decimal("total_earnings", { precision: 10, scale: 2 }).notNull().default("0"),
+  rating: decimal("rating", { precision: 3, scale: 2 }).notNull().default("0"),
+  totalRatings: integer("total_ratings").notNull().default(0),
+  lastActiveAt: timestamp("last_active_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertOperatorTierStatsSchema = createInsertSchema(operatorTierStats).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertOperatorTierStats = z.infer<typeof insertOperatorTierStatsSchema>;
+export type OperatorTierStats = typeof operatorTierStats.$inferSelect;
+
 export const serviceRequests = pgTable("service_requests", {
   id: serial("id").primaryKey(),
   requestId: text("request_id").notNull().unique(),

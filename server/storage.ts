@@ -10,7 +10,8 @@ import type {
   Business, InsertBusiness,
   Vehicle, InsertVehicle,
   User, InsertUser,
-  Session, InsertSession
+  Session, InsertSession,
+  OperatorTierStats, InsertOperatorTierStats
 } from "@shared/schema";
 
 export interface IStorage {
@@ -84,6 +85,14 @@ export interface IStorage {
   getSession(sessionId: string): Promise<Session | undefined>;
   deleteSession(sessionId: string): Promise<boolean>;
   deleteExpiredSessions(): Promise<number>;
+
+  // Operator Tier Stats
+  getOperatorTierStats(operatorId: string): Promise<OperatorTierStats[]>;
+  getOperatorTierStat(operatorId: string, tier: string): Promise<OperatorTierStats | undefined>;
+  createOperatorTierStat(stat: InsertOperatorTierStats): Promise<OperatorTierStats>;
+  updateOperatorTierStat(operatorId: string, tier: string, updates: Partial<InsertOperatorTierStats>): Promise<OperatorTierStats | undefined>;
+  incrementTierJobCount(operatorId: string, tier: string, earnings: number): Promise<void>;
+  updateTierRating(operatorId: string, tier: string, newRating: number): Promise<void>;
 }
 
 export class MemStorage implements IStorage {

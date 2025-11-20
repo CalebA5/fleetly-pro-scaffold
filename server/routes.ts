@@ -1,7 +1,7 @@
 import { Router } from "express";
 import type { IStorage } from "./storage";
 import { db } from "./db";
-import { operators, favorites } from "@shared/schema";
+import { operators, favorites, operatorTierStats } from "@shared/schema";
 import { eq, sql, and } from "drizzle-orm";
 import { insertJobSchema, insertServiceRequestSchema, insertCustomerSchema, insertOperatorSchema, insertRatingSchema, insertFavoriteSchema, insertOperatorLocationSchema, insertCustomerServiceHistorySchema, OPERATOR_TIER_INFO } from "@shared/schema";
 import { isWithinRadius } from "./utils/distance";
@@ -122,7 +122,35 @@ export function registerRoutes(storage: IStorage) {
       if (!operator) {
         return res.status(404).json({ message: "Operator not found" });
       }
-      res.json(operator);
+
+      // Fetch tier-specific stats for this operator
+      const tierStats = await db.query.operatorTierStats.findMany({
+        where: eq(operatorTierStats.operatorId, operatorId)
+      });
+
+      // Create a map of tier to stats for easy lookup
+      const tierStatsMap: Record<string, {
+        jobsCompleted: number;
+        totalEarnings: string;
+        rating: string;
+        totalRatings: number;
+        lastActiveAt: Date | null;
+      }> = {};
+
+      tierStats.forEach(stat => {
+        tierStatsMap[stat.tier] = {
+          jobsCompleted: stat.jobsCompleted,
+          totalEarnings: stat.totalEarnings,
+          rating: stat.rating,
+          totalRatings: stat.totalRatings,
+          lastActiveAt: stat.lastActiveAt
+        };
+      });
+
+      res.json({
+        ...operator,
+        tierStats: tierStatsMap
+      });
     } catch (error) {
       console.error("Error fetching operator:", error);
       res.status(500).json({ message: "Failed to fetch operator" });
@@ -186,6 +214,19 @@ export function registerRoutes(storage: IStorage) {
       };
       
       const [operator] = await db.insert(operators).values(operatorData).returning();
+      
+      // Create initial tier stats for each subscribed tier
+      const tierStatsToCreate = subscribedTiers.map(tier => ({
+        operatorId: result.data.operatorId,
+        tier,
+        jobsCompleted: 0,
+        totalEarnings: "0",
+        rating: "0",
+        totalRatings: 0,
+        lastActiveAt: null
+      }));
+
+      await db.insert(operatorTierStats).values(tierStatsToCreate);
       
       res.status(201).json(operator);
     } catch (error: any) {
@@ -717,6 +758,17 @@ export function registerRoutes(storage: IStorage) {
       await db.update(operators)
         .set({ subscribedTiers: updatedTiers })
         .where(eq(operators.operatorId, operatorId));
+      
+      // Create initial tier stats for the new tier
+      await db.insert(operatorTierStats).values({
+        operatorId,
+        tier,
+        jobsCompleted: 0,
+        totalEarnings: "0",
+        rating: "0",
+        totalRatings: 0,
+        lastActiveAt: null
+      });
       
       res.json({ message: "Tier added successfully" });
     } catch (error) {
