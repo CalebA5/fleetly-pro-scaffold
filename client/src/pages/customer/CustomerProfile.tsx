@@ -189,7 +189,7 @@ export const CustomerProfile = () => {
                     <Badge variant="outline" className="font-mono text-xs">
                       {customer.customerId}
                     </Badge>
-                    <span className="text-sm">Member since {new Date(customer.userId.split('-')[1]).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</span>
+                    <span className="text-sm">Member since {new Date(parseInt(customer.customerId.split('-')[1])).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</span>
                   </p>
                 </div>
               </div>
