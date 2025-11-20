@@ -185,12 +185,12 @@ export const CustomerProfile = () => {
                   <h1 className="text-3xl font-bold text-black dark:text-white" data-testid="text-page-title">
                     {customer.name}
                   </h1>
-                  <p className="text-muted-foreground flex items-center gap-2 mt-1">
-                    <Badge variant="outline" className="font-mono text-xs">
+                  <div className="text-muted-foreground flex items-center gap-2 mt-1">
+                    <Badge variant="outline" className="font-mono text-xs md:hidden">
                       {customer.customerId}
                     </Badge>
                     <span className="text-sm">Member since {new Date(parseInt(customer.customerId.split('-')[1])).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</span>
-                  </p>
+                  </div>
                 </div>
               </div>
               {!isEditing && (
