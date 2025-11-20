@@ -28,15 +28,22 @@ The design is inspired by Uber's clean, modern aesthetic, emphasizing simplicity
 - **Operator Dashboard**: Displays comprehensive service request details, with options to accept, decline, or view details.
 - **Help & Support System**: Provides live chat, email, phone support, and FAQs.
 - **Unified Landing Page**: Customer-focused homepage with interactive service discovery, real-time availability previews, and location inputs.
-- **Dynamic Authentication System**: Unified user accounts support customer, operator, or both roles, with multi-step operator onboarding including public tier selection.
+- **Dynamic Authentication System**: Unified user accounts support customer, operator, or both roles, with multi-step operator onboarding including public tier selection. All authentication endpoints (signup, signin, session) return consistent user data with `customerId` as the main `id` field.
 - **Unified Map Implementation**: Uses Mapbox GL JS for performance, service filters, map/satellite toggle, and interactive operator selection, displaying color-coded tier badges and pricing multipliers. The map resizes dynamically with sidebar changes.
 - **Favorite Drivers System**: Allows customers to favorite operators.
 - **Customer Rating System**: Post-service rating with stars and comments.
 - **Real-Time Driver Tracking**: Interactive map with live operator location updates and animated markers.
 - **Location-Based Customer Grouping**: Automated opportunity detection for operators to serve nearby customers.
 - **Multi-Vehicle Management System**: Allows professional operators to manage unlimited vehicles and equipped operators to manage multiple vehicles (one active at a time).
-- **Proactive Weather Alert System**: Integrates with the National Weather Service API to display real-time severe weather alerts relevant to services, shown prominently on the homepage.
-- **Comprehensive Profile Page**: Displays customer statistics and operator performance across all subscribed tiers.
+- **Proactive Weather Alert System**: Integrates with the National Weather Service API to display real-time severe weather alerts relevant to services. Includes weather alert notification button in header with badge counter, dedicated notifications page at `/notifications`, and auto-dismissing toast alerts on homepage.
+- **Optimized Customer Profile Page**: Modern, personalized profile page featuring:
+  - Hero section with gradient banner and avatar with user initials
+  - Real-time statistics dashboard showing total requests, completed services, active bookings, and favorite operators
+  - Comprehensive personal information display with contact details and location
+  - Edit mode with organized form sections for Contact Information and Location Details
+  - Save functionality with optimistic UI updates and proper form validation
+  - Member since date calculated from customer ID timestamp
+  - Responsive design with mobile-first approach
 
 ## External Dependencies
 
