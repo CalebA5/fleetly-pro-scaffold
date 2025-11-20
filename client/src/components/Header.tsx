@@ -1,9 +1,11 @@
 import { Link, useLocation } from "wouter";
+import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { ProfileDropdown } from "@/components/ProfileDropdown";
 import { TierSwitcher } from "@/components/TierSwitcher";
 import { useAuth } from "@/contexts/AuthContext";
-import { Truck, Sparkles } from "lucide-react";
+import { Truck, Sparkles, Bell } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface HeaderProps {
@@ -16,6 +18,14 @@ export const Header = ({ onSignIn, onSignUp, onDriveAndEarn }: HeaderProps) => {
   const { isAuthenticated, user } = useAuth();
   const [location, setLocation] = useLocation();
   const { toast } = useToast();
+
+  // Fetch severe weather alerts count for badge
+  const { data: alerts = [] } = useQuery<Array<{ status: string }>>({
+    queryKey: ['/api/weather/alerts/severe'],
+    refetchInterval: 60000, // Refetch every minute
+  });
+
+  const activeAlertsCount = alerts.filter(alert => alert.status === 'active').length;
 
   // Check if user is on an operator dashboard route
   const isOnOperatorDashboard = ['/operator', '/manual-operator', '/equipped-operator', '/business'].includes(location);
@@ -46,6 +56,27 @@ export const Header = ({ onSignIn, onSignUp, onDriveAndEarn }: HeaderProps) => {
             </div>
           </Link>
           <nav className="flex items-center gap-2 md:gap-4">
+            {/* Notifications - Show on all devices */}
+            <Link href="/notifications">
+              <Button 
+                variant="ghost" 
+                size="sm"
+                className="text-gray-700 dark:text-gray-300 relative" 
+                data-testid="button-notifications"
+              >
+                <Bell className="w-4 h-4 md:mr-2" />
+                {activeAlertsCount > 0 && (
+                  <Badge 
+                    variant="destructive" 
+                    className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs"
+                  >
+                    {activeAlertsCount > 9 ? '9+' : activeAlertsCount}
+                  </Badge>
+                )}
+                <span className="hidden md:inline">Alerts</span>
+              </Button>
+            </Link>
+
             {/* AI Assist - Show on all devices */}
             <Link href="/customer/ai-assist">
               <Button 
