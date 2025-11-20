@@ -209,58 +209,58 @@ export const CustomerProfile = () => {
         </Card>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-6 mb-8">
           <Card className="hover:shadow-lg transition-shadow">
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
+            <CardContent className="pt-4 md:pt-6 pb-4 md:pb-6">
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between">
                 <div>
-                  <p className="text-sm text-muted-foreground mb-1">Total Requests</p>
-                  <p className="text-3xl font-bold text-black dark:text-white">{myRequests.length}</p>
+                  <p className="text-xs md:text-sm text-muted-foreground mb-1">Total</p>
+                  <p className="text-2xl md:text-3xl font-bold text-black dark:text-white">{myRequests.length}</p>
                 </div>
-                <div className="h-12 w-12 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center">
-                  <TrendingUp className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+                <div className="h-8 w-8 md:h-12 md:w-12 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center mt-2 md:mt-0">
+                  <TrendingUp className="w-4 h-4 md:w-6 md:h-6 text-blue-600 dark:text-blue-400" />
                 </div>
               </div>
             </CardContent>
           </Card>
 
           <Card className="hover:shadow-lg transition-shadow">
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
+            <CardContent className="pt-4 md:pt-6 pb-4 md:pb-6">
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between">
                 <div>
-                  <p className="text-sm text-muted-foreground mb-1">Completed</p>
-                  <p className="text-3xl font-bold text-green-600 dark:text-green-400">{completedRequests.length}</p>
+                  <p className="text-xs md:text-sm text-muted-foreground mb-1">Completed</p>
+                  <p className="text-2xl md:text-3xl font-bold text-green-600 dark:text-green-400">{completedRequests.length}</p>
                 </div>
-                <div className="h-12 w-12 rounded-full bg-green-100 dark:bg-green-900 flex items-center justify-center">
-                  <Star className="w-6 h-6 text-green-600 dark:text-green-400" />
+                <div className="h-8 w-8 md:h-12 md:w-12 rounded-full bg-green-100 dark:bg-green-900 flex items-center justify-center mt-2 md:mt-0">
+                  <Star className="w-4 h-4 md:w-6 md:h-6 text-green-600 dark:text-green-400" />
                 </div>
               </div>
             </CardContent>
           </Card>
 
           <Card className="hover:shadow-lg transition-shadow">
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
+            <CardContent className="pt-4 md:pt-6 pb-4 md:pb-6">
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between">
                 <div>
-                  <p className="text-sm text-muted-foreground mb-1">Active</p>
-                  <p className="text-3xl font-bold text-orange-600 dark:text-orange-400">{activeRequests.length}</p>
+                  <p className="text-xs md:text-sm text-muted-foreground mb-1">Active</p>
+                  <p className="text-2xl md:text-3xl font-bold text-orange-600 dark:text-orange-400">{activeRequests.length}</p>
                 </div>
-                <div className="h-12 w-12 rounded-full bg-orange-100 dark:bg-orange-900 flex items-center justify-center">
-                  <Calendar className="w-6 h-6 text-orange-600 dark:text-orange-400" />
+                <div className="h-8 w-8 md:h-12 md:w-12 rounded-full bg-orange-100 dark:bg-orange-900 flex items-center justify-center mt-2 md:mt-0">
+                  <Calendar className="w-4 h-4 md:w-6 md:h-6 text-orange-600 dark:text-orange-400" />
                 </div>
               </div>
             </CardContent>
           </Card>
 
           <Card className="hover:shadow-lg transition-shadow">
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
+            <CardContent className="pt-4 md:pt-6 pb-4 md:pb-6">
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between">
                 <div>
-                  <p className="text-sm text-muted-foreground mb-1">Favorites</p>
-                  <p className="text-3xl font-bold text-red-600 dark:text-red-400">{favorites.length}</p>
+                  <p className="text-xs md:text-sm text-muted-foreground mb-1">Favorites</p>
+                  <p className="text-2xl md:text-3xl font-bold text-red-600 dark:text-red-400">{favorites.length}</p>
                 </div>
-                <div className="h-12 w-12 rounded-full bg-red-100 dark:bg-red-900 flex items-center justify-center">
-                  <Heart className="w-6 h-6 text-red-600 dark:text-red-400" />
+                <div className="h-8 w-8 md:h-12 md:w-12 rounded-full bg-red-100 dark:bg-red-900 flex items-center justify-center mt-2 md:mt-0">
+                  <Heart className="w-4 h-4 md:w-6 md:h-6 text-red-600 dark:text-red-400" />
                 </div>
               </div>
             </CardContent>
