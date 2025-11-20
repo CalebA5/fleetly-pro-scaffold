@@ -53,6 +53,7 @@ export const OperatorOnboarding = () => {
   const [selectedTier, setSelectedTier] = useState<OperatorTier | null>(null);
   const [currentStep, setCurrentStep] = useState(0); // 0 = tier selection
   const [showAuthDialog, setShowAuthDialog] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
   // Fetch operator data if user has operatorId
   // Type for operator with tier stats
@@ -170,7 +171,18 @@ export const OperatorOnboarding = () => {
   };
 
   const submitTierRegistration = async () => {
-    if (!user) return;
+    if (!user || isSubmitting) return;
+    
+    // If user has operatorId, we need to wait for operator data to load
+    if (user.operatorId && isLoadingOperator) {
+      toast({
+        title: "Loading...",
+        description: "Please wait while we load your operator profile.",
+      });
+      return;
+    }
+    
+    setIsSubmitting(true);
     
     try {
       // Check if user is adding a tier to existing operator or creating new operator
@@ -293,6 +305,8 @@ export const OperatorOnboarding = () => {
         variant: "destructive",
       });
       // Don't redirect on error - let user retry
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -1324,10 +1338,11 @@ export const OperatorOnboarding = () => {
                 {currentStep === steps.length ? (
                   <Button
                     onClick={handleSubmit}
-                    className="ml-auto bg-orange-500 hover:bg-orange-600 text-white"
+                    disabled={isSubmitting || (user?.operatorId && isLoadingOperator)}
+                    className="ml-auto bg-orange-500 hover:bg-orange-600 text-white disabled:opacity-50 disabled:cursor-not-allowed"
                     data-testid="button-complete"
                   >
-                    Complete Profile
+                    {isSubmitting ? "Processing..." : "Complete Profile"}
                   </Button>
                 ) : (
                   <Button
