@@ -35,7 +35,12 @@ The design is inspired by Uber's clean, modern aesthetic, emphasizing simplicity
 - **Real-Time Driver Tracking**: Interactive map with live operator location updates and animated markers.
 - **Location-Based Customer Grouping**: Automated opportunity detection for operators to serve nearby customers.
 - **Multi-Vehicle Management System**: Allows professional operators to manage unlimited vehicles and equipped operators to manage multiple vehicles (one active at a time).
-- **Proactive Weather Alert System**: Integrates with the National Weather Service API to display real-time severe weather alerts relevant to services. Includes weather alert notification button in header with badge counter, dedicated notifications page at `/notifications`, and auto-dismissing toast alerts on homepage.
+- **Proactive Weather Alert System**: Integrates with the National Weather Service API to display real-time severe weather alerts relevant to services. Features include:
+  - Weather alert notification button in header with badge counter
+  - Dedicated notifications page at `/notifications` with compact list format
+  - Dismissible toast popup alerts on homepage that auto-dismiss after 10 seconds
+  - Alert data refreshes every 4 hours to minimize API calls
+  - Compact, space-efficient alert cards showing event type, severity, location, and expiry time
 - **Optimized Customer Profile Page**: Modern, personalized profile page featuring:
   - Hero section with gradient banner and avatar with user initials
   - Real-time statistics dashboard showing total requests, completed services, active bookings, and favorite operators
