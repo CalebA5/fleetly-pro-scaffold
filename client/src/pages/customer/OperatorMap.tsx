@@ -289,6 +289,18 @@ export const OperatorMap = () => {
     mapRef.current.setStyle(getMapStyle());
   }, [mapStyle, mapLoaded]);
 
+  // Handle sidebar toggle - resize map to fill available space
+  useEffect(() => {
+    if (!mapRef.current || !mapLoaded) return;
+    
+    // Small delay to allow CSS transition to complete before resizing
+    const resizeTimer = setTimeout(() => {
+      mapRef.current?.resize();
+    }, 350); // Slightly longer than the 300ms transition duration
+    
+    return () => clearTimeout(resizeTimer);
+  }, [isSidebarMinimized, mapLoaded]);
+
   // Create and update markers for operators
   useEffect(() => {
     if (!mapRef.current || !mapLoaded || !operators) return;

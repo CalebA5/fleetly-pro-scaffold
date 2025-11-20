@@ -1,10 +1,11 @@
 import { Router } from "express";
 import type { IStorage } from "./storage";
 import { db } from "./db";
-import { operators, favorites, operatorTierStats } from "@shared/schema";
-import { eq, sql, and } from "drizzle-orm";
+import { operators, favorites, operatorTierStats, weatherAlerts, insertWeatherAlertSchema } from "@shared/schema";
+import { eq, sql, and, gte } from "drizzle-orm";
 import { insertJobSchema, insertServiceRequestSchema, insertCustomerSchema, insertOperatorSchema, insertRatingSchema, insertFavoriteSchema, insertOperatorLocationSchema, insertCustomerServiceHistorySchema, OPERATOR_TIER_INFO } from "@shared/schema";
 import { isWithinRadius } from "./utils/distance";
+import { getServiceRelevantAlerts } from "./services/weatherService";
 
 export function registerRoutes(storage: IStorage) {
   const router = Router();
@@ -829,6 +830,96 @@ export function registerRoutes(storage: IStorage) {
     } catch (error) {
       console.error("Error setting active vehicle:", error);
       res.status(500).json({ message: "Failed to set active vehicle" });
+    }
+  });
+
+  // Weather Alerts Routes - Proactive Notifications
+  
+  // Fetch active weather alerts from NWS and update database
+  router.post("/api/weather/sync", async (req, res) => {
+    try {
+      const area = (req.query.area as string) || "US";
+      
+      // Fetch latest alerts from NWS
+      const alerts = await getServiceRelevantAlerts(area);
+      const allRelevantAlerts = [...alerts.winterAlerts, ...alerts.stormAlerts];
+      
+      // Update database with new alerts
+      for (const alert of allRelevantAlerts) {
+        const existingAlert = await db.query.weatherAlerts.findFirst({
+          where: eq(weatherAlerts.alertId, alert.id)
+        });
+        
+        if (!existingAlert) {
+          // Insert new alert
+          await db.insert(weatherAlerts).values({
+            alertId: alert.id,
+            event: alert.event,
+            headline: alert.headline,
+            description: alert.description,
+            severity: alert.severity,
+            urgency: alert.urgency,
+            areaDesc: alert.areaDesc,
+            effective: new Date(alert.effective),
+            expires: new Date(alert.expires),
+            instruction: alert.instruction,
+            category: alert.category,
+            isActive: 1,
+          });
+        }
+      }
+      
+      // Deactivate expired alerts
+      await db.update(weatherAlerts)
+        .set({ isActive: 0 })
+        .where(sql`${weatherAlerts.expires} < NOW() AND ${weatherAlerts.isActive} = 1`);
+      
+      res.json({ 
+        message: "Weather alerts synced successfully",
+        winterAlerts: alerts.winterAlerts.length,
+        stormAlerts: alerts.stormAlerts.length,
+        total: allRelevantAlerts.length
+      });
+    } catch (error) {
+      console.error("Error syncing weather alerts:", error);
+      res.status(500).json({ message: "Failed to sync weather alerts" });
+    }
+  });
+
+  // Get active weather alerts from database
+  router.get("/api/weather/alerts", async (req, res) => {
+    try {
+      const activeAlerts = await db.query.weatherAlerts.findMany({
+        where: and(
+          eq(weatherAlerts.isActive, 1),
+          gte(weatherAlerts.expires, new Date())
+        ),
+        orderBy: (alerts, { desc }) => [desc(alerts.severity), desc(alerts.urgency)]
+      });
+      
+      res.json(activeAlerts);
+    } catch (error) {
+      console.error("Error fetching weather alerts:", error);
+      res.status(500).json({ message: "Failed to fetch weather alerts" });
+    }
+  });
+
+  // Get severe weather alerts only (Extreme/Severe)
+  router.get("/api/weather/alerts/severe", async (req, res) => {
+    try {
+      const severeAlerts = await db.query.weatherAlerts.findMany({
+        where: and(
+          eq(weatherAlerts.isActive, 1),
+          gte(weatherAlerts.expires, new Date()),
+          sql`${weatherAlerts.severity} IN ('Extreme', 'Severe')`
+        ),
+        orderBy: (alerts, { desc }) => [desc(alerts.severity), desc(alerts.urgency)]
+      });
+      
+      res.json(severeAlerts);
+    } catch (error) {
+      console.error("Error fetching severe weather alerts:", error);
+      res.status(500).json({ message: "Failed to fetch severe weather alerts" });
     }
   });
 

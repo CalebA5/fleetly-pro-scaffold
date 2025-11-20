@@ -5,6 +5,7 @@ import { setupVite, serveStatic } from "./vite";
 import { MemStorage } from "./storage";
 import { createServer } from "http";
 import authRouter from "./auth";
+import { startWeatherSyncJob } from "./jobs/weatherSync";
 
 const app = express();
 app.use(express.json());
@@ -69,4 +70,7 @@ if (process.env.NODE_ENV === "production") {
 const PORT = 5000;
 server.listen(PORT, "0.0.0.0", () => {
   console.log(`Server running on port ${PORT}`);
+  
+  // Start automated weather alert sync job
+  startWeatherSyncJob();
 });

@@ -8,7 +8,8 @@
     "build": "vite build",
     "start": "NODE_ENV=production tsx server/index.ts",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "db:push": "drizzle-kit push"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",

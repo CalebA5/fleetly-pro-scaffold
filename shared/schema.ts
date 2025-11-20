@@ -427,3 +427,31 @@ export const insertSessionSchema = createInsertSchema(sessions).pick({
 
 export type InsertSession = z.infer<typeof insertSessionSchema>;
 export type Session = typeof sessions.$inferSelect;
+
+// Weather Alerts table - stores active weather alerts for proactive notifications
+export const weatherAlerts = pgTable("weather_alerts", {
+  id: serial("id").primaryKey(),
+  alertId: text("alert_id").notNull().unique(), // NWS alert ID
+  event: text("event").notNull(), // e.g., "Winter Storm Warning"
+  headline: text("headline").notNull(),
+  description: text("description").notNull(),
+  severity: text("severity").notNull(), // "Extreme", "Severe", "Moderate", "Minor"
+  urgency: text("urgency").notNull(), // "Immediate", "Expected", "Future"
+  areaDesc: text("area_desc").notNull(), // Geographic area
+  effective: timestamp("effective").notNull(),
+  expires: timestamp("expires").notNull(),
+  instruction: text("instruction"),
+  category: text("category").notNull(), // "Met", "Safety", "Transport", etc.
+  isActive: integer("is_active").notNull().default(1),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertWeatherAlertSchema = createInsertSchema(weatherAlerts).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertWeatherAlert = z.infer<typeof insertWeatherAlertSchema>;
+export type WeatherAlert = typeof weatherAlerts.$inferSelect;
