@@ -521,56 +521,85 @@ export const OperatorMap = () => {
         }}
       />
       
-      {/* Page Title & Controls */}
-      <div className="border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 px-4 sm:px-6 lg:px-8 py-3">
-        <div className="max-w-7xl mx-auto flex justify-between items-center">
-          <div>
-            <h1 className="text-xl font-bold text-black dark:text-white">Find Operators</h1>
-            <p className="text-sm text-gray-600 dark:text-gray-400">{operators?.length || 0} operators available</p>
-          </div>
-          <div className="flex gap-2">
-            <Button
-              variant={mapStyle === 'streets' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setMapStyle('streets')}
-              className={mapStyle === 'streets' ? 'bg-black text-white hover:bg-gray-800 dark:bg-white dark:text-black' : ''}
-              data-testid="button-map-view"
-            >
-              Map
-            </Button>
-            <Button
-              variant={mapStyle === 'satellite' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setMapStyle('satellite')}
-              className={mapStyle === 'satellite' ? 'bg-black text-white hover:bg-gray-800 dark:bg-white dark:text-black' : ''}
-              data-testid="button-satellite-view"
-            >
-              Satellite
-            </Button>
+      {/* Modern Page Header */}
+      <div className="border-b border-gray-200 dark:border-gray-800 bg-gradient-to-r from-white to-gray-50 dark:from-gray-900 dark:to-gray-800 px-4 sm:px-6 lg:px-8 py-4 shadow-sm">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
+            <div className="flex items-center gap-3">
+              <div className="bg-orange-100 dark:bg-orange-900 p-2 rounded-lg">
+                <MapPin className="w-5 h-5 text-orange-600 dark:text-orange-400" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold text-black dark:text-white">Find Operators</h1>
+                <p className="text-sm text-gray-600 dark:text-gray-400 flex items-center gap-2">
+                  <span className="inline-flex items-center gap-1">
+                    <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+                    <strong className="text-black dark:text-white">{operators?.length || 0}</strong> available nearby
+                  </span>
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant={mapStyle === 'streets' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setMapStyle('streets')}
+                className={`transition-all ${mapStyle === 'streets' ? 'bg-black text-white hover:bg-gray-800 dark:bg-white dark:text-black shadow-md' : 'hover:border-gray-400'}`}
+                data-testid="button-map-view"
+              >
+                <MapPin className="w-4 h-4 mr-1" />
+                Map
+              </Button>
+              <Button
+                variant={mapStyle === 'satellite' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setMapStyle('satellite')}
+                className={`transition-all ${mapStyle === 'satellite' ? 'bg-black text-white hover:bg-gray-800 dark:bg-white dark:text-black shadow-md' : 'hover:border-gray-400'}`}
+                data-testid="button-satellite-view"
+              >
+                <Truck className="w-4 h-4 mr-1" />
+                Satellite
+              </Button>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Service Filters */}
-      <div className="border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 px-4 sm:px-6 lg:px-8 py-3">
-        <div className="max-w-7xl mx-auto flex items-center gap-2 overflow-x-auto">
-          <Filter className="w-4 h-4 text-gray-600 dark:text-gray-400 flex-shrink-0" />
-          {services.map((service) => (
-            <Button
-              key={service}
-              variant={selectedService === (service === "All" ? "" : service) ? "default" : "outline"}
-              size="sm"
-              onClick={() => setSelectedService(service === "All" ? "" : service)}
-              className={selectedService === (service === "All" ? "" : service) 
-                ? 'bg-black text-white hover:bg-gray-800 dark:bg-white dark:text-black flex-shrink-0' 
-                : 'flex-shrink-0'}
-              data-testid={`filter-${service.toLowerCase().replace(/\s+/g, "-")}`}
-            >
-              {service}
-            </Button>
-          ))}
+      {/* Modern Service Filters */}
+      <div className="border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 px-4 sm:px-6 lg:px-8 py-4">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex items-center gap-3 mb-2">
+            <Filter className="w-4 h-4 text-gray-600 dark:text-gray-400 flex-shrink-0" />
+            <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">Filter by Service</span>
+          </div>
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 hide-scrollbar">
+            {services.map((service) => (
+              <button
+                key={service}
+                onClick={() => setSelectedService(service === "All" ? "" : service)}
+                className={`px-4 py-2 rounded-full text-sm font-medium transition-all whitespace-nowrap flex-shrink-0 ${
+                  selectedService === (service === "All" ? "" : service)
+                    ? 'bg-orange-500 text-white shadow-md hover:bg-orange-600 scale-105'
+                    : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 hover:scale-105'
+                }`}
+                data-testid={`filter-${service.toLowerCase().replace(/\s+/g, "-")}`}
+              >
+                {service}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
+
+      <style>{`
+        .hide-scrollbar::-webkit-scrollbar {
+          display: none;
+        }
+        .hide-scrollbar {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
+      `}</style>
 
       {/* Map and Sidebar */}
       <div className="flex-1 flex overflow-hidden">
@@ -668,10 +697,10 @@ export const OperatorMap = () => {
               operators?.map((operator) => (
                 <Card
                   key={operator.operatorId}
-                  className={`p-4 cursor-pointer transition-all hover:shadow-lg border dark:border-gray-700 dark:bg-gray-900 ${
+                  className={`p-4 cursor-pointer transition-all hover:shadow-xl hover:scale-[1.02] border rounded-xl dark:border-gray-700 dark:bg-gray-900 ${
                     selectedOperator?.operatorId === operator.operatorId
-                      ? 'ring-2 ring-black dark:ring-white'
-                      : ''
+                      ? 'ring-2 ring-orange-500 shadow-xl scale-[1.02] border-orange-500'
+                      : 'hover:border-orange-300'
                   }`}
                   onClick={() => panToOperator(operator)}
                   data-testid={`card-operator-${operator.operatorId}`}
@@ -765,13 +794,14 @@ export const OperatorMap = () => {
                     )}
                   </div>
 
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
                     <Button
-                      className="flex-1 bg-black text-white hover:bg-gray-800 dark:bg-white dark:text-black dark:hover:bg-gray-200"
+                      className="flex-1 bg-gradient-to-r from-orange-500 to-orange-600 text-white hover:from-orange-600 hover:to-orange-700 shadow-md hover:shadow-lg transition-all"
                       size="sm"
                       onClick={(e) => handleRequestService(operator, e)}
                       data-testid={`button-request-${operator.operatorId}`}
                     >
+                      <Truck className="w-4 h-4 mr-1" />
                       Request Service
                     </Button>
                     <Button

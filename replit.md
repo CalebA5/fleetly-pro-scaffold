@@ -36,14 +36,18 @@ Professional and equipped operators can now register and manage multiple vehicle
 - **Database Schema**: Vehicles table with operatorId reference, vehicle details, services JSONB array, and isActive flag
 - **Backend API**: RESTful endpoints (GET/POST/PATCH/DELETE /api/operators/:operatorId/vehicles, POST set-active)
 
-### Navigation & UX Improvements ✅
-Enhanced operator experience with intelligent routing and context-aware UI:
+### Navigation & State Management Improvements (November 20, 2025) ✅
+Fixed critical navigation and state persistence issues for better operator experience:
+- **Unified Drive & Earn Navigation**: All "Drive & Earn" buttons now consistently navigate to `/operator/onboarding` (tier selection page), not tier-specific dashboards
+- **Proper Tier Addition Flow**: System correctly distinguishes between creating new operator vs adding tier to existing operator:
+  - New operators → POST `/api/operators` with initial tier
+  - Existing operators → POST `/api/operators/:operatorId/add-tier` to append new tier without overwriting
+- **Tier Subscription Memory**: System now remembers all subscribed tiers after adding new ones (e.g., Professional + Equipped shows both as subscribed, not just latest)
+- **Accurate Tier Progress**: Progress counter correctly shows X/3 tiers based on actual subscribed tiers count
+- **Loading State Protection**: Added guards to prevent race conditions - submission blocked while operator data is loading
+- **Submit Button States**: "Complete Profile" button shows "Processing..." and disables during submission to prevent duplicate requests
+- **Query Cache Invalidation**: After adding tier, operator data refetches automatically to show updated subscription state
 - **Context-Aware TierSwitcher**: TierSwitcher dropdown only appears when operators are on dashboard routes (/operator, /manual-operator, /equipped-operator, /business), keeping the homepage and customer pages clean
-- **Smart Dashboard Routing**: Drive & Earn button routes based on account type:
-  - Business owners (with businessId) → /business dashboard (multi-driver fleet management)
-  - Manual operators → /manual-operator dashboard
-  - Equipped operators → /equipped-operator dashboard
-  - Professional individual operators → /operator dashboard (standard operator interface)
 - **Automatic Dashboard Navigation**: After adding a new tier and entering details, operators are automatically redirected to the appropriate tier-specific dashboard
 - **Seamless Tier Switching**: Clicking a subscribed tier in the dropdown instantly switches and shows the corresponding dashboard
 - **Visual Tier Indicators**: Green checkmarks for subscribed tiers, "Active" badge for current tier, emoji badges (🏆 🚛 ⛏️) with color coding
