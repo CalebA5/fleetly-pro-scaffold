@@ -55,7 +55,7 @@ router.post('/signup', async (req, res) => {
     const operatorId = role === 'operator' ? generateOperatorId() : null;
 
     // Create user
-    const newUser: InsertUser = {
+    const newUser = {
       userId,
       name,
       email,
@@ -63,13 +63,13 @@ router.post('/signup', async (req, res) => {
       role,
       operatorId,
       businessId: null,
-    };
+    } as InsertUser;
 
-    const [createdUser] = await db.insert(users).values(newUser).returning();
+    const [createdUser] = await db.insert(users).values(newUser as any).returning();
 
     // Create customer record (all users can request services)
     const customerId = `CUST-${userId.split('-')[1]}`; // Use timestamp from userId
-    const newCustomer: InsertCustomer = {
+    const newCustomer = {
       customerId,
       name,
       email,
@@ -79,13 +79,13 @@ router.post('/signup', async (req, res) => {
       state: null,
       zipCode: null,
       photo: null,
-    };
+    } as InsertCustomer;
 
-    await db.insert(customers).values(newCustomer);
+    await db.insert(customers).values(newCustomer as any);
 
     // If operator, create operator profile
     if (role === 'operator' && operatorId) {
-      const newOperator: InsertOperator = {
+      const newOperator = {
         operatorId,
         name,
         email,
@@ -113,22 +113,22 @@ router.post('/signup', async (req, res) => {
         businessId: null,
         businessName: null,
         driverName: null,
-      };
+      } as InsertOperator;
 
-      await db.insert(operators).values(newOperator);
+      await db.insert(operators).values(newOperator as any);
     }
 
     // Create session
     const sessionId = generateSessionId();
     const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days
 
-    const newSession: InsertSession = {
+    const newSession = {
       sessionId,
       userId: createdUser.userId,
       expiresAt,
-    };
+    } as InsertSession;
 
-    await db.insert(sessions).values(newSession);
+    await db.insert(sessions).values(newSession as any);
 
     // Set session cookie
     res.cookie('sessionId', sessionId, {
@@ -195,13 +195,13 @@ router.post('/signin', async (req, res) => {
     const sessionId = generateSessionId();
     const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days
 
-    const newSession: InsertSession = {
+    const newSession = {
       sessionId,
       userId: user.userId,
       expiresAt,
-    };
+    } as InsertSession;
 
-    await db.insert(sessions).values(newSession);
+    await db.insert(sessions).values(newSession as any);
 
     // Set session cookie
     res.cookie('sessionId', sessionId, {
@@ -218,7 +218,7 @@ router.post('/signin', async (req, res) => {
     });
 
     if (!existingCustomer) {
-      const newCustomer: InsertCustomer = {
+      const newCustomer = {
         customerId,
         name: user.name,
         email: user.email,
@@ -228,9 +228,9 @@ router.post('/signin', async (req, res) => {
         state: null,
         zipCode: null,
         photo: null,
-      };
+      } as InsertCustomer;
 
-      await db.insert(customers).values(newCustomer);
+      await db.insert(customers).values(newCustomer as any);
     }
 
     // Fetch operator data if applicable
@@ -295,6 +295,28 @@ router.get('/session', async (req, res) => {
       return res.status(401).json({ error: 'User not found' });
     }
 
+    // Create customer record if it doesn't exist (for existing users)
+    const customerId = `CUST-${user.userId.split('-')[1]}`;
+    const existingCustomer = await db.query.customers.findFirst({
+      where: eq(customers.customerId, customerId)
+    });
+
+    if (!existingCustomer) {
+      const newCustomer = {
+        customerId,
+        name: user.name,
+        email: user.email,
+        phone: '',
+        address: null,
+        city: null,
+        state: null,
+        zipCode: null,
+        photo: null,
+      } as InsertCustomer;
+
+      await db.insert(customers).values(newCustomer as any);
+    }
+
     // Fetch operator data if applicable
     let operatorData = null;
     if (user.role === 'operator' && user.operatorId) {
@@ -305,13 +327,14 @@ router.get('/session', async (req, res) => {
 
     // Return user data (without password hash)
     res.json({
-      id: user.id,
+      id: customerId, // Use customer ID as the main ID for consistency
       userId: user.userId,
       name: user.name,
       email: user.email,
       role: user.role,
       operatorId: user.operatorId,
       businessId: user.businessId,
+      customerId: customerId,
       operatorProfileComplete: user.role === 'operator',
       operatorTier: operatorData?.operatorTier,
       subscribedTiers: operatorData?.subscribedTiers,

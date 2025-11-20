@@ -11,6 +11,7 @@ import ManualOperatorDashboard from "./pages/operator/ManualOperatorDashboard";
 import EquippedOperatorDashboard from "./pages/operator/EquippedOperatorDashboard";
 import { HelpSupport } from "./pages/HelpSupport";
 import { Profile } from "./pages/Profile";
+import { Notifications } from "./pages/Notifications";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import { queryClient } from "@/lib/queryClient";
@@ -29,6 +30,7 @@ const App = () => (
           <Route path="/" component={Index} />
           <Route path="/help" component={HelpSupport} />
           <Route path="/profile" component={Profile} />
+          <Route path="/notifications" component={Notifications} />
           <Route path="/customer" component={CustomerDashboard} />
           <Route path="/customer/:rest+" component={CustomerDashboard} />
           

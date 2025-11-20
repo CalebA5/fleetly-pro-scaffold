@@ -919,18 +919,18 @@ export function registerRoutes(storage: IStorage) {
     }
   });
 
-  // Get active weather alerts from database
+  // Get all weather alerts from database (both active and expired)
   router.get("/api/weather/alerts", async (req, res) => {
     try {
-      const activeAlerts = await db.query.weatherAlerts.findMany({
-        where: and(
-          eq(weatherAlerts.isActive, 1),
-          gte(weatherAlerts.expires, new Date())
-        ),
-        orderBy: (alerts, { desc }) => [desc(alerts.severity), desc(alerts.urgency)]
+      const allAlerts = await db.query.weatherAlerts.findMany({
+        orderBy: (alerts, { desc }) => [
+          desc(alerts.isActive),
+          desc(alerts.severity), 
+          desc(alerts.urgency)
+        ]
       });
       
-      res.json(activeAlerts);
+      res.json(allAlerts);
     } catch (error) {
       console.error("Error fetching weather alerts:", error);
       res.status(500).json({ message: "Failed to fetch weather alerts" });
