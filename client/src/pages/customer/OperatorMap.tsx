@@ -14,14 +14,12 @@ import { ArrowLeft, MapPin, Star, Truck, Filter, Heart, ChevronLeft, ChevronRigh
 import type { Operator, InsertServiceRequest, Favorite } from "@shared/schema";
 import { OPERATOR_TIER_INFO } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useAuth } from "@/contexts/AuthContext";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN;
 mapboxgl.accessToken = MAPBOX_TOKEN;
-
-const CUSTOMER_ID = "CUST-001";
-const CUSTOMER_NAME = "John Doe";
 
 // Track operator locations for real-time updates
 interface OperatorLocation {
@@ -52,6 +50,9 @@ export const OperatorMap = () => {
   const [isSidebarMinimized, setIsSidebarMinimized] = useState(false);
   const [, navigate] = useLocation();
   const { toast } = useToast();
+  const { user } = useAuth();
+  const customerId = user?.id || "CUST-001";
+  const customerName = user?.name || "Guest";
 
   const { data: allOperators, isLoading } = useQuery<Operator[]>({
     queryKey: ['/api/operators'],
@@ -59,7 +60,7 @@ export const OperatorMap = () => {
 
   // Fetch customer's favorites
   const { data: favorites = [] } = useQuery<Favorite[]>({
-    queryKey: [`/api/favorites/${CUSTOMER_ID}`],
+    queryKey: [`/api/favorites/${customerId}`],
   });
 
   const createServiceRequestMutation = useMutation({
@@ -67,8 +68,8 @@ export const OperatorMap = () => {
       const requestId = `REQ-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
       const requestData: InsertServiceRequest = {
         requestId,
-        customerId: CUSTOMER_ID,
-        customerName: CUSTOMER_NAME,
+        customerId: customerId,
+        customerName: customerName,
         operatorId: operator.operatorId,
         operatorName: operator.name,
         serviceType: (operator.services as string[])[0], // Use operator's first service
@@ -127,12 +128,12 @@ export const OperatorMap = () => {
     mutationFn: async (operatorId: string) => {
       return await apiRequest("/api/favorites", {
         method: "POST",
-        body: JSON.stringify({ customerId: CUSTOMER_ID, operatorId }),
+        body: JSON.stringify({ customerId: customerId, operatorId }),
         headers: { "Content-Type": "application/json" },
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/favorites/${CUSTOMER_ID}`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/favorites/${customerId}`] });
       toast({
         title: "Added to Favorites",
         description: "Operator added to your favorites",
@@ -150,12 +151,12 @@ export const OperatorMap = () => {
   // Remove favorite mutation
   const removeFavoriteMutation = useMutation({
     mutationFn: async (operatorId: string) => {
-      return await apiRequest(`/api/favorites/${CUSTOMER_ID}/${operatorId}`, {
+      return await apiRequest(`/api/favorites/${customerId}/${operatorId}`, {
         method: "DELETE",
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/favorites/${CUSTOMER_ID}`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/favorites/${customerId}`] });
       toast({
         title: "Removed from Favorites",
         description: "Operator removed from your favorites",
@@ -177,7 +178,7 @@ export const OperatorMap = () => {
       return await apiRequest("/api/ratings", {
         method: "POST",
         body: JSON.stringify({
-          customerId: CUSTOMER_ID,
+          customerId: customerId,
           operatorId: ratingOperator.operatorId,
           rating,
           comment: ratingComment.trim() || undefined,

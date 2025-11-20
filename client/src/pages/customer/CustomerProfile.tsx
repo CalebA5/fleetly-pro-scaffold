@@ -13,8 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, User, Mail, Phone, MapPin, Edit, Save, X } from "lucide-react";
 import type { Customer } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-
-const CUSTOMER_ID = "CUST-001";
+import { useAuth } from "@/contexts/AuthContext";
 
 const profileFormSchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -31,20 +30,22 @@ type ProfileFormValues = z.infer<typeof profileFormSchema>;
 export const CustomerProfile = () => {
   const [isEditing, setIsEditing] = useState(false);
   const { toast } = useToast();
+  const { user } = useAuth();
+  const customerId = user?.id || "CUST-001";
 
   const { data: customer, isLoading } = useQuery<Customer>({
-    queryKey: [`/api/customers/${CUSTOMER_ID}`],
+    queryKey: [`/api/customers/${customerId}`],
   });
 
   const updateMutation = useMutation({
     mutationFn: (data: ProfileFormValues) => 
-      apiRequest(`/api/customers/${CUSTOMER_ID}`, {
+      apiRequest(`/api/customers/${customerId}`, {
         method: "PATCH",
         body: JSON.stringify(data),
         headers: { "Content-Type": "application/json" },
       }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/customers/${CUSTOMER_ID}`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/customers/${customerId}`] });
       setIsEditing(false);
       toast({
         title: "Profile Updated",

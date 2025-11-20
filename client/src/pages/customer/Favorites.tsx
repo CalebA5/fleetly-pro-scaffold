@@ -10,15 +10,16 @@ import { Heart, Star, MapPin, Truck, ArrowLeft, Trash2 } from "lucide-react";
 import type { Operator, Favorite } from "@shared/schema";
 import { OPERATOR_TIER_INFO } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-
-const CUSTOMER_ID = "CUST-001";
+import { useAuth } from "@/contexts/AuthContext";
 
 export const Favorites = () => {
   const { toast } = useToast();
+  const { user } = useAuth();
+  const customerId = user?.id || "CUST-001";
 
   // Fetch customer's favorites
   const { data: favorites = [], isLoading: favoritesLoading } = useQuery<Favorite[]>({
-    queryKey: [`/api/favorites/${CUSTOMER_ID}`],
+    queryKey: [`/api/favorites/${customerId}`],
   });
 
   // Fetch all operators
@@ -29,12 +30,12 @@ export const Favorites = () => {
   // Remove favorite mutation
   const removeFavoriteMutation = useMutation({
     mutationFn: async (operatorId: string) => {
-      await apiRequest(`/api/favorites/${CUSTOMER_ID}/${operatorId}`, {
+      await apiRequest(`/api/favorites/${customerId}/${operatorId}`, {
         method: "DELETE",
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/favorites/${CUSTOMER_ID}`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/favorites/${customerId}`] });
       toast({
         title: "Removed from Favorites",
         description: "Operator removed from your favorites",
