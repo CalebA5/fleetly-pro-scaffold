@@ -76,31 +76,29 @@ export function Notifications() {
   const expiredAlerts = alerts?.filter(a => a.isActive === 0) || [];
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white dark:from-gray-900 dark:to-gray-800">
-      <div className="container mx-auto px-4 py-8 max-w-6xl">
+    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white dark:from-gray-900 dark:to-gray-800 pb-20 md:pb-0">
+      <div className="container mx-auto px-4 py-4 md:py-8 max-w-6xl">
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <div className="flex items-center space-x-4">
-            <Link to="/">
-              <Button variant="ghost" size="sm" data-testid="button-back-home">
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Back to Home
-              </Button>
-            </Link>
-            <div>
-              <h1 className="text-4xl font-bold bg-gradient-to-r from-orange-600 to-orange-500 bg-clip-text text-transparent" data-testid="text-page-title">
-                Weather Alerts
-              </h1>
-              <p className="text-muted-foreground">Service-relevant weather notifications</p>
-            </div>
+        <div className="mb-6 md:mb-8">
+          <Link to="/">
+            <Button variant="ghost" size="sm" className="mb-3 md:mb-4" data-testid="button-back-home">
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Back to Home
+            </Button>
+          </Link>
+          <div>
+            <h1 className="text-2xl md:text-4xl font-bold bg-gradient-to-r from-orange-600 to-orange-500 bg-clip-text text-transparent" data-testid="text-page-title">
+              Weather Alerts
+            </h1>
+            <p className="text-sm md:text-base text-muted-foreground">Service-relevant weather notifications</p>
           </div>
         </div>
 
         {/* Active Alerts - Compact List */}
         {activeAlerts.length > 0 && (
-          <div className="mb-8">
-            <h2 className="text-2xl font-bold mb-4 flex items-center gap-2" data-testid="text-active-alerts-title">
-              <AlertTriangle className="w-6 h-6 text-orange-600" />
+          <div className="mb-6 md:mb-8">
+            <h2 className="text-xl md:text-2xl font-bold mb-3 md:mb-4 flex items-center gap-2" data-testid="text-active-alerts-title">
+              <AlertTriangle className="w-5 h-5 md:w-6 md:h-6 text-orange-600" />
               Active Alerts ({activeAlerts.length})
             </h2>
             <div className="space-y-2">
@@ -110,33 +108,31 @@ export function Notifications() {
                   className={`border-l-4 hover:shadow-md transition-shadow ${getSeverityColor(alert.severity)}`}
                   data-testid={`alert-card-${alert.id}`}
                 >
-                  <CardContent className="p-4">
-                    <div className="flex items-start gap-3">
-                      <div className={`p-1.5 rounded-full ${getSeverityColor(alert.severity)} flex-shrink-0`}>
+                  <CardContent className="p-3 md:p-4">
+                    <div className="flex items-start gap-2 md:gap-3">
+                      <div className={`p-1 md:p-1.5 rounded-full ${getSeverityColor(alert.severity)} flex-shrink-0`}>
                         {getAlertIcon(alert.event)}
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-start justify-between gap-2 mb-1">
-                          <h3 className="font-bold text-base" data-testid={`text-alert-event-${alert.id}`}>
+                          <h3 className="font-bold text-sm md:text-base leading-tight" data-testid={`text-alert-event-${alert.id}`}>
                             {alert.event}
                           </h3>
-                          <div className="flex gap-1 flex-shrink-0">
-                            <Badge variant="outline" className={`text-xs ${getSeverityColor(alert.severity)}`}>
-                              {alert.severity}
-                            </Badge>
-                          </div>
+                          <Badge variant="outline" className={`text-xs ${getSeverityColor(alert.severity)} flex-shrink-0`}>
+                            {alert.severity}
+                          </Badge>
                         </div>
-                        <p className="text-sm text-gray-700 dark:text-gray-300 line-clamp-2 mb-2">
+                        <p className="text-xs md:text-sm text-gray-700 dark:text-gray-300 line-clamp-2 mb-1.5 md:mb-2">
                           {alert.headline}
                         </p>
-                        <div className="flex items-center gap-3 text-xs text-gray-600 dark:text-gray-400 flex-wrap">
-                          <div className="flex items-center gap-1">
-                            <MapPin className="w-3 h-3" />
+                        <div className="flex flex-col md:flex-row md:items-center gap-1.5 md:gap-3 text-xs text-gray-600 dark:text-gray-400">
+                          <div className="flex items-center gap-1 min-w-0">
+                            <MapPin className="w-3 h-3 flex-shrink-0" />
                             <span className="truncate">{alert.areaDesc}</span>
                           </div>
-                          <div className="flex items-center gap-1">
+                          <div className="flex items-center gap-1 flex-shrink-0">
                             <Calendar className="w-3 h-3" />
-                            <span>Expires {format(new Date(alert.expires), "MMM d, h:mm a")}</span>
+                            <span className="whitespace-nowrap">Expires {format(new Date(alert.expires), "MMM d, h:mm a")}</span>
                           </div>
                         </div>
                       </div>
