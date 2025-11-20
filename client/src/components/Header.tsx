@@ -24,32 +24,9 @@ export const Header = ({ onSignIn, onSignUp, onDriveAndEarn }: HeaderProps) => {
     if (onDriveAndEarn) {
       onDriveAndEarn();
     } else {
-      // Default behavior if no handler provided
+      // Default behavior if no handler provided - always go to Drive & Earn page
       if (isAuthenticated) {
-        if (user?.operatorProfileComplete) {
-          // Route based on businessId first (business owners), then active tier
-          if (user?.businessId) {
-            // Business owner with multiple drivers
-            setLocation("/business");
-          } else {
-            // Individual operator - route based on active tier
-            const activeTier = user?.activeTier || user?.operatorTier;
-            if (activeTier === 'manual') {
-              setLocation("/manual-operator");
-            } else if (activeTier === 'equipped') {
-              setLocation("/equipped-operator");
-            } else {
-              // Professional individual operators go to /operator
-              setLocation("/operator");
-            }
-          }
-        } else {
-          toast({
-            title: "Complete Your Operator Profile",
-            description: "Please fill out your profile and vehicle information to start earning.",
-          });
-          setLocation("/operator/onboarding");
-        }
+        setLocation("/operator/onboarding");
       } else {
         if (onSignUp) {
           onSignUp();

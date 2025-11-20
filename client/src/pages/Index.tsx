@@ -29,17 +29,8 @@ const Index = () => {
 
   const handleDriveAndEarn = () => {
     if (isAuthenticated) {
-      // Check if operator profile is complete
-      if (user?.operatorProfileComplete) {
-        setLocation("/operator");
-      } else {
-        // Prompt to complete profile
-        toast({
-          title: "Complete Your Operator Profile",
-          description: "Please fill out your profile and vehicle information to start earning.",
-        });
-        setLocation("/operator/onboarding");
-      }
+      // Always go to Drive & Earn page (tier selection/management)
+      setLocation("/operator/onboarding");
     } else {
       // Show signup dialog for operator role
       handleAuthClick("signup", "operator");

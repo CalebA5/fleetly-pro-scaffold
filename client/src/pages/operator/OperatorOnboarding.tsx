@@ -14,6 +14,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { OPERATOR_TIER_INFO, type OperatorTier, type Operator } from "@shared/schema";
 import { AuthDialog } from "@/components/AuthDialog";
 import { useQuery } from "@tanstack/react-query";
+import { queryClient } from "@/lib/queryClient";
 
 const vehicleTypes = [
   "Pickup Truck",
@@ -172,81 +173,123 @@ export const OperatorOnboarding = () => {
     if (!user) return;
     
     try {
-      // Generate a unique operatorId based on user email
-      const operatorId = `op-${user.email.replace(/[^a-zA-Z0-9]/g, '-')}-${Date.now()}`;
-      
-      // Ensure services array is not empty (default to Snow Plowing)
-      const services = formData.services.length > 0 ? formData.services : ["Snow Plowing"];
-      
-      // Prepare operator data based on tier
-      const operatorData = {
-        operatorId,
-        name: formData.contactName || user.name,
-        driverName: formData.contactName || user.name,
-        rating: "5.00",
-        totalJobs: 0,
-        services,
-        vehicle: formData.vehicleType || "Not specified",
-        licensePlate: formData.licensePlate || "N/A",
-        phone: formData.phone || "",
-        email: formData.email || user.email,
-        latitude: "0",
-        longitude: "0",
-        address: formData.address || formData.homeAddress || "",
-        isOnline: 1,
-        availability: "available",
-        operatorTier: selectedTier || "professional",
-        subscribedTiers: [selectedTier || "professional"],
-        activeTier: selectedTier || "professional",
-        isCertified: selectedTier === "professional" ? 1 : 0,
-        businessLicense: formData.licenseNumber || null,
-        businessName: formData.businessName || null,
-        homeLatitude: null,
-        homeLongitude: null,
-        operatingRadius: null,
-      };
+      // Check if user is adding a tier to existing operator or creating new operator
+      if (user.operatorId && operatorData) {
+        // User already has operator profile - add new tier
+        const response = await fetch(`/api/operators/${user.operatorId}/add-tier`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({
+            tier: selectedTier,
+            details: formData
+          }),
+        });
 
-      // Create operator record in database
-      const response = await fetch("/api/operators", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify(operatorData),
-      });
+        if (!response.ok) {
+          const errorData = await response.json();
+          console.error("Add tier failed:", errorData);
+          throw new Error(errorData.message || "Failed to add tier");
+        }
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        console.error("Operator creation failed:", errorData);
-        throw new Error(errorData.message || "Failed to create operator profile");
+        // Update user's active tier
+        await updateUser({ 
+          activeTier: selectedTier,
+          operatorTier: selectedTier 
+        });
+        
+        // Invalidate operator query to refetch with updated tiers
+        queryClient.invalidateQueries({ queryKey: [`/api/operators/by-id/${user.operatorId}`] });
+        
+        toast({
+          title: "Tier Added!",
+          description: `You're now subscribed to ${OPERATOR_TIER_INFO[selectedTier!].label}. Start accepting jobs!`,
+        });
+        
+        // Navigate to the new tier's dashboard
+        const dashboardRoute = getDashboardRoute(selectedTier!);
+        setTimeout(() => {
+          setLocation(dashboardRoute);
+        }, 1500);
+      } else {
+        // New operator - create operator profile
+        const operatorId = `op-${user.email.replace(/[^a-zA-Z0-9]/g, '-')}-${Date.now()}`;
+        
+        // Ensure services array is not empty (default to Snow Plowing)
+        const services = formData.services.length > 0 ? formData.services : ["Snow Plowing"];
+        
+        // Prepare operator data based on tier
+        const operatorData = {
+          operatorId,
+          name: formData.contactName || user.name,
+          driverName: formData.contactName || user.name,
+          rating: "5.00",
+          totalJobs: 0,
+          services,
+          vehicle: formData.vehicleType || "Not specified",
+          licensePlate: formData.licensePlate || "N/A",
+          phone: formData.phone || "",
+          email: formData.email || user.email,
+          latitude: "0",
+          longitude: "0",
+          address: formData.address || formData.homeAddress || "",
+          isOnline: 1,
+          availability: "available",
+          operatorTier: selectedTier || "professional",
+          subscribedTiers: [selectedTier || "professional"],
+          activeTier: selectedTier || "professional",
+          isCertified: selectedTier === "professional" ? 1 : 0,
+          businessLicense: formData.licenseNumber || null,
+          businessName: formData.businessName || null,
+          homeLatitude: null,
+          homeLongitude: null,
+          operatingRadius: null,
+        };
+
+        // Create operator record in database
+        const response = await fetch("/api/operators", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify(operatorData),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          console.error("Operator creation failed:", errorData);
+          throw new Error(errorData.message || "Failed to create operator profile");
+        }
+
+        const operator = await response.json();
+
+        // Verify we got an operatorId back
+        if (!operator.operatorId) {
+          throw new Error("Operator created but no operatorId returned");
+        }
+
+        // Update user with operatorId
+        await updateUser({ 
+          operatorId: operator.operatorId,
+          operatorProfileComplete: true,
+          operatorTier: selectedTier 
+        });
+        
+        toast({
+          title: "Profile Complete!",
+          description: `Welcome to Fleetly as a ${OPERATOR_TIER_INFO[selectedTier!].label}. You can now start accepting jobs.`,
+        });
+        
+        // Navigate to the appropriate dashboard
+        const dashboardRoute = getDashboardRoute(selectedTier!);
+        setTimeout(() => {
+          setLocation(dashboardRoute);
+        }, 1500);
       }
-
-      const operator = await response.json();
-
-      // Verify we got an operatorId back
-      if (!operator.operatorId) {
-        throw new Error("Operator created but no operatorId returned");
-      }
-
-      // Update user with operatorId
-      await updateUser({ 
-        operatorId: operator.operatorId,
-        operatorProfileComplete: true,
-        operatorTier: selectedTier 
-      });
-      
-      toast({
-        title: "Profile Complete!",
-        description: `Welcome to Fleetly as a ${OPERATOR_TIER_INFO[selectedTier!].label}. You can now start accepting jobs.`,
-      });
-      
-      setTimeout(() => {
-        setLocation("/operator");
-      }, 1500);
     } catch (error: any) {
-      console.error("Error creating operator:", error);
+      console.error("Error in tier registration:", error);
       toast({
         title: "Error",
-        description: error.message || "Failed to create operator profile. Please try again.",
+        description: error.message || "Failed to complete tier registration. Please try again.",
         variant: "destructive",
       });
       // Don't redirect on error - let user retry
