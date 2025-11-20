@@ -22,7 +22,7 @@ export const Header = ({ onSignIn, onSignUp, onDriveAndEarn }: HeaderProps) => {
   // Fetch severe weather alerts count for badge
   const { data: alerts = [] } = useQuery<Array<{ status: string }>>({
     queryKey: ['/api/weather/alerts/severe'],
-    refetchInterval: 60000, // Refetch every minute
+    refetchInterval: 4 * 60 * 60 * 1000, // Refetch every 4 hours
   });
 
   const activeAlertsCount = alerts.filter(alert => alert.status === 'active').length;

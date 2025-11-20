@@ -26,7 +26,7 @@ interface WeatherAlert {
 export function Notifications() {
   const { data: alerts, isLoading } = useQuery<WeatherAlert[]>({
     queryKey: ['/api/weather/alerts'],
-    refetchInterval: 5 * 60 * 1000, // Refresh every 5 minutes
+    refetchInterval: 4 * 60 * 60 * 1000, // Refresh every 4 hours
   });
 
   const getSeverityColor = (severity: string) => {
@@ -96,83 +96,48 @@ export function Notifications() {
           </div>
         </div>
 
-        {/* Active Alerts */}
+        {/* Active Alerts - Compact List */}
         {activeAlerts.length > 0 && (
           <div className="mb-8">
             <h2 className="text-2xl font-bold mb-4 flex items-center gap-2" data-testid="text-active-alerts-title">
               <AlertTriangle className="w-6 h-6 text-orange-600" />
               Active Alerts ({activeAlerts.length})
             </h2>
-            <div className="space-y-4">
+            <div className="space-y-2">
               {activeAlerts.map((alert) => (
                 <Card 
                   key={alert.id} 
-                  className={`border-l-4 ${getSeverityColor(alert.severity)}`}
+                  className={`border-l-4 hover:shadow-md transition-shadow ${getSeverityColor(alert.severity)}`}
                   data-testid={`alert-card-${alert.id}`}
                 >
-                  <CardHeader>
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex items-start gap-3 flex-1">
-                        <div className={`p-2 rounded-full ${getSeverityColor(alert.severity)}`}>
-                          {getAlertIcon(alert.event)}
-                        </div>
-                        <div className="flex-1">
-                          <CardTitle className="text-xl mb-2" data-testid={`text-alert-event-${alert.id}`}>
+                  <CardContent className="p-4">
+                    <div className="flex items-start gap-3">
+                      <div className={`p-1.5 rounded-full ${getSeverityColor(alert.severity)} flex-shrink-0`}>
+                        {getAlertIcon(alert.event)}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start justify-between gap-2 mb-1">
+                          <h3 className="font-bold text-base" data-testid={`text-alert-event-${alert.id}`}>
                             {alert.event}
-                          </CardTitle>
-                          <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-                            {alert.headline}
-                          </p>
-                          <div className="flex flex-wrap gap-2 mb-3">
-                            <Badge variant="outline" className={getSeverityColor(alert.severity)}>
+                          </h3>
+                          <div className="flex gap-1 flex-shrink-0">
+                            <Badge variant="outline" className={`text-xs ${getSeverityColor(alert.severity)}`}>
                               {alert.severity}
                             </Badge>
-                            <Badge variant="outline" className="bg-gray-100 dark:bg-gray-800">
-                              {alert.urgency}
-                            </Badge>
-                            <Badge variant="outline" className="bg-gray-100 dark:bg-gray-800">
-                              {alert.category}
-                            </Badge>
-                          </div>
-                          <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400 mb-3">
-                            <div className="flex items-center gap-1">
-                              <MapPin className="w-4 h-4" />
-                              <span>{alert.areaDesc}</span>
-                            </div>
                           </div>
                         </div>
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      <div>
-                        <h4 className="font-semibold mb-2 text-sm">Description:</h4>
-                        <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
-                          {alert.description}
+                        <p className="text-sm text-gray-700 dark:text-gray-300 line-clamp-2 mb-2">
+                          {alert.headline}
                         </p>
-                      </div>
-                      
-                      {alert.instruction && (
-                        <div className="bg-orange-50 dark:bg-orange-900/20 p-4 rounded-lg">
-                          <h4 className="font-semibold mb-2 text-sm flex items-center gap-2">
-                            <AlertTriangle className="w-4 h-4 text-orange-600 dark:text-orange-400" />
-                            Instructions:
-                          </h4>
-                          <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
-                            {alert.instruction}
-                          </p>
-                        </div>
-                      )}
-
-                      <div className="flex items-center gap-6 text-xs text-gray-600 dark:text-gray-400">
-                        <div className="flex items-center gap-1">
-                          <Calendar className="w-3 h-3" />
-                          <span>Effective: {format(new Date(alert.effective), "MMM d, h:mm a")}</span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <Calendar className="w-3 h-3" />
-                          <span>Expires: {format(new Date(alert.expires), "MMM d, h:mm a")}</span>
+                        <div className="flex items-center gap-3 text-xs text-gray-600 dark:text-gray-400 flex-wrap">
+                          <div className="flex items-center gap-1">
+                            <MapPin className="w-3 h-3" />
+                            <span className="truncate">{alert.areaDesc}</span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <Calendar className="w-3 h-3" />
+                            <span>Expires {format(new Date(alert.expires), "MMM d, h:mm a")}</span>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -196,32 +161,34 @@ export function Notifications() {
           </Card>
         )}
 
-        {/* Expired Alerts (Recent History) */}
+        {/* Expired Alerts (Recent History) - Compact */}
         {expiredAlerts.length > 0 && (
           <div>
             <h2 className="text-xl font-bold mb-4 text-gray-600 dark:text-gray-400" data-testid="text-expired-alerts-title">
               Recent Expired Alerts ({expiredAlerts.length})
             </h2>
-            <div className="space-y-4 opacity-60">
+            <div className="space-y-2 opacity-60">
               {expiredAlerts.slice(0, 10).map((alert) => (
                 <Card key={alert.id} className="border-gray-300 dark:border-gray-700" data-testid={`expired-alert-${alert.id}`}>
-                  <CardHeader className="pb-3">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        {getAlertIcon(alert.event)}
-                        <CardTitle className="text-base">{alert.event}</CardTitle>
+                  <CardContent className="p-3">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-2 flex-1 min-w-0">
+                        <div className="flex-shrink-0">
+                          {getAlertIcon(alert.event)}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-semibold text-sm truncate">{alert.event}</p>
+                          <p className="text-xs text-gray-600 dark:text-gray-400 truncate">{alert.areaDesc}</p>
+                        </div>
                       </div>
-                      <Badge variant="outline" className="bg-gray-100 dark:bg-gray-800">
-                        Expired
-                      </Badge>
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <div className="text-xs text-gray-500 dark:text-gray-500 text-right">
+                          <div>Expired</div>
+                          <div>{format(new Date(alert.expires), "MMM d")}</div>
+                        </div>
+                      </div>
                     </div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
-                      {alert.areaDesc}
-                    </p>
-                    <div className="text-xs text-gray-500 dark:text-gray-500 mt-2">
-                      Expired: {format(new Date(alert.expires), "MMM d, h:mm a")}
-                    </div>
-                  </CardHeader>
+                  </CardContent>
                 </Card>
               ))}
             </div>
