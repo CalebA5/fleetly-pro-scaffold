@@ -80,7 +80,7 @@ export function Notifications() {
       <div className="container mx-auto px-4 py-4 md:py-8 max-w-6xl">
         {/* Header */}
         <div className="mb-6 md:mb-8">
-          <Link to="/">
+          <Link href="/">
             <Button variant="ghost" size="sm" className="mb-3 md:mb-4" data-testid="button-back-home">
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back to Home
