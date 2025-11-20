@@ -8,6 +8,7 @@ import { CustomerProfile } from "./CustomerProfile";
 import { OperatorMap } from "./OperatorMap";
 import { AIAssist } from "./AIAssist";
 import { Favorites } from "./Favorites";
+import { Requests } from "./Requests";
 
 export const CustomerDashboard = () => {
   return (
@@ -20,6 +21,7 @@ export const CustomerDashboard = () => {
         <Route path="/customer/operators" component={OperatorMap} />
         <Route path="/customer/operator-map" component={OperatorMap} />
         <Route path="/customer/favorites" component={Favorites} />
+        <Route path="/customer/requests" component={Requests} />
         <Route path="/customer/ai-assist" component={AIAssist} />
         <Route path="/customer/create-request" component={CreateServiceRequest} />
         <Route path="/customer/service-request" component={ServiceRequest} />
