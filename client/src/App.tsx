@@ -15,15 +15,17 @@ import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import { queryClient } from "@/lib/queryClient";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { LocationProvider } from "@/contexts/LocationContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <Switch>
+      <LocationProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <Switch>
           <Route path="/" component={Index} />
           <Route path="/help" component={HelpSupport} />
           <Route path="/profile" component={Profile} />
@@ -62,7 +64,8 @@ const App = () => (
           
           <Route component={NotFound} />
         </Switch>
-      </TooltipProvider>
+        </TooltipProvider>
+      </LocationProvider>
     </AuthProvider>
   </QueryClientProvider>
 );

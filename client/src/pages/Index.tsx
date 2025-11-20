@@ -6,7 +6,8 @@ import { Input } from "@/components/ui/input";
 import { AuthDialog } from "@/components/AuthDialog";
 import { Header } from "@/components/Header";
 import { MobileBottomNav } from "@/components/MobileBottomNav";
-import { WeatherAlertBanner } from "@/components/WeatherAlertBanner";
+import { WeatherAlertToast } from "@/components/WeatherAlertToast";
+import { LocationPermissionPrompt } from "@/components/LocationPermissionPrompt";
 import { useAuth } from "@/contexts/AuthContext";
 import { MapPin, ArrowRight, Truck, Clock, Shield, Star, Search } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -56,15 +57,18 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900">
+      {/* Weather Alert Toast Notifications */}
+      <WeatherAlertToast />
+      
+      {/* Location Permission Prompt */}
+      <LocationPermissionPrompt />
+      
       {/* Modern Header */}
       <Header 
         onSignIn={() => handleAuthClick("signin")}
         onSignUp={() => handleAuthClick("signup")}
         onDriveAndEarn={handleDriveAndEarn}
       />
-
-      {/* Weather Alert Banner - Proactive Notifications */}
-      <WeatherAlertBanner />
 
       {/* Hero Section with Location Search */}
       <section className="relative bg-white dark:bg-gray-900 py-12 md:py-20 overflow-hidden border-b border-gray-200 dark:border-gray-800">

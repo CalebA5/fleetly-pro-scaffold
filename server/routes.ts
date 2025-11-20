@@ -1,7 +1,7 @@
 import { Router } from "express";
 import type { IStorage } from "./storage";
 import { db } from "./db";
-import { operators, favorites, operatorTierStats, weatherAlerts, insertWeatherAlertSchema } from "@shared/schema";
+import { operators, customers, favorites, operatorTierStats, weatherAlerts, insertWeatherAlertSchema } from "@shared/schema";
 import { eq, sql, and, gte } from "drizzle-orm";
 import { insertJobSchema, insertServiceRequestSchema, insertCustomerSchema, insertOperatorSchema, insertRatingSchema, insertFavoriteSchema, insertOperatorLocationSchema, insertCustomerServiceHistorySchema, OPERATOR_TIER_INFO } from "@shared/schema";
 import { isWithinRadius } from "./utils/distance";
@@ -348,28 +348,61 @@ export function registerRoutes(storage: IStorage) {
   });
 
   router.get("/api/customers/:customerId", async (req, res) => {
-    const customer = await storage.getCustomer(req.params.customerId);
-    if (!customer) {
-      return res.status(404).json({ message: "Customer not found" });
+    try {
+      const customer = await db.query.customers.findFirst({
+        where: eq(customers.customerId, req.params.customerId)
+      });
+      if (!customer) {
+        return res.status(404).json({ message: "Customer not found" });
+      }
+      res.json(customer);
+    } catch (error) {
+      console.error("Error fetching customer:", error);
+      res.status(500).json({ message: "Failed to fetch customer" });
     }
-    res.json(customer);
   });
 
   router.post("/api/customers", async (req, res) => {
-    const result = insertCustomerSchema.safeParse(req.body);
-    if (!result.success) {
-      return res.status(400).json({ errors: result.error.issues });
+    try {
+      const result = insertCustomerSchema.safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ errors: result.error.issues });
+      }
+      
+      // Check if customer already exists
+      const existing = await db.query.customers.findFirst({
+        where: eq(customers.customerId, result.data.customerId)
+      });
+      
+      if (existing) {
+        return res.status(200).json(existing); // Return existing customer
+      }
+      
+      // Create new customer with validated data
+      const customerData: any = { ...result.data };
+      const [customer] = await db.insert(customers).values(customerData).returning();
+      res.status(201).json(customer);
+    } catch (error) {
+      console.error("Error creating customer:", error);
+      res.status(500).json({ message: "Failed to create customer" });
     }
-    const customer = await storage.createCustomer(result.data);
-    res.status(201).json(customer);
   });
 
   router.patch("/api/customers/:customerId", async (req, res) => {
-    const customer = await storage.updateCustomer(req.params.customerId, req.body);
-    if (!customer) {
-      return res.status(404).json({ message: "Customer not found" });
+    try {
+      const [customer] = await db.update(customers)
+        .set(req.body)
+        .where(eq(customers.customerId, req.params.customerId))
+        .returning();
+      
+      if (!customer) {
+        return res.status(404).json({ message: "Customer not found" });
+      }
+      res.json(customer);
+    } catch (error) {
+      console.error("Error updating customer:", error);
+      res.status(500).json({ message: "Failed to update customer" });
     }
-    res.json(customer);
   });
 
   // Favorites routes
