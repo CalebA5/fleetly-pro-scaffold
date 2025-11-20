@@ -31,7 +31,7 @@ export function WeatherAlertToast() {
 
   const { data: alerts } = useQuery<WeatherAlert[]>({
     queryKey: ['/api/weather/alerts/severe'],
-    refetchInterval: 5 * 60 * 1000, // Refetch every 5 minutes
+    refetchInterval: 4 * 60 * 60 * 1000, // Refetch every 4 hours
   });
 
   useEffect(() => {
