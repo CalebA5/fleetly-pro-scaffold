@@ -123,37 +123,26 @@ export function registerRoutes(storage: IStorage) {
         return res.status(404).json({ message: "Operator not found" });
       }
 
+      res.json(operator);
+    } catch (error) {
+      console.error("Error fetching operator:", error);
+      res.status(500).json({ message: "Failed to fetch operator" });
+    }
+  });
+
+  router.get("/api/operators/by-id/:operatorId/tier-stats", async (req, res) => {
+    try {
+      const operatorId = req.params.operatorId;
+      
       // Fetch tier-specific stats for this operator
       const tierStats = await db.query.operatorTierStats.findMany({
         where: eq(operatorTierStats.operatorId, operatorId)
       });
-
-      // Create a map of tier to stats for easy lookup
-      const tierStatsMap: Record<string, {
-        jobsCompleted: number;
-        totalEarnings: string;
-        rating: string;
-        totalRatings: number;
-        lastActiveAt: Date | null;
-      }> = {};
-
-      tierStats.forEach(stat => {
-        tierStatsMap[stat.tier] = {
-          jobsCompleted: stat.jobsCompleted,
-          totalEarnings: stat.totalEarnings,
-          rating: stat.rating,
-          totalRatings: stat.totalRatings,
-          lastActiveAt: stat.lastActiveAt
-        };
-      });
-
-      res.json({
-        ...operator,
-        tierStats: tierStatsMap
-      });
+      
+      res.json(tierStats);
     } catch (error) {
-      console.error("Error fetching operator:", error);
-      res.status(500).json({ message: "Failed to fetch operator" });
+      console.error("Error fetching tier stats:", error);
+      res.status(500).json({ message: "Failed to fetch tier stats" });
     }
   });
 

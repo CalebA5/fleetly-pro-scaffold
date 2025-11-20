@@ -36,6 +36,16 @@ Professional and equipped operators can now register and manage multiple vehicle
 - **Database Schema**: Vehicles table with operatorId reference, vehicle details, services JSONB array, and isActive flag
 - **Backend API**: RESTful endpoints (GET/POST/PATCH/DELETE /api/operators/:operatorId/vehicles, POST set-active)
 
+### Comprehensive Profile Page (November 20, 2025) ✅
+Created unified profile page showing customer and operator information based on user roles:
+- **Customer Statistics**: Total requests, completed jobs, pending requests with color-coded gradient cards
+- **Operator Performance**: Overall rating, total jobs, total earnings across all tiers
+- **Tier-Specific Stats**: Individual performance breakdowns for each subscribed tier (Professional, Equipped, Manual)
+- **Role Badges**: Visual indicators showing customer status and all subscribed operator tiers
+- **Modern UI**: Gradient backgrounds, rounded cards, orange accent theme, responsive grid layout
+- **Backend Integration**: New GET `/api/operators/:operatorId/tier-stats` endpoint for fetching tier-specific statistics
+- **Route Added**: `/profile` route accessible from dropdown menu in header
+
 ### Navigation & State Management Improvements (November 20, 2025) ✅
 Fixed critical navigation and state persistence issues for better operator experience:
 - **Unified Drive & Earn Navigation**: All "Drive & Earn" buttons now consistently navigate to `/operator/onboarding` (tier selection page), not tier-specific dashboards

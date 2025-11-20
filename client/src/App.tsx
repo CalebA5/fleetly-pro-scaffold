@@ -10,6 +10,7 @@ import { BusinessDashboard } from "./pages/operator/BusinessDashboard";
 import ManualOperatorDashboard from "./pages/operator/ManualOperatorDashboard";
 import EquippedOperatorDashboard from "./pages/operator/EquippedOperatorDashboard";
 import { HelpSupport } from "./pages/HelpSupport";
+import { Profile } from "./pages/Profile";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import { queryClient } from "@/lib/queryClient";
@@ -25,6 +26,7 @@ const App = () => (
         <Switch>
           <Route path="/" component={Index} />
           <Route path="/help" component={HelpSupport} />
+          <Route path="/profile" component={Profile} />
           <Route path="/customer" component={CustomerDashboard} />
           <Route path="/customer/:rest+" component={CustomerDashboard} />
           
