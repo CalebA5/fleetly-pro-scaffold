@@ -3,8 +3,8 @@ import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import { eq, and, gt } from 'drizzle-orm';
 import { db } from './db';
-import { users, operators, sessions } from '@shared/schema';
-import type { InsertUser, InsertOperator, InsertSession } from '@shared/schema';
+import { users, operators, sessions, customers } from '@shared/schema';
+import type { InsertUser, InsertOperator, InsertSession, InsertCustomer } from '@shared/schema';
 
 const router = Router();
 
@@ -66,6 +66,22 @@ router.post('/signup', async (req, res) => {
     };
 
     const [createdUser] = await db.insert(users).values(newUser).returning();
+
+    // Create customer record (all users can request services)
+    const customerId = `CUST-${userId.split('-')[1]}`; // Use timestamp from userId
+    const newCustomer: InsertCustomer = {
+      customerId,
+      name,
+      email,
+      phone: '',
+      address: null,
+      city: null,
+      state: null,
+      zipCode: null,
+      photo: null,
+    };
+
+    await db.insert(customers).values(newCustomer);
 
     // If operator, create operator profile
     if (role === 'operator' && operatorId) {
@@ -132,13 +148,14 @@ router.post('/signup', async (req, res) => {
 
     // Return user data (without password hash)
     res.json({
-      id: createdUser.id,
+      id: customerId, // Use customer ID as the main ID for consistency
       userId: createdUser.userId,
       name: createdUser.name,
       email: createdUser.email,
       role: createdUser.role,
       operatorId: createdUser.operatorId,
       businessId: createdUser.businessId,
+      customerId: customerId,
       operatorProfileComplete: role === 'operator' ? false : undefined,
       operatorTier: operatorData?.operatorTier,
       subscribedTiers: operatorData?.subscribedTiers,
@@ -194,6 +211,28 @@ router.post('/signin', async (req, res) => {
       maxAge: 30 * 24 * 60 * 60 * 1000,
     });
 
+    // Create customer record if it doesn't exist (for existing users)
+    const customerId = `CUST-${user.userId.split('-')[1]}`;
+    const existingCustomer = await db.query.customers.findFirst({
+      where: eq(customers.customerId, customerId)
+    });
+
+    if (!existingCustomer) {
+      const newCustomer: InsertCustomer = {
+        customerId,
+        name: user.name,
+        email: user.email,
+        phone: '',
+        address: null,
+        city: null,
+        state: null,
+        zipCode: null,
+        photo: null,
+      };
+
+      await db.insert(customers).values(newCustomer);
+    }
+
     // Fetch operator data if applicable
     let operatorData = null;
     if (user.role === 'operator' && user.operatorId) {
@@ -204,13 +243,14 @@ router.post('/signin', async (req, res) => {
 
     // Return user data (without password hash)
     res.json({
-      id: user.id,
+      id: customerId, // Use customer ID as the main ID for consistency
       userId: user.userId,
       name: user.name,
       email: user.email,
       role: user.role,
       operatorId: user.operatorId,
       businessId: user.businessId,
+      customerId: customerId,
       operatorProfileComplete: user.role === 'operator',
       operatorTier: operatorData?.operatorTier,
       subscribedTiers: operatorData?.subscribedTiers,
