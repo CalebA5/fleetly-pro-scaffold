@@ -34,7 +34,7 @@ import {
 export const CreateServiceRequest = () => {
   const [location, setLocation] = useLocation();
   const { toast } = useToast();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const [showAuthDialog, setShowAuthDialog] = useState(false);
   const [authTab, setAuthTab] = useState<"signin" | "signup">("signin");
   
@@ -178,6 +178,9 @@ export const CreateServiceRequest = () => {
     }
 
     const requestData: any = {
+      requestId: `REQ-${Date.now()}`,
+      customerId: user?.id || "",
+      customerName: user?.name || "",
       serviceType,
       isEmergency,
       urgencyLevel, // NEW: Send urgency level to backend
@@ -189,6 +192,7 @@ export const CreateServiceRequest = () => {
       budgetRange,
       imageCount: images.length,
       operatorId: selectedOperatorId || undefined, // NEW: Send operator ID if prefilled
+      operatorName: selectedOperatorName || undefined,
     };
 
     // Add service-specific data
@@ -276,16 +280,27 @@ export const CreateServiceRequest = () => {
         {selectedOperatorName && (
           <Card className="mb-6 border-green-200 dark:border-green-800 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/10 dark:to-emerald-900/10">
             <CardContent className="py-4">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-full bg-green-600 dark:bg-green-500 flex items-center justify-center text-white font-bold text-lg">
-                  {selectedOperatorName.charAt(0)}
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-full bg-green-600 dark:bg-green-500 flex items-center justify-center text-white font-bold text-lg">
+                    {selectedOperatorName.charAt(0)}
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-black dark:text-white">Requesting service from {selectedOperatorName}</h3>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      This request will be sent directly to this operator
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="font-semibold text-black dark:text-white">Requesting service from {selectedOperatorName}</h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
-                    This request will be sent directly to this operator
-                  </p>
-                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setLocation("/customer/operators")}
+                  className="whitespace-nowrap"
+                  data-testid="button-change-operator"
+                >
+                  Change Operator
+                </Button>
               </div>
             </CardContent>
           </Card>

@@ -140,6 +140,7 @@ export const serviceRequests = pgTable("service_requests", {
   operatorName: text("operator_name"),
   serviceType: text("service_type").notNull(),
   isEmergency: integer("is_emergency").notNull().default(0),
+  urgencyLevel: text("urgency_level"), // Added urgency level column
   description: text("description").notNull(),
   status: text("status").notNull().default("pending"),
   location: text("location").notNull(),
@@ -164,6 +165,7 @@ const baseServiceRequestSchema = z.object({
   operatorName: z.string().optional(),
   serviceType: z.string(),
   isEmergency: z.boolean().optional(),
+  urgencyLevel: z.string().optional(), // Added urgencyLevel field
   description: z.string(),
   status: z.string().optional(),
   location: z.string(),
