@@ -6,6 +6,17 @@ import { eq, sql, and, gte } from "drizzle-orm";
 import { insertJobSchema, insertServiceRequestSchema, insertCustomerSchema, insertOperatorSchema, insertRatingSchema, insertFavoriteSchema, insertOperatorLocationSchema, insertCustomerServiceHistorySchema, OPERATOR_TIER_INFO } from "@shared/schema";
 import { isWithinRadius } from "./utils/distance";
 import { getServiceRelevantAlerts } from "./services/weatherService";
+import { z } from "zod";
+
+// Validation schemas for operator endpoints
+const updateActiveTierSchema = z.object({
+  activeTier: z.enum(['professional', 'equipped', 'manual'])
+});
+
+const updateEquipmentSchema = z.object({
+  equipmentInventory: z.array(z.any()).optional(),
+  primaryVehicleImage: z.string().nullable().optional()
+});
 
 // Helper function to calculate distance between two points (Haversine formula)
 function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
@@ -385,11 +396,14 @@ export function registerRoutes(storage: IStorage) {
   router.patch("/api/operators/:operatorId/active-tier", async (req, res) => {
     try {
       const operatorId = req.params.operatorId;
-      const { activeTier } = req.body;
-
-      if (!activeTier || !['professional', 'equipped', 'manual'].includes(activeTier)) {
-        return res.status(400).json({ message: "Invalid tier specified" });
+      
+      // Validate request body
+      const result = updateActiveTierSchema.safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ message: "Invalid tier specified", errors: result.error.issues });
       }
+
+      const { activeTier } = result.data;
 
       // Get operator
       const existing = await db.query.operators.findFirst({
@@ -444,7 +458,14 @@ export function registerRoutes(storage: IStorage) {
   router.patch("/api/operators/:operatorId/equipment", async (req, res) => {
     try {
       const operatorId = req.params.operatorId;
-      const { equipmentInventory, primaryVehicleImage } = req.body;
+      
+      // Validate request body
+      const result = updateEquipmentSchema.safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ message: "Invalid equipment data", errors: result.error.issues });
+      }
+
+      const { equipmentInventory, primaryVehicleImage } = result.data;
 
       // Get operator
       const existing = await db.query.operators.findFirst({
@@ -454,10 +475,10 @@ export function registerRoutes(storage: IStorage) {
         return res.status(404).json({ message: "Operator not found" });
       }
 
-      // Update equipment
+      // Update equipment with defensive normalization
       const updateData: any = {};
       if (equipmentInventory !== undefined) {
-        updateData.equipmentInventory = equipmentInventory;
+        updateData.equipmentInventory = equipmentInventory || [];
       }
       if (primaryVehicleImage !== undefined) {
         updateData.primaryVehicleImage = primaryVehicleImage;
