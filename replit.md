@@ -7,6 +7,15 @@ Fleetly is a professional on-demand service platform connecting customers with v
 Preferred communication style: Simple, everyday language.
 
 ## Recent Changes (November 21, 2025)
+- **Hybrid Seasonal + Time-Based Theming System (Option C)**: Intelligent adaptive theming with 4 seasonal color palettes and time-of-day awareness:
+  - **Auto-Seasonal Mode**: Automatically switches both seasonal palette (Winter/Spring/Summer/Autumn) AND light/dark mode based on current month and time of day
+  - **Time-Based Mode**: Locks to Winter palette (professional black/white) and only toggles light/dark based on time (6 AM-6 PM = light, 6 PM-6 AM = dark)
+  - **Manual Light/Dark**: User can override to always-light or always-dark using current season's palette
+  - **Seasonal Palettes**: Winter (navy/ice blue), Spring (sage/sky blue), Summer (turquoise/sand), Autumn (rust/camel)
+  - **Brand Consistency**: Orange accent (#F97316) preserved across all seasons
+  - **Persistence**: Theme mode saved to localStorage with 1-minute checks for season/time changes
+  - **Smooth Transitions**: 0.3s CSS transitions for seamless palette changes
+  - **Theme Selector**: Palette icon button in header with dropdown showing current season emoji (❄️🌸☀️🍁) and mode indicator (☀️🌙)
 - **Auto-Location Detection on Homepage**: When customers allow location sharing, their current location automatically populates the "Enter pickup location" field using browser geolocation and reverse geocoding (OpenStreetMap Nominatim API). Shows loading spinner during detection and silently fails if permission denied.
 - **Critical Request Submission Fix**: 
   - Removed client-side requestId generation to prevent collisions
