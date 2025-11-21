@@ -29,7 +29,7 @@ const Index = () => {
   const [currentLon, setCurrentLon] = useState<number | null>(null);
   const { isAuthenticated, user } = useAuth();
   const { toast } = useToast();
-  const { setFormattedAddress } = useUserLocation();
+  const { setFormattedAddress, formattedAddress, location } = useUserLocation();
 
   const handleAuthClick = (tab: "signin" | "signup", role: "customer" | "operator" = "customer") => {
     setAuthTab(tab);
@@ -152,13 +152,13 @@ const Index = () => {
             if (data.display_name) {
               // Use a more concise address format
               const address = data.address;
-              const formattedAddress = [
+              const formattedAddressStr = [
                 address.road,
                 address.city || address.town || address.village,
                 address.state
               ].filter(Boolean).join(", ");
 
-              const finalAddress = formattedAddress || data.display_name;
+              const finalAddress = formattedAddressStr || data.display_name;
               setPickup(finalAddress);
               
               // Store in LocationContext
@@ -185,6 +185,20 @@ const Index = () => {
 
     detectLocation();
   }, []);
+
+  // Watch LocationContext for address changes and sync to pickup field
+  useEffect(() => {
+    if (formattedAddress && !pickup) {
+      // Only auto-fill if pickup field is empty
+      setPickup(formattedAddress);
+    }
+    
+    // Also update coordinates if location has changed
+    if (location && (currentLat === null || currentLon === null)) {
+      setCurrentLat(location.coords.latitude);
+      setCurrentLon(location.coords.longitude);
+    }
+  }, [formattedAddress, location, pickup, currentLat, currentLon]);
 
   return (
     <div className="min-h-screen w-full bg-white dark:bg-gray-900 overflow-x-hidden">
