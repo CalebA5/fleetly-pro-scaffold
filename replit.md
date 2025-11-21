@@ -8,7 +8,7 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
-### November 21, 2025 - Routing Fixes and Location Permission Improvements
+### November 21, 2025 - Tier Persistence Fixed, Routing & Location UX Improvements
 - **Drive & Earn Detection**: Fixed issue where registered operators weren't detected because session wasn't updated after onboarding
   - Added `/api/operators/by-user/:email` endpoint to fetch operator profiles by email
   - Updated Header component to fetch operator data from backend instead of relying on stale session
@@ -39,6 +39,14 @@ Preferred communication style: Simple, everyday language.
   - Location prompt now shows in new browser tabs/windows even if dismissed in another tab
   - Prompt still respects browser permission states (granted/denied/unavailable)
   - Improves first-time user experience when opening app in new contexts
+- **Tier Persistence Fixed**: Session and signin endpoints now properly fetch latest tier data from database
+  - When users register for a new tier (e.g., "Canada"), the data is persisted in the database
+  - Page refresh, sign-out, and sign-in all restore registered tiers correctly
+  - `/api/auth/session` and `/api/auth/signin` endpoints fetch operator data with current `subscribedTiers` and `activeTier`
+  - Tier information now persists reliably across browser sessions
+- **Mobile Location Auto-Sync**: Pickup field now automatically fills when location permission is granted
+  - LocationContext changes are watched and synced to the pickup input field
+  - Mobile experience now matches desktop version for location auto-detection
 
 ## System Architecture
 
