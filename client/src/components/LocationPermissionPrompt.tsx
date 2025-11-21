@@ -14,8 +14,8 @@ export function LocationPermissionPrompt() {
   const [isDismissed, setIsDismissed] = useState(false);
 
   useEffect(() => {
-    // Check if user previously dismissed the prompt
-    const dismissed = localStorage.getItem("locationPromptDismissed");
+    // Check if user previously dismissed the prompt in this session
+    const dismissed = sessionStorage.getItem("locationPromptDismissed");
     if (dismissed === "true") {
       setIsDismissed(true);
     }
@@ -23,11 +23,14 @@ export function LocationPermissionPrompt() {
 
   const handleDismiss = () => {
     setIsDismissed(true);
-    localStorage.setItem("locationPromptDismissed", "true");
+    // Use sessionStorage instead of localStorage so prompt shows again in new tabs
+    sessionStorage.setItem("locationPromptDismissed", "true");
   };
 
   const handleAllowLocation = async () => {
     await requestLocation();
+    // Dismiss after allowing
+    setIsDismissed(true);
   };
 
   // Don't show if already granted, denied, unavailable, or dismissed

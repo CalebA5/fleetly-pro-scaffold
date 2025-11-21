@@ -8,7 +8,7 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
-### November 21, 2025 - Location Features, Drive & Earn Detection, and View Profile Fixes
+### November 21, 2025 - Routing Fixes and Location Permission Improvements
 - **Drive & Earn Detection**: Fixed issue where registered operators weren't detected because session wasn't updated after onboarding
   - Added `/api/operators/by-user/:email` endpoint to fetch operator profiles by email
   - Updated Header component to fetch operator data from backend instead of relying on stale session
@@ -31,6 +31,14 @@ Preferred communication style: Simple, everyday language.
   - Blue user location marker (24px circle with white border) appears whether user arrives via homepage search or direct navigation
   - Marker popup displays address from either URL params or persisted LocationContext
   - Ensures consistent user experience regardless of how users reach the map page
+- **Routing Fix**: Restored Switch wrapper in App.tsx to prevent multiple route rendering
+  - Fixed issue where Drive & Earn page wasn't loading (showed homepage instead)
+  - All routes now properly match first occurrence and render correctly
+  - Added 404 NotFound component as catch-all route
+- **Location Permission Prompt**: Changed from localStorage to sessionStorage for prompt dismissal
+  - Location prompt now shows in new browser tabs/windows even if dismissed in another tab
+  - Prompt still respects browser permission states (granted/denied/unavailable)
+  - Improves first-time user experience when opening app in new contexts
 
 ## System Architecture
 

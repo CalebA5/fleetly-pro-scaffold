@@ -42,58 +42,62 @@ const App = () => (
           <TooltipProvider>
             <Toaster />
             <Sonner />
-          <Route path="/" component={Index} />
-          <Route path="/emergency-sos" component={EmergencySOS} />
-          <Route path="/emergency-tracking/:emergencyId" component={EmergencyTracking} />
-          <Route path="/test-operator-tiles" component={TestOperatorTiles} />
-          <Route path="/help" component={HelpSupport} />
-          <Route path="/profile" component={Profile} />
-          <Route path="/notifications" component={Notifications} />
-          
-          {/* Customer routes */}
-          <Route path="/customer/services" component={ServiceSelection} />
-          <Route path="/customer/operators" component={OperatorMap} />
-          <Route path="/customer/operator-map" component={OperatorMap} />
-          <Route path="/customer/operator-profile/:operatorId" component={OperatorProfile} />
-          <Route path="/customer/favorites" component={Favorites} />
-          <Route path="/customer/requests" component={Requests} />
-          <Route path="/customer/ai-assist" component={AIAssist} />
-          <Route path="/customer/create-request" component={CreateServiceRequest} />
-          <Route path="/customer/service-request" component={ServiceRequest} />
-          <Route path="/customer/tracking" component={JobTracking} />
-          <Route path="/customer/history" component={JobHistory} />
-          <Route path="/customer/profile" component={CustomerProfile} />
-          
-          {/* Public tier selection/onboarding - no auth required */}
-          <Route path="/operator/onboarding" component={OperatorOnboarding} />
-          
-          {/* Protected operator dashboards - require operator auth */}
-          <Route path="/business">
-            <ProtectedRoute requireOperator>
-              <BusinessDashboard />
-            </ProtectedRoute>
-          </Route>
-          <Route path="/manual-operator">
-            <ProtectedRoute requireOperator>
-              <ManualOperatorDashboard />
-            </ProtectedRoute>
-          </Route>
-          <Route path="/equipped-operator">
-            <ProtectedRoute requireOperator>
-              <EquippedOperatorDashboard />
-            </ProtectedRoute>
-          </Route>
-          <Route path="/operator">
-            <ProtectedRoute requireOperator>
-              <OperatorDashboard />
-            </ProtectedRoute>
-          </Route>
-          <Route path="/operator/:rest+">
-            <ProtectedRoute requireOperator>
-              <OperatorDashboard />
-            </ProtectedRoute>
-          </Route>
-        <MobileBottomNav />
+            <Switch>
+              <Route path="/" component={Index} />
+              <Route path="/emergency-sos" component={EmergencySOS} />
+              <Route path="/emergency-tracking/:emergencyId" component={EmergencyTracking} />
+              <Route path="/test-operator-tiles" component={TestOperatorTiles} />
+              <Route path="/help" component={HelpSupport} />
+              <Route path="/profile" component={Profile} />
+              <Route path="/notifications" component={Notifications} />
+              
+              {/* Customer routes */}
+              <Route path="/customer/services" component={ServiceSelection} />
+              <Route path="/customer/operators" component={OperatorMap} />
+              <Route path="/customer/operator-map" component={OperatorMap} />
+              <Route path="/customer/operator-profile/:operatorId" component={OperatorProfile} />
+              <Route path="/customer/favorites" component={Favorites} />
+              <Route path="/customer/requests" component={Requests} />
+              <Route path="/customer/ai-assist" component={AIAssist} />
+              <Route path="/customer/create-request" component={CreateServiceRequest} />
+              <Route path="/customer/service-request" component={ServiceRequest} />
+              <Route path="/customer/tracking" component={JobTracking} />
+              <Route path="/customer/history" component={JobHistory} />
+              <Route path="/customer/profile" component={CustomerProfile} />
+              
+              {/* Public tier selection/onboarding - no auth required */}
+              <Route path="/operator/onboarding" component={OperatorOnboarding} />
+              
+              {/* Protected operator dashboards - require operator auth */}
+              <Route path="/business">
+                <ProtectedRoute requireOperator>
+                  <BusinessDashboard />
+                </ProtectedRoute>
+              </Route>
+              <Route path="/manual-operator">
+                <ProtectedRoute requireOperator>
+                  <ManualOperatorDashboard />
+                </ProtectedRoute>
+              </Route>
+              <Route path="/equipped-operator">
+                <ProtectedRoute requireOperator>
+                  <EquippedOperatorDashboard />
+                </ProtectedRoute>
+              </Route>
+              <Route path="/operator">
+                <ProtectedRoute requireOperator>
+                  <OperatorDashboard />
+                </ProtectedRoute>
+              </Route>
+              <Route path="/operator/:rest+">
+                <ProtectedRoute requireOperator>
+                  <OperatorDashboard />
+                </ProtectedRoute>
+              </Route>
+              
+              <Route component={NotFound} />
+            </Switch>
+            <MobileBottomNav />
           </TooltipProvider>
         </LocationProvider>
       </AuthProvider>
