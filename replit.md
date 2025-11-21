@@ -7,6 +7,7 @@ Fleetly is a professional on-demand service platform connecting customers with v
 Preferred communication style: Simple, everyday language.
 
 ## Recent Changes (November 21, 2025)
+- **Auto-Location Detection on Homepage**: When customers allow location sharing, their current location automatically populates the "Enter pickup location" field using browser geolocation and reverse geocoding (OpenStreetMap Nominatim API). Shows loading spinner during detection and silently fails if permission denied.
 - **Critical Request Submission Fix**: 
   - Removed client-side requestId generation to prevent collisions
   - Backend now generates unique requestId server-side: `REQ-${timestamp}-${randomString}`

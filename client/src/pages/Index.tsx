@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -10,7 +10,7 @@ import { WeatherAlertToast } from "@/components/WeatherAlertToast";
 import { LocationPermissionPrompt } from "@/components/LocationPermissionPrompt";
 import { EmergencySOSButton } from "@/components/EmergencySOSButton";
 import { useAuth } from "@/contexts/AuthContext";
-import { MapPin, ArrowRight, Truck, Clock, Shield, Star, Search } from "lucide-react";
+import { MapPin, ArrowRight, Truck, Clock, Shield, Star, Search, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 const Index = () => {
@@ -21,6 +21,7 @@ const Index = () => {
   const [pickup, setPickup] = useState("");
   const [dropoff, setDropoff] = useState("");
   const [showAvailability, setShowAvailability] = useState(false);
+  const [loadingLocation, setLoadingLocation] = useState(false);
   const { isAuthenticated, user } = useAuth();
   const { toast } = useToast();
 
@@ -55,6 +56,60 @@ const Index = () => {
       setLocation("/customer/service-request");
     }
   };
+
+  // Auto-detect user location on mount
+  useEffect(() => {
+    const detectLocation = async () => {
+      // Check if geolocation is supported
+      if (!navigator.geolocation) {
+        return;
+      }
+
+      setLoadingLocation(true);
+
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          const { latitude, longitude } = position.coords;
+
+          try {
+            // Use OpenStreetMap Nominatim for reverse geocoding
+            const response = await fetch(
+              `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`
+            );
+            const data = await response.json();
+
+            if (data.display_name) {
+              // Use a more concise address format
+              const address = data.address;
+              const formattedAddress = [
+                address.road,
+                address.city || address.town || address.village,
+                address.state
+              ].filter(Boolean).join(", ");
+
+              setPickup(formattedAddress || data.display_name);
+            }
+          } catch (error) {
+            console.error("Reverse geocoding failed:", error);
+          } finally {
+            setLoadingLocation(false);
+          }
+        },
+        (error) => {
+          // User denied permission or error occurred - silently fail
+          console.log("Location access denied or unavailable");
+          setLoadingLocation(false);
+        },
+        {
+          enableHighAccuracy: false,
+          timeout: 5000,
+          maximumAge: 300000 // Cache location for 5 minutes
+        }
+      );
+    };
+
+    detectLocation();
+  }, []);
 
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900">
@@ -95,13 +150,19 @@ const Index = () => {
                 <div className="space-y-3">
                   <div className="flex items-center gap-3">
                     <div className="w-3 h-3 rounded-full bg-black dark:bg-white flex-shrink-0"></div>
-                    <Input
-                      placeholder="Enter pickup location"
-                      value={pickup}
-                      onChange={(e) => setPickup(e.target.value)}
-                      className="flex-1 border-0 bg-gray-50 dark:bg-gray-700 focus-visible:ring-1 focus-visible:ring-black dark:focus-visible:ring-white text-base"
-                      data-testid="input-pickup-location"
-                    />
+                    <div className="flex-1 relative">
+                      <Input
+                        placeholder={loadingLocation ? "Detecting your location..." : "Enter pickup location"}
+                        value={pickup}
+                        onChange={(e) => setPickup(e.target.value)}
+                        className="w-full border-0 bg-gray-50 dark:bg-gray-700 focus-visible:ring-1 focus-visible:ring-black dark:focus-visible:ring-white text-base"
+                        data-testid="input-pickup-location"
+                        disabled={loadingLocation}
+                      />
+                      {loadingLocation && (
+                        <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 animate-spin text-gray-400" />
+                      )}
+                    </div>
                   </div>
                   <div className="h-px bg-gray-200 dark:bg-gray-700 ml-6"></div>
                   <div className="flex items-center gap-3">
