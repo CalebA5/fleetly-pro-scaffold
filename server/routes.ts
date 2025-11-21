@@ -381,6 +381,100 @@ export function registerRoutes(storage: IStorage) {
     }
   });
 
+  // Switch active tier for an operator
+  router.patch("/api/operators/:operatorId/active-tier", async (req, res) => {
+    try {
+      const operatorId = req.params.operatorId;
+      const { activeTier } = req.body;
+
+      if (!activeTier || !['professional', 'equipped', 'manual'].includes(activeTier)) {
+        return res.status(400).json({ message: "Invalid tier specified" });
+      }
+
+      // Get operator
+      const existing = await db.query.operators.findFirst({
+        where: eq(operators.operatorId, operatorId)
+      });
+      if (!existing) {
+        return res.status(404).json({ message: "Operator not found" });
+      }
+
+      // Verify operator is subscribed to this tier
+      if (!existing.subscribedTiers || !existing.subscribedTiers.includes(activeTier)) {
+        return res.status(403).json({ message: "Operator not subscribed to this tier" });
+      }
+
+      // Update active tier
+      const [operator] = await db.update(operators)
+        .set({ activeTier })
+        .where(eq(operators.operatorId, operatorId))
+        .returning();
+
+      res.json(operator);
+    } catch (error) {
+      console.error("Error switching active tier:", error);
+      res.status(500).json({ message: "Failed to switch active tier" });
+    }
+  });
+
+  // Get operator equipment inventory
+  router.get("/api/operators/:operatorId/equipment", async (req, res) => {
+    try {
+      const operatorId = req.params.operatorId;
+      
+      const operator = await db.query.operators.findFirst({
+        where: eq(operators.operatorId, operatorId)
+      });
+      
+      if (!operator) {
+        return res.status(404).json({ message: "Operator not found" });
+      }
+
+      res.json({
+        equipmentInventory: operator.equipmentInventory || [],
+        primaryVehicleImage: operator.primaryVehicleImage
+      });
+    } catch (error) {
+      console.error("Error fetching equipment:", error);
+      res.status(500).json({ message: "Failed to fetch equipment" });
+    }
+  });
+
+  // Update operator equipment inventory
+  router.patch("/api/operators/:operatorId/equipment", async (req, res) => {
+    try {
+      const operatorId = req.params.operatorId;
+      const { equipmentInventory, primaryVehicleImage } = req.body;
+
+      // Get operator
+      const existing = await db.query.operators.findFirst({
+        where: eq(operators.operatorId, operatorId)
+      });
+      if (!existing) {
+        return res.status(404).json({ message: "Operator not found" });
+      }
+
+      // Update equipment
+      const updateData: any = {};
+      if (equipmentInventory !== undefined) {
+        updateData.equipmentInventory = equipmentInventory;
+      }
+      if (primaryVehicleImage !== undefined) {
+        updateData.primaryVehicleImage = primaryVehicleImage;
+      }
+
+      const [operator] = await db.update(operators)
+        .set(updateData)
+        .where(eq(operators.operatorId, operatorId))
+        .returning();
+
+      res.json(operator);
+    } catch (error) {
+      console.error("Error updating equipment:", error);
+      res.status(500).json({ message: "Failed to update equipment" });
+    }
+  });
+
   router.get("/api/service-requests", async (req, res) => {
     const customerId = req.query.customerId as string | undefined;
     const requests = await storage.getServiceRequests(customerId);
