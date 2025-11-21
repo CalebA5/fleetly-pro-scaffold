@@ -168,10 +168,11 @@ export function registerRoutes(storage: IStorage) {
       // Get all operators
       const allOperators = await db.query.operators.findMany();
       
-      // Group operators by email to consolidate duplicates
+      // Group operators by email to consolidate duplicates (normalize email)
       const operatorsByEmail = new Map<string, any[]>();
       for (const op of allOperators) {
-        const email = op.email || op.operatorId;
+        // Normalize email: trim and lowercase
+        const email = (op.email || op.operatorId).trim().toLowerCase();
         if (!operatorsByEmail.has(email)) {
           operatorsByEmail.set(email, []);
         }
@@ -220,10 +221,10 @@ export function registerRoutes(storage: IStorage) {
           limit: 3
         });
         
-        // Calculate average rating from reviews
+        // Calculate average rating from reviews (null-safe)
         const avgRating = recentReviews.length > 0
           ? recentReviews.reduce((sum, r) => sum + r.rating, 0) / recentReviews.length
-          : parseFloat(primaryOperator.rating);
+          : (primaryOperator.rating ? parseFloat(primaryOperator.rating) : 0);
         
         // Build operator card
         const card = {
