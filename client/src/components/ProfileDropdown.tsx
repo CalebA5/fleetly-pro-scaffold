@@ -1,4 +1,4 @@
-import { User, LogOut, HelpCircle, FileText, Truck } from "lucide-react";
+import { User, LogOut, HelpCircle, FileText, Truck, List } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import {
   DropdownMenu,
@@ -62,6 +62,12 @@ export const ProfileDropdown = ({ onDriveAndEarn }: ProfileDropdownProps) => {
           <DropdownMenuItem data-testid="menu-profile">
             <User className="mr-2 h-4 w-4" />
             <span>Profile</span>
+          </DropdownMenuItem>
+        </Link>
+        <Link href="/customer/requests">
+          <DropdownMenuItem data-testid="menu-my-requests">
+            <List className="mr-2 h-4 w-4" />
+            <span>My Requests</span>
           </DropdownMenuItem>
         </Link>
         <DropdownMenuItem
