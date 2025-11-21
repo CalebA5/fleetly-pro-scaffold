@@ -32,48 +32,62 @@ export const Header = ({ onSignIn, onSignUp, onDriveAndEarn }: HeaderProps) => {
   const isOnOperatorDashboard = ['/operator', '/manual-operator', '/equipped-operator', '/business'].includes(location);
 
   const handleDriveAndEarnClick = async () => {
-    if (onDriveAndEarn) {
-      onDriveAndEarn();
-    } else {
-      // Smart routing: if user has operator tier, go to dashboard; otherwise onboarding
-      if (isAuthenticated && user) {
-        try {
-          // Fetch operator data from backend to check if user has any tiers
-          // Use email instead of userId since operators table doesn't have userId
-          const response = await fetch(`/api/operators/by-user/${encodeURIComponent(user.email)}`);
-          const operators = await response.json();
+    // Smart routing: if user has operator tier, go to dashboard; otherwise onboarding
+    if (isAuthenticated && user) {
+      try {
+        // Fetch operator data from backend to check if user has any tiers
+        // Use email instead of userId since operators table doesn't have userId
+        const response = await fetch(`/api/operators/by-user/${encodeURIComponent(user.email)}`);
+        const operators = await response.json();
+        
+        if (operators && operators.length > 0) {
+          // User has at least one operator profile - determine which dashboard to show
+          const operator = operators[0]; // Use first operator
           
-          if (operators && operators.length > 0) {
-            // User has at least one operator profile - determine which dashboard to show
-            const operator = operators[0]; // Use first operator
-            
-            // Navigate based on active tier
-            switch (operator.activeTier || operator.operatorTier) {
-              case 'professional':
-                setLocation("/business");
-                break;
-              case 'equipped':
-                setLocation("/equipped-operator");
-                break;
-              case 'manual':
-                setLocation("/manual-operator");
-                break;
-              default:
-                setLocation("/operator");
-            }
-          } else {
-            // No operator profiles found - go to onboarding
-            setLocation("/operator/onboarding");
+          // Navigate based on active tier
+          switch (operator.activeTier || operator.operatorTier) {
+            case 'professional':
+              setLocation("/business");
+              break;
+            case 'equipped':
+              setLocation("/equipped-operator");
+              break;
+            case 'manual':
+              setLocation("/manual-operator");
+              break;
+            default:
+              setLocation("/operator");
           }
-        } catch (error) {
-          console.error("Error checking operator status:", error);
-          // On error, default to onboarding
+        } else {
+          // No operator profiles found - go to onboarding
           setLocation("/operator/onboarding");
         }
-      } else {
-        if (onSignUp) {
-          onSignUp();
+        
+        // Call the callback if provided (after navigation)
+        if (onDriveAndEarn) {
+          try {
+            onDriveAndEarn();
+          } catch (error) {
+            console.error("Error in Drive & Earn callback:", error);
+          }
         }
+      } catch (error) {
+        console.error("Error checking operator status:", error);
+        // On error, default to onboarding
+        setLocation("/operator/onboarding");
+        
+        // Call the callback if provided
+        if (onDriveAndEarn) {
+          try {
+            onDriveAndEarn();
+          } catch (error) {
+            console.error("Error in Drive & Earn callback:", error);
+          }
+        }
+      }
+    } else {
+      if (onSignUp) {
+        onSignUp();
       }
     }
   };
