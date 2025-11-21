@@ -1,9 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
+import { useState } from "react";
 import { Button } from "@/components/ui/enhanced-button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Header } from "@/components/Header";
 import { MobileBottomNav } from "@/components/MobileBottomNav";
 import { ArrowLeft, Calendar, MapPin, Clock, User, Plus } from "lucide-react";
@@ -14,6 +16,7 @@ import type { ServiceRequest } from "@shared/schema";
 export const Requests = () => {
   const { user } = useAuth();
   const customerId = user?.id || "CUST-001";
+  const [activeTab, setActiveTab] = useState("all");
 
   const { data: requests = [], isLoading } = useQuery<ServiceRequest[]>({
     queryKey: ['/api/service-requests'],
@@ -22,6 +25,19 @@ export const Requests = () => {
   const myRequests = requests.filter(req => req.customerId === customerId);
   const activeRequests = myRequests.filter(req => ['pending', 'accepted', 'in_progress'].includes(req.status));
   const completedRequests = myRequests.filter(req => req.status === 'completed');
+  
+  const getFilteredRequests = () => {
+    switch (activeTab) {
+      case 'active':
+        return activeRequests;
+      case 'completed':
+        return completedRequests;
+      default:
+        return myRequests;
+    }
+  };
+  
+  const filteredRequests = getFilteredRequests();
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -104,77 +120,102 @@ export const Requests = () => {
           </Card>
         </div>
 
-        {/* Requests List */}
-        {myRequests.length === 0 ? (
-          <Card>
-            <CardContent className="pt-6 text-center py-12">
-              <div className="text-center">
-                <Clock className="w-12 h-12 mx-auto mb-4 text-gray-400" />
-                <h3 className="text-lg font-semibold mb-2">No Requests Yet</h3>
-                <p className="text-sm text-muted-foreground mb-4">
-                  Create your first service request to get started
-                </p>
-                <Link href="/customer/create-request">
-                  <Button variant="outline">
-                    <Plus className="w-4 h-4 mr-2" />
-                    Create Request
-                  </Button>
-                </Link>
-              </div>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="space-y-3">
-            {myRequests.map((request) => (
-              <Card key={request.id} className="hover:shadow-md transition-shadow" data-testid={`request-card-${request.id}`}>
-                <CardContent className="p-4">
-                  <div className="flex items-start gap-3">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-start justify-between gap-2 mb-2">
-                        <div className="flex-1">
-                          <h3 className="font-bold text-base mb-1" data-testid={`text-service-${request.id}`}>
-                            {request.serviceType}
-                          </h3>
-                          {request.isEmergency && (
-                            <Badge variant="destructive" className="text-xs mb-1">
-                              Emergency
-                            </Badge>
-                          )}
-                        </div>
-                        <Badge className={`text-xs ${getStatusColor(request.status)}`}>
-                          {formatStatus(request.status)}
-                        </Badge>
-                      </div>
-                      
-                      <div className="space-y-1.5 text-sm text-gray-600 dark:text-gray-400">
-                        {request.operatorName && (
-                          <div className="flex items-center gap-1.5">
-                            <User className="w-3.5 h-3.5 flex-shrink-0" />
-                            <span className="truncate">{request.operatorName}</span>
-                          </div>
-                        )}
-                        <div className="flex items-center gap-1.5">
-                          <MapPin className="w-3.5 h-3.5 flex-shrink-0" />
-                          <span className="truncate">{request.location}</span>
-                        </div>
-                        <div className="flex items-center gap-1.5">
-                          <Calendar className="w-3.5 h-3.5 flex-shrink-0" />
-                          <span>{format(new Date(request.requestedAt), "MMM d, yyyy 'at' h:mm a")}</span>
-                        </div>
-                      </div>
+        {/* Tabs for filtering */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="grid w-full grid-cols-3 mb-6">
+            <TabsTrigger value="all" data-testid="tab-all-requests">
+              All ({myRequests.length})
+            </TabsTrigger>
+            <TabsTrigger value="active" data-testid="tab-active-requests">
+              Active ({activeRequests.length})
+            </TabsTrigger>
+            <TabsTrigger value="completed" data-testid="tab-completed-requests">
+              Completed ({completedRequests.length})
+            </TabsTrigger>
+          </TabsList>
 
-                      {request.description && (
-                        <p className="text-sm text-gray-700 dark:text-gray-300 mt-2 line-clamp-2">
-                          {request.description}
-                        </p>
-                      )}
-                    </div>
+          <TabsContent value={activeTab} className="mt-0">
+            {/* Requests List */}
+            {filteredRequests.length === 0 ? (
+              <Card>
+                <CardContent className="pt-6 text-center py-12">
+                  <div className="text-center">
+                    <Clock className="w-12 h-12 mx-auto mb-4 text-gray-400" />
+                    <h3 className="text-lg font-semibold mb-2">
+                      {activeTab === 'all' ? 'No Requests Yet' : `No ${activeTab === 'active' ? 'Active' : 'Completed'} Requests`}
+                    </h3>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      {activeTab === 'all' 
+                        ? 'Create your first service request to get started'
+                        : `You don't have any ${activeTab} requests at the moment`}
+                    </p>
+                    <Link href="/customer/create-request">
+                      <Button variant="outline">
+                        <Plus className="w-4 h-4 mr-2" />
+                        Create Request
+                      </Button>
+                    </Link>
                   </div>
                 </CardContent>
               </Card>
-            ))}
-          </div>
-        )}
+            ) : (
+              <div className="space-y-3">
+                {filteredRequests.map((request) => (
+                  <Card key={request.id} className="hover:shadow-md transition-shadow" data-testid={`request-card-${request.id}`}>
+                    <CardContent className="p-4">
+                      <div className="flex items-start gap-3">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-start justify-between gap-2 mb-2">
+                            <div className="flex-1">
+                              <h3 className="font-bold text-base mb-1" data-testid={`text-service-${request.id}`}>
+                                {request.serviceType}
+                              </h3>
+                              {request.isEmergency ? (
+                                <Badge variant="destructive" className="text-xs mb-1">
+                                  Emergency
+                                </Badge>
+                              ) : request.urgencyLevel && (
+                                <Badge variant="secondary" className="text-xs mb-1">
+                                  {request.urgencyLevel.charAt(0).toUpperCase() + request.urgencyLevel.slice(1)} Priority
+                                </Badge>
+                              )}
+                            </div>
+                            <Badge className={`text-xs ${getStatusColor(request.status)}`}>
+                              {formatStatus(request.status)}
+                            </Badge>
+                          </div>
+                          
+                          <div className="space-y-1.5 text-sm text-gray-600 dark:text-gray-400">
+                            {request.operatorName && (
+                              <div className="flex items-center gap-1.5">
+                                <User className="w-3.5 h-3.5 flex-shrink-0" />
+                                <span className="truncate">{request.operatorName}</span>
+                              </div>
+                            )}
+                            <div className="flex items-center gap-1.5">
+                              <MapPin className="w-3.5 h-3.5 flex-shrink-0" />
+                              <span className="truncate">{request.location}</span>
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                              <Calendar className="w-3.5 h-3.5 flex-shrink-0" />
+                              <span>{format(new Date(request.requestedAt), "MMM d, yyyy 'at' h:mm a")}</span>
+                            </div>
+                          </div>
+
+                          {request.description && (
+                            <p className="text-sm text-gray-700 dark:text-gray-300 mt-2 line-clamp-2">
+                              {request.description}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
       </div>
 
       <MobileBottomNav />

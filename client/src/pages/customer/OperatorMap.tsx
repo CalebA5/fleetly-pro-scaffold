@@ -577,101 +577,99 @@ export const OperatorMap = () => {
         }}
       />
       
-      {/* Modern Page Header */}
-      <div className="border-b border-gray-200 dark:border-gray-800 bg-gradient-to-r from-white to-gray-50 dark:from-gray-900 dark:to-gray-800 px-4 sm:px-6 lg:px-8 py-4 shadow-sm">
+      {/* Unified Page Header with All Controls */}
+      <div className="border-b border-gray-200 dark:border-gray-800 bg-gradient-to-r from-white via-gray-50 to-orange-50 dark:from-gray-900 dark:via-gray-850 dark:to-orange-900/10 px-4 sm:px-6 lg:px-8 py-4 shadow-sm">
         <div className="max-w-7xl mx-auto">
-          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
-            <div className="flex items-center gap-3">
-              <div className="bg-orange-100 dark:bg-orange-900 p-2 rounded-lg">
-                <MapPin className="w-5 h-5 text-orange-600 dark:text-orange-400" />
-              </div>
-              <div>
-                <h1 className="text-lg font-bold text-black dark:text-white">Find Operators</h1>
-                <p className="text-xs text-gray-600 dark:text-gray-400 flex items-center gap-2">
-                  <span className="inline-flex items-center gap-1">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+            {/* Left: Title + Count + Filter */}
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3 flex-1">
+              <div className="flex items-center gap-3">
+                <div className="bg-orange-100 dark:bg-orange-900 p-2 rounded-lg">
+                  <MapPin className="w-5 h-5 text-orange-600 dark:text-orange-400" />
+                </div>
+                <div>
+                  <h1 className="text-lg font-bold text-black dark:text-white">Find Operators</h1>
+                  <p className="text-xs text-gray-600 dark:text-gray-400 flex items-center gap-1">
                     <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-                    <strong className="text-black dark:text-white">{operators?.length || 0}</strong> available nearby
-                  </span>
-                </p>
+                    <strong className="text-black dark:text-white">{operators?.length || 0}</strong> available
+                  </p>
+                </div>
+              </div>
+              
+              {/* Service Filter */}
+              <div className="flex items-center gap-2 sm:ml-4">
+                <Filter className="w-4 h-4 text-gray-600 dark:text-gray-400 flex-shrink-0" />
+                <Select
+                  value={selectedService || "all"}
+                  onValueChange={(value) => setSelectedService(value === "all" ? "" : value)}
+                >
+                  <SelectTrigger className="w-[160px]" data-testid="select-service-filter">
+                    <SelectValue placeholder="All Services" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {services.map((service) => (
+                      <SelectItem 
+                        key={service} 
+                        value={service === "All" ? "all" : service}
+                      >
+                        {service}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
-            <div className="flex gap-2">
-              <Button
-                variant={mapStyle === 'streets' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setMapStyle('streets')}
-                className={`transition-all ${mapStyle === 'streets' ? 'bg-black text-white hover:bg-gray-800 dark:bg-white dark:text-black shadow-md' : 'hover:border-gray-400'}`}
-                data-testid="button-map-view"
-              >
-                <MapPin className="w-4 h-4 mr-1" />
-                Map
-              </Button>
-              <Button
-                variant={mapStyle === 'satellite' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setMapStyle('satellite')}
-                className={`transition-all ${mapStyle === 'satellite' ? 'bg-black text-white hover:bg-gray-800 dark:bg-white dark:text-black shadow-md' : 'hover:border-gray-400'}`}
-                data-testid="button-satellite-view"
-              >
-                <Truck className="w-4 h-4 mr-1" />
-                Satellite
-              </Button>
+
+            {/* Right: View Controls */}
+            <div className="flex items-center gap-2">
+              {/* Map/Satellite Toggle - Desktop */}
+              <div className="hidden md:flex gap-2">
+                <Button
+                  variant={mapStyle === 'streets' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setMapStyle('streets')}
+                  className={`transition-all ${mapStyle === 'streets' ? 'bg-black text-white hover:bg-gray-800 dark:bg-white dark:text-black shadow-md' : 'hover:border-gray-400'}`}
+                  data-testid="button-map-view"
+                >
+                  <MapPin className="w-4 h-4 mr-1" />
+                  Map
+                </Button>
+                <Button
+                  variant={mapStyle === 'satellite' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setMapStyle('satellite')}
+                  className={`transition-all ${mapStyle === 'satellite' ? 'bg-black text-white hover:bg-gray-800 dark:bg-white dark:text-black shadow-md' : 'hover:border-gray-400'}`}
+                  data-testid="button-satellite-view"
+                >
+                  <Truck className="w-4 h-4 mr-1" />
+                  Satellite
+                </Button>
+              </div>
+
+              {/* Map/List View Toggle - Mobile */}
+              <div className="flex gap-2 md:hidden">
+                <Button
+                  variant={viewMode === 'map' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setViewMode('map')}
+                  className={`transition-all ${viewMode === 'map' ? 'bg-black text-white hover:bg-gray-800 dark:bg-white dark:text-black' : ''}`}
+                  data-testid="button-map-view-toggle"
+                >
+                  <MapIcon className="w-4 h-4 mr-1" />
+                  Map
+                </Button>
+                <Button
+                  variant={viewMode === 'list' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setViewMode('list')}
+                  className={`transition-all ${viewMode === 'list' ? 'bg-black text-white hover:bg-gray-800 dark:bg-white dark:text-black' : ''}`}
+                  data-testid="button-list-view-toggle"
+                >
+                  <List className="w-4 h-4 mr-1" />
+                  List
+                </Button>
+              </div>
             </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Modern Service Filters & View Toggle */}
-      <div className="border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 px-4 sm:px-6 lg:px-8 py-3">
-        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-          {/* Service Filter Dropdown */}
-          <div className="flex items-center gap-3 w-full sm:w-auto">
-            <Filter className="w-4 h-4 text-gray-600 dark:text-gray-400 flex-shrink-0" />
-            <Select
-              value={selectedService || "all"}
-              onValueChange={(value) => setSelectedService(value === "all" ? "" : value)}
-            >
-              <SelectTrigger className="w-full sm:w-[160px]" data-testid="select-service-filter">
-                <SelectValue placeholder="All Services" />
-              </SelectTrigger>
-              <SelectContent>
-                {services.map((service) => (
-                  <SelectItem 
-                    key={service} 
-                    value={service === "All" ? "all" : service}
-                  >
-                    {service}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <span className="text-sm text-gray-600 dark:text-gray-400 whitespace-nowrap">
-              {operators?.length || 0} available
-            </span>
-          </div>
-
-          {/* View Mode Toggle - Mobile Only */}
-          <div className="flex gap-2 md:hidden">
-            <Button
-              variant={viewMode === 'map' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setViewMode('map')}
-              className={`transition-all ${viewMode === 'map' ? 'bg-black text-white hover:bg-gray-800 dark:bg-white dark:text-black' : ''}`}
-              data-testid="button-map-view-toggle"
-            >
-              <MapIcon className="w-4 h-4 mr-1" />
-              Map
-            </Button>
-            <Button
-              variant={viewMode === 'list' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setViewMode('list')}
-              className={`transition-all ${viewMode === 'list' ? 'bg-black text-white hover:bg-gray-800 dark:bg-white dark:text-black' : ''}`}
-              data-testid="button-list-view-toggle"
-            >
-              <List className="w-4 h-4 mr-1" />
-              List
-            </Button>
           </div>
         </div>
       </div>
