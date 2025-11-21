@@ -171,7 +171,7 @@ export function registerRoutes(storage: IStorage) {
     }
   });
 
-  // Get consolidated operator cards with reviews, tier stats, and equipment
+  // Get separate tier cards - one for Professional, one for Equipped+Manual combined
   router.get("/api/operator-cards", async (req, res) => {
     try {
       const service = req.query.service as string | undefined;
@@ -191,31 +191,29 @@ export function registerRoutes(storage: IStorage) {
         operatorsByEmail.get(email)!.push(op);
       }
       
-      // Build consolidated operator cards
-      const operatorCards = [];
+      // Build SEPARATE tier cards (not consolidated)
+      const tierCards = [];
       for (const [email, operators] of operatorsByEmail) {
         // Use the most recent operator record as the base
         const primaryOperator = operators.reduce((latest, current) => 
           new Date(current.createdAt) > new Date(latest.createdAt) ? current : latest
         );
         
-        // Collect all unique tiers and aggregate data from all operator records
+        // Collect all subscribed tiers AND operatorTier (for legacy operators without subscribedTiers)
         const allTiers = new Set<string>();
         const allSubscribedTiers = new Set<string>();
-        const allServices = new Set<string>();
         const tierDataMap = new Map<string, any>();
         
         for (const op of operators) {
+          // Add operatorTier for backward compatibility
           allTiers.add(op.operatorTier);
-          if (op.subscribedTiers) {
+          
+          // Add subscribedTiers if available
+          if (op.subscribedTiers && op.subscribedTiers.length > 0) {
             op.subscribedTiers.forEach((t: string) => allSubscribedTiers.add(t));
           }
-          // Aggregate services from all operators
-          if (op.services) {
-            op.services.forEach((s: string) => allServices.add(s));
-          }
           
-          // Merge tier-specific data across all records for this tier
+          // Merge tier-specific data for each record's tier
           if (!tierDataMap.has(op.operatorTier)) {
             tierDataMap.set(op.operatorTier, {
               services: new Set<string>(),
@@ -239,7 +237,6 @@ export function registerRoutes(storage: IStorage) {
           }
           // Merge equipment inventory (sanitize nulls, filter valid equipment)
           if (op.equipmentInventory && Array.isArray(op.equipmentInventory) && op.equipmentInventory.length > 0) {
-            // Filter out null/undefined entries and add valid equipment
             const validEquipment = op.equipmentInventory.filter(item => item != null);
             tierData.equipmentInventory.push(...validEquipment);
           }
@@ -288,44 +285,93 @@ export function registerRoutes(storage: IStorage) {
           stats.totalEarnings = stats.totalEarnings.toFixed(2);
         }
         
-        // Build structured activeTiers array from ALL discovered tiers (not just subscribedTiers)
-        // Use allTiers to include tiers from legacy records that lack subscribedTiers field
+        // Determine which tier cards to create based on ALL discovered tiers (union of operatorTier and subscribedTiers)
         const allUniqueTiers = new Set([...allTiers, ...allSubscribedTiers]);
-        const activeTiers = Array.from(allUniqueTiers).map(tier => {
-          const tierData = tierDataMap.get(tier) || {
-            services: new Set(),
-            vehicles: new Set(),
-            licensePlates: new Set(),
-            equipmentInventory: []
-          };
-          const stats = tierStatsMap[tier] || {
+        const hasProfessional = allUniqueTiers.has("professional");
+        const hasEquippedOrManual = allUniqueTiers.has("equipped") || allUniqueTiers.has("manual");
+        
+        // Helper function to create tier card
+        const createTierCard = (tierType: "professional" | "equipped_manual", includedTiers: string[]) => {
+          // Merge data from all included tiers
+          const mergedServices = new Set<string>();
+          const mergedVehicles = new Set<string>();
+          const mergedLicensePlates = new Set<string>();
+          const mergedEquipment: any[] = [];
+          const mergedStats = {
             jobsCompleted: 0,
-            totalEarnings: "0.00",
-            rating: "0.00",
+            totalEarnings: 0,
             totalRatings: 0,
-            lastActiveAt: null
+            ratingSum: 0,
+            lastActiveAt: null as Date | null
           };
           
-          // Convert Sets to Arrays for JSON response
-          const servicesArray = Array.from(tierData.services);
-          const vehiclesArray = Array.from(tierData.vehicles);
-          const licensePlatesArray = Array.from(tierData.licensePlates);
+          for (const tier of includedTiers) {
+            const tierData = tierDataMap.get(tier);
+            if (tierData) {
+              tierData.services.forEach((s: string) => mergedServices.add(s));
+              tierData.vehicles.forEach((v: string) => mergedVehicles.add(v));
+              tierData.licensePlates.forEach((p: string) => mergedLicensePlates.add(p));
+              mergedEquipment.push(...tierData.equipmentInventory);
+            }
+            
+            const stats = tierStatsMap[tier];
+            if (stats) {
+              mergedStats.jobsCompleted += stats.jobsCompleted;
+              mergedStats.totalEarnings += stats.totalEarnings;
+              mergedStats.totalRatings += stats.totalRatings;
+              mergedStats.ratingSum += stats.ratingSum;
+              if (!mergedStats.lastActiveAt || (stats.lastActiveAt && stats.lastActiveAt > mergedStats.lastActiveAt)) {
+                mergedStats.lastActiveAt = stats.lastActiveAt;
+              }
+            }
+          }
+          
+          const avgRating = mergedStats.totalRatings > 0 
+            ? (mergedStats.ratingSum / mergedStats.totalRatings).toFixed(2)
+            : "0.00";
+          
+          // Determine card name based on tier type
+          const cardName = tierType === "professional"
+            ? (primaryOperator.businessName || primaryOperator.name)
+            : (primaryOperator.driverName || primaryOperator.name);
+          
+          const isActive = includedTiers.includes(primaryOperator.activeTier);
           
           return {
-            tier,
-            services: servicesArray,
-            vehicle: vehiclesArray.length > 0 ? vehiclesArray.join(", ") : "Not specified",
-            licensePlate: licensePlatesArray.length > 0 ? licensePlatesArray.join(", ") : "N/A",
-            equipmentInventory: [...(tierData.equipmentInventory || [])], // Clone array to prevent reference sharing
-            stats: {
-              jobsCompleted: stats.jobsCompleted,
-              totalEarnings: stats.totalEarnings,
-              rating: stats.rating,
-              totalRatings: stats.totalRatings,
-              lastActiveAt: stats.lastActiveAt
-            }
+            cardId: `${primaryOperator.operatorId}-${tierType}`,
+            tierType,
+            includedTiers,
+            isActive,
+            operatorId: primaryOperator.operatorId,
+            name: cardName,
+            email: primaryOperator.email,
+            phone: primaryOperator.phone,
+            photo: primaryOperator.photo,
+            latitude: primaryOperator.latitude,
+            longitude: primaryOperator.longitude,
+            address: primaryOperator.address,
+            isOnline: primaryOperator.isOnline,
+            hourlyRate: primaryOperator.hourlyRate || "0.00",
+            availability: primaryOperator.availability,
+            activeTier: primaryOperator.activeTier,
+            subscribedTiers: Array.from(allUniqueTiers), // All discovered tiers from all records
+            services: Array.from(mergedServices),
+            vehicle: Array.from(mergedVehicles).join(", ") || "Not specified",
+            licensePlate: Array.from(mergedLicensePlates).join(", ") || "N/A",
+            equipmentInventory: mergedEquipment,
+            primaryVehicleImage: primaryOperator.primaryVehicleImage,
+            totalJobs: mergedStats.jobsCompleted,
+            rating: avgRating,
+            recentReviews: recentReviews.map(r => ({
+              ratingId: r.ratingId,
+              customerId: r.customerId,
+              rating: r.rating,
+              review: r.review,
+              createdAt: r.createdAt
+            })),
+            reviewCount: allReviews.length
           };
-        });
+        };
         
         // Get reviews for ALL operator IDs in this merged set
         const allReviews = await db.query.ratings.findMany({
@@ -336,65 +382,31 @@ export function registerRoutes(storage: IStorage) {
         // Take the 3 most recent reviews
         const recentReviews = allReviews.slice(0, 3);
         
-        // Calculate average rating from ALL reviews (null-safe)
-        const avgRating = allReviews.length > 0
-          ? allReviews.reduce((sum, r) => sum + r.rating, 0) / allReviews.length
-          : (primaryOperator.rating ? parseFloat(primaryOperator.rating) : 0);
-        
-        // Build operator card with consolidated data
-        // Ensure hourlyRate is always defined (find first non-null/non-zero rate or default to "0.00")
-        const consolidatedHourlyRate = operators.reduce((rate, op) => {
-          if (rate && rate !== "0.00" && rate !== "0") return rate;
-          return op.hourlyRate && op.hourlyRate !== "0.00" && op.hourlyRate !== "0" 
-            ? op.hourlyRate 
-            : rate;
-        }, primaryOperator.hourlyRate || "0.00");
-        
-        const card = {
-          operatorId: primaryOperator.operatorId,
-          name: primaryOperator.name,
-          email: primaryOperator.email,
-          phone: primaryOperator.phone,
-          photo: primaryOperator.photo,
-          latitude: primaryOperator.latitude,
-          longitude: primaryOperator.longitude,
-          address: primaryOperator.address,
-          isOnline: primaryOperator.isOnline,
-          hourlyRate: consolidatedHourlyRate,
-          availability: primaryOperator.availability,
-          activeTier: primaryOperator.activeTier,
-          subscribedTiers: Array.from(allUniqueTiers), // All unique tiers from all records
-          activeTiers, // Structured tier data with services, stats, equipment
-          services: Array.from(allServices), // Aggregated services from all tiers
-          operatorTierProfiles: primaryOperator.operatorTierProfiles,
-          equipmentInventory: primaryOperator.equipmentInventory,
-          primaryVehicleImage: primaryOperator.primaryVehicleImage,
-          vehicle: primaryOperator.vehicle,
-          licensePlate: primaryOperator.licensePlate,
-          totalJobs: primaryOperator.totalJobs,
-          rating: avgRating.toFixed(2),
-          tierStats: tierStatsMap,
-          recentReviews: recentReviews.map(r => ({
-            ratingId: r.ratingId,
-            customerId: r.customerId,
-            rating: r.rating,
-            review: r.review,
-            createdAt: r.createdAt
-          })),
-          reviewCount: allReviews.length // Total review count, not just recent 3
-        };
-        
-        // Filter by service if specified (check across all aggregated services)
-        if (service) {
-          if (card.services.includes(service)) {
-            operatorCards.push(card);
+        // Create separate tier cards based on subscribed tiers
+        if (hasProfessional) {
+          const professionalCard = createTierCard("professional", ["professional"]);
+          
+          // Filter by service if specified
+          if (!service || professionalCard.services.includes(service)) {
+            tierCards.push(professionalCard);
           }
-        } else {
-          operatorCards.push(card);
+        }
+        
+        if (hasEquippedOrManual) {
+          const equippedManualTiers = [];
+          if (allUniqueTiers.has("equipped")) equippedManualTiers.push("equipped");
+          if (allUniqueTiers.has("manual")) equippedManualTiers.push("manual");
+          
+          const equippedManualCard = createTierCard("equipped_manual", equippedManualTiers);
+          
+          // Filter by service if specified
+          if (!service || equippedManualCard.services.includes(service)) {
+            tierCards.push(equippedManualCard);
+          }
         }
       }
       
-      res.json(operatorCards);
+      res.json(tierCards);
     } catch (error) {
       console.error("Error fetching operator cards:", error);
       res.status(500).json({ message: "Failed to fetch operator cards" });

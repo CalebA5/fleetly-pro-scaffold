@@ -20,6 +20,10 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { format } from "date-fns";
 
 type OperatorCard = {
+  cardId: string;
+  tierType: "professional" | "equipped_manual";
+  includedTiers: string[];
+  isActive: boolean;
   operatorId: string;
   name: string;
   email: string;
@@ -29,25 +33,17 @@ type OperatorCard = {
   longitude: string;
   address: string;
   isOnline: number;
-  hourlyRate: string | null;
+  hourlyRate: string;
   availability: string;
   activeTier: OperatorTier;
   subscribedTiers: OperatorTier[];
-  operatorTierProfiles: any;
-  equipmentInventory: any[];
-  primaryVehicleImage: string | null;
+  services: string[];
   vehicle: string;
   licensePlate: string;
-  services: string[];
+  equipmentInventory: any[];
+  primaryVehicleImage: string | null;
   totalJobs: number;
   rating: string;
-  tierStats: Record<string, {
-    jobsCompleted: number;
-    totalEarnings: string;
-    rating: string;
-    totalRatings: number;
-    lastActiveAt: Date | null;
-  }>;
   recentReviews: Array<{
     ratingId: string;
     customerId: string;
@@ -129,14 +125,6 @@ export function OperatorTile({ operator, isFavorite = false, onFavoriteToggle }:
     });
   };
 
-  // Determine which tiers to display
-  const hasProfessional = operator.subscribedTiers.includes("professional");
-  const hasEquipped = operator.subscribedTiers.includes("equipped");
-  const hasManual = operator.subscribedTiers.includes("manual");
-  
-  // Group skilled+equipped and manual together
-  const hasSkilledOrManual = hasEquipped || hasManual;
-
   const renderStars = (rating: number) => {
     return (
       <div className="flex gap-0.5">
@@ -154,64 +142,66 @@ export function OperatorTile({ operator, isFavorite = false, onFavoriteToggle }:
     );
   };
 
-  const TierBadge = ({ tier, isActive }: { tier: OperatorTier; isActive: boolean }) => {
-    const tierInfo = OPERATOR_TIER_INFO[tier];
-    const stats = operator.tierStats[tier];
-    
-    return (
-      <div
-        className={`flex items-center gap-2 px-3 py-2 rounded-lg border transition-all ${
-          isActive
-            ? "border-orange-500 bg-orange-50 dark:bg-orange-950/20"
-            : "border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50 opacity-60"
-        }`}
-        data-testid={`tier-badge-${tier}`}
-      >
-        <span className="text-lg">{tierInfo.badge}</span>
-        <div className="flex flex-col">
-          <span className={`text-xs font-semibold ${isActive ? "text-orange-600 dark:text-orange-400" : "text-gray-600 dark:text-gray-400"}`}>
-            {tierInfo.label.split(" ")[0]}
-          </span>
-          {stats && (
-            <span className="text-[10px] text-gray-500 dark:text-gray-500">
-              {stats.jobsCompleted} jobs
-            </span>
-          )}
-        </div>
-        {isActive && (
-          <Badge variant="default" className="ml-auto text-[10px] px-1.5 py-0.5 h-auto bg-orange-500">
-            Active
-          </Badge>
-        )}
-      </div>
-    );
+  // Get tier info for display
+  const getTierDisplay = () => {
+    if (operator.tierType === "professional") {
+      return {
+        badge: OPERATOR_TIER_INFO.professional.badge,
+        label: OPERATOR_TIER_INFO.professional.label,
+        tier: "professional" as OperatorTier
+      };
+    } else {
+      // For equipped_manual, show the tiers included
+      const badges = operator.includedTiers.map(t => OPERATOR_TIER_INFO[t as OperatorTier].badge).join(" + ");
+      const labels = operator.includedTiers.map(t => OPERATOR_TIER_INFO[t as OperatorTier].label).join(" & ");
+      return {
+        badge: badges,
+        label: labels,
+        tier: operator.includedTiers[0] as OperatorTier
+      };
+    }
   };
+
+  const tierDisplay = getTierDisplay();
 
   return (
     <>
-      <Card className="overflow-hidden hover:shadow-lg transition-shadow" data-testid={`operator-card-${operator.operatorId}`}>
-        <CardHeader className="pb-3">
+      <Card className="overflow-hidden hover:shadow-xl transition-all duration-300 border-2 hover:border-orange-200 dark:hover:border-orange-900" data-testid={`operator-card-${operator.cardId}`}>
+        <CardHeader className="pb-4 bg-gradient-to-br from-gray-50 to-white dark:from-gray-900 dark:to-gray-950">
           <div className="flex items-start justify-between">
-            <div className="flex items-center gap-3 flex-1">
+            <div className="flex items-center gap-4 flex-1">
               {operator.photo ? (
                 <img 
                   src={operator.photo} 
                   alt={operator.name}
-                  className="w-12 h-12 rounded-full object-cover"
+                  className="w-14 h-14 rounded-full object-cover ring-2 ring-orange-200 dark:ring-orange-800"
                   data-testid="operator-avatar"
                 />
               ) : (
-                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center text-white font-bold">
+                <div className="w-14 h-14 rounded-full bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center text-white font-bold text-xl shadow-lg">
                   {operator.name.charAt(0)}
                 </div>
               )}
-              <div className="flex-1">
-                <h3 className="font-semibold text-base" data-testid="operator-name">{operator.name}</h3>
-                <div className="flex items-center gap-2 mt-1">
+              <div className="flex-1 min-w-0">
+                <h3 className="font-bold text-lg truncate" data-testid="operator-name">{operator.name}</h3>
+                <div className="flex items-center gap-2 mt-1.5">
                   {renderStars(parseFloat(operator.rating))}
-                  <span className="text-xs text-gray-600 dark:text-gray-400" data-testid="operator-rating">
-                    {operator.rating} ({operator.recentReviews.length} reviews)
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300" data-testid="operator-rating">
+                    {operator.rating}
                   </span>
+                  <span className="text-xs text-gray-500 dark:text-gray-400">
+                    ({operator.reviewCount} {operator.reviewCount === 1 ? 'review' : 'reviews'})
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 mt-1.5">
+                  <Badge variant="outline" className="text-xs">
+                    ${operator.hourlyRate}/hr
+                  </Badge>
+                  {operator.isOnline === 1 && (
+                    <Badge className="bg-green-500 text-white text-xs">
+                      Online
+                    </Badge>
+                  )}
                 </div>
               </div>
             </div>
@@ -220,38 +210,40 @@ export function OperatorTile({ operator, isFavorite = false, onFavoriteToggle }:
               size="sm"
               onClick={handleToggleFavorite}
               disabled={favoriteMutation.isPending}
-              className="h-8 w-8 p-0"
+              className="h-9 w-9 p-0 hover:bg-red-50 dark:hover:bg-red-950"
               data-testid="button-favorite"
             >
-              <Heart className={`h-4 w-4 ${isFavorite ? "fill-red-500 text-red-500" : ""}`} />
+              <Heart className={`h-5 w-5 transition-all ${isFavorite ? "fill-red-500 text-red-500 scale-110" : "text-gray-400"}`} />
             </Button>
           </div>
         </CardHeader>
 
-        <CardContent className="space-y-3 pb-4">
-          {/* Tier Display */}
+        <CardContent className="space-y-4 pb-4">
+          {/* Tier Display - Modern Design */}
           <div className="space-y-2">
-            <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
-              Service Tiers
-            </p>
-            <div className="grid grid-cols-2 gap-2">
-              {/* Professional Tier - Standalone */}
-              {hasProfessional && (
-                <div className="col-span-2">
-                  <TierBadge tier="professional" isActive={operator.activeTier === "professional"} />
+            <div 
+              className={`flex items-center justify-between px-4 py-3 rounded-xl border-2 transition-all ${
+                operator.isActive
+                  ? "border-orange-500 bg-gradient-to-r from-orange-50 to-orange-100 dark:from-orange-950/30 dark:to-orange-900/20"
+                  : "border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/30 opacity-75"
+              }`}
+              data-testid={`tier-badge-${operator.tierType}`}
+            >
+              <div className="flex items-center gap-3">
+                <span className="text-2xl">{tierDisplay.badge}</span>
+                <div className="flex flex-col">
+                  <span className={`text-sm font-bold ${operator.isActive ? "text-orange-700 dark:text-orange-300" : "text-gray-700 dark:text-gray-400"}`}>
+                    {tierDisplay.label}
+                  </span>
+                  <span className="text-xs text-gray-600 dark:text-gray-500">
+                    {operator.totalJobs} jobs completed
+                  </span>
                 </div>
-              )}
-              
-              {/* Skilled & Manual - Combined */}
-              {hasSkilledOrManual && (
-                <div className="col-span-2 grid grid-cols-2 gap-2">
-                  {hasEquipped && (
-                    <TierBadge tier="equipped" isActive={operator.activeTier === "equipped"} />
-                  )}
-                  {hasManual && (
-                    <TierBadge tier="manual" isActive={operator.activeTier === "manual"} />
-                  )}
-                </div>
+              </div>
+              {operator.isActive && (
+                <Badge className="bg-orange-600 hover:bg-orange-700 text-white font-semibold px-3 py-1">
+                  ACTIVE
+                </Badge>
               )}
             </div>
           </div>
