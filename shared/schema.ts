@@ -158,14 +158,13 @@ export const serviceRequests = pgTable("service_requests", {
 });
 
 const baseServiceRequestSchema = z.object({
-  requestId: z.string(),
   customerId: z.string(),
   customerName: z.string(),
   operatorId: z.string().optional(),
   operatorName: z.string().optional(),
   serviceType: z.string(),
   isEmergency: z.boolean().optional(),
-  urgencyLevel: z.string().optional(), // Added urgencyLevel field
+  urgencyLevel: z.string().optional(),
   description: z.string(),
   status: z.string().optional(),
   location: z.string(),

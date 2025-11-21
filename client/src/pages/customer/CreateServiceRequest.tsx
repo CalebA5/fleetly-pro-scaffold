@@ -177,23 +177,25 @@ export const CreateServiceRequest = () => {
       return;
     }
 
+    // Build request data - only include fields that have values
     const requestData: any = {
-      requestId: `REQ-${Date.now()}`,
       customerId: user?.id || "",
       customerName: user?.name || "",
       serviceType,
-      isEmergency,
-      urgencyLevel, // NEW: Send urgency level to backend
       description: jobDescription,
       location: locationAddress,
-      preferredDate: showScheduleFields ? preferredDate : "", // Only send if scheduled
-      preferredTime: showScheduleFields ? preferredTime : "", // Only send if scheduled
-      timeFlexibility,
-      budgetRange,
       imageCount: images.length,
-      operatorId: selectedOperatorId || undefined, // NEW: Send operator ID if prefilled
-      operatorName: selectedOperatorName || undefined,
     };
+    
+    // Add optional fields only if they have values
+    if (isEmergency) requestData.isEmergency = true;
+    if (urgencyLevel) requestData.urgencyLevel = urgencyLevel;
+    if (selectedOperatorId) requestData.operatorId = selectedOperatorId;
+    if (selectedOperatorName) requestData.operatorName = selectedOperatorName;
+    if (showScheduleFields && preferredDate) requestData.preferredDate = preferredDate;
+    if (showScheduleFields && preferredTime) requestData.preferredTime = preferredTime;
+    if (timeFlexibility && timeFlexibility !== 'flexible') requestData.timeFlexibility = timeFlexibility;
+    if (budgetRange) requestData.budgetRange = budgetRange;
 
     // Add service-specific data
     if (serviceType === "Snow Plowing") {
@@ -295,7 +297,11 @@ export const CreateServiceRequest = () => {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setLocation("/customer/operators")}
+                  onClick={() => {
+                    // Clear all URL params and navigate to operators page
+                    window.history.replaceState({}, '', '/customer/create-request');
+                    setLocation("/customer/operators");
+                  }}
                   className="whitespace-nowrap"
                   data-testid="button-change-operator"
                 >

@@ -329,13 +329,14 @@ export class MemStorage implements IStorage {
     
     const newRequest: ServiceRequest = {
       id: this.nextServiceRequestId++,
-      requestId: request.requestId,
+      requestId: `REQ-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`, // Generate unique requestId
       customerId: request.customerId,
       customerName: request.customerName,
       operatorId: request.operatorId || null,
       operatorName: request.operatorName || null,
       serviceType: request.serviceType,
       isEmergency: request.isEmergency ? 1 : 0,
+      urgencyLevel: request.urgencyLevel || null,
       description: request.description,
       status: request.status || "pending",
       location: request.location,
