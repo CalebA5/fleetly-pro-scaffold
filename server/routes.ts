@@ -1386,7 +1386,7 @@ export function registerRoutes(storage: IStorage) {
       }
       
       // Insert with validated and transformed data (lat/lng as strings)
-      const emergency = await db.insert(emergencyRequests).values(result.data).returning();
+      const [emergency] = await db.insert(emergencyRequests).values(result.data).returning();
       
       // Find 5 nearest online operators
       const allOperators = await db.query.operators.findMany({
