@@ -160,6 +160,123 @@ export function registerRoutes(storage: IStorage) {
     }
   });
 
+  // Get consolidated operator cards with reviews, tier stats, and equipment
+  router.get("/api/operator-cards", async (req, res) => {
+    try {
+      const service = req.query.service as string | undefined;
+      
+      // Get all operators
+      const allOperators = await db.query.operators.findMany();
+      
+      // Group operators by email to consolidate duplicates
+      const operatorsByEmail = new Map<string, any[]>();
+      for (const op of allOperators) {
+        const email = op.email || op.operatorId;
+        if (!operatorsByEmail.has(email)) {
+          operatorsByEmail.set(email, []);
+        }
+        operatorsByEmail.get(email)!.push(op);
+      }
+      
+      // Build consolidated operator cards
+      const operatorCards = [];
+      for (const [email, operators] of operatorsByEmail) {
+        // Use the most recent operator record as the base
+        const primaryOperator = operators.reduce((latest, current) => 
+          new Date(current.createdAt) > new Date(latest.createdAt) ? current : latest
+        );
+        
+        // Collect all unique tiers from all operator records for this email
+        const allTiers = new Set<string>();
+        const allSubscribedTiers = new Set<string>();
+        for (const op of operators) {
+          allTiers.add(op.operatorTier);
+          if (op.subscribedTiers) {
+            op.subscribedTiers.forEach((t: string) => allSubscribedTiers.add(t));
+          }
+        }
+        
+        // Get tier stats for all tiers
+        const tierStatsRecords = await db.query.operatorTierStats.findMany({
+          where: eq(operatorTierStats.operatorId, primaryOperator.operatorId)
+        });
+        
+        const tierStatsMap: Record<string, any> = {};
+        for (const stat of tierStatsRecords) {
+          tierStatsMap[stat.tier] = {
+            jobsCompleted: stat.jobsCompleted,
+            totalEarnings: stat.totalEarnings,
+            rating: stat.rating,
+            totalRatings: stat.totalRatings,
+            lastActiveAt: stat.lastActiveAt
+          };
+        }
+        
+        // Get recent reviews using ratings table
+        const { ratings } = await import("@shared/schema");
+        const recentReviews = await db.query.ratings.findMany({
+          where: eq(ratings.operatorId, primaryOperator.operatorId),
+          orderBy: (ratings, { desc }) => [desc(ratings.createdAt)],
+          limit: 3
+        });
+        
+        // Calculate average rating from reviews
+        const avgRating = recentReviews.length > 0
+          ? recentReviews.reduce((sum, r) => sum + r.rating, 0) / recentReviews.length
+          : parseFloat(primaryOperator.rating);
+        
+        // Build operator card
+        const card = {
+          operatorId: primaryOperator.operatorId,
+          name: primaryOperator.name,
+          email: primaryOperator.email,
+          phone: primaryOperator.phone,
+          photo: primaryOperator.photo,
+          latitude: primaryOperator.latitude,
+          longitude: primaryOperator.longitude,
+          address: primaryOperator.address,
+          isOnline: primaryOperator.isOnline,
+          hourlyRate: primaryOperator.hourlyRate,
+          availability: primaryOperator.availability,
+          activeTier: primaryOperator.activeTier,
+          subscribedTiers: Array.from(allSubscribedTiers),
+          operatorTierProfiles: primaryOperator.operatorTierProfiles,
+          equipmentInventory: primaryOperator.equipmentInventory,
+          primaryVehicleImage: primaryOperator.primaryVehicleImage,
+          vehicle: primaryOperator.vehicle,
+          licensePlate: primaryOperator.licensePlate,
+          services: primaryOperator.services,
+          totalJobs: primaryOperator.totalJobs,
+          rating: avgRating.toFixed(2),
+          tierStats: tierStatsMap,
+          recentReviews: recentReviews.map(r => ({
+            ratingId: r.ratingId,
+            customerId: r.customerId,
+            rating: r.rating,
+            review: r.review,
+            createdAt: r.createdAt
+          })),
+          reviewCount: recentReviews.length
+        };
+        
+        // Filter by service if specified
+        if (service) {
+          const services = Array.isArray(primaryOperator.services) ? primaryOperator.services : [];
+          if (services.includes(service)) {
+            operatorCards.push(card);
+          }
+        } else {
+          operatorCards.push(card);
+        }
+      }
+      
+      res.json(operatorCards);
+    } catch (error) {
+      console.error("Error fetching operator cards:", error);
+      res.status(500).json({ message: "Failed to fetch operator cards" });
+    }
+  });
+
   router.post("/api/operators", async (req, res) => {
     try {
       const result = insertOperatorSchema.safeParse(req.body);
