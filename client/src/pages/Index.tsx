@@ -188,11 +188,11 @@ const Index = () => {
 
   return (
     <div className="min-h-screen w-full bg-white dark:bg-gray-900 overflow-x-hidden">
-      {/* Weather Alert Toast Notifications */}
-      <WeatherAlertToast />
-      
-      {/* Location Permission Prompt */}
+      {/* Location Permission Prompt - Shows First */}
       <LocationPermissionPrompt />
+      
+      {/* Weather Alert Toast Notifications - Shows After Location Permission */}
+      <WeatherAlertToast />
       
       {/* Modern Header */}
       <Header 

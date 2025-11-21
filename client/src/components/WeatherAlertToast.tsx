@@ -23,29 +23,36 @@ interface WeatherAlert {
 /**
  * Weather Alert Toast Notifications
  * Displays severe weather alerts as toast notifications that auto-dismiss
+ * Waits for location permission to be handled first for accurate alerts
  */
 export function WeatherAlertToast() {
   const { toast } = useToast();
-  const { cityState } = useUserLocation();
+  const { cityState, permissionStatus } = useUserLocation();
   const shownAlerts = useRef<Set<string>>(new Set());
+
+  // Delay alert fetching until location permission is handled
+  const shouldFetchAlerts = permissionStatus !== "prompt";
 
   const { data: alerts } = useQuery<WeatherAlert[]>({
     queryKey: ['/api/weather/alerts/severe'],
+    enabled: shouldFetchAlerts, // Only fetch if location permission has been handled
     refetchInterval: 4 * 60 * 60 * 1000, // Refetch every 4 hours
   });
 
   useEffect(() => {
     if (!alerts || alerts.length === 0) return;
 
-    // Filter alerts by user's location if available
+    // Filter alerts by user's location if available for maximum accuracy
     let relevantAlerts = alerts;
     if (cityState) {
       relevantAlerts = alerts.filter(alert => {
         // Check if the alert's area description includes the user's city or state
         const areaLower = alert.areaDesc.toLowerCase();
-        const [userCity, userState] = cityState.split(", ");
-        return areaLower.includes(userCity.toLowerCase()) || 
-               areaLower.includes(userState.toLowerCase());
+        const cityStateParts = cityState.split(", ");
+        const userCity = cityStateParts[0]?.toLowerCase() || "";
+        const userState = cityStateParts[1]?.toLowerCase() || "";
+        
+        return areaLower.includes(userCity) || areaLower.includes(userState);
       });
     }
 
@@ -71,17 +78,17 @@ export function WeatherAlertToast() {
 
         toast({
           title: (
-            <div className="flex items-center gap-2">
-              <Icon className={`w-5 h-5 ${severityColor}`} />
-              <span className="font-semibold">{alert.event}</span>
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              <Icon className={`w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0 ${severityColor}`} />
+              <span className="font-semibold text-xs sm:text-sm truncate">{alert.event}</span>
             </div>
           ) as any,
           description: (
-            <div className="space-y-2 mt-2">
-              <p className="text-sm font-medium">{alert.headline}</p>
-              <p className="text-xs text-gray-600 dark:text-gray-400">{alert.areaDesc}</p>
-              <div className="flex gap-2 text-xs">
-                <span className={`px-2 py-0.5 rounded ${
+            <div className="space-y-1 sm:space-y-2 mt-1.5 sm:mt-2">
+              <p className="text-xs sm:text-sm font-medium line-clamp-2">{alert.headline}</p>
+              <p className="text-xs text-gray-600 dark:text-gray-400 line-clamp-1">{alert.areaDesc}</p>
+              <div className="flex gap-1.5 sm:gap-2 text-xs flex-wrap">
+                <span className={`px-1.5 sm:px-2 py-0.5 rounded text-xs whitespace-nowrap ${
                   alert.severity === "Extreme" 
                     ? "bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200"
                     : alert.severity === "Severe"
@@ -90,19 +97,19 @@ export function WeatherAlertToast() {
                 }`}>
                   {alert.severity}
                 </span>
-                <span className="px-2 py-0.5 rounded bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200">
+                <span className="px-1.5 sm:px-2 py-0.5 rounded bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 text-xs whitespace-nowrap">
                   {alert.urgency}
                 </span>
               </div>
               {alert.instruction && (
-                <p className="text-xs text-gray-700 dark:text-gray-300 mt-2 italic">
-                  {alert.instruction.substring(0, 150)}
-                  {alert.instruction.length > 150 ? "..." : ""}
+                <p className="text-xs text-gray-700 dark:text-gray-300 mt-1.5 sm:mt-2 italic line-clamp-2">
+                  {alert.instruction.substring(0, 100)}
+                  {alert.instruction.length > 100 ? "..." : ""}
                 </p>
               )}
             </div>
           ) as any,
-          duration: 10000, // Auto-dismiss after 10 seconds
+          duration: 8000, // Auto-dismiss after 8 seconds
         });
       }
     });
