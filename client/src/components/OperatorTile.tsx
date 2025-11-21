@@ -194,9 +194,6 @@ export function OperatorTile({ operator, isFavorite = false, onFavoriteToggle }:
                   </span>
                 </div>
                 <div className="flex items-center gap-2 mt-1.5">
-                  <Badge variant="outline" className="text-xs">
-                    ${operator.hourlyRate}/hr
-                  </Badge>
                   {operator.isOnline === 1 && (
                     <Badge className="bg-green-500 text-white text-xs">
                       Online
@@ -219,33 +216,76 @@ export function OperatorTile({ operator, isFavorite = false, onFavoriteToggle }:
         </CardHeader>
 
         <CardContent className="space-y-4 pb-4">
-          {/* Tier Display - Modern Design */}
+          {/* Tier Display - Modern Design with Selective Glow for Combined Tiers */}
           <div className="space-y-2">
-            <div 
-              className={`flex items-center justify-between px-4 py-3 rounded-xl border-2 transition-all ${
-                operator.isActive
-                  ? "border-orange-500 bg-gradient-to-r from-orange-50 to-orange-100 dark:from-orange-950/30 dark:to-orange-900/20"
-                  : "border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/30 opacity-75"
-              }`}
-              data-testid={`tier-badge-${operator.tierType}`}
-            >
-              <div className="flex items-center gap-3">
-                <span className="text-2xl">{tierDisplay.badge}</span>
-                <div className="flex flex-col">
-                  <span className={`text-sm font-bold ${operator.isActive ? "text-orange-700 dark:text-orange-300" : "text-gray-700 dark:text-gray-400"}`}>
-                    {tierDisplay.label}
-                  </span>
-                  <span className="text-xs text-gray-600 dark:text-gray-500">
-                    {operator.totalJobs} jobs completed
-                  </span>
-                </div>
+            {operator.tierType === "equipped_manual" && operator.includedTiers.length > 1 ? (
+              // For combined equipped+manual tiles: show both tiers but only highlight the active one
+              <div className="space-y-2">
+                {operator.includedTiers.map((tierName) => {
+                  const tier = tierName as OperatorTier;
+                  const isThisTierActive = operator.activeTier === tier;
+                  const tierInfo = OPERATOR_TIER_INFO[tier];
+                  
+                  return (
+                    <div 
+                      key={tier}
+                      className={`flex items-center justify-between px-4 py-3 rounded-xl border-2 transition-all ${
+                        isThisTierActive
+                          ? "border-orange-500 bg-gradient-to-r from-orange-50 to-orange-100 dark:from-orange-950/30 dark:to-orange-900/20 shadow-lg shadow-orange-200/50 dark:shadow-orange-900/30"
+                          : "border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/30 opacity-60"
+                      }`}
+                      data-testid={`tier-badge-${tier}`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <span className="text-2xl">{tierInfo.badge}</span>
+                        <div className="flex flex-col">
+                          <span className={`text-sm font-bold ${isThisTierActive ? "text-orange-700 dark:text-orange-300" : "text-gray-600 dark:text-gray-500"}`}>
+                            {tierInfo.label}
+                          </span>
+                          {isThisTierActive && (
+                            <span className="text-xs text-gray-600 dark:text-gray-500">
+                              {operator.totalJobs} jobs completed
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      {isThisTierActive && (
+                        <Badge className="bg-orange-600 hover:bg-orange-700 text-white font-semibold px-3 py-1 animate-pulse">
+                          ACTIVE
+                        </Badge>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
-              {operator.isActive && (
-                <Badge className="bg-orange-600 hover:bg-orange-700 text-white font-semibold px-3 py-1">
-                  ACTIVE
-                </Badge>
-              )}
-            </div>
+            ) : (
+              // For professional or single-tier tiles: show as before
+              <div 
+                className={`flex items-center justify-between px-4 py-3 rounded-xl border-2 transition-all ${
+                  operator.isActive
+                    ? "border-orange-500 bg-gradient-to-r from-orange-50 to-orange-100 dark:from-orange-950/30 dark:to-orange-900/20 shadow-lg shadow-orange-200/50 dark:shadow-orange-900/30"
+                    : "border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/30 opacity-75"
+                }`}
+                data-testid={`tier-badge-${operator.tierType}`}
+              >
+                <div className="flex items-center gap-3">
+                  <span className="text-2xl">{tierDisplay.badge}</span>
+                  <div className="flex flex-col">
+                    <span className={`text-sm font-bold ${operator.isActive ? "text-orange-700 dark:text-orange-300" : "text-gray-700 dark:text-gray-400"}`}>
+                      {tierDisplay.label}
+                    </span>
+                    <span className="text-xs text-gray-600 dark:text-gray-500">
+                      {operator.totalJobs} jobs completed
+                    </span>
+                  </div>
+                </div>
+                {operator.isActive && (
+                  <Badge className="bg-orange-600 hover:bg-orange-700 text-white font-semibold px-3 py-1 animate-pulse">
+                    ACTIVE
+                  </Badge>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Services */}
@@ -330,18 +370,19 @@ export function OperatorTile({ operator, isFavorite = false, onFavoriteToggle }:
             </div>
           )}
 
-          {/* Contact & Location */}
+          {/* Contact & Location - Mysterious: hide phone, show only location */}
           <div className="flex items-center gap-4 text-xs text-gray-600 dark:text-gray-400 pt-2 border-t">
-            {operator.phone && (
-              <div className="flex items-center gap-1.5">
-                <Phone className="h-3.5 w-3.5" />
-                <span>{operator.phone}</span>
-              </div>
-            )}
             <div className="flex items-center gap-1.5">
               <MapPin className="h-3.5 w-3.5" />
               <span className="truncate">{operator.address}</span>
             </div>
+          </div>
+          
+          {/* Mysterious Hint */}
+          <div className="bg-gradient-to-r from-orange-50 to-amber-50 dark:from-orange-950/20 dark:to-amber-950/20 rounded-lg px-4 py-2.5 border border-orange-200/50 dark:border-orange-900/50">
+            <p className="text-xs text-orange-800 dark:text-orange-300 font-medium">
+              📞 Contact & rates revealed after service request
+            </p>
           </div>
 
           {/* Action Buttons */}

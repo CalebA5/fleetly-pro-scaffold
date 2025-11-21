@@ -7,6 +7,12 @@ Fleetly is a professional on-demand service platform connecting customers with v
 Preferred communication style: Simple, everyday language.
 
 ## Recent Changes (November 21, 2025)
+- **Mysterious Operator Tiles with Selective Tier Glow (Complete)**: Enhanced OperatorTile component with privacy-first design and intelligent tier highlighting:
+  - **Selective Tier Glow**: For equipped_manual combined tiles, only the currently active tier glows with shadow and pulse animation, inactive tiers display dimmed for clarity
+  - **Mysterious Design**: Phone numbers and hourly rates hidden until after service request/quote acceptance to maintain platform relevance and encourage bookings
+  - **Elegant Hint Box**: Added gradient hint banner "📞 Contact & rates revealed after service request" to guide customers
+  - **Mapbox Initialization Fix**: Resolved popup crash (null ref error) by adding null-check before adding popups in setTimeout callback
+  - **Enhanced Active Badge**: ACTIVE badge now pulses for better visual feedback on which tier is currently in use
 - **Operator Consolidation System (Complete)**: Implemented comprehensive operator card consolidation to eliminate duplicate operator records and provide unified multi-tier operator profiles:
   - **Consolidated API Endpoint**: `/api/operator-cards` aggregates duplicate operators by normalized email (trim + lowercase), returning enriched data with tier stats, reviews, and equipment
   - **OperatorTile Component**: New reusable component for dual-tier display with active tier badges, customer review showcase, and equipment gallery

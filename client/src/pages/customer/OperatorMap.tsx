@@ -83,7 +83,7 @@ export const OperatorMap = () => {
   const customerId = user?.id || "CUST-001";
   const customerName = user?.name || "Guest";
 
-  // Fetch tier cards (separate cards per tier)
+  // Fetch tier cards (separate cards per tier) - matches OperatorCard type from OperatorTile
   type TierCard = {
     cardId: string;
     tierType: "professional" | "equipped_manual";
@@ -100,8 +100,8 @@ export const OperatorMap = () => {
     isOnline: number;
     hourlyRate: string;
     availability: string;
-    activeTier: string;
-    subscribedTiers: string[];
+    activeTier: "professional" | "equipped" | "manual";  // Match OperatorTier type
+    subscribedTiers: ("professional" | "equipped" | "manual")[];
     services: string[];
     vehicle: string;
     licensePlate: string;
@@ -113,7 +113,7 @@ export const OperatorMap = () => {
     reviewCount: number;
   };
 
-  const { data: allOperators, isLoading } = useQuery<TierCard[]>({
+  const { data: allOperators, isLoading, error, isError } = useQuery<TierCard[]>({
     queryKey: ['/api/operator-cards'],
   });
 
@@ -134,7 +134,7 @@ export const OperatorMap = () => {
         serviceType: services[0] || "General Service",
         status: "pending",
         location: operatorCard.address,
-        estimatedCost: operatorCard.hourlyRate || "0.00",
+        estimatedCost: "Pending quote", // Hide rate until after acceptance
       };
 
       const response = await apiRequest("/api/service-requests", {
@@ -289,10 +289,8 @@ export const OperatorMap = () => {
   // Filter operators by selected service
   const operators = selectedService 
     ? allOperators?.filter(op => {
-        // Check if any active tier provides this service
-        return op.activeTiers?.some((tier: any) => 
-          tier.services?.includes(selectedService)
-        ) || op.services?.includes(selectedService);
+        // Check if tier card's services include the selected service
+        return op.services?.includes(selectedService);
       })
     : allOperators;
 
@@ -431,16 +429,15 @@ export const OperatorMap = () => {
             popupRef.current.remove();
           }
 
-          // Create popup content
+          // Create popup content (mysterious: hide rate)
           const popupContent = document.createElement('div');
           popupContent.className = 'p-2 min-w-[200px]';
           const trackingStatus = operatorLocations.get(operator.operatorId);
-          const rating = operator.avgRating || operator.rating || 0;
-          const hourlyRate = operator.hourlyRate || 0;
+          const rating = operator.rating || 0;
           popupContent.innerHTML = `
             <h3 class="font-bold text-black mb-2">${operator.name}</h3>
             <p class="text-sm text-gray-700"><strong>Rating:</strong> ⭐ ${rating}</p>
-            <p class="text-sm text-gray-700"><strong>Rate:</strong> $${hourlyRate}/hr</p>
+            <p class="text-sm text-orange-600 italic">📞 Rates revealed after request</p>
             ${trackingStatus ? `
               <p class="text-sm mt-1">
                 <strong>Status:</strong>
@@ -499,6 +496,9 @@ export const OperatorMap = () => {
 
     // Show popup
     setTimeout(() => {
+      // Check if map is still valid before showing popup
+      if (!mapRef.current) return;
+      
       if (popupRef.current) {
         popupRef.current.remove();
       }
@@ -507,11 +507,10 @@ export const OperatorMap = () => {
       popupContent.className = 'p-2 min-w-[200px]';
       const trackingStatus = operatorLocations.get(operatorCard.operatorId);
       const rating = operatorCard.avgRating || operatorCard.rating || 0;
-      const hourlyRate = operatorCard.hourlyRate || 0;
       popupContent.innerHTML = `
         <h3 class="font-bold text-black mb-2">${operatorCard.name}</h3>
         <p class="text-sm text-gray-700"><strong>Rating:</strong> ⭐ ${rating}</p>
-        <p class="text-sm text-gray-700"><strong>Rate:</strong> $${hourlyRate}/hr</p>
+        <p class="text-sm text-orange-600 italic">📞 Rates revealed after request</p>
         ${trackingStatus ? `
           <p class="text-sm mt-1">
             <strong>Status:</strong>
@@ -525,7 +524,7 @@ export const OperatorMap = () => {
       const popup = new mapboxgl.Popup({ offset: 25 })
         .setLngLat([lng, lat])
         .setDOMContent(popupContent)
-        .addTo(mapRef.current!);
+        .addTo(mapRef.current);
 
       popupRef.current = popup;
     }, 1000);
@@ -598,6 +597,21 @@ export const OperatorMap = () => {
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-gray-300 border-t-black rounded-full animate-spin mx-auto mb-4"></div>
           <p className="text-gray-600 dark:text-gray-400">Loading operators...</p>
+          {isError && <p className="text-red-500 mt-4 text-sm">Error: {String(error)}</p>}
+        </div>
+      </div>
+    );
+  }
+  
+  if (isError) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-white dark:bg-gray-900">
+        <div className="text-center max-w-md px-4">
+          <p className="text-red-500 text-lg mb-4">Failed to load operators</p>
+          <p className="text-gray-600 dark:text-gray-400 mb-4">{String(error)}</p>
+          <Button onClick={() => window.location.reload()} className="bg-orange-500 hover:bg-orange-600">
+            Retry
+          </Button>
         </div>
       </div>
     );
