@@ -9,10 +9,12 @@ import { MobileBottomNav } from "@/components/MobileBottomNav";
 import { WeatherAlertToast } from "@/components/WeatherAlertToast";
 import { LocationPermissionPrompt } from "@/components/LocationPermissionPrompt";
 import { EmergencySOSButton } from "@/components/EmergencySOSButton";
+import { AutocompleteLocation } from "@/components/AutocompleteLocation";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserLocation } from "@/contexts/LocationContext";
 import { MapPin, ArrowRight, Truck, Clock, Shield, Star, Search, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import type { GeocodingResult } from "@/lib/geocoding";
 
 const Index = () => {
   const [, setLocation] = useLocation();
@@ -43,6 +45,14 @@ const Index = () => {
       // Show signup dialog for operator role
       handleAuthClick("signup", "operator");
     }
+  };
+
+  // Handle location selection from autocomplete
+  const handleLocationSelect = (result: GeocodingResult) => {
+    setCurrentLat(result.lat);
+    setCurrentLon(result.lon);
+    // Store in LocationContext
+    setFormattedAddress(result.fullAddress, result.lat, result.lon);
   };
 
   const handleSearchService = async () => {
@@ -215,18 +225,16 @@ const Index = () => {
                 <div className="space-y-3">
                   <div className="flex items-center gap-3">
                     <div className="w-3 h-3 rounded-full bg-black dark:bg-white flex-shrink-0"></div>
-                    <div className="flex-1 relative">
-                      <Input
-                        placeholder={loadingLocation ? "Detecting your location..." : "Enter pickup location"}
+                    <div className="flex-1">
+                      <AutocompleteLocation
                         value={pickup}
-                        onChange={(e) => setPickup(e.target.value)}
-                        className="w-full border-0 bg-gray-50 dark:bg-gray-700 focus-visible:ring-1 focus-visible:ring-black dark:focus-visible:ring-white text-base"
-                        data-testid="input-pickup-location"
+                        onChange={setPickup}
+                        onSelectLocation={handleLocationSelect}
+                        placeholder={loadingLocation ? "Detecting your location..." : "Enter pickup location"}
                         disabled={loadingLocation}
+                        testId="input-pickup-location"
+                        icon={!loadingLocation}
                       />
-                      {loadingLocation && (
-                        <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 animate-spin text-gray-400" />
-                      )}
                     </div>
                   </div>
                   <div className="h-px bg-gray-200 dark:bg-gray-700 ml-6"></div>
