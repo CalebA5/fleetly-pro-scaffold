@@ -8,41 +8,47 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
+    /* Seasonal Theme System - Colors are dynamically set via SeasonalThemeProvider */
+    /* These are default values (Winter Light) - will be overridden by theme context */
+    
+    /* Smooth transitions for seasonal theme changes */
+    transition: background-color 0.3s ease, color 0.3s ease;
+    
     /* Fleetly Brand Colors - Clean Black/White Theme */
-    --background: 0 0% 100%;
-    --foreground: 0 0% 5%;
+    --background: 210 100% 98%;
+    --foreground: 220 30% 15%;
 
-    --card: 0 0% 100%;
-    --card-foreground: 0 0% 5%;
+    --card: 210 100% 98%;
+    --card-foreground: 220 30% 15%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 5%;
+    --popover: 210 100% 98%;
+    --popover-foreground: 220 30% 15%;
 
-    /* Black Primary - Bold & Professional (Uber-style) */
-    --primary: 0 0% 9%;
-    --primary-foreground: 0 0% 98%;
+    /* Primary - Seasonal (defaults to Winter Azure Blue) */
+    --primary: 217 91% 60%;
+    --primary-foreground: 0 0% 100%;
 
-    /* Light Gray Secondary - Subtle & Clean */
-    --secondary: 0 0% 96%;
-    --secondary-foreground: 0 0% 9%;
+    /* Secondary - Seasonal */
+    --secondary: 210 40% 93%;
+    --secondary-foreground: 220 30% 15%;
 
-    /* Warm Orange Accent - Energy & Action */
+    /* Warm Orange Accent - CONSTANT across ALL seasons - Brand Identity */
     --accent: 25 95% 53%;
     --accent-foreground: 0 0% 100%;
     --accent-hover: 25 95% 48%;
 
-    /* Neutral Grays */
-    --muted: 0 0% 96%;
-    --muted-foreground: 0 0% 45%;
+    /* Neutral Grays - Seasonal */
+    --muted: 210 40% 96%;
+    --muted-foreground: 220 20% 45%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 98%;
 
-    --border: 0 0% 90%;
-    --input: 0 0% 90%;
-    --ring: 0 0% 9%;
+    --border: 214 32% 88%;
+    --input: 214 32% 88%;
+    --ring: 217 91% 60%;
 
-    /* Success & Warning */
+    /* Success & Warning - Constant */
     --success: 142 76% 36%;
     --success-foreground: 0 0% 98%;
     --warning: 48 96% 53%;

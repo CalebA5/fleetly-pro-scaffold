@@ -19,17 +19,19 @@ import NotFound from "./pages/NotFound";
 import { queryClient } from "@/lib/queryClient";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { LocationProvider } from "@/contexts/LocationContext";
+import { SeasonalThemeProvider } from "@/contexts/SeasonalThemeContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { MobileBottomNav } from "@/components/MobileBottomNav";
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <AuthProvider>
-      <LocationProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <Switch>
+  <SeasonalThemeProvider>
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <LocationProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            <Switch>
           <Route path="/" component={Index} />
           <Route path="/emergency-sos" component={EmergencySOS} />
           <Route path="/emergency-tracking/:emergencyId" component={EmergencyTracking} />
@@ -72,10 +74,11 @@ const App = () => (
           <Route component={NotFound} />
         </Switch>
         <MobileBottomNav />
-        </TooltipProvider>
-      </LocationProvider>
-    </AuthProvider>
-  </QueryClientProvider>
+          </TooltipProvider>
+        </LocationProvider>
+      </AuthProvider>
+    </QueryClientProvider>
+  </SeasonalThemeProvider>
 );
 
 export default App;

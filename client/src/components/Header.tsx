@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ProfileDropdown } from "@/components/ProfileDropdown";
 import { TierSwitcher } from "@/components/TierSwitcher";
+import { ThemeSelector } from "@/components/ThemeSelector";
 import { useAuth } from "@/contexts/AuthContext";
 import { Truck, Sparkles, Bell } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -107,6 +108,10 @@ export const Header = ({ onSignIn, onSignUp, onDriveAndEarn }: HeaderProps) => {
             >
               Drive & Earn
             </Button>
+
+            {/* Seasonal Theme Selector */}
+            <ThemeSelector />
+
             {!isAuthenticated ? (
               <>
                 <Button 
