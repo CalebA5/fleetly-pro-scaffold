@@ -2,7 +2,7 @@ import { Router } from "express";
 import type { IStorage } from "./storage";
 import { db } from "./db";
 import { operators, customers, favorites, operatorTierStats, weatherAlerts, insertWeatherAlertSchema, emergencyRequests, dispatchQueue, insertEmergencyRequestSchema, insertDispatchQueueSchema } from "@shared/schema";
-import { eq, sql, and, gte } from "drizzle-orm";
+import { eq, sql, and, gte, or } from "drizzle-orm";
 import { insertJobSchema, insertServiceRequestSchema, insertCustomerSchema, insertOperatorSchema, insertRatingSchema, insertFavoriteSchema, insertOperatorLocationSchema, insertCustomerServiceHistorySchema, OPERATOR_TIER_INFO } from "@shared/schema";
 import { isWithinRadius } from "./utils/distance";
 import { getServiceRelevantAlerts } from "./services/weatherService";
@@ -168,6 +168,22 @@ export function registerRoutes(storage: IStorage) {
     } catch (error) {
       console.error("Error fetching tier stats:", error);
       res.status(500).json({ message: "Failed to fetch tier stats" });
+    }
+  });
+
+  router.get("/api/operators/by-user/:email", async (req, res) => {
+    try {
+      const email = req.params.email;
+      
+      // Find all operators for this user by email
+      const userOperators = await db.query.operators.findMany({
+        where: eq(operators.email, email)
+      });
+      
+      res.json(userOperators);
+    } catch (error) {
+      console.error("Error fetching operators by user:", error);
+      res.status(500).json({ message: "Failed to fetch operators" });
     }
   });
 

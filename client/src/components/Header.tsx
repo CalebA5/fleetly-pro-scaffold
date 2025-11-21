@@ -31,18 +31,43 @@ export const Header = ({ onSignIn, onSignUp, onDriveAndEarn }: HeaderProps) => {
   // Check if user is on an operator dashboard route
   const isOnOperatorDashboard = ['/operator', '/manual-operator', '/equipped-operator', '/business'].includes(location);
 
-  const handleDriveAndEarnClick = () => {
+  const handleDriveAndEarnClick = async () => {
     if (onDriveAndEarn) {
       onDriveAndEarn();
     } else {
       // Smart routing: if user has operator tier, go to dashboard; otherwise onboarding
-      if (isAuthenticated) {
-        // Check if user has operator tier (subscribedTiers or operatorId exists)
-        if (user?.operatorId || (user?.subscribedTiers && user.subscribedTiers.length > 0)) {
-          // User already has operator tier - go to their operator dashboard
-          setLocation("/operator");
-        } else {
-          // User doesn't have operator tier yet - go to onboarding
+      if (isAuthenticated && user) {
+        try {
+          // Fetch operator data from backend to check if user has any tiers
+          // Use email instead of userId since operators table doesn't have userId
+          const response = await fetch(`/api/operators/by-user/${encodeURIComponent(user.email)}`);
+          const operators = await response.json();
+          
+          if (operators && operators.length > 0) {
+            // User has at least one operator profile - determine which dashboard to show
+            const operator = operators[0]; // Use first operator
+            
+            // Navigate based on active tier
+            switch (operator.activeTier || operator.operatorTier) {
+              case 'professional':
+                setLocation("/business");
+                break;
+              case 'equipped':
+                setLocation("/equipped-operator");
+                break;
+              case 'manual':
+                setLocation("/manual-operator");
+                break;
+              default:
+                setLocation("/operator");
+            }
+          } else {
+            // No operator profiles found - go to onboarding
+            setLocation("/operator/onboarding");
+          }
+        } catch (error) {
+          console.error("Error checking operator status:", error);
+          // On error, default to onboarding
           setLocation("/operator/onboarding");
         }
       } else {
