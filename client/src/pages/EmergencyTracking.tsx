@@ -12,8 +12,9 @@ export default function EmergencyTracking() {
   const { emergencyId } = useParams<{ emergencyId: string }>();
 
   const { data: emergency, isLoading } = useQuery<EmergencyWithQueue>({
-    queryKey: ["/api/emergency-requests", emergencyId],
+    queryKey: [`/api/emergency-requests/${emergencyId}`],
     refetchInterval: 3000, // Poll every 3 seconds for updates
+    enabled: !!emergencyId, // Only run query if we have an emergencyId
   });
 
   if (isLoading) {
