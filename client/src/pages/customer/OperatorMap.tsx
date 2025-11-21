@@ -40,11 +40,11 @@ export const OperatorMap = () => {
   const popupRef = useRef<mapboxgl.Popup | null>(null);
   const [showAuthDialog, setShowAuthDialog] = useState(false);
   const [authTab, setAuthTab] = useState<"signin" | "signup">("signin");
-  const [selectedOperator, setSelectedOperator] = useState<Operator | null>(null);
+  const [selectedOperator, setSelectedOperator] = useState<{cardId: string; operatorId: string; name: string; [key: string]: any} | null>(null);
   const [mapStyle, setMapStyle] = useState<'streets' | 'satellite'>('streets');
   const [selectedService, setSelectedService] = useState<string>("");
   const [showRatingDialog, setShowRatingDialog] = useState(false);
-  const [ratingOperator, setRatingOperator] = useState<Operator | null>(null);
+  const [ratingOperator, setRatingOperator] = useState<{operatorId: string; name: string; [key: string]: any} | null>(null);
   const [rating, setRating] = useState(5);
   const [ratingComment, setRatingComment] = useState("");
   const [operatorLocations, setOperatorLocations] = useState<Map<string, OperatorLocation>>(new Map());
@@ -83,8 +83,37 @@ export const OperatorMap = () => {
   const customerId = user?.id || "CUST-001";
   const customerName = user?.name || "Guest";
 
-  // Fetch consolidated operator cards
-  const { data: allOperators, isLoading } = useQuery<any[]>({
+  // Fetch tier cards (separate cards per tier)
+  type TierCard = {
+    cardId: string;
+    tierType: "professional" | "equipped_manual";
+    includedTiers: string[];
+    isActive: boolean;
+    operatorId: string;
+    name: string;
+    email: string;
+    phone: string;
+    photo: string | null;
+    latitude: string;
+    longitude: string;
+    address: string;
+    isOnline: number;
+    hourlyRate: string;
+    availability: string;
+    activeTier: string;
+    subscribedTiers: string[];
+    services: string[];
+    vehicle: string;
+    licensePlate: string;
+    equipmentInventory: any[];
+    primaryVehicleImage: string | null;
+    totalJobs: number;
+    rating: string;
+    recentReviews: any[];
+    reviewCount: number;
+  };
+
+  const { data: allOperators, isLoading } = useQuery<TierCard[]>({
     queryKey: ['/api/operator-cards'],
   });
 
@@ -95,8 +124,8 @@ export const OperatorMap = () => {
 
   const createServiceRequestMutation = useMutation({
     mutationFn: async (operatorCard: any) => {
-      // Use first active tier's services, fallback to consolidated services
-      const services = operatorCard.activeTiers?.[0]?.services || operatorCard.services || [];
+      // Use tier card's services (already merged for this tier)
+      const services = operatorCard.services || [];
       const requestData: InsertServiceRequest = {
         customerId: customerId,
         customerName: customerName,
@@ -105,7 +134,7 @@ export const OperatorMap = () => {
         serviceType: services[0] || "General Service",
         status: "pending",
         location: operatorCard.address,
-        estimatedCost: operatorCard.hourlyRate,
+        estimatedCost: operatorCard.hourlyRate || "0.00",
       };
 
       const response = await apiRequest("/api/service-requests", {
@@ -789,9 +818,9 @@ export const OperatorMap = () => {
             ) : (
               operators?.map((operatorCard) => (
                 <div 
-                  key={operatorCard.operatorId}
+                  key={operatorCard.cardId}
                   onClick={() => panToOperator(operatorCard)}
-                  className={selectedOperator?.operatorId === operatorCard.operatorId ? 'ring-2 ring-orange-500 rounded-xl' : ''}
+                  className={selectedOperator?.cardId === operatorCard.cardId ? 'ring-2 ring-orange-500 rounded-xl' : ''}
                 >
                   <OperatorTile
                     operator={operatorCard}
