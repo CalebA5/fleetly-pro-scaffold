@@ -20,6 +20,7 @@ import { queryClient } from "@/lib/queryClient";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { LocationProvider } from "@/contexts/LocationContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { MobileBottomNav } from "@/components/MobileBottomNav";
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -70,6 +71,7 @@ const App = () => (
           
           <Route component={NotFound} />
         </Switch>
+        <MobileBottomNav />
         </TooltipProvider>
       </LocationProvider>
     </AuthProvider>

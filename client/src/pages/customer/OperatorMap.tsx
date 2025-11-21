@@ -538,11 +538,16 @@ export const OperatorMap = () => {
   const handleRequestService = (operator: Operator, e: React.MouseEvent) => {
     e.stopPropagation();
     // Navigate to detailed service request form
-    // Pre-fill service type if operator has services
+    // Pre-fill service type and operator info
     const service = operator.services && (operator.services as string[]).length > 0 
       ? (operator.services as string[])[0] 
       : "";
-    navigate(`/customer/create-request?service=${encodeURIComponent(service)}`);
+    const params = new URLSearchParams({
+      service: service,
+      operatorId: operator.operatorId,
+      operatorName: operator.name
+    });
+    navigate(`/customer/create-request?${params.toString()}`);
   };
 
   const services = ["All", "Snow Plowing", "Towing", "Hauling", "Courier", "Ice Removal", "Roadside Assistance"];
@@ -700,15 +705,15 @@ export const OperatorMap = () => {
           {viewMode === 'map' && (
             <button
               onClick={() => setIsSidebarMinimized(!isSidebarMinimized)}
-              className="hidden md:block fixed left-0 top-1/2 -translate-y-1/2 z-50 bg-black dark:bg-white text-white dark:text-black rounded-full p-3 shadow-2xl hover:shadow-orange-500/50 hover:scale-110 transition-all ring-2 ring-white dark:ring-black"
-              style={{ marginLeft: isSidebarMinimized ? 'calc(100vw - 3rem - 1.5rem)' : 'calc(100vw - 24rem - 1.5rem)' }}
+              className="hidden md:flex items-center justify-center fixed left-0 top-1/2 -translate-y-1/2 z-50 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm text-gray-700 dark:text-gray-300 rounded-r-lg px-2 py-6 shadow-lg border border-l-0 border-gray-200 dark:border-gray-700 hover:bg-white dark:hover:bg-gray-800 hover:shadow-xl hover:pr-3 transition-all duration-200 group"
+              style={{ marginLeft: isSidebarMinimized ? 'calc(100vw - 3rem)' : 'calc(100vw - 24rem)' }}
               aria-label={isSidebarMinimized ? "Expand sidebar" : "Minimize sidebar"}
               data-testid="button-toggle-sidebar"
             >
               {isSidebarMinimized ? (
-                <ChevronLeft className="w-5 h-5" />
+                <ChevronLeft className="w-4 h-4 group-hover:scale-110 transition-transform" />
               ) : (
-                <ChevronRight className="w-5 h-5" />
+                <ChevronRight className="w-4 h-4 group-hover:scale-110 transition-transform" />
               )}
             </button>
           )}

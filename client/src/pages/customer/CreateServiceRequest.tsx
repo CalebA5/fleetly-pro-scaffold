@@ -41,10 +41,14 @@ export const CreateServiceRequest = () => {
   const params = new URLSearchParams(window.location.search);
   const prefilledService = params.get("service") || "";
   const prefilledDescription = params.get("description") || "";
+  const prefilledOperatorId = params.get("operatorId") || "";
+  const prefilledOperatorName = params.get("operatorName") || "";
 
   // Basic Fields
   const [serviceType, setServiceType] = useState(prefilledService);
   const [isEmergency, setIsEmergency] = useState(false);
+  const [urgencyLevel, setUrgencyLevel] = useState<"low" | "medium" | "high" | "emergency">("medium");
+  const [showScheduleFields, setShowScheduleFields] = useState(false);
   const [jobDescription, setJobDescription] = useState(prefilledDescription);
   const [locationAddress, setLocationAddress] = useState("");
   const [preferredDate, setPreferredDate] = useState("");
@@ -53,6 +57,8 @@ export const CreateServiceRequest = () => {
   const [budgetRange, setBudgetRange] = useState("");
   const [images, setImages] = useState<File[]>([]);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+  const [selectedOperatorId] = useState(prefilledOperatorId);
+  const [selectedOperatorName] = useState(prefilledOperatorName);
 
   // Snow Plowing Specific
   const [snowAreaSize, setSnowAreaSize] = useState("");
@@ -174,13 +180,15 @@ export const CreateServiceRequest = () => {
     const requestData: any = {
       serviceType,
       isEmergency,
+      urgencyLevel, // NEW: Send urgency level to backend
       description: jobDescription,
       location: locationAddress,
-      preferredDate,
-      preferredTime,
+      preferredDate: showScheduleFields ? preferredDate : "", // Only send if scheduled
+      preferredTime: showScheduleFields ? preferredTime : "", // Only send if scheduled
       timeFlexibility,
       budgetRange,
       imageCount: images.length,
+      operatorId: selectedOperatorId || undefined, // NEW: Send operator ID if prefilled
     };
 
     // Add service-specific data
@@ -264,6 +272,25 @@ export const CreateServiceRequest = () => {
           </p>
         </div>
 
+        {/* Prefilled Operator Info Banner */}
+        {selectedOperatorName && (
+          <Card className="mb-6 border-green-200 dark:border-green-800 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/10 dark:to-emerald-900/10">
+            <CardContent className="py-4">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-full bg-green-600 dark:bg-green-500 flex items-center justify-center text-white font-bold text-lg">
+                  {selectedOperatorName.charAt(0)}
+                </div>
+                <div>
+                  <h3 className="font-semibold text-black dark:text-white">Requesting service from {selectedOperatorName}</h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    This request will be sent directly to this operator
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* AI Assist Prompt */}
         <Card className="mb-6 border-purple-200 dark:border-purple-800 bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-900/10 dark:to-blue-900/10">
           <CardContent className="py-4">
@@ -306,46 +333,79 @@ export const CreateServiceRequest = () => {
                 Basic Information
               </h3>
 
-              {/* Service Type */}
+              {/* Service Type - Icon Grid */}
               <div>
-                <Label htmlFor="service-type" className="text-black dark:text-white">
-                  Service Type *
+                <Label className="text-black dark:text-white mb-3 block">
+                  Select Service Type *
                 </Label>
-                <Select value={serviceType} onValueChange={setServiceType}>
-                  <SelectTrigger className="mt-2" data-testid="select-service-type">
-                    <SelectValue placeholder="Select service type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Snow Plowing">Snow Plowing</SelectItem>
-                    <SelectItem value="Towing">Towing</SelectItem>
-                    <SelectItem value="Hauling">Hauling</SelectItem>
-                    <SelectItem value="Courier">Courier</SelectItem>
-                    <SelectItem value="Ice Removal">Ice Removal</SelectItem>
-                    <SelectItem value="Roadside Assistance">Roadside Assistance</SelectItem>
-                  </SelectContent>
-                </Select>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                  {[
+                    { value: "Snow Plowing", icon: Snowflake, label: "Snow Plowing", color: "blue" },
+                    { value: "Towing", icon: Truck, label: "Towing", color: "orange" },
+                    { value: "Hauling", icon: Package, label: "Hauling", color: "green" },
+                    { value: "Courier", icon: Send, label: "Courier", color: "purple" },
+                    { value: "Ice Removal", icon: Snowflake, label: "Ice Removal", color: "cyan" },
+                    { value: "Roadside Assistance", icon: Car, label: "Roadside", color: "red" }
+                  ].map((service) => {
+                    const Icon = service.icon;
+                    const isSelected = serviceType === service.value;
+                    return (
+                      <button
+                        key={service.value}
+                        type="button"
+                        onClick={() => setServiceType(service.value)}
+                        className={`p-4 rounded-xl border-2 transition-all hover:scale-105 ${
+                          isSelected
+                            ? `border-${service.color}-500 bg-${service.color}-50 dark:bg-${service.color}-900/20 shadow-lg`
+                            : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+                        }`}
+                        data-testid={`button-service-${service.value.toLowerCase().replace(/\s+/g, '-')}`}
+                      >
+                        <Icon className={`w-8 h-8 mx-auto mb-2 ${
+                          isSelected ? `text-${service.color}-600 dark:text-${service.color}-400` : 'text-gray-600 dark:text-gray-400'
+                        }`} />
+                        <p className={`text-sm font-medium ${
+                          isSelected ? 'text-black dark:text-white' : 'text-gray-700 dark:text-gray-300'
+                        }`}>{service.label}</p>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
 
-              {/* Emergency Toggle */}
-              <div className="bg-orange-50 dark:bg-orange-900/10 border border-orange-200 dark:border-orange-800 rounded-lg p-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <AlertCircle className="w-6 h-6 text-orange-600 dark:text-orange-400" />
-                    <div>
-                      <Label htmlFor="emergency" className="text-base font-semibold text-black dark:text-white">
-                        Emergency Service
-                      </Label>
-                      <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                        Need immediate assistance? Emergency requests are prioritized and may cost more.
-                      </p>
-                    </div>
-                  </div>
-                  <Switch
-                    id="emergency"
-                    checked={isEmergency}
-                    onCheckedChange={setIsEmergency}
-                    data-testid="switch-emergency"
-                  />
+              {/* Urgency Level Selector */}
+              <div>
+                <Label className="text-black dark:text-white mb-3 block">
+                  Urgency Level *
+                </Label>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  {[
+                    { value: "low" as const, label: "Low", icon: "🟢", desc: "Flexible timing" },
+                    { value: "medium" as const, label: "Medium", icon: "🟡", desc: "Within days" },
+                    { value: "high" as const, label: "High", icon: "🟠", desc: "Within hours" },
+                    { value: "emergency" as const, label: "Emergency", icon: "🔴", desc: "Immediate" }
+                  ].map((level) => {
+                    const isSelected = urgencyLevel === level.value;
+                    return (
+                      <button
+                        key={level.value}
+                        type="button"
+                        onClick={() => setUrgencyLevel(level.value)}
+                        className={`p-3 rounded-lg border-2 transition-all hover:scale-105 ${
+                          isSelected
+                            ? 'border-orange-500 bg-orange-50 dark:bg-orange-900/20 shadow-lg'
+                            : 'border-gray-200 dark:border-gray-700 hover:border-gray-300'
+                        }`}
+                        data-testid={`button-urgency-${level.value}`}
+                      >
+                        <div className="text-2xl mb-1">{level.icon}</div>
+                        <p className={`text-sm font-semibold ${
+                          isSelected ? 'text-black dark:text-white' : 'text-gray-700 dark:text-gray-300'
+                        }`}>{level.label}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">{level.desc}</p>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 
@@ -375,78 +435,100 @@ export const CreateServiceRequest = () => {
                 Location & Timing
               </h3>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Service Location */}
-                <div className="md:col-span-2">
-                  <Label htmlFor="location" className="text-black dark:text-white flex items-center gap-2">
-                    <MapPin className="w-4 h-4" />
-                    Service Location *
-                  </Label>
-                  <Input
-                    id="location"
-                    placeholder="123 Main St, City, State ZIP"
-                    value={locationAddress}
-                    onChange={(e) => setLocationAddress(e.target.value)}
-                    className="mt-2"
-                    data-testid="input-location"
-                  />
-                </div>
+              {/* Service Location */}
+              <div>
+                <Label htmlFor="location" className="text-black dark:text-white flex items-center gap-2">
+                  <MapPin className="w-4 h-4" />
+                  Service Location *
+                </Label>
+                <Input
+                  id="location"
+                  placeholder="123 Main St, City, State ZIP"
+                  value={locationAddress}
+                  onChange={(e) => setLocationAddress(e.target.value)}
+                  className="mt-2"
+                  data-testid="input-location"
+                />
+              </div>
 
-                {/* Preferred Date */}
-                <div>
-                  <Label htmlFor="date" className="text-black dark:text-white flex items-center gap-2">
-                    <Calendar className="w-4 h-4" />
-                    {isEmergency ? "Target Date" : "Preferred Date"}
-                  </Label>
-                  <Input
-                    id="date"
-                    type="date"
-                    value={preferredDate}
-                    onChange={(e) => setPreferredDate(e.target.value)}
-                    className="mt-2"
-                    data-testid="input-date"
+              {/* Schedule Service Toggle */}
+              <div className="bg-blue-50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <Calendar className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+                    <div>
+                      <Label htmlFor="schedule-service" className="text-base font-semibold text-black dark:text-white cursor-pointer">
+                        Schedule for Later
+                      </Label>
+                      <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                        Choose a specific date and time for the service
+                      </p>
+                    </div>
+                  </div>
+                  <Switch
+                    id="schedule-service"
+                    checked={showScheduleFields}
+                    onCheckedChange={setShowScheduleFields}
+                    data-testid="switch-schedule-service"
                   />
-                </div>
-
-                {/* Preferred Time */}
-                <div>
-                  <Label htmlFor="time" className="text-black dark:text-white flex items-center gap-2">
-                    <Clock className="w-4 h-4" />
-                    {isEmergency ? "Target Time" : "Preferred Time"}
-                  </Label>
-                  <Input
-                    id="time"
-                    type="time"
-                    value={preferredTime}
-                    onChange={(e) => setPreferredTime(e.target.value)}
-                    className="mt-2"
-                    data-testid="input-time"
-                  />
-                </div>
-
-                {/* Time Flexibility */}
-                <div className="md:col-span-2">
-                  <Label className="text-black dark:text-white">Time Flexibility</Label>
-                  <RadioGroup value={timeFlexibility} onValueChange={setTimeFlexibility} className="mt-2">
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="asap" id="asap" data-testid="radio-asap" />
-                      <Label htmlFor="asap" className="font-normal">ASAP - Need it done immediately</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="exact" id="exact" data-testid="radio-exact" />
-                      <Label htmlFor="exact" className="font-normal">Must be at exact time specified</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="flexible" id="flexible" data-testid="radio-flexible" />
-                      <Label htmlFor="flexible" className="font-normal">Flexible - Within a few hours is fine</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="very-flexible" id="very-flexible" data-testid="radio-very-flexible" />
-                      <Label htmlFor="very-flexible" className="font-normal">Very Flexible - Anytime that day works</Label>
-                    </div>
-                  </RadioGroup>
                 </div>
               </div>
+
+              {/* Date/Time Fields - Revealed when toggle is ON */}
+              {showScheduleFields && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-in slide-in-from-top duration-300">
+                  {/* Preferred Date */}
+                  <div>
+                    <Label htmlFor="date" className="text-black dark:text-white flex items-center gap-2">
+                      <Calendar className="w-4 h-4" />
+                      Preferred Date
+                    </Label>
+                    <Input
+                      id="date"
+                      type="date"
+                      value={preferredDate}
+                      onChange={(e) => setPreferredDate(e.target.value)}
+                      className="mt-2"
+                      data-testid="input-date"
+                    />
+                  </div>
+
+                  {/* Preferred Time */}
+                  <div>
+                    <Label htmlFor="time" className="text-black dark:text-white flex items-center gap-2">
+                      <Clock className="w-4 h-4" />
+                      Preferred Time
+                    </Label>
+                    <Input
+                      id="time"
+                      type="time"
+                      value={preferredTime}
+                      onChange={(e) => setPreferredTime(e.target.value)}
+                      className="mt-2"
+                      data-testid="input-time"
+                    />
+                  </div>
+
+                  {/* Time Flexibility */}
+                  <div className="md:col-span-2">
+                    <Label className="text-black dark:text-white">Time Flexibility</Label>
+                    <RadioGroup value={timeFlexibility} onValueChange={setTimeFlexibility} className="mt-2">
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="exact" id="exact" data-testid="radio-exact" />
+                        <Label htmlFor="exact" className="font-normal">Must be at exact time specified</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="flexible" id="flexible" data-testid="radio-flexible" />
+                        <Label htmlFor="flexible" className="font-normal">Flexible - Within a few hours is fine</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="very-flexible" id="very-flexible" data-testid="radio-very-flexible" />
+                        <Label htmlFor="very-flexible" className="font-normal">Very Flexible - Anytime that day works</Label>
+                      </div>
+                    </RadioGroup>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Service-Specific Fields */}
