@@ -475,18 +475,19 @@ export const emergencyRequests = pgTable("emergency_requests", {
   customerId: text("customer_id"), // Linked if user logs in later
 });
 
-export const insertEmergencyRequestSchema = createInsertSchema(emergencyRequests).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-}).extend({
-  latitude: z.string().or(z.number().transform(String)), // decimal columns expect strings
-  longitude: z.string().or(z.number().transform(String)),
+export const insertEmergencyRequestSchema = z.object({
+  emergencyId: z.string(),
+  contactName: z.string().optional(),
   contactPhone: z.string().min(10, "Phone number required for emergency"),
   contactEmail: z.string().email().optional().or(z.literal("")),
+  serviceType: z.enum(["towing", "roadside", "debris", "snow_plowing", "hauling", "equipment_transport"]),
   description: z.string().min(10, "Please describe the emergency"),
   location: z.string().min(1, "Location is required"),
-  serviceType: z.enum(["towing", "roadside", "debris", "snow_plowing", "hauling", "equipment_transport"]),
+  latitude: z.string().or(z.number().transform(String)), // decimal columns expect strings
+  longitude: z.string().or(z.number().transform(String)),
+  status: z.string().optional().default("searching"),
+  assignedOperatorId: z.string().optional(),
+  customerId: z.string().optional(),
 });
 
 export type InsertEmergencyRequest = z.infer<typeof insertEmergencyRequestSchema>;
@@ -509,12 +510,17 @@ export const dispatchQueue = pgTable("dispatch_queue", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
-export const insertDispatchQueueSchema = createInsertSchema(dispatchQueue).omit({
-  id: true,
-  createdAt: true,
-}).extend({
-  distanceKm: z.string().or(z.number().transform(String)).optional(), // decimal columns expect strings
+export const insertDispatchQueueSchema = z.object({
+  queueId: z.string(),
+  emergencyId: z.string().optional(),
+  serviceRequestId: z.string().optional(),
+  operatorId: z.string(),
+  queuePosition: z.number(),
+  status: z.string().optional().default("pending"),
+  notifiedAt: z.date().optional(),
+  respondedAt: z.date().optional(),
   expiresAt: z.date().optional(),
+  distanceKm: z.string().or(z.number().transform(String)).optional(),
 });
 
 export type InsertDispatchQueue = z.infer<typeof insertDispatchQueueSchema>;
