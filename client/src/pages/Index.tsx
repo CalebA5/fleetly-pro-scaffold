@@ -187,7 +187,7 @@ const Index = () => {
   }, []);
 
   return (
-    <div className="min-h-screen bg-white dark:bg-gray-900">
+    <div className="min-h-screen w-full bg-white dark:bg-gray-900 overflow-x-hidden">
       {/* Weather Alert Toast Notifications */}
       <WeatherAlertToast />
       
@@ -202,15 +202,15 @@ const Index = () => {
       />
 
       {/* Emergency SOS Section - Prominent placement */}
-      <section className="relative bg-white dark:bg-gray-900 pt-8 pb-4 px-4">
-        <div className="max-w-7xl mx-auto">
+      <section className="relative bg-white dark:bg-gray-900 pt-8 pb-4 px-4 w-full">
+        <div className="max-w-7xl mx-auto w-full">
           <EmergencySOSButton />
         </div>
       </section>
 
       {/* Hero Section with Location Search */}
-      <section className="relative bg-white dark:bg-gray-900 py-12 md:py-20 overflow-hidden border-b border-gray-200 dark:border-gray-800">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <section className="relative bg-white dark:bg-gray-900 py-12 md:py-20 overflow-hidden border-b border-gray-200 dark:border-gray-800 w-full">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-center">
             <div>
               <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-black dark:text-white leading-tight mb-4">

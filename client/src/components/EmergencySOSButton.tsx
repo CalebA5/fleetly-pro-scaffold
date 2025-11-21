@@ -1,14 +1,52 @@
 import { Phone } from "lucide-react";
 import { Link } from "wouter";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export function EmergencySOSButton() {
   const [isExpanded, setIsExpanded] = useState(false);
+  const [navVisible, setNavVisible] = useState(true);
+
+  // Track mobile bottom nav visibility by monitoring scroll
+  useEffect(() => {
+    let scrollTimeout: NodeJS.Timeout;
+    let lastScrollY = 0;
+
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY;
+      
+      // Show nav when scrolling up or near top
+      if (currentScrollY < lastScrollY || currentScrollY < 50) {
+        setNavVisible(true);
+      } else if (currentScrollY > lastScrollY && currentScrollY > 100) {
+        // Hide nav when scrolling down significantly
+        setNavVisible(false);
+      }
+      
+      lastScrollY = currentScrollY;
+      
+      // Clear timeout if already running
+      clearTimeout(scrollTimeout);
+      
+      // Show nav again after 2 seconds of no scrolling
+      scrollTimeout = setTimeout(() => {
+        setNavVisible(true);
+      }, 2000);
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+      clearTimeout(scrollTimeout);
+    };
+  }, []);
+
+  // On mobile, adjust position based on nav visibility
+  const bottomPosition = navVisible ? "md:bottom-6 bottom-24" : "md:bottom-6 bottom-6";
 
   return (
     <Link href="/emergency-sos">
       <div
-        className="fixed bottom-6 right-6 z-50 group"
+        className={`fixed ${bottomPosition} right-6 z-50 group transition-all duration-300`}
         data-testid="button-emergency-sos"
         onMouseEnter={() => setIsExpanded(true)}
         onMouseLeave={() => setIsExpanded(false)}

@@ -109,7 +109,7 @@ export function LocationProvider({ children }: { children: ReactNode }) {
           altitudeAccuracy: null,
           heading: null,
           speed: null,
-          toJSON: () => ({ latitude: lat, longitude: lon }),
+          toJSON: function() { return { latitude: lat, longitude: lon }; },
         } as GeolocationCoordinates,
         timestamp: Date.now(),
       };
