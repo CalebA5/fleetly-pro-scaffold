@@ -158,7 +158,7 @@ export const OperatorProfile = () => {
                     <Badge variant="outline">{operator.licensePlate}</Badge>
                   )}
                 </div>
-                {operator.equipmentInventory && operator.equipmentInventory.length > 0 && (
+                {operator.equipmentInventory && Array.isArray(operator.equipmentInventory) && operator.equipmentInventory.length > 0 && (
                   <div className="flex flex-wrap gap-2 mt-3">
                     {operator.equipmentInventory.map((item: any, idx: number) => (
                       <Badge key={idx} variant="secondary">
@@ -172,7 +172,7 @@ export const OperatorProfile = () => {
             )}
 
             {/* Services */}
-            {operator.services && operator.services.length > 0 && (
+            {operator.services && Array.isArray(operator.services) && operator.services.length > 0 && (
               <div>
                 <h3 className="text-lg font-semibold mb-3">Services Offered</h3>
                 <div className="flex flex-wrap gap-2">

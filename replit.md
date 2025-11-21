@@ -6,6 +6,17 @@ Fleetly is a professional on-demand service platform connecting customers with v
 ## User Preferences
 Preferred communication style: Simple, everyday language.
 
+## Recent Changes
+
+### November 21, 2025 - Drive & Earn Detection and View Profile Fixes
+- **Drive & Earn Detection**: Fixed issue where registered operators weren't detected because session wasn't updated after onboarding
+  - Added `/api/operators/by-user/:email` endpoint to fetch operator profiles by email
+  - Updated Header component to fetch operator data from backend instead of relying on stale session
+  - Now correctly routes to appropriate dashboard based on active tier (professional → /business, equipped → /equipped-operator, manual → /manual-operator)
+- **View Profile Page**: Fixed TypeScript errors in OperatorProfile component
+  - Added proper type guards for `equipmentInventory` and `services` arrays
+  - Route `/customer/operator-profile/:operatorId` was already configured correctly in CustomerDashboard
+
 ## System Architecture
 
 ### Frontend Architecture
