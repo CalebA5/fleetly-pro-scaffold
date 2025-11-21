@@ -74,6 +74,9 @@ export const operators = pgTable("operators", {
   businessId: text("business_id"),
   businessName: text("business_name"),
   driverName: text("driver_name"),
+  operatorTierProfiles: jsonb("operator_tier_profiles"),
+  equipmentInventory: jsonb("equipment_inventory"),
+  primaryVehicleImage: text("primary_vehicle_image"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -86,6 +89,27 @@ export type InsertOperator = z.infer<typeof insertOperatorSchema>;
 export type Operator = typeof operators.$inferSelect;
 
 export type OperatorTier = "professional" | "equipped" | "manual";
+
+export type OperatorTierProfile = {
+  tier: OperatorTier;
+  subscribed: boolean;
+  onboardingCompleted: boolean;
+  onboardedAt?: string;
+  vehicle?: string;
+  licensePlate?: string;
+  businessLicense?: string;
+  services?: string[];
+};
+
+export type EquipmentItem = {
+  id: string;
+  tier: OperatorTier;
+  displayName: string;
+  category: "vehicle" | "equipment" | "tool";
+  photoUrl?: string;
+  capabilities?: string[];
+  description?: string;
+};
 
 export const OPERATOR_TIER_INFO = {
   professional: {

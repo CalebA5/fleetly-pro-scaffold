@@ -255,6 +255,7 @@ router.post('/signin', async (req, res) => {
       operatorTier: operatorData?.operatorTier,
       subscribedTiers: operatorData?.subscribedTiers,
       activeTier: operatorData?.activeTier,
+      operatorTierProfiles: operatorData?.operatorTierProfiles,
     });
   } catch (error) {
     console.error('Signin error:', error);
@@ -339,6 +340,7 @@ router.get('/session', async (req, res) => {
       operatorTier: operatorData?.operatorTier,
       subscribedTiers: operatorData?.subscribedTiers,
       activeTier: operatorData?.activeTier,
+      operatorTierProfiles: operatorData?.operatorTierProfiles,
     });
   } catch (error) {
     console.error('Session error:', error);

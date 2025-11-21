@@ -789,10 +789,33 @@ export function registerRoutes(storage: IStorage) {
         return res.status(400).json({ message: "Tier already subscribed" });
       }
       
-      // Add tier to subscribed tiers in database
+      // Add tier to subscribed tiers and set as active tier
       const updatedTiers = [...operator.subscribedTiers, tier];
+      
+      // Build operator tier profiles
+      const existingProfiles = (operator.operatorTierProfiles as any) || {};
+      const updatedProfiles = {
+        ...existingProfiles,
+        [tier]: {
+          tier,
+          subscribed: true,
+          onboardingCompleted: true,
+          onboardedAt: new Date().toISOString(),
+          vehicle: details?.vehicle || operator.vehicle,
+          licensePlate: details?.licensePlate || operator.licensePlate,
+          businessLicense: details?.businessLicense || operator.businessLicense,
+          services: details?.services || operator.services
+        }
+      };
+      
+      // Update database with new tier, set as active, and store tier profiles
       await db.update(operators)
-        .set({ subscribedTiers: updatedTiers })
+        .set({ 
+          subscribedTiers: updatedTiers,
+          activeTier: tier,
+          operatorTier: tier,
+          operatorTierProfiles: updatedProfiles
+        })
         .where(eq(operators.operatorId, operatorId));
       
       // Create initial tier stats for the new tier
@@ -806,7 +829,11 @@ export function registerRoutes(storage: IStorage) {
         lastActiveAt: null
       });
       
-      res.json({ message: "Tier added successfully" });
+      res.json({ 
+        message: "Tier added successfully",
+        activeTier: tier,
+        subscribedTiers: updatedTiers
+      });
     } catch (error) {
       console.error("Error adding tier:", error);
       res.status(500).json({ message: "Failed to add tier" });
