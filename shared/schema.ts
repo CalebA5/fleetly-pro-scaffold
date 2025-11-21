@@ -455,3 +455,68 @@ export const insertWeatherAlertSchema = createInsertSchema(weatherAlerts).omit({
 
 export type InsertWeatherAlert = z.infer<typeof insertWeatherAlertSchema>;
 export type WeatherAlert = typeof weatherAlerts.$inferSelect;
+
+// Emergency Requests - For anonymous emergency help (SOS feature, no login required)
+export const emergencyRequests = pgTable("emergency_requests", {
+  id: serial("id").primaryKey(),
+  emergencyId: text("emergency_id").notNull().unique(),
+  contactName: text("contact_name"), // Optional - user may provide
+  contactPhone: text("contact_phone"), // Required for emergency response
+  contactEmail: text("contact_email"), // Optional
+  serviceType: text("service_type").notNull(), // "towing", "roadside", "debris"
+  description: text("description").notNull(),
+  location: text("location").notNull(),
+  latitude: decimal("latitude", { precision: 10, scale: 7 }).notNull(),
+  longitude: decimal("longitude", { precision: 10, scale: 7 }).notNull(),
+  status: text("status").notNull().default("searching"), // "searching" | "operator_assigned" | "en_route" | "completed" | "cancelled"
+  assignedOperatorId: text("assigned_operator_id"), // Operator who accepted
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  customerId: text("customer_id"), // Linked if user logs in later
+});
+
+export const insertEmergencyRequestSchema = createInsertSchema(emergencyRequests, {
+  latitude: z.string().or(z.number().transform(String)), // decimal columns expect strings
+  longitude: z.string().or(z.number().transform(String)),
+  contactPhone: z.string().min(10, "Phone number required for emergency"),
+  contactEmail: z.string().email().optional().or(z.literal("")),
+  description: z.string().min(10, "Please describe the emergency"),
+  location: z.string().min(1, "Location is required"),
+  serviceType: z.enum(["towing", "roadside", "debris"]),
+}).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertEmergencyRequest = z.infer<typeof insertEmergencyRequestSchema>;
+export type EmergencyRequest = typeof emergencyRequests.$inferSelect;
+export type EmergencyStatus = "searching" | "operator_assigned" | "en_route" | "completed" | "cancelled";
+
+// Dispatch Queue - Manages operator notifications and job queue system
+export const dispatchQueue = pgTable("dispatch_queue", {
+  id: serial("id").primaryKey(),
+  queueId: text("queue_id").notNull().unique(),
+  emergencyId: text("emergency_id"), // For emergency requests
+  serviceRequestId: text("service_request_id"), // For regular service requests
+  operatorId: text("operator_id").notNull(),
+  queuePosition: integer("queue_position").notNull(), // 1 = first notified, 2 = second, etc.
+  status: text("status").notNull().default("pending"), // "pending" | "notified" | "accepted" | "declined" | "expired"
+  notifiedAt: timestamp("notified_at"),
+  respondedAt: timestamp("responded_at"),
+  expiresAt: timestamp("expires_at"), // Auto-decline after X minutes
+  distanceKm: decimal("distance_km", { precision: 10, scale: 2 }), // Distance from operator to job
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertDispatchQueueSchema = createInsertSchema(dispatchQueue, {
+  distanceKm: z.string().or(z.number().transform(String)).optional(), // decimal columns expect strings
+  expiresAt: z.date().optional(),
+}).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertDispatchQueue = z.infer<typeof insertDispatchQueueSchema>;
+export type DispatchQueue = typeof dispatchQueue.$inferSelect;
+export type DispatchStatus = "pending" | "notified" | "accepted" | "declined" | "expired";

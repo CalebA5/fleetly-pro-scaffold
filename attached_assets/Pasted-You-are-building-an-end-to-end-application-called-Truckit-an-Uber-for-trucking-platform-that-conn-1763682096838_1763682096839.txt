@@ -1,0 +1,326 @@
+You are building an end-to-end application called Truckit, an “Uber-for-trucking” platform that connects customers to towing, hauling, debris removal, snow removal, and general trucking operators.
+
+I already created the skeleton of the app, but now I need you to design and integrate ALL FEATURES BELOW and improve both UI and backend logic.
+
+🚀 Truckit — Full App Specification
+1. Core Concept
+
+Truckit is an on-demand marketplace connecting:
+
+Customers needing towing, hauling, junk removal, snow removal, roadside assistance, etc.
+
+Operators with trucks, towing rigs, snow plows, flatbeds, or manual labor equipment.
+
+The app must have two modes:
+
+Customer Mode
+
+Operator Mode
+
+🆘 2. Emergency Mode (“SOS Feature”)
+
+Create a dedicated emergency button on the homepage:
+
+Emergency Help Now
+
+No sign-in required (optional login later).
+
+Auto-detect location.
+
+Display 3 quick tiles:
+
+Tow My Car
+
+Roadside Assistance
+
+Debris/Junk Blocking Driveway
+
+Backend Logic:
+
+Notify 5 nearest operators simultaneously.
+
+First operator to accept gets the job.
+
+Others are placed in a queue order.
+
+If the first operator cancels → next operator is auto-notified.
+
+Customer sees live status: “Finding nearby operator…” → “Operator accepted, arriving in X minutes.”
+
+Include:
+
+Real-time websocket updates
+
+Push notifications
+
+Distance-based priority
+
+🏗 3. Guided Service Flow (Non-Emergency)
+
+Build a smooth UX with tappable cards, not forms:
+
+Select service type
+
+Auto-location
+
+Vehicle/load type selection
+
+Optional photo upload
+
+Instant pricing OR request operator quotes
+
+Make this flow fully functional on both mobile + web.
+
+🗺 4. Real-Time Map Interface
+
+Build an interactive map UI showing:
+
+Operators nearby
+
+Estimated arrival times
+
+Operator availability
+
+Routes and navigation
+
+🛠 5. Operator App Features
+
+Operator dashboard must include:
+
+Go Online / Offline toggle
+
+Real-time list of job requests
+
+Job acceptance with queueing logic
+
+Job cancellation flow
+
+Route navigation (Google Maps / Apple Maps deep link)
+
+Earnings summary
+
+Job history
+
+Vehicle/equipment profile
+
+Operator rating & verification status
+
+📈 6. Ratings & Trust Layer
+
+Implement:
+
+Operator verification badges
+
+Stars + written reviews
+
+Average response time
+
+Completion rate
+
+Equipment list
+
+📦 7. Business / Fleet Portal
+
+Basic version:
+
+Multi-job scheduling
+
+Location-based management
+
+Monthly billing
+
+Repeat service templates
+
+🧭 8. Safety Mode
+
+Allow customers to share:
+
+Live trip tracking
+
+Operator info (name, license, vehicle)
+
+Expected arrival time
+
+🎙 9. Voice Booking Feature
+
+Enable microphone input → convert to structured service request.
+
+🛑 10. Dark Mode
+
+Auto-switch based on system time.
+
+🎨 11. UI/UX Deliverables (Required)
+
+Generate AND integrate into the project:
+
+A. Wireframes
+
+Provide low-fidelity screen flows for:
+
+Customer Home
+
+Emergency Mode
+
+Service Booking
+
+Operator Dashboard
+
+Operator Job Flow
+
+Job Tracking Screen
+
+B. User Flow Diagrams
+
+Generate diagrams for:
+
+Customer booking flow
+
+Operator acceptance / queue flow
+
+Emergency dispatch flow
+
+Payment and job completion
+
+C. High-Fidelity Mockups
+
+Create modern, minimal mockups (using Tailwind, Figma-style code, or embedded SVG/CSS-based mockups).
+
+The style should be:
+
+Clean
+
+Flat
+
+Rounded corners (10–16px)
+
+Light/dark mode compatible
+
+Trucking/roadside-themed but modern
+
+🗄 12. Database Requirements
+
+Tables:
+
+Users
+
+Operators
+
+Vehicles
+
+Services
+
+Jobs
+
+EmergencyJobs
+
+JobQueue
+
+Ratings
+
+Messages
+
+Notifications
+
+Billing & Payments
+
+Trips
+
+Use schemas that support:
+
+Real-time updates
+
+Location tracking (lat/lng)
+
+Job queues
+
+Operator availability
+
+Prefer PostgreSQL or MongoDB.
+
+🚦 13. Backend Requirements
+
+Generate:
+
+REST API endpoints
+
+Authentication (email, phone, optional OTP)
+
+Operator queueing logic
+
+Emergency mode dispatch
+
+Payment integration (Stripe)
+
+Real-time WebSocket events
+
+🌐 14. Frontend Requirements
+
+Build in React + Tailwind OR Flutter for mobile.
+Include:
+
+Maps
+
+Swipeable menus
+
+Animation between screens
+
+Push notifications
+
+Persistent sessions
+
+💳 15. Payment Logic
+
+Support:
+
+In-app card payments
+
+Cash-on-arrival option
+
+Payouts to operators
+
+Escrow release after job completion
+
+🧪 16. Deliverables From Replit (Important)
+
+Please generate:
+✔ Clean code structure
+✔ Page components
+✔ API handlers
+✔ Database models
+✔ Job queue logic
+✔ Websocket listeners
+✔ Wireframes (ASCII diagrams or rendered assets)
+✔ High-fidelity UI mockups (svg/css or png output)
+✔ User flow diagrams
+✔ Explanations + integration instructions
+
+🧩 17. Development Philosophy
+
+Keep everything modular, scalable, and reusable.
+Use clear separation of concerns:
+
+/frontend
+
+/backend
+
+/operators
+
+/customers
+
+/shared
+
+/ui
+
+🚀 Execution
+
+Please begin by:
+
+Generating the file architecture.
+
+Outputting the wireframes.
+
+Creating the user flows.
+
+Producing the UI components.
+
+Implementing backend logic step-by-step.

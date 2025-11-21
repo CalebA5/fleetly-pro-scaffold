@@ -1,11 +1,24 @@
 import { Router } from "express";
 import type { IStorage } from "./storage";
 import { db } from "./db";
-import { operators, customers, favorites, operatorTierStats, weatherAlerts, insertWeatherAlertSchema } from "@shared/schema";
+import { operators, customers, favorites, operatorTierStats, weatherAlerts, insertWeatherAlertSchema, emergencyRequests, dispatchQueue, insertEmergencyRequestSchema, insertDispatchQueueSchema } from "@shared/schema";
 import { eq, sql, and, gte } from "drizzle-orm";
 import { insertJobSchema, insertServiceRequestSchema, insertCustomerSchema, insertOperatorSchema, insertRatingSchema, insertFavoriteSchema, insertOperatorLocationSchema, insertCustomerServiceHistorySchema, OPERATOR_TIER_INFO } from "@shared/schema";
 import { isWithinRadius } from "./utils/distance";
 import { getServiceRelevantAlerts } from "./services/weatherService";
+
+// Helper function to calculate distance between two points (Haversine formula)
+function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 6371; // Earth's radius in kilometers
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = 
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c; // Distance in kilometers
+}
 
 export function registerRoutes(storage: IStorage) {
   const router = Router();
@@ -953,6 +966,250 @@ export function registerRoutes(storage: IStorage) {
     } catch (error) {
       console.error("Error fetching severe weather alerts:", error);
       res.status(500).json({ message: "Failed to fetch severe weather alerts" });
+    }
+  });
+
+  // ===== EMERGENCY SOS ROUTES =====
+  
+  // Create emergency request (no auth required)
+  router.post("/api/emergency-requests", async (req, res) => {
+    try {
+      const result = insertEmergencyRequestSchema.safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ errors: result.error.issues });
+      }
+      
+      // Insert with validated and transformed data (lat/lng as strings)
+      const emergency = await db.insert(emergencyRequests).values(result.data).returning();
+      
+      // Find 5 nearest online operators
+      const allOperators = await db.query.operators.findMany({
+        where: eq(operators.isOnline, 1)
+      });
+      
+      // Parse coordinates for distance calculation (expecting strings from schema)
+      const emergencyLat = parseFloat(String(result.data.latitude));
+      const emergencyLng = parseFloat(String(result.data.longitude));
+      
+      // Calculate distances and sort
+      const operatorsWithDistance = allOperators.map(op => ({
+        ...op,
+        distance: calculateDistance(
+          emergencyLat,
+          emergencyLng,
+          parseFloat(String(op.latitude)),
+          parseFloat(String(op.longitude))
+        )
+      })).sort((a, b) => a.distance - b.distance).slice(0, 5);
+      
+      // Create dispatch queue entries for nearest 5 operators
+      const now = new Date();
+      const queueEntries = operatorsWithDistance.map((op, index) => ({
+        queueId: `QUEUE-${Date.now()}-${op.operatorId}`,
+        emergencyId: result.data.emergencyId,
+        serviceRequestId: null,
+        operatorId: op.operatorId,
+        queuePosition: index + 1,
+        status: index === 0 ? "notified" : "pending", // Notify first operator immediately
+        notifiedAt: index === 0 ? now : null, // Set notification time for first operator
+        respondedAt: null,
+        distanceKm: op.distance.toFixed(2),
+        expiresAt: index === 0 ? new Date(Date.now() + 10 * 60 * 1000) : null, // 10 min expiry for first operator
+        createdAt: now,
+      }));
+      
+      if (queueEntries.length > 0) {
+        await db.insert(dispatchQueue).values(queueEntries);
+      }
+      
+      res.status(201).json({
+        ...emergency[0],
+        notifiedOperators: operatorsWithDistance.length
+      });
+    } catch (error) {
+      console.error("Error creating emergency request:", error);
+      res.status(500).json({ message: "Failed to create emergency request" });
+    }
+  });
+  
+  // Get emergency request by ID with queue status
+  router.get("/api/emergency-requests/:emergencyId", async (req, res) => {
+    try {
+      const emergency = await db.query.emergencyRequests.findFirst({
+        where: eq(emergencyRequests.emergencyId, req.params.emergencyId)
+      });
+      
+      if (!emergency) {
+        return res.status(404).json({ message: "Emergency request not found" });
+      }
+      
+      // Get queue status
+      const queue = await db.query.dispatchQueue.findMany({
+        where: eq(dispatchQueue.emergencyId, req.params.emergencyId),
+        orderBy: (queue, { asc }) => [asc(queue.queuePosition)]
+      });
+      
+      // Get operator details for queued operators
+      const queueWithOperators = await Promise.all(
+        queue.map(async (q) => {
+          const operator = await db.query.operators.findFirst({
+            where: eq(operators.operatorId, q.operatorId)
+          });
+          return {
+            ...q,
+            operatorName: operator?.name,
+            operatorPhone: operator?.phone,
+          };
+        })
+      );
+      
+      res.json({
+        ...emergency,
+        queue: queueWithOperators,
+        notifiedCount: queue.length,
+      });
+    } catch (error) {
+      console.error("Error fetching emergency request:", error);
+      res.status(500).json({ message: "Failed to fetch emergency request" });
+    }
+  });
+  
+  // Get dispatch queue for an emergency
+  router.get("/api/emergency-requests/:emergencyId/queue", async (req, res) => {
+    try {
+      const queue = await db.query.dispatchQueue.findMany({
+        where: eq(dispatchQueue.emergencyId, req.params.emergencyId),
+        orderBy: (queue, { asc }) => [asc(queue.queuePosition)]
+      });
+      
+      res.json(queue);
+    } catch (error) {
+      console.error("Error fetching dispatch queue:", error);
+      res.status(500).json({ message: "Failed to fetch dispatch queue" });
+    }
+  });
+
+  // Operator accepts emergency request
+  router.post("/api/emergency-requests/:emergencyId/accept", async (req, res) => {
+    try {
+      const { operatorId } = req.body;
+      
+      if (!operatorId) {
+        return res.status(400).json({ message: "Operator ID required" });
+      }
+      
+      // Find the queue entry
+      const queueEntry = await db.query.dispatchQueue.findFirst({
+        where: and(
+          eq(dispatchQueue.emergencyId, req.params.emergencyId),
+          eq(dispatchQueue.operatorId, operatorId)
+        )
+      });
+      
+      if (!queueEntry) {
+        return res.status(404).json({ message: "Queue entry not found" });
+      }
+      
+      if (queueEntry.status !== "notified") {
+        return res.status(400).json({ message: "This operator was not notified" });
+      }
+      
+      // Update queue entry to accepted
+      await db.update(dispatchQueue)
+        .set({
+          status: "accepted",
+          respondedAt: new Date()
+        })
+        .where(eq(dispatchQueue.id, queueEntry.id));
+      
+      // Update emergency request
+      await db.update(emergencyRequests)
+        .set({
+          status: "operator_assigned",
+          assignedOperatorId: operatorId,
+          updatedAt: new Date()
+        })
+        .where(eq(emergencyRequests.emergencyId, req.params.emergencyId));
+      
+      // Decline all other operators in queue
+      await db.update(dispatchQueue)
+        .set({
+          status: "declined",
+          respondedAt: new Date()
+        })
+        .where(and(
+          eq(dispatchQueue.emergencyId, req.params.emergencyId),
+          sql`${dispatchQueue.id} != ${queueEntry.id}`
+        ));
+      
+      res.json({ message: "Emergency request accepted" });
+    } catch (error) {
+      console.error("Error accepting emergency request:", error);
+      res.status(500).json({ message: "Failed to accept emergency request" });
+    }
+  });
+
+  // Operator declines emergency request
+  router.post("/api/emergency-requests/:emergencyId/decline", async (req, res) => {
+    try {
+      const { operatorId } = req.body;
+      
+      if (!operatorId) {
+        return res.status(400).json({ message: "Operator ID required" });
+      }
+      
+      // Find the queue entry
+      const queueEntry = await db.query.dispatchQueue.findFirst({
+        where: and(
+          eq(dispatchQueue.emergencyId, req.params.emergencyId),
+          eq(dispatchQueue.operatorId, operatorId)
+        )
+      });
+      
+      if (!queueEntry) {
+        return res.status(404).json({ message: "Queue entry not found" });
+      }
+      
+      // Update queue entry to declined
+      await db.update(dispatchQueue)
+        .set({
+          status: "declined",
+          respondedAt: new Date()
+        })
+        .where(eq(dispatchQueue.id, queueEntry.id));
+      
+      // Get next operator in queue
+      const nextOperator = await db.query.dispatchQueue.findFirst({
+        where: and(
+          eq(dispatchQueue.emergencyId, req.params.emergencyId),
+          eq(dispatchQueue.status, "pending")
+        ),
+        orderBy: (queue, { asc }) => [asc(queue.queuePosition)]
+      });
+      
+      // Notify next operator if available
+      if (nextOperator) {
+        await db.update(dispatchQueue)
+          .set({
+            status: "notified",
+            notifiedAt: new Date(),
+            expiresAt: new Date(Date.now() + 10 * 60 * 1000)
+          })
+          .where(eq(dispatchQueue.id, nextOperator.id));
+      } else {
+        // No more operators - mark emergency as cancelled
+        await db.update(emergencyRequests)
+          .set({
+            status: "cancelled",
+            updatedAt: new Date()
+          })
+          .where(eq(emergencyRequests.emergencyId, req.params.emergencyId));
+      }
+      
+      res.json({ message: "Emergency request declined, notified next operator" });
+    } catch (error) {
+      console.error("Error declining emergency request:", error);
+      res.status(500).json({ message: "Failed to decline emergency request" });
     }
   });
 

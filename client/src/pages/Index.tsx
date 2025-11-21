@@ -8,6 +8,7 @@ import { Header } from "@/components/Header";
 import { MobileBottomNav } from "@/components/MobileBottomNav";
 import { WeatherAlertToast } from "@/components/WeatherAlertToast";
 import { LocationPermissionPrompt } from "@/components/LocationPermissionPrompt";
+import { EmergencySOSButton } from "@/components/EmergencySOSButton";
 import { useAuth } from "@/contexts/AuthContext";
 import { MapPin, ArrowRight, Truck, Clock, Shield, Star, Search } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -69,6 +70,13 @@ const Index = () => {
         onSignUp={() => handleAuthClick("signup")}
         onDriveAndEarn={handleDriveAndEarn}
       />
+
+      {/* Emergency SOS Section - Prominent placement */}
+      <section className="relative bg-white dark:bg-gray-900 pt-8 pb-4 px-4">
+        <div className="max-w-7xl mx-auto">
+          <EmergencySOSButton />
+        </div>
+      </section>
 
       {/* Hero Section with Location Search */}
       <section className="relative bg-white dark:bg-gray-900 py-12 md:py-20 overflow-hidden border-b border-gray-200 dark:border-gray-800">

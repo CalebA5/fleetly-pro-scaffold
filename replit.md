@@ -1,7 +1,7 @@
 # Fleetly - On-Demand Trucks & Snow Services Platform
 
 ## Overview
-Fleetly is a professional on-demand service platform connecting customers with verified operators for trucking, snow plowing, towing, hauling, and courier services. It functions as a two-sided marketplace with distinct dashboards for customers and operators, focusing on real-time booking, job tracking, and professional service delivery. The vision is to provide a seamless, efficient booking experience, inspired by Uber's clean and modern interface. The platform supports a multi-driver business management system and a three-tier operator system with proximity-based job filtering.
+Fleetly is a professional on-demand service platform connecting customers with verified operators for trucking, snow plowing, towing, hauling, and courier services. It functions as a two-sided marketplace with distinct dashboards for customers and operators, focusing on real-time booking, job tracking, and professional service delivery. The vision is to provide a seamless, efficient booking experience, inspired by Uber's clean and modern interface. The platform supports a multi-driver business management system, a three-tier operator system with proximity-based job filtering, and an emergency SOS mode for urgent no-login assistance.
 
 ## User Preferences
 Preferred communication style: Simple, everyday language.
@@ -16,6 +16,10 @@ The backend is an Express.js server utilizing a PostgreSQL database with Drizzle
 
 ### Data Model
 The service request schema includes normalized fields like `serviceType`, `isEmergency`, `description`, and `location`, with a JSONB `details` field for service-specific payloads. `operatorId` and `operatorName` are nullable. Operator profiles store `operatorTier`, `isCertified`, `businessLicense`, `homeLatitude`, `homeLongitude`, and `operatingRadius`.
+
+**Emergency System Tables:**
+- `emergencyRequests`: Stores emergency SOS requests with contactPhone (required), contactName, serviceType (towing/roadside/debris), location, latitude/longitude (decimal as string), status (searching/operator_assigned/completed/cancelled), assignedOperatorId
+- `dispatchQueue`: Manages operator notification queue with queueId, emergencyId, operatorId, queuePosition (1=first notified), status (pending/notified/accepted/declined/expired), notifiedAt, respondedAt, expiresAt (10-min window), distanceKm
 
 ### UI/UX Decisions
 The design is inspired by Uber's clean, modern aesthetic, emphasizing simplicity. It uses a black-and-white color scheme with orange accents for CTAs, minimal design, and bold typography. Custom "enhanced-button" components and gradients are used for premium UI elements, and dark mode is supported.
@@ -49,6 +53,17 @@ The design is inspired by Uber's clean, modern aesthetic, emphasizing simplicity
   - Save functionality with optimistic UI updates and proper form validation
   - Member since date calculated from customer ID timestamp
   - Responsive design with mobile-first approach
+- **Emergency SOS Mode (Phase 1 Complete)**: No-login emergency assistance system featuring:
+  - Prominent red gradient Emergency SOS button on homepage
+  - Three-tile service selection (Towing, Roadside Assistance, Debris Removal) with emergency-optimized descriptions
+  - Contact form with phone (required), name, email (optional), and description
+  - Auto-location detection via browser geolocation API with manual address geocoding fallback (OpenStreetMap Nominatim)
+  - Proximity-based operator notification: finds 5 nearest online operators using Haversine distance formula
+  - First-accept-wins dispatch queue: first operator notified with 10-minute response window
+  - Auto-fallback: on decline, system advances to next operator in queue; if all decline, request cancelled
+  - Real-time tracking page with 3-second polling showing queue status, operator names, distances, and status badges
+  - Mobile-first responsive design with validation for phone, location, and service type
+  - Backend API endpoints: POST /create, GET /:emergencyId, POST /:emergencyId/accept, POST /:emergencyId/decline
 
 ## External Dependencies
 
