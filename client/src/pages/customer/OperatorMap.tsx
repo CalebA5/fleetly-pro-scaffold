@@ -38,6 +38,7 @@ export const OperatorMap = () => {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const markersRef = useRef<Map<string, mapboxgl.Marker>>(new Map());
   const popupRef = useRef<mapboxgl.Popup | null>(null);
+  const userLocationMarkerRef = useRef<mapboxgl.Marker | null>(null);
   const [showAuthDialog, setShowAuthDialog] = useState(false);
   const [authTab, setAuthTab] = useState<"signin" | "signup">("signin");
   const [selectedOperator, setSelectedOperator] = useState<{cardId: string; operatorId: string; name: string; [key: string]: any} | null>(null);
@@ -51,6 +52,14 @@ export const OperatorMap = () => {
   const [mapLoaded, setMapLoaded] = useState(false);
   const [isSidebarMinimized, setIsSidebarMinimized] = useState(false);
   const [viewMode, setViewMode] = useState<'map' | 'list'>('map');
+  
+  // Parse URL parameters for location
+  const searchParams = new URLSearchParams(window.location.search);
+  const urlLat = searchParams.get('lat');
+  const urlLon = searchParams.get('lon');
+  const urlAddress = searchParams.get('address');
+  const userLat = urlLat ? parseFloat(urlLat) : null;
+  const userLon = urlLon ? parseFloat(urlLon) : null;
   
   // Reset sidebar minimize state when switching to list view and disable map interactions
   useEffect(() => {
@@ -286,13 +295,19 @@ export const OperatorMap = () => {
     }
   };
 
-  // Filter operators by selected service
-  const operators = selectedService 
-    ? allOperators?.filter(op => {
-        // Check if tier card's services include the selected service
-        return op.services?.includes(selectedService);
-      })
-    : allOperators;
+  // State for favorites filter
+  const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
+
+  // Filter operators by selected service AND favorites
+  const operators = allOperators?.filter(op => {
+    // Filter by service if selected
+    const matchesService = !selectedService || op.services?.includes(selectedService);
+    
+    // Filter by favorites if enabled
+    const matchesFavorites = !showFavoritesOnly || isFavorite(op.operatorId);
+    
+    return matchesService && matchesFavorites;
+  });
 
   // Get map style URL based on selection
   const getMapStyle = () => {
@@ -317,17 +332,25 @@ export const OperatorMap = () => {
     }
 
     try {
+      // Use user's location if provided via URL params, otherwise default to NYC
+      const initialCenter: [number, number] = (userLat !== null && userLon !== null) 
+        ? [userLon, userLat] 
+        : [-73.9851, 40.7589];
+      
+      const initialZoom = (userLat !== null && userLon !== null) ? 13 : 12;
+      
       const map = new mapboxgl.Map({
         container: mapContainerRef.current,
         style: getMapStyle(),
-        center: [-73.9851, 40.7589],
-        zoom: 12,
+        center: initialCenter,
+        zoom: initialZoom,
       });
 
       map.addControl(new mapboxgl.NavigationControl(), 'top-right');
 
       map.on('load', () => {
         setMapLoaded(true);
+        // Note: User location marker is now handled by separate useEffect
       });
 
       map.on('error', (e) => {
@@ -352,6 +375,44 @@ export const OperatorMap = () => {
     if (!mapRef.current || !mapLoaded) return;
     mapRef.current.setStyle(getMapStyle());
   }, [mapStyle, mapLoaded]);
+
+  // Update map center and user location marker when coordinates change
+  useEffect(() => {
+    if (!mapRef.current || !mapLoaded) return;
+    if (userLat === null || userLon === null) return;
+
+    // Fly to user's location
+    mapRef.current.flyTo({
+      center: [userLon, userLat],
+      zoom: 13,
+      essential: true
+    });
+
+    // Remove old user location marker if exists
+    if (userLocationMarkerRef.current) {
+      userLocationMarkerRef.current.remove();
+    }
+
+    // Create new user location marker
+    const el = document.createElement('div');
+    el.className = 'user-location-marker';
+    el.style.width = '24px';
+    el.style.height = '24px';
+    el.style.borderRadius = '50%';
+    el.style.backgroundColor = '#3B82F6';
+    el.style.border = '3px solid white';
+    el.style.boxShadow = '0 2px 4px rgba(0,0,0,0.3)';
+
+    const userMarker = new mapboxgl.Marker({ element: el })
+      .setLngLat([userLon, userLat])
+      .setPopup(
+        new mapboxgl.Popup({ offset: 25 })
+          .setHTML(`<div class="p-2"><strong>Your Location</strong>${urlAddress ? `<br/><span class="text-sm text-gray-600">${urlAddress}</span>` : ''}</div>`)
+      )
+      .addTo(mapRef.current);
+
+    userLocationMarkerRef.current = userMarker;
+  }, [userLat, userLon, urlAddress, mapLoaded]);
 
   // Handle sidebar toggle - resize map to fill available space
   useEffect(() => {
@@ -672,6 +733,25 @@ export const OperatorMap = () => {
                   </SelectContent>
                 </Select>
               </div>
+              
+              {/* Favorites Filter - Only show if user is authenticated */}
+              {customerId && (
+                <div className="flex items-center gap-2">
+                  <label className="flex items-center gap-2 cursor-pointer group">
+                    <input
+                      type="checkbox"
+                      checked={showFavoritesOnly}
+                      onChange={(e) => setShowFavoritesOnly(e.target.checked)}
+                      className="w-4 h-4 rounded border-gray-300 text-orange-600 focus:ring-orange-500 cursor-pointer"
+                      data-testid="checkbox-favorites-only"
+                    />
+                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300 group-hover:text-orange-600 dark:group-hover:text-orange-400 transition-colors flex items-center gap-1">
+                      <Heart className={`w-4 h-4 ${showFavoritesOnly ? 'fill-red-500 text-red-500' : ''}`} />
+                      Favorites Only
+                    </span>
+                  </label>
+                </div>
+              )}
             </div>
 
             {/* Right: View Controls */}

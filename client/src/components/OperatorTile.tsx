@@ -106,7 +106,7 @@ export function OperatorTile({ operator, isFavorite = false, onFavoriteToggle }:
   });
 
   const handleRequestService = () => {
-    setLocation(`/request-service?operatorId=${operator.operatorId}&operatorName=${encodeURIComponent(operator.name)}`);
+    setLocation(`/customer/create-request?operatorId=${operator.operatorId}&operatorName=${encodeURIComponent(operator.name)}`);
   };
 
   const handleToggleFavorite = () => {
@@ -166,25 +166,39 @@ export function OperatorTile({ operator, isFavorite = false, onFavoriteToggle }:
 
   return (
     <>
-      <Card className="overflow-hidden hover:shadow-xl transition-all duration-300 border-2 hover:border-orange-200 dark:hover:border-orange-900" data-testid={`operator-card-${operator.cardId}`}>
+      <Card className="overflow-hidden hover:shadow-xl transition-all duration-300 border-2 hover:border-orange-200 dark:hover:border-orange-900 relative" data-testid={`operator-card-${operator.cardId}`}>
+        {/* Favorite button - prominent top-right corner */}
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={handleToggleFavorite}
+          disabled={favoriteMutation.isPending}
+          className="absolute top-3 right-3 h-10 w-10 p-0 hover:bg-red-50 dark:hover:bg-red-950 rounded-full z-10 shadow-md bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm"
+          data-testid="button-favorite"
+        >
+          <Heart className={`h-5 w-5 transition-all ${isFavorite ? "fill-red-500 text-red-500 scale-110" : "text-gray-400"}`} />
+        </Button>
+
         <CardHeader className="pb-4 bg-gradient-to-br from-gray-50 to-white dark:from-gray-900 dark:to-gray-950">
-          <div className="flex items-start justify-between">
-            <div className="flex items-center gap-4 flex-1">
-              {operator.photo ? (
+          <div className="flex items-start gap-4 pr-12">
+            <div className="flex items-center gap-4 flex-1 min-w-0">
+              {operator.photo && (
                 <img 
                   src={operator.photo} 
                   alt={operator.name}
-                  className="w-14 h-14 rounded-full object-cover ring-2 ring-orange-200 dark:ring-orange-800"
+                  className="w-16 h-16 rounded-full object-cover ring-2 ring-orange-200 dark:ring-orange-800 flex-shrink-0"
                   data-testid="operator-avatar"
                 />
-              ) : (
-                <div className="w-14 h-14 rounded-full bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center text-white font-bold text-xl shadow-lg">
-                  {operator.name.charAt(0)}
-                </div>
               )}
               <div className="flex-1 min-w-0">
-                <h3 className="font-bold text-lg truncate" data-testid="operator-name">{operator.name}</h3>
-                <div className="flex items-center gap-2 mt-1.5">
+                <h3 
+                  className="font-bold text-lg leading-tight mb-1" 
+                  data-testid="operator-name"
+                  title={operator.name}
+                >
+                  {operator.name.length > 30 ? `${operator.name.substring(0, 27)}...` : operator.name}
+                </h3>
+                <div className="flex items-center gap-2 mt-1.5 flex-wrap">
                   {renderStars(parseFloat(operator.rating))}
                   <span className="text-sm font-medium text-gray-700 dark:text-gray-300" data-testid="operator-rating">
                     {operator.rating}
@@ -202,16 +216,6 @@ export function OperatorTile({ operator, isFavorite = false, onFavoriteToggle }:
                 </div>
               </div>
             </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleToggleFavorite}
-              disabled={favoriteMutation.isPending}
-              className="h-9 w-9 p-0 hover:bg-red-50 dark:hover:bg-red-950"
-              data-testid="button-favorite"
-            >
-              <Heart className={`h-5 w-5 transition-all ${isFavorite ? "fill-red-500 text-red-500 scale-110" : "text-gray-400"}`} />
-            </Button>
           </div>
         </CardHeader>
 
@@ -398,7 +402,7 @@ export function OperatorTile({ operator, isFavorite = false, onFavoriteToggle }:
             <Button
               variant="outline"
               size="sm"
-              onClick={() => setLocation(`/operators/${operator.operatorId}`)}
+              onClick={() => setLocation(`/customer/operator-profile/${operator.operatorId}`)}
               data-testid="button-view-profile"
             >
               View Profile

@@ -6,6 +6,8 @@ interface LocationContextType {
   permissionStatus: "prompt" | "granted" | "denied" | "unavailable" | null;
   requestLocation: () => Promise<void>;
   cityState: string | null;
+  formattedAddress: string | null;
+  setFormattedAddress: (address: string, lat?: number, lon?: number) => void;
 }
 
 const LocationContext = createContext<LocationContextType | undefined>(undefined);
@@ -15,6 +17,9 @@ export function LocationProvider({ children }: { children: ReactNode }) {
   const [locationError, setLocationError] = useState<string | null>(null);
   const [permissionStatus, setPermissionStatus] = useState<"prompt" | "granted" | "denied" | "unavailable" | null>(null);
   const [cityState, setCityState] = useState<string | null>(null);
+  const [formattedAddress, setFormattedAddressState] = useState<string | null>(() => {
+    return localStorage.getItem("userFormattedAddress") || null;
+  });
 
   // Check permission status on mount
   useEffect(() => {
@@ -71,10 +76,50 @@ export function LocationProvider({ children }: { children: ReactNode }) {
           return cityStateStr;
         }
       }
+      
+      // Also set formatted address
+      if (data.display_name) {
+        const address = data.address;
+        const formattedAddr = [
+          address.road,
+          address.city || address.town || address.village,
+          address.state
+        ].filter(Boolean).join(", ");
+        setFormattedAddressState(formattedAddr || data.display_name);
+        localStorage.setItem("userFormattedAddress", formattedAddr || data.display_name);
+      }
     } catch (error) {
       console.error("Error reverse geocoding:", error);
     }
     return null;
+  };
+
+  const setFormattedAddress = (address: string, lat?: number, lon?: number) => {
+    setFormattedAddressState(address);
+    localStorage.setItem("userFormattedAddress", address);
+    
+    // If lat/lon provided, update location
+    if (lat !== undefined && lon !== undefined) {
+      const mockPosition: GeolocationPosition = {
+        coords: {
+          latitude: lat,
+          longitude: lon,
+          accuracy: 0,
+          altitude: null,
+          altitudeAccuracy: null,
+          heading: null,
+          speed: null,
+          toJSON: () => ({ latitude: lat, longitude: lon }),
+        } as GeolocationCoordinates,
+        timestamp: Date.now(),
+      };
+      setLocation(mockPosition);
+      localStorage.setItem("userLocation", JSON.stringify({
+        latitude: lat,
+        longitude: lon,
+        timestamp: Date.now()
+      }));
+    }
   };
 
   const getCurrentLocation = () => {
@@ -122,7 +167,9 @@ export function LocationProvider({ children }: { children: ReactNode }) {
         locationError, 
         permissionStatus, 
         requestLocation,
-        cityState
+        cityState,
+        formattedAddress,
+        setFormattedAddress
       }}
     >
       {children}
@@ -130,10 +177,10 @@ export function LocationProvider({ children }: { children: ReactNode }) {
   );
 }
 
-export function useLocation() {
+export function useUserLocation() {
   const context = useContext(LocationContext);
   if (context === undefined) {
-    throw new Error("useLocation must be used within a LocationProvider");
+    throw new Error("useUserLocation must be used within a LocationProvider");
   }
   return context;
 }

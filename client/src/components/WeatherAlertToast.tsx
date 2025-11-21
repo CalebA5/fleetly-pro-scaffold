@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import { useLocation } from "@/contexts/LocationContext";
+import { useUserLocation } from "@/contexts/LocationContext";
 import { CloudSnow, Cloud, AlertTriangle } from "lucide-react";
 
 interface WeatherAlert {
@@ -26,7 +26,7 @@ interface WeatherAlert {
  */
 export function WeatherAlertToast() {
   const { toast } = useToast();
-  const { cityState } = useLocation();
+  const { cityState } = useUserLocation();
   const shownAlerts = useRef<Set<string>>(new Set());
 
   const { data: alerts } = useQuery<WeatherAlert[]>({

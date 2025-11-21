@@ -35,9 +35,16 @@ export const Header = ({ onSignIn, onSignUp, onDriveAndEarn }: HeaderProps) => {
     if (onDriveAndEarn) {
       onDriveAndEarn();
     } else {
-      // Default behavior if no handler provided - always go to Drive & Earn page
+      // Smart routing: if user has operator tier, go to dashboard; otherwise onboarding
       if (isAuthenticated) {
-        setLocation("/operator/onboarding");
+        // Check if user has operator tier (subscribedTiers or operatorId exists)
+        if (user?.operatorId || (user?.subscribedTiers && user.subscribedTiers.length > 0)) {
+          // User already has operator tier - go to their operator dashboard
+          setLocation("/operator");
+        } else {
+          // User doesn't have operator tier yet - go to onboarding
+          setLocation("/operator/onboarding");
+        }
       } else {
         if (onSignUp) {
           onSignUp();

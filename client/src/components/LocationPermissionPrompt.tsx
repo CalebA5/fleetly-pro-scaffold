@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { MapPin, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { useLocation } from "@/contexts/LocationContext";
+import { useUserLocation } from "@/contexts/LocationContext";
 
 /**
  * Location Permission Prompt
@@ -10,7 +10,7 @@ import { useLocation } from "@/contexts/LocationContext";
  * for personalized weather alerts
  */
 export function LocationPermissionPrompt() {
-  const { permissionStatus, requestLocation, cityState } = useLocation();
+  const { permissionStatus, requestLocation, cityState } = useUserLocation();
   const [isDismissed, setIsDismissed] = useState(false);
 
   useEffect(() => {

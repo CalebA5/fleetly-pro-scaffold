@@ -10,6 +10,7 @@ import { WeatherAlertToast } from "@/components/WeatherAlertToast";
 import { LocationPermissionPrompt } from "@/components/LocationPermissionPrompt";
 import { EmergencySOSButton } from "@/components/EmergencySOSButton";
 import { useAuth } from "@/contexts/AuthContext";
+import { useUserLocation } from "@/contexts/LocationContext";
 import { MapPin, ArrowRight, Truck, Clock, Shield, Star, Search, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -22,8 +23,11 @@ const Index = () => {
   const [dropoff, setDropoff] = useState("");
   const [showAvailability, setShowAvailability] = useState(false);
   const [loadingLocation, setLoadingLocation] = useState(false);
+  const [currentLat, setCurrentLat] = useState<number | null>(null);
+  const [currentLon, setCurrentLon] = useState<number | null>(null);
   const { isAuthenticated, user } = useAuth();
   const { toast } = useToast();
+  const { setFormattedAddress } = useUserLocation();
 
   const handleAuthClick = (tab: "signin" | "signup", role: "customer" | "operator" = "customer") => {
     setAuthTab(tab);
@@ -41,9 +45,62 @@ const Index = () => {
     }
   };
 
-  const handleSearchService = () => {
+  const handleSearchService = async () => {
     if (pickup) {
-      setShowAvailability(true);
+      // If we don't have coordinates yet, geocode the address first
+      if (currentLat === null || currentLon === null) {
+        await geocodeAndNavigate(pickup);
+      } else {
+        setShowAvailability(true);
+      }
+    }
+  };
+
+  // Navigate to operators map with location params
+  const handleBrowseOperators = async () => {
+    // Check for null explicitly (not truthiness, to allow 0,0 coordinates)
+    if (currentLat !== null && currentLon !== null) {
+      setLocation(`/customer/operators?lat=${currentLat}&lon=${currentLon}&address=${encodeURIComponent(pickup)}`);
+    } else if (pickup.trim()) {
+      // User entered location but no coordinates - geocode it
+      await geocodeAndNavigate(pickup);
+    } else {
+      setLocation("/customer/operators");
+    }
+  };
+
+  // Geocode address/city to coordinates
+  const geocodeAndNavigate = async (address: string) => {
+    try {
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(address)}&format=json&limit=1`
+      );
+      const data = await response.json();
+      
+      if (data && data.length > 0) {
+        const { lat, lon, display_name } = data[0];
+        const latitude = parseFloat(lat);
+        const longitude = parseFloat(lon);
+        
+        // Store in context
+        setFormattedAddress(display_name, latitude, longitude);
+        
+        // Navigate with coordinates
+        setLocation(`/customer/operators?lat=${latitude}&lon=${longitude}&address=${encodeURIComponent(display_name)}`);
+      } else {
+        toast({
+          title: "Location not found",
+          description: "Could not find that location. Please try a different search.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Geocoding failed:", error);
+      toast({
+        title: "Search failed",
+        description: "Could not search for that location. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -70,6 +127,10 @@ const Index = () => {
       navigator.geolocation.getCurrentPosition(
         async (position) => {
           const { latitude, longitude } = position.coords;
+          
+          // Store coordinates
+          setCurrentLat(latitude);
+          setCurrentLon(longitude);
 
           try {
             // Use OpenStreetMap Nominatim for reverse geocoding
@@ -87,7 +148,11 @@ const Index = () => {
                 address.state
               ].filter(Boolean).join(", ");
 
-              setPickup(formattedAddress || data.display_name);
+              const finalAddress = formattedAddress || data.display_name;
+              setPickup(finalAddress);
+              
+              // Store in LocationContext
+              setFormattedAddress(finalAddress, latitude, longitude);
             }
           } catch (error) {
             console.error("Reverse geocoding failed:", error);
@@ -189,17 +254,16 @@ const Index = () => {
 
               {/* Quick Browse */}
               <div className="mt-4">
-                <Link href="/customer/operators">
-                  <Button 
-                    variant="outline" 
-                    size="lg" 
-                    className="w-full border-2 border-black dark:border-white hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black transition-colors font-semibold"
-                    data-testid="button-browse-all-operators"
-                  >
-                    Or browse all operators
-                    <ArrowRight className="ml-2 w-5 h-5" />
-                  </Button>
-                </Link>
+                <Button 
+                  variant="outline" 
+                  size="lg" 
+                  onClick={handleBrowseOperators}
+                  className="w-full border-2 border-black dark:border-white hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black transition-colors font-semibold"
+                  data-testid="button-browse-all-operators"
+                >
+                  Or browse all operators
+                  <ArrowRight className="ml-2 w-5 h-5" />
+                </Button>
               </div>
             </div>
 
@@ -383,16 +447,15 @@ const Index = () => {
           <p className="text-lg md:text-xl text-gray-300 dark:text-gray-700 mb-8">
             Join thousands of customers who trust Fleetly for their service needs.
           </p>
-          <Link href="/customer/operators">
-            <Button 
-              size="lg" 
-              className="bg-white text-black hover:bg-gray-200 dark:bg-black dark:text-white dark:hover:bg-gray-800 font-semibold text-lg px-8 h-12 transition-colors"
-              data-testid="button-cta-find-operators"
-            >
-              Find operators near you
-              <MapPin className="ml-2 w-5 h-5" />
-            </Button>
-          </Link>
+          <Button 
+            size="lg" 
+            onClick={handleBrowseOperators}
+            className="bg-white text-black hover:bg-gray-200 dark:bg-black dark:text-white dark:hover:bg-gray-800 font-semibold text-lg px-8 h-12 transition-colors"
+            data-testid="button-cta-find-operators"
+          >
+            Find operators near you
+            <MapPin className="ml-2 w-5 h-5" />
+          </Button>
         </div>
       </section>
 

@@ -383,7 +383,13 @@ export function registerRoutes(storage: IStorage) {
         const recentReviews = allReviews.slice(0, 3);
         
         // Create separate tier cards based on subscribed tiers
-        if (hasProfessional) {
+        // Only show professional tier card if:
+        // 1. Operator has professional tier
+        // 2. Operator is currently active on professional tier OR doesn't have any other tiers
+        const shouldShowProfessionalCard = hasProfessional && 
+          (primaryOperator.activeTier === "professional" || !hasEquippedOrManual);
+        
+        if (shouldShowProfessionalCard) {
           const professionalCard = createTierCard("professional", ["professional"]);
           
           // Filter by service if specified

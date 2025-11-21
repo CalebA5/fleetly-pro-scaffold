@@ -6,6 +6,7 @@ import { ServiceRequest } from "./ServiceRequest";
 import { CreateServiceRequest } from "./CreateServiceRequest";
 import { CustomerProfile } from "./CustomerProfile";
 import { OperatorMap } from "./OperatorMap";
+import { OperatorProfile } from "./OperatorProfile";
 import { AIAssist } from "./AIAssist";
 import { Favorites } from "./Favorites";
 import { Requests } from "./Requests";
@@ -20,6 +21,7 @@ export const CustomerDashboard = () => {
         <Route path="/customer/services" component={ServiceSelection} />
         <Route path="/customer/operators" component={OperatorMap} />
         <Route path="/customer/operator-map" component={OperatorMap} />
+        <Route path="/customer/operator-profile/:operatorId" component={OperatorProfile} />
         <Route path="/customer/favorites" component={Favorites} />
         <Route path="/customer/requests" component={Requests} />
         <Route path="/customer/ai-assist" component={AIAssist} />
