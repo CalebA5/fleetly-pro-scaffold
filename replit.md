@@ -8,7 +8,7 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
-### November 21, 2025 - Drive & Earn Detection, View Profile, and Location Pinning Fixes
+### November 21, 2025 - Location Features, Drive & Earn Detection, and View Profile Fixes
 - **Drive & Earn Detection**: Fixed issue where registered operators weren't detected because session wasn't updated after onboarding
   - Added `/api/operators/by-user/:email` endpoint to fetch operator profiles by email
   - Updated Header component to fetch operator data from backend instead of relying on stale session
@@ -16,6 +16,14 @@ Preferred communication style: Simple, everyday language.
 - **View Profile Page**: Fixed TypeScript errors in OperatorProfile component
   - Added proper type guards for `equipmentInventory` and `services` arrays
   - Route `/customer/operator-profile/:operatorId` was already configured correctly in CustomerDashboard
+- **Address Autocomplete**: Implemented real-time address search with dropdown suggestions on homepage
+  - Created reusable `AutocompleteLocation` component with shadcn Command + Popover
+  - Real geocoding data from OpenStreetMap Nominatim API shows up to 5 suggestions
+  - Debounced search (300ms) with proper abort handling to prevent stale results
+  - Shows city/state metadata for each suggestion
+  - Automatically geocodes and stores selected location coordinates
+  - Works seamlessly with "See Available Operators" and "Browse Operators" buttons
+  - Mobile-friendly dropdown with keyboard navigation
 - **Location Pinning on Map**: Enhanced OperatorMap to show user location marker reliably across all navigation paths
   - OperatorMap now falls back to LocationContext when URL parameters are absent
   - Blue user location marker (24px circle with white border) appears whether user arrives via homepage search or direct navigation
