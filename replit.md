@@ -13,9 +13,10 @@ Preferred communication style: Simple, everyday language.
   - Added `/api/operators/by-user/:email` endpoint to fetch operator profiles by email
   - Updated Header component to fetch operator data from backend instead of relying on stale session
   - Now correctly routes to appropriate dashboard based on active tier (professional → /business, equipped → /equipped-operator, manual → /manual-operator)
-- **View Profile Page**: Fixed TypeScript errors in OperatorProfile component
+- **View Profile Page**: Fixed 404 error and TypeScript issues in OperatorProfile component
+  - Fixed routing in CustomerDashboard by removing Switch wrapper and using exact match redirect
   - Added proper type guards for `equipmentInventory` and `services` arrays
-  - Route `/customer/operator-profile/:operatorId` was already configured correctly in CustomerDashboard
+  - Route `/customer/operator-profile/:operatorId` now works correctly without 404 errors
 - **Address Autocomplete**: Implemented real-time address search with dropdown suggestions on homepage
   - Created reusable `AutocompleteLocation` component with shadcn Command + Popover
   - Real geocoding data from OpenStreetMap Nominatim API shows up to 5 suggestions
