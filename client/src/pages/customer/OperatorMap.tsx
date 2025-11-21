@@ -581,8 +581,8 @@ export const OperatorMap = () => {
                 <MapPin className="w-5 h-5 text-orange-600 dark:text-orange-400" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-black dark:text-white">Find Operators</h1>
-                <p className="text-sm text-gray-600 dark:text-gray-400 flex items-center gap-2">
+                <h1 className="text-lg font-bold text-black dark:text-white">Find Operators</h1>
+                <p className="text-xs text-gray-600 dark:text-gray-400 flex items-center gap-2">
                   <span className="inline-flex items-center gap-1">
                     <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
                     <strong className="text-black dark:text-white">{operators?.length || 0}</strong> available nearby
@@ -626,7 +626,7 @@ export const OperatorMap = () => {
               value={selectedService || "all"}
               onValueChange={(value) => setSelectedService(value === "all" ? "" : value)}
             >
-              <SelectTrigger className="w-full sm:w-[220px]" data-testid="select-service-filter">
+              <SelectTrigger className="w-full sm:w-[160px]" data-testid="select-service-filter">
                 <SelectValue placeholder="All Services" />
               </SelectTrigger>
               <SelectContent>
@@ -696,16 +696,12 @@ export const OperatorMap = () => {
               ? 'hidden md:block md:w-12' 
               : 'hidden md:block md:w-96'
         }`}>
-          {/* Toggle Button - Only visible and functional on desktop in map view */}
+          {/* Toggle Button - Only visible and functional on desktop in map view - STICKY/FIXED */}
           {viewMode === 'map' && (
             <button
-              onClick={() => {
-                // Only allow toggle in map view
-                if (viewMode === 'map') {
-                  setIsSidebarMinimized(!isSidebarMinimized);
-                }
-              }}
-              className="hidden md:block absolute left-0 top-1/2 -translate-y-1/2 -translate-x-1/2 z-50 bg-black dark:bg-white text-white dark:text-black rounded-full p-3 shadow-2xl hover:shadow-orange-500/50 hover:scale-110 transition-all ring-2 ring-white dark:ring-black"
+              onClick={() => setIsSidebarMinimized(!isSidebarMinimized)}
+              className="hidden md:block fixed left-0 top-1/2 -translate-y-1/2 z-50 bg-black dark:bg-white text-white dark:text-black rounded-full p-3 shadow-2xl hover:shadow-orange-500/50 hover:scale-110 transition-all ring-2 ring-white dark:ring-black"
+              style={{ marginLeft: isSidebarMinimized ? 'calc(100vw - 3rem - 1.5rem)' : 'calc(100vw - 24rem - 1.5rem)' }}
               aria-label={isSidebarMinimized ? "Expand sidebar" : "Minimize sidebar"}
               data-testid="button-toggle-sidebar"
             >
