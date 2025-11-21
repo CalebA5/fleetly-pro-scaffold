@@ -6,6 +6,17 @@ Fleetly is a professional on-demand service platform connecting customers with v
 ## User Preferences
 Preferred communication style: Simple, everyday language.
 
+## Recent Changes (November 21, 2025)
+- **Emergency Tracking Fix**: Fixed query key to use full path format for proper data loading
+- **Mobile Navigation UX**: Bottom nav now appears on ALL pages with smooth auto-hide/show on scroll using optimized ref-based tracking
+- **Operator List UI**: Redesigned minimize button to sleek semi-transparent bar with backdrop blur that blends seamlessly into page
+- **Request Service Page Overhaul**:
+  - Icon-based service type selector (6-icon grid replacing dropdown)
+  - 4-level urgency selector with emoji icons (🟢 low, 🟡 medium, 🟠 high, 🔴 emergency)
+  - "Schedule for Later" toggle that reveals/hides date/time picker fields
+  - Operator info prefilling from Find Operators page (operatorId & operatorName URL params)
+  - Backend integration: urgencyLevel, operatorId, and conditional scheduling fields now sent in payload
+
 ## System Architecture
 
 ### Frontend Architecture
