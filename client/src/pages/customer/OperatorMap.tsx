@@ -83,8 +83,9 @@ export const OperatorMap = () => {
   const customerId = user?.id || "CUST-001";
   const customerName = user?.name || "Guest";
 
-  const { data: allOperators, isLoading } = useQuery<Operator[]>({
-    queryKey: ['/api/operators'],
+  // Fetch consolidated operator cards
+  const { data: allOperators, isLoading } = useQuery<any[]>({
+    queryKey: ['/api/operator-cards'],
   });
 
   // Fetch customer's favorites
@@ -93,18 +94,18 @@ export const OperatorMap = () => {
   });
 
   const createServiceRequestMutation = useMutation({
-    mutationFn: async (operator: Operator) => {
-      const requestId = `REQ-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+    mutationFn: async (operatorCard: any) => {
+      // Use first active tier's services, fallback to consolidated services
+      const services = operatorCard.activeTiers?.[0]?.services || operatorCard.services || [];
       const requestData: InsertServiceRequest = {
-        requestId,
         customerId: customerId,
         customerName: customerName,
-        operatorId: operator.operatorId,
-        operatorName: operator.name,
-        serviceType: (operator.services as string[])[0], // Use operator's first service
+        operatorId: operatorCard.operatorId,
+        operatorName: operatorCard.name,
+        serviceType: services[0] || "General Service",
         status: "pending",
-        location: operator.address,
-        estimatedCost: operator.hourlyRate,
+        location: operatorCard.address,
+        estimatedCost: operatorCard.hourlyRate,
       };
 
       const response = await apiRequest("/api/service-requests", {
@@ -115,10 +116,10 @@ export const OperatorMap = () => {
       
       return response;
     },
-    onSuccess: (data, operator) => {
+    onSuccess: (data, operatorCard) => {
       // Start tracking this operator as moving
-      const operatorLat = parseFloat(operator.latitude as string);
-      const operatorLng = parseFloat(operator.longitude as string);
+      const operatorLat = parseFloat(operatorCard.latitude as string);
+      const operatorLng = parseFloat(operatorCard.longitude as string);
       
       // Simulate a destination (offset from current position)
       const targetLat = operatorLat + (Math.random() - 0.5) * 0.05;
@@ -126,8 +127,8 @@ export const OperatorMap = () => {
       
       setOperatorLocations(prev => {
         const newMap = new Map(prev);
-        newMap.set(operator.operatorId, {
-          operatorId: operator.operatorId,
+        newMap.set(operatorCard.operatorId, {
+          operatorId: operatorCard.operatorId,
           lat: operatorLat,
           lng: operatorLng,
           targetLat,
@@ -240,9 +241,9 @@ export const OperatorMap = () => {
   };
 
   // Open rating dialog
-  const handleOpenRatingDialog = (operator: Operator, e: React.MouseEvent) => {
+  const handleOpenRatingDialog = (operatorCard: any, e: React.MouseEvent) => {
     e.stopPropagation();
-    setRatingOperator(operator);
+    setRatingOperator(operatorCard);
     setShowRatingDialog(true);
   };
 
@@ -256,8 +257,14 @@ export const OperatorMap = () => {
     }
   };
 
+  // Filter operators by selected service
   const operators = selectedService 
-    ? allOperators?.filter(op => (op.services as string[]).includes(selectedService))
+    ? allOperators?.filter(op => {
+        // Check if any active tier provides this service
+        return op.activeTiers?.some((tier: any) => 
+          tier.services?.includes(selectedService)
+        ) || op.services?.includes(selectedService);
+      })
     : allOperators;
 
   // Get map style URL based on selection
@@ -399,10 +406,12 @@ export const OperatorMap = () => {
           const popupContent = document.createElement('div');
           popupContent.className = 'p-2 min-w-[200px]';
           const trackingStatus = operatorLocations.get(operator.operatorId);
+          const rating = operator.avgRating || operator.rating || 0;
+          const hourlyRate = operator.hourlyRate || 0;
           popupContent.innerHTML = `
             <h3 class="font-bold text-black mb-2">${operator.name}</h3>
-            <p class="text-sm text-gray-700"><strong>Rating:</strong> ⭐ ${operator.rating}</p>
-            <p class="text-sm text-gray-700"><strong>Rate:</strong> $${operator.hourlyRate}/hr</p>
+            <p class="text-sm text-gray-700"><strong>Rating:</strong> ⭐ ${rating}</p>
+            <p class="text-sm text-gray-700"><strong>Rate:</strong> $${hourlyRate}/hr</p>
             ${trackingStatus ? `
               <p class="text-sm mt-1">
                 <strong>Status:</strong>
@@ -444,12 +453,12 @@ export const OperatorMap = () => {
   }, [operators, operatorLocations, mapLoaded]);
 
   // Pan map to operator location
-  const panToOperator = (operator: Operator) => {
+  const panToOperator = (operatorCard: any) => {
     if (!mapRef.current) return;
     
-    const location = operatorLocations.get(operator.operatorId);
-    const lat = location ? location.lat : parseFloat(operator.latitude as string);
-    const lng = location ? location.lng : parseFloat(operator.longitude as string);
+    const location = operatorLocations.get(operatorCard.operatorId);
+    const lat = location ? location.lat : parseFloat(operatorCard.latitude as string);
+    const lng = location ? location.lng : parseFloat(operatorCard.longitude as string);
     
     mapRef.current.flyTo({
       center: [lng, lat],
@@ -457,7 +466,7 @@ export const OperatorMap = () => {
       duration: 1000,
     });
 
-    setSelectedOperator(operator);
+    setSelectedOperator(operatorCard);
 
     // Show popup
     setTimeout(() => {
@@ -467,11 +476,13 @@ export const OperatorMap = () => {
 
       const popupContent = document.createElement('div');
       popupContent.className = 'p-2 min-w-[200px]';
-      const trackingStatus = operatorLocations.get(operator.operatorId);
+      const trackingStatus = operatorLocations.get(operatorCard.operatorId);
+      const rating = operatorCard.avgRating || operatorCard.rating || 0;
+      const hourlyRate = operatorCard.hourlyRate || 0;
       popupContent.innerHTML = `
-        <h3 class="font-bold text-black mb-2">${operator.name}</h3>
-        <p class="text-sm text-gray-700"><strong>Rating:</strong> ⭐ ${operator.rating}</p>
-        <p class="text-sm text-gray-700"><strong>Rate:</strong> $${operator.hourlyRate}/hr</p>
+        <h3 class="font-bold text-black mb-2">${operatorCard.name}</h3>
+        <p class="text-sm text-gray-700"><strong>Rating:</strong> ⭐ ${rating}</p>
+        <p class="text-sm text-gray-700"><strong>Rate:</strong> $${hourlyRate}/hr</p>
         ${trackingStatus ? `
           <p class="text-sm mt-1">
             <strong>Status:</strong>
@@ -536,17 +547,16 @@ export const OperatorMap = () => {
   }, [operatorLocations]);
 
 
-  const handleRequestService = (operator: Operator, e: React.MouseEvent) => {
+  const handleRequestService = (operatorCard: any, e: React.MouseEvent) => {
     e.stopPropagation();
     // Navigate to detailed service request form
     // Pre-fill service type and operator info
-    const service = operator.services && (operator.services as string[]).length > 0 
-      ? (operator.services as string[])[0] 
-      : "";
+    const services = operatorCard.activeTiers?.[0]?.services || operatorCard.services || [];
+    const service = services.length > 0 ? services[0] : "";
     const params = new URLSearchParams({
       service: service,
-      operatorId: operator.operatorId,
-      operatorName: operator.name
+      operatorId: operatorCard.operatorId,
+      operatorName: operatorCard.name
     });
     navigate(`/customer/create-request?${params.toString()}`);
   };
@@ -777,127 +787,24 @@ export const OperatorMap = () => {
                 </Button>
               </div>
             ) : (
-              operators?.map((operator) => (
-                <Card
-                  key={operator.operatorId}
-                  className={`p-4 cursor-pointer transition-all hover:shadow-xl hover:scale-[1.02] border rounded-xl dark:border-gray-700 dark:bg-gray-900 ${
-                    selectedOperator?.operatorId === operator.operatorId
-                      ? 'ring-2 ring-orange-500 shadow-xl scale-[1.02] border-orange-500'
-                      : 'hover:border-orange-300'
-                  }`}
-                  onClick={() => panToOperator(operator)}
-                  data-testid={`card-operator-${operator.operatorId}`}
+              operators?.map((operatorCard) => (
+                <div 
+                  key={operatorCard.operatorId}
+                  onClick={() => panToOperator(operatorCard)}
+                  className={selectedOperator?.operatorId === operatorCard.operatorId ? 'ring-2 ring-orange-500 rounded-xl' : ''}
                 >
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <h3 className="font-bold text-black dark:text-white">{operator.name}</h3>
-                        {(() => {
-                          const tier = operator.operatorTier || "professional";
-                          const tierInfo = OPERATOR_TIER_INFO[tier as keyof typeof OPERATOR_TIER_INFO];
-                          const tierColors = {
-                            professional: "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200 border-amber-300 dark:border-amber-700",
-                            equipped: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 border-blue-300 dark:border-blue-700",
-                            manual: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 border-green-300 dark:border-green-700",
-                          };
-                          return (
-                            <Badge 
-                              variant="outline" 
-                              className={`text-xs font-medium border ${tierColors[tier as keyof typeof tierColors]}`}
-                            >
-                              {tierInfo.badge} {tier === "professional" ? "Pro" : tier === "equipped" ? "Equipped" : "Manual"}
-                            </Badge>
-                          );
-                        })()}
-                        <button
-                          onClick={(e) => toggleFavorite(operator.operatorId, e)}
-                          className="hover:scale-110 transition-transform"
-                          data-testid={`button-favorite-${operator.operatorId}`}
-                        >
-                          <Heart 
-                            className={`w-5 h-5 transition-colors ${
-                              isFavorite(operator.operatorId) 
-                                ? 'fill-red-500 text-red-500 icon-warm-glow' 
-                                : 'text-gray-400 hover:text-red-500'
-                            }`}
-                          />
-                        </button>
-                      </div>
-                      <div className="flex items-center gap-2 text-sm">
-                        <div className="flex items-center gap-1">
-                          <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                          <span className="font-semibold text-black dark:text-white">{operator.rating}</span>
-                        </div>
-                        <span className="text-gray-500 dark:text-gray-400">•</span>
-                        <span className="text-gray-600 dark:text-gray-400">{operator.totalJobs} jobs</span>
-                        {(() => {
-                          const tier = operator.operatorTier || "professional";
-                          const tierInfo = OPERATOR_TIER_INFO[tier as keyof typeof OPERATOR_TIER_INFO];
-                          const multiplier = tierInfo.pricingMultiplier;
-                          if (multiplier !== 1.0) {
-                            return (
-                              <>
-                                <span className="text-gray-500 dark:text-gray-400">•</span>
-                                <span className="text-orange-600 dark:text-orange-400 font-semibold">
-                                  {multiplier > 1 ? `${multiplier}x` : `${multiplier}x`} price
-                                </span>
-                              </>
-                            );
-                          }
-                          return null;
-                        })()}
-                      </div>
-                    </div>
-                    <Badge variant={operator.isOnline ? "default" : "secondary"} className={operator.isOnline ? "bg-green-500 dark:bg-green-600" : ""}>
-                      {operator.isOnline ? "Online" : "Offline"}
-                    </Badge>
-                  </div>
-
-                  <div className="flex flex-wrap gap-1 mb-3">
-                    {(operator.services as string[]).map((service, idx) => (
-                      <Badge key={idx} variant="outline" className="text-xs dark:border-gray-600">
-                        {service}
-                      </Badge>
-                    ))}
-                  </div>
-
-                  <div className="space-y-2 text-sm mb-3">
-                    <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
-                      <Truck className="w-4 h-4" />
-                      <span>{operator.vehicle}</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
-                      <MapPin className="w-4 h-4" />
-                      <span>{operator.address}</span>
-                    </div>
-                    {operator.hourlyRate && (
-                      <div className="flex items-center gap-2">
-                        <span className="font-semibold text-black dark:text-white">${operator.hourlyRate}/hr</span>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="flex gap-2 mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
-                    <Button
-                      className="flex-1 bg-gradient-to-r from-orange-500 to-orange-600 text-white hover:from-orange-600 hover:to-orange-700 shadow-md hover:shadow-lg transition-all"
-                      size="sm"
-                      onClick={(e) => handleRequestService(operator, e)}
-                      data-testid={`button-request-${operator.operatorId}`}
-                    >
-                      <Truck className="w-4 h-4 mr-1" />
-                      Request Service
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={(e) => handleOpenRatingDialog(operator, e)}
-                      className="hover:bg-gray-100 dark:hover:bg-gray-800"
-                      data-testid={`button-rate-${operator.operatorId}`}
-                    >
-                      <Star className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </Card>
+                  <OperatorTile
+                    operator={operatorCard}
+                    isFavorite={isFavorite(operatorCard.operatorId)}
+                    onFavoriteToggle={(operatorId, isFav) => {
+                      if (isFav) {
+                        addFavoriteMutation.mutate(operatorId);
+                      } else {
+                        removeFavoriteMutation.mutate(operatorId);
+                      }
+                    }}
+                  />
+                </div>
               ))
             )}
             </div>

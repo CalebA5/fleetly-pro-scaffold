@@ -7,6 +7,15 @@ Fleetly is a professional on-demand service platform connecting customers with v
 Preferred communication style: Simple, everyday language.
 
 ## Recent Changes (November 21, 2025)
+- **Operator Consolidation System (Complete)**: Implemented comprehensive operator card consolidation to eliminate duplicate operator records and provide unified multi-tier operator profiles:
+  - **Consolidated API Endpoint**: `/api/operator-cards` aggregates duplicate operators by normalized email (trim + lowercase), returning enriched data with tier stats, reviews, and equipment
+  - **OperatorTile Component**: New reusable component for dual-tier display with active tier badges, customer review showcase, and equipment gallery
+  - **Tier Management Endpoints**: 
+    - `PATCH /api/operators/:operatorId/active-tier` - Switch active tier with Zod validation and subscription verification
+    - `GET/PATCH /api/operators/:operatorId/equipment` - Equipment inventory management with defensive normalization
+  - **Database Cleanup**: Removed 19 duplicate operator records, consolidating from 33 down to 14 unique operators with proper `subscribedTiers` arrays (e.g., EV: 7 records → 1 with all 3 tiers)
+  - **OperatorMap Integration**: Updated to use consolidated operator cards with proper service filtering across active tiers
+  - **Favorites & Ratings**: Fixed mutations to include customerId, cache invalidation matches query keys, and null-safe rating handling
 - **Hybrid Seasonal + Time-Based Theming System (Option C)**: Intelligent adaptive theming with 4 seasonal color palettes and time-of-day awareness:
   - **Auto-Seasonal Mode**: Automatically switches both seasonal palette (Winter/Spring/Summer/Autumn) AND light/dark mode based on current month and time of day
   - **Time-Based Mode**: Locks to Winter palette (professional black/white) and only toggles light/dark based on time (6 AM-6 PM = light, 6 PM-6 AM = dark)

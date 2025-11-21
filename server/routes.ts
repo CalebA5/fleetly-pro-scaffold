@@ -183,7 +183,8 @@ export function registerRoutes(storage: IStorage) {
       const operatorsByEmail = new Map<string, any[]>();
       for (const op of allOperators) {
         // Normalize email: trim and lowercase
-        const email = (op.email || op.operatorId).trim().toLowerCase();
+        const emailRaw = op.email || op.operatorId || "";
+        const email = String(emailRaw).trim().toLowerCase();
         if (!operatorsByEmail.has(email)) {
           operatorsByEmail.set(email, []);
         }
@@ -198,46 +199,157 @@ export function registerRoutes(storage: IStorage) {
           new Date(current.createdAt) > new Date(latest.createdAt) ? current : latest
         );
         
-        // Collect all unique tiers from all operator records for this email
+        // Collect all unique tiers and aggregate data from all operator records
         const allTiers = new Set<string>();
         const allSubscribedTiers = new Set<string>();
+        const allServices = new Set<string>();
+        const tierDataMap = new Map<string, any>();
+        
         for (const op of operators) {
           allTiers.add(op.operatorTier);
           if (op.subscribedTiers) {
             op.subscribedTiers.forEach((t: string) => allSubscribedTiers.add(t));
           }
+          // Aggregate services from all operators
+          if (op.services) {
+            op.services.forEach((s: string) => allServices.add(s));
+          }
+          
+          // Merge tier-specific data across all records for this tier
+          if (!tierDataMap.has(op.operatorTier)) {
+            tierDataMap.set(op.operatorTier, {
+              services: new Set<string>(),
+              vehicles: new Set<string>(),
+              licensePlates: new Set<string>(),
+              equipmentInventory: []
+            });
+          }
+          
+          const tierData = tierDataMap.get(op.operatorTier)!;
+          // Merge services
+          if (op.services) {
+            op.services.forEach((s: string) => tierData.services.add(s));
+          }
+          // Merge vehicles and license plates
+          if (op.vehicle && op.vehicle !== "Not set" && op.vehicle !== "Not specified") {
+            tierData.vehicles.add(op.vehicle);
+          }
+          if (op.licensePlate && op.licensePlate !== "Not set" && op.licensePlate !== "N/A") {
+            tierData.licensePlates.add(op.licensePlate);
+          }
+          // Merge equipment inventory (sanitize nulls, filter valid equipment)
+          if (op.equipmentInventory && Array.isArray(op.equipmentInventory) && op.equipmentInventory.length > 0) {
+            // Filter out null/undefined entries and add valid equipment
+            const validEquipment = op.equipmentInventory.filter(item => item != null);
+            tierData.equipmentInventory.push(...validEquipment);
+          }
         }
         
-        // Get tier stats for all tiers
+        // Get tier stats for ALL operator IDs in this merged set
+        const allOperatorIds = operators.map(op => op.operatorId);
+        const { ratings } = await import("@shared/schema");
+        const { inArray } = await import("drizzle-orm");
+        
         const tierStatsRecords = await db.query.operatorTierStats.findMany({
-          where: eq(operatorTierStats.operatorId, primaryOperator.operatorId)
+          where: inArray(operatorTierStats.operatorId, allOperatorIds)
         });
         
+        // Merge tier stats by tier (aggregate across all merged operators)
         const tierStatsMap: Record<string, any> = {};
         for (const stat of tierStatsRecords) {
-          tierStatsMap[stat.tier] = {
-            jobsCompleted: stat.jobsCompleted,
-            totalEarnings: stat.totalEarnings,
-            rating: stat.rating,
-            totalRatings: stat.totalRatings,
-            lastActiveAt: stat.lastActiveAt
-          };
+          if (!tierStatsMap[stat.tier]) {
+            tierStatsMap[stat.tier] = {
+              jobsCompleted: 0,
+              totalEarnings: 0,
+              totalRatings: 0,
+              ratingSum: 0,
+              lastActiveAt: stat.lastActiveAt
+            };
+          }
+          
+          tierStatsMap[stat.tier].jobsCompleted += stat.jobsCompleted;
+          tierStatsMap[stat.tier].totalEarnings += parseFloat(stat.totalEarnings);
+          tierStatsMap[stat.tier].totalRatings += stat.totalRatings;
+          tierStatsMap[stat.tier].ratingSum += parseFloat(stat.rating) * stat.totalRatings;
+          
+          // Keep the most recent lastActiveAt
+          if (!tierStatsMap[stat.tier].lastActiveAt || 
+              (stat.lastActiveAt && stat.lastActiveAt > tierStatsMap[stat.tier].lastActiveAt)) {
+            tierStatsMap[stat.tier].lastActiveAt = stat.lastActiveAt;
+          }
         }
         
-        // Get recent reviews using ratings table
-        const { ratings } = await import("@shared/schema");
-        const recentReviews = await db.query.ratings.findMany({
-          where: eq(ratings.operatorId, primaryOperator.operatorId),
-          orderBy: (ratings, { desc }) => [desc(ratings.createdAt)],
-          limit: 3
+        // Calculate average ratings for each tier
+        for (const tier in tierStatsMap) {
+          const stats = tierStatsMap[tier];
+          stats.rating = stats.totalRatings > 0 
+            ? (stats.ratingSum / stats.totalRatings).toFixed(2)
+            : "0.00";
+          stats.totalEarnings = stats.totalEarnings.toFixed(2);
+        }
+        
+        // Build structured activeTiers array from ALL discovered tiers (not just subscribedTiers)
+        // Use allTiers to include tiers from legacy records that lack subscribedTiers field
+        const allUniqueTiers = new Set([...allTiers, ...allSubscribedTiers]);
+        const activeTiers = Array.from(allUniqueTiers).map(tier => {
+          const tierData = tierDataMap.get(tier) || {
+            services: new Set(),
+            vehicles: new Set(),
+            licensePlates: new Set(),
+            equipmentInventory: []
+          };
+          const stats = tierStatsMap[tier] || {
+            jobsCompleted: 0,
+            totalEarnings: "0.00",
+            rating: "0.00",
+            totalRatings: 0,
+            lastActiveAt: null
+          };
+          
+          // Convert Sets to Arrays for JSON response
+          const servicesArray = Array.from(tierData.services);
+          const vehiclesArray = Array.from(tierData.vehicles);
+          const licensePlatesArray = Array.from(tierData.licensePlates);
+          
+          return {
+            tier,
+            services: servicesArray,
+            vehicle: vehiclesArray.length > 0 ? vehiclesArray.join(", ") : "Not specified",
+            licensePlate: licensePlatesArray.length > 0 ? licensePlatesArray.join(", ") : "N/A",
+            equipmentInventory: [...(tierData.equipmentInventory || [])], // Clone array to prevent reference sharing
+            stats: {
+              jobsCompleted: stats.jobsCompleted,
+              totalEarnings: stats.totalEarnings,
+              rating: stats.rating,
+              totalRatings: stats.totalRatings,
+              lastActiveAt: stats.lastActiveAt
+            }
+          };
         });
         
-        // Calculate average rating from reviews (null-safe)
-        const avgRating = recentReviews.length > 0
-          ? recentReviews.reduce((sum, r) => sum + r.rating, 0) / recentReviews.length
+        // Get reviews for ALL operator IDs in this merged set
+        const allReviews = await db.query.ratings.findMany({
+          where: inArray(ratings.operatorId, allOperatorIds),
+          orderBy: (ratings, { desc }) => [desc(ratings.createdAt)]
+        });
+        
+        // Take the 3 most recent reviews
+        const recentReviews = allReviews.slice(0, 3);
+        
+        // Calculate average rating from ALL reviews (null-safe)
+        const avgRating = allReviews.length > 0
+          ? allReviews.reduce((sum, r) => sum + r.rating, 0) / allReviews.length
           : (primaryOperator.rating ? parseFloat(primaryOperator.rating) : 0);
         
-        // Build operator card
+        // Build operator card with consolidated data
+        // Ensure hourlyRate is always defined (find first non-null/non-zero rate or default to "0.00")
+        const consolidatedHourlyRate = operators.reduce((rate, op) => {
+          if (rate && rate !== "0.00" && rate !== "0") return rate;
+          return op.hourlyRate && op.hourlyRate !== "0.00" && op.hourlyRate !== "0" 
+            ? op.hourlyRate 
+            : rate;
+        }, primaryOperator.hourlyRate || "0.00");
+        
         const card = {
           operatorId: primaryOperator.operatorId,
           name: primaryOperator.name,
@@ -248,16 +360,17 @@ export function registerRoutes(storage: IStorage) {
           longitude: primaryOperator.longitude,
           address: primaryOperator.address,
           isOnline: primaryOperator.isOnline,
-          hourlyRate: primaryOperator.hourlyRate,
+          hourlyRate: consolidatedHourlyRate,
           availability: primaryOperator.availability,
           activeTier: primaryOperator.activeTier,
-          subscribedTiers: Array.from(allSubscribedTiers),
+          subscribedTiers: Array.from(allUniqueTiers), // All unique tiers from all records
+          activeTiers, // Structured tier data with services, stats, equipment
+          services: Array.from(allServices), // Aggregated services from all tiers
           operatorTierProfiles: primaryOperator.operatorTierProfiles,
           equipmentInventory: primaryOperator.equipmentInventory,
           primaryVehicleImage: primaryOperator.primaryVehicleImage,
           vehicle: primaryOperator.vehicle,
           licensePlate: primaryOperator.licensePlate,
-          services: primaryOperator.services,
           totalJobs: primaryOperator.totalJobs,
           rating: avgRating.toFixed(2),
           tierStats: tierStatsMap,
@@ -268,13 +381,12 @@ export function registerRoutes(storage: IStorage) {
             review: r.review,
             createdAt: r.createdAt
           })),
-          reviewCount: recentReviews.length
+          reviewCount: allReviews.length // Total review count, not just recent 3
         };
         
-        // Filter by service if specified
+        // Filter by service if specified (check across all aggregated services)
         if (service) {
-          const services = Array.isArray(primaryOperator.services) ? primaryOperator.services : [];
-          if (services.includes(service)) {
+          if (card.services.includes(service)) {
             operatorCards.push(card);
           }
         } else {
