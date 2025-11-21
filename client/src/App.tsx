@@ -14,6 +14,7 @@ import { Profile } from "./pages/Profile";
 import { Notifications } from "./pages/Notifications";
 import EmergencySOS from "./pages/EmergencySOS";
 import EmergencyTracking from "./pages/EmergencyTracking";
+import TestOperatorTiles from "./pages/TestOperatorTiles";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import { queryClient } from "@/lib/queryClient";
@@ -35,6 +36,7 @@ const App = () => (
           <Route path="/" component={Index} />
           <Route path="/emergency-sos" component={EmergencySOS} />
           <Route path="/emergency-tracking/:emergencyId" component={EmergencyTracking} />
+          <Route path="/test-operator-tiles" component={TestOperatorTiles} />
           <Route path="/help" component={HelpSupport} />
           <Route path="/profile" component={Profile} />
           <Route path="/notifications" component={Notifications} />
