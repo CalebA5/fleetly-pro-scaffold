@@ -16,6 +16,7 @@ import type { Operator, InsertServiceRequest, Favorite } from "@shared/schema";
 import { OPERATOR_TIER_INFO } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/contexts/AuthContext";
+import { useUserLocation } from "@/contexts/LocationContext";
 import { OperatorTile } from "@/components/OperatorTile";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
@@ -53,13 +54,21 @@ export const OperatorMap = () => {
   const [isSidebarMinimized, setIsSidebarMinimized] = useState(false);
   const [viewMode, setViewMode] = useState<'map' | 'list'>('map');
   
+  // Get location from context (persisted user location)
+  const { location: contextLocation, formattedAddress: contextAddress } = useUserLocation();
+  const contextLat = contextLocation?.coords.latitude ?? null;
+  const contextLon = contextLocation?.coords.longitude ?? null;
+  
   // Parse URL parameters for location
   const searchParams = new URLSearchParams(window.location.search);
   const urlLat = searchParams.get('lat');
   const urlLon = searchParams.get('lon');
   const urlAddress = searchParams.get('address');
-  const userLat = urlLat ? parseFloat(urlLat) : null;
-  const userLon = urlLon ? parseFloat(urlLon) : null;
+  
+  // Use URL params if available, otherwise fall back to LocationContext
+  const userLat = urlLat ? parseFloat(urlLat) : (contextLat !== null ? contextLat : null);
+  const userLon = urlLon ? parseFloat(urlLon) : (contextLon !== null ? contextLon : null);
+  const effectiveAddress = urlAddress || contextAddress;
   
   // Reset sidebar minimize state when switching to list view and disable map interactions
   useEffect(() => {
@@ -407,12 +416,12 @@ export const OperatorMap = () => {
       .setLngLat([userLon, userLat])
       .setPopup(
         new mapboxgl.Popup({ offset: 25 })
-          .setHTML(`<div class="p-2"><strong>Your Location</strong>${urlAddress ? `<br/><span class="text-sm text-gray-600">${urlAddress}</span>` : ''}</div>`)
+          .setHTML(`<div class="p-2"><strong>Your Location</strong>${effectiveAddress ? `<br/><span class="text-sm text-gray-600">${effectiveAddress}</span>` : ''}</div>`)
       )
       .addTo(mapRef.current);
 
     userLocationMarkerRef.current = userMarker;
-  }, [userLat, userLon, urlAddress, mapLoaded]);
+  }, [userLat, userLon, effectiveAddress, mapLoaded]);
 
   // Handle sidebar toggle - resize map to fill available space
   useEffect(() => {
