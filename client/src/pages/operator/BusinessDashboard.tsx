@@ -15,12 +15,15 @@ import { Users, DollarSign, Star, TrendingUp, Plus, Trash2, Award } from "lucide
 import { VehicleManagement } from "@/components/VehicleManagement";
 import { useLocation } from "wouter";
 import type { Operator, Business } from "@shared/schema";
+import { TierOnlineConfirmDialog } from "@/components/TierOnlineConfirmDialog";
 
 export const BusinessDashboard = () => {
   const { user, updateUser } = useAuth();
   const { toast } = useToast();
   const [, setLocation] = useLocation();
   const [showAddDriverDialog, setShowAddDriverDialog] = useState(false);
+  const [showTierSwitchDialog, setShowTierSwitchDialog] = useState(false);
+  const [tierSwitchInfo, setTierSwitchInfo] = useState<{ currentTier: string; newTier: string } | null>(null);
   const setupAttemptedRef = useRef(false);
 
   // Fetch business data
@@ -111,16 +114,27 @@ export const BusinessDashboard = () => {
 
   // Online toggle mutation
   const toggleOnlineMutation = useMutation({
-    mutationFn: async (goOnline: boolean) => {
+    mutationFn: async ({ goOnline, confirmed = false }: { goOnline: boolean; confirmed?: boolean }) => {
       return apiRequest(`/api/operators/${user?.operatorId}/toggle-online`, {
         method: "POST",
         body: JSON.stringify({ 
           isOnline: goOnline ? 1 : 0,
-          activeTier: goOnline ? "professional" : null
+          activeTier: goOnline ? "professional" : null,
+          confirmed
         }),
       });
     },
-    onSuccess: (_, goOnline) => {
+    onSuccess: (data, variables) => {
+      const goOnline = variables.goOnline;
+      
+      // Check if response requires confirmation (tier switch warning)
+      if (data?.requiresConfirmation) {
+        setTierSwitchInfo({ currentTier: data.currentTier, newTier: data.newTier });
+        setShowTierSwitchDialog(true);
+        return;
+      }
+      
+      // Success - update was applied
       queryClient.invalidateQueries({ queryKey: [`/api/operators/by-id/${user?.operatorId}`] });
       toast({
         title: goOnline ? "You're Online" : "You're Offline",
@@ -129,7 +143,22 @@ export const BusinessDashboard = () => {
           : "You won't receive any new job requests",
       });
     },
-    onError: () => {
+    onError: (error: any) => {
+      // Check if error is due to active jobs blocking
+      if (error.message) {
+        try {
+          const errorData = JSON.parse(error.message);
+          if (errorData.error === "active_jobs") {
+            toast({
+              title: "Cannot Go Online",
+              description: errorData.message,
+              variant: "destructive",
+            });
+            return;
+          }
+        } catch {}
+      }
+      
       toast({
         title: "Error",
         description: "Failed to update online status. Please try again.",
@@ -137,6 +166,12 @@ export const BusinessDashboard = () => {
       });
     },
   });
+
+  const handleConfirmTierSwitch = () => {
+    setShowTierSwitchDialog(false);
+    toggleOnlineMutation.mutate({ goOnline: true, confirmed: true });
+    setTierSwitchInfo(null);
+  };
 
   // Add driver mutation
   const addDriverMutation = useMutation({
@@ -313,7 +348,7 @@ export const BusinessDashboard = () => {
             <Button
               variant={isOnline ? "default" : "outline"}
               size="lg"
-              onClick={() => toggleOnlineMutation.mutate(!isOnline)}
+              onClick={() => toggleOnlineMutation.mutate({ goOnline: !isOnline })}
               disabled={toggleOnlineMutation.isPending}
               className={`px-8 py-6 rounded-lg font-semibold transition-all ${
                 isOnline 
@@ -551,6 +586,17 @@ export const BusinessDashboard = () => {
           </TabsContent>
         </Tabs>
       </div>
+      
+      {/* Tier Switch Confirmation Dialog */}
+      {tierSwitchInfo && (
+        <TierOnlineConfirmDialog
+          open={showTierSwitchDialog}
+          onOpenChange={setShowTierSwitchDialog}
+          onConfirm={handleConfirmTierSwitch}
+          currentTier={tierSwitchInfo.currentTier}
+          newTier={tierSwitchInfo.newTier}
+        />
+      )}
     </div>
   );
 };

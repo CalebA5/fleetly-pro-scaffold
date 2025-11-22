@@ -1,7 +1,7 @@
 import { Router } from "express";
 import type { IStorage } from "./storage";
 import { db } from "./db";
-import { operators, customers, users, favorites, operatorTierStats, weatherAlerts, insertWeatherAlertSchema, emergencyRequests, dispatchQueue, insertEmergencyRequestSchema, insertDispatchQueueSchema, businesses } from "@shared/schema";
+import { operators, customers, users, favorites, operatorTierStats, weatherAlerts, insertWeatherAlertSchema, emergencyRequests, dispatchQueue, insertEmergencyRequestSchema, insertDispatchQueueSchema, businesses, serviceRequests } from "@shared/schema";
 import { eq, sql, and, gte, or } from "drizzle-orm";
 import { insertJobSchema, insertServiceRequestSchema, insertCustomerSchema, insertOperatorSchema, insertRatingSchema, insertFavoriteSchema, insertOperatorLocationSchema, insertCustomerServiceHistorySchema, OPERATOR_TIER_INFO } from "@shared/schema";
 import { isWithinRadius } from "./utils/distance";
@@ -1323,7 +1323,7 @@ export function registerRoutes(storage: IStorage) {
   // Toggle operator online/offline status
   router.post("/api/operators/:operatorId/toggle-online", async (req, res) => {
     try {
-      const { isOnline, activeTier } = req.body;
+      const { isOnline, activeTier, confirmed } = req.body;
       const operatorId = req.params.operatorId;
       
       // Get operator from database
@@ -1338,6 +1338,40 @@ export function registerRoutes(storage: IStorage) {
       // If going online, verify the tier is subscribed
       if (isOnline === 1 && activeTier && !operator.subscribedTiers.includes(activeTier)) {
         return res.status(400).json({ message: "Cannot go online for unsubscribed tier" });
+      }
+      
+      // NEW: Check if operator is already online on a different tier
+      if (isOnline === 1 && operator.isOnline === 1 && operator.activeTier !== activeTier) {
+        // Check for active (confirmed) jobs on the currently online tier
+        const activeJobs = await db.query.serviceRequests.findMany({
+          where: and(
+            eq(serviceRequests.operatorId, operatorId),
+            eq(serviceRequests.status, "confirmed")
+          )
+        });
+        
+        if (activeJobs.length > 0) {
+          // Block switching - operator has active jobs
+          return res.status(409).json({ 
+            error: "active_jobs",
+            message: `You cannot go online on ${activeTier} tier while you have ${activeJobs.length} active job(s) on ${operator.activeTier} tier. Please complete or cancel your current jobs first.`,
+            currentTier: operator.activeTier,
+            activeJobCount: activeJobs.length
+          });
+        }
+        
+        // If not confirmed, require confirmation from user
+        if (!confirmed) {
+          return res.status(200).json({
+            warning: "tier_switch",
+            message: `Going online on ${activeTier} tier will take you offline on ${operator.activeTier} tier.`,
+            currentTier: operator.activeTier,
+            newTier: activeTier,
+            requiresConfirmation: true
+          });
+        }
+        
+        // User has confirmed - proceed with tier switch
       }
       
       // CRITICAL: Enforce mutual exclusivity - only one tier can be online at a time

@@ -13,6 +13,7 @@ import { useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { Operator } from "@shared/schema";
+import { TierOnlineConfirmDialog } from "@/components/TierOnlineConfirmDialog";
 
 interface ServiceRequest {
   id: number;
@@ -46,6 +47,8 @@ export default function EquippedOperatorDashboard() {
   const [acceptedJobs, setAcceptedJobs] = useState<number[]>([]);
   const [serviceFilter, setServiceFilter] = useState<string>("all");
   const { toast } = useToast();
+  const [showTierSwitchDialog, setShowTierSwitchDialog] = useState(false);
+  const [tierSwitchInfo, setTierSwitchInfo] = useState<{ currentTier: string; newTier: string } | null>(null);
 
   // Mock data for customer grouping - in production, this would come from backend
   const mockCustomerGroups: CustomerGroup[] = [
@@ -95,16 +98,27 @@ export default function EquippedOperatorDashboard() {
 
   // Online toggle mutation
   const toggleOnlineMutation = useMutation({
-    mutationFn: async (goOnline: boolean) => {
+    mutationFn: async ({ goOnline, confirmed = false }: { goOnline: boolean; confirmed?: boolean }) => {
       return apiRequest(`/api/operators/${operatorId}/toggle-online`, {
         method: "POST",
         body: JSON.stringify({ 
           isOnline: goOnline ? 1 : 0,
-          activeTier: goOnline ? "equipped" : null
+          activeTier: goOnline ? "equipped" : null,
+          confirmed
         }),
       });
     },
-    onSuccess: (_, goOnline) => {
+    onSuccess: (data, variables) => {
+      const goOnline = variables.goOnline;
+      
+      // Check if response requires confirmation (tier switch warning)
+      if (data?.requiresConfirmation) {
+        setTierSwitchInfo({ currentTier: data.currentTier, newTier: data.newTier });
+        setShowTierSwitchDialog(true);
+        return;
+      }
+      
+      // Success - update was applied
       queryClient.invalidateQueries({ queryKey: [`/api/operators/by-id/${operatorId}`] });
       toast({
         title: goOnline ? "You're Online" : "You're Offline",
@@ -113,7 +127,22 @@ export default function EquippedOperatorDashboard() {
           : "You won't receive any new job requests",
       });
     },
-    onError: () => {
+    onError: (error: any) => {
+      // Check if error is due to active jobs blocking
+      if (error.message) {
+        try {
+          const errorData = JSON.parse(error.message);
+          if (errorData.error === "active_jobs") {
+            toast({
+              title: "Cannot Go Online",
+              description: errorData.message,
+              variant: "destructive",
+            });
+            return;
+          }
+        } catch {}
+      }
+      
       toast({
         title: "Error",
         description: "Failed to update online status. Please try again.",
@@ -121,6 +150,12 @@ export default function EquippedOperatorDashboard() {
       });
     },
   });
+
+  const handleConfirmTierSwitch = () => {
+    setShowTierSwitchDialog(false);
+    toggleOnlineMutation.mutate({ goOnline: true, confirmed: true });
+    setTierSwitchInfo(null);
+  };
 
   // Filter by service type (backend already filtered by radius and tier)
   const nearbyRequests = requests.filter((req) => {
@@ -170,7 +205,7 @@ export default function EquippedOperatorDashboard() {
             <Button
               variant={isOnline ? "default" : "outline"}
               size="lg"
-              onClick={() => toggleOnlineMutation.mutate(!isOnline)}
+              onClick={() => toggleOnlineMutation.mutate({ goOnline: !isOnline })}
               disabled={toggleOnlineMutation.isPending}
               className={`px-8 py-6 rounded-lg font-semibold transition-all ${
                 isOnline 
@@ -543,6 +578,14 @@ export default function EquippedOperatorDashboard() {
           </TabsContent>
         </Tabs>
       </div>
+
+      <TierOnlineConfirmDialog
+        open={showTierSwitchDialog}
+        onOpenChange={setShowTierSwitchDialog}
+        onConfirm={handleConfirmTierSwitch}
+        currentTier={tierSwitchInfo?.currentTier || ""}
+        newTier={tierSwitchInfo?.newTier || ""}
+      />
     </div>
   );
 }
