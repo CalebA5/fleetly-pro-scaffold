@@ -430,6 +430,108 @@ export default function ManualOperatorDashboard() {
           </Card>
         </div>
 
+        {/* IN PROGRESS Jobs Section - Prominent visual indicator */}
+        {acceptedJobsData.filter(job => job.status === "in_progress").length > 0 && (
+          <Card className="mb-8 border-4 border-green-400 dark:border-green-600 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950 dark:to-emerald-950 shadow-2xl animate-pulse-border">
+            <CardHeader className="pb-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="relative">
+                    <div className="absolute inset-0 bg-green-500 rounded-full animate-ping opacity-75"></div>
+                    <div className="relative bg-green-500 rounded-full p-3">
+                      <Clock className="w-6 h-6 text-white" />
+                    </div>
+                  </div>
+                  <div>
+                    <CardTitle className="text-2xl text-black dark:text-white flex items-center gap-2">
+                      JOB IN PROGRESS
+                      <Badge className="bg-green-600 text-white text-sm animate-pulse">
+                        ACTIVE
+                      </Badge>
+                    </CardTitle>
+                    <CardDescription className="text-gray-700 dark:text-gray-300 mt-1">
+                      You're currently working on {acceptedJobsData.filter(job => job.status === "in_progress").length} job{acceptedJobsData.filter(job => job.status === "in_progress").length > 1 ? 's' : ''}
+                    </CardDescription>
+                  </div>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {acceptedJobsData.filter(job => job.status === "in_progress").map((acceptedJob) => {
+                  const jobData = acceptedJob.jobData as any;
+                  const isEmergency = jobData.isEmergency === true || jobData.isEmergency === 1;
+                  
+                  return (
+                    <div
+                      key={acceptedJob.acceptedJobId}
+                      className="border-2 border-green-300 dark:border-green-700 rounded-xl p-6 bg-white dark:bg-gray-900 shadow-lg hover:shadow-xl transition-shadow"
+                      data-testid={`in-progress-job-${acceptedJob.acceptedJobId}`}
+                    >
+                      <div className="flex items-start justify-between mb-4">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-2">
+                            <h3 className="text-xl font-bold text-black dark:text-white">
+                              {jobData.customerName || 'Customer'}
+                            </h3>
+                            {isEmergency && (
+                              <Badge className="bg-red-600 text-white">
+                                EMERGENCY
+                              </Badge>
+                            )}
+                          </div>
+                          <p className="text-gray-600 dark:text-gray-400 mb-3">
+                            {jobData.description || jobData.serviceType || 'Service Request'}
+                          </p>
+                          <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600 dark:text-gray-400 mb-4">
+                            <span className="flex items-center gap-1">
+                              <MapPin className="w-4 h-4 text-green-600" />
+                              {jobData.location || 'Location not specified'}
+                            </span>
+                            {jobData.budgetRange && (
+                              <span className="flex items-center gap-1">
+                                <DollarSign className="w-4 h-4 text-green-600" />
+                                {jobData.budgetRange}
+                              </span>
+                            )}
+                          </div>
+                          
+                          {/* Progress Bar */}
+                          <div className="mb-4">
+                            <div className="flex items-center justify-between mb-2">
+                              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                Progress
+                              </span>
+                              <span className="text-sm font-bold text-green-600">
+                                {acceptedJob.progress}%
+                              </span>
+                            </div>
+                            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3 overflow-hidden">
+                              <div 
+                                className="bg-gradient-to-r from-green-500 to-emerald-500 h-3 rounded-full transition-all duration-500 ease-out"
+                                style={{ width: `${acceptedJob.progress}%` }}
+                              ></div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <Button
+                        onClick={() => setLocation(`/operator/job/${acceptedJob.acceptedJobId}`)}
+                        className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-6 text-lg"
+                        data-testid={`button-continue-job-${acceptedJob.acceptedJobId}`}
+                      >
+                        <ChevronRight className="w-5 h-5 mr-2" />
+                        Continue Working on This Job
+                      </Button>
+                    </div>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Responsive Grid: Customer Groups + Requests */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
           {/* Customer Grouping Section */}

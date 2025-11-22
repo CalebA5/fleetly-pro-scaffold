@@ -171,6 +171,26 @@ export const insertOperatorTierStatsSchema = createInsertSchema(operatorTierStat
 export type InsertOperatorTierStats = z.infer<typeof insertOperatorTierStatsSchema>;
 export type OperatorTierStats = typeof operatorTierStats.$inferSelect;
 
+export const operatorDailyEarnings = pgTable("operator_daily_earnings", {
+  id: serial("id").primaryKey(),
+  operatorId: text("operator_id").notNull(),
+  tier: text("tier").notNull(),
+  date: text("date").notNull(), // Format: YYYY-MM-DD
+  jobsCompleted: integer("jobs_completed").notNull().default(0),
+  earnings: decimal("earnings", { precision: 10, scale: 2 }).notNull().default("0"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertOperatorDailyEarningsSchema = createInsertSchema(operatorDailyEarnings).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertOperatorDailyEarnings = z.infer<typeof insertOperatorDailyEarningsSchema>;
+export type OperatorDailyEarnings = typeof operatorDailyEarnings.$inferSelect;
+
 export const serviceRequests = pgTable("service_requests", {
   id: serial("id").primaryKey(),
   requestId: text("request_id").notNull().unique(),

@@ -639,7 +639,7 @@ export default function JobDetailsPage() {
         </Card>
 
         {/* Mini Map - Customer Location */}
-        {(jobData.latitude && jobData.longitude) && (
+        {(jobData.latitude && jobData.longitude && Number(jobData.latitude) !== 0 && Number(jobData.longitude) !== 0) ? (
           <Card className="border-0 shadow-lg overflow-hidden">
             <div className="bg-gradient-to-r from-indigo-50 to-blue-50 dark:from-gray-800 dark:to-gray-800 px-6 py-4 border-b">
               <h3 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
@@ -655,10 +655,37 @@ export default function JobDetailsPage() {
               />
             </CardContent>
           </Card>
+        ) : jobData.location && (
+          <Card className="border-0 shadow-lg overflow-hidden">
+            <div className="bg-gradient-to-r from-indigo-50 to-blue-50 dark:from-gray-800 dark:to-gray-800 px-6 py-4 border-b">
+              <h3 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                <MapPin className="w-5 h-5 text-indigo-600" />
+                Customer Location
+              </h3>
+            </div>
+            <CardContent className="p-6">
+              <div className="text-center py-8">
+                <MapPin className="w-16 h-16 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
+                <p className="text-gray-600 dark:text-gray-400 mb-4">
+                  Map unavailable - coordinates not provided
+                </p>
+                <p className="font-medium text-gray-900 dark:text-white mb-4">{jobData.location}</p>
+                <a
+                  href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(jobData.location)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg font-medium transition-colors"
+                >
+                  <Navigation className="w-4 h-4" />
+                  Open in Google Maps
+                </a>
+              </div>
+            </CardContent>
+          </Card>
         )}
 
         {/* Customer Photos */}
-        {jobData.photos && jobData.photos.length > 0 && (
+        {jobData.photos && jobData.photos.length > 0 ? (
           <Card className="border-0 shadow-lg overflow-hidden">
             <div className="bg-gradient-to-r from-pink-50 to-rose-50 dark:from-gray-800 dark:to-gray-800 px-6 py-4 border-b">
               <h3 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
@@ -688,6 +715,23 @@ export default function JobDetailsPage() {
                     </div>
                   </div>
                 ))}
+              </div>
+            </CardContent>
+          </Card>
+        ) : (
+          <Card className="border-0 shadow-lg overflow-hidden">
+            <div className="bg-gradient-to-r from-pink-50 to-rose-50 dark:from-gray-800 dark:to-gray-800 px-6 py-4 border-b">
+              <h3 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                <Camera className="w-5 h-5 text-pink-600" />
+                Photos from Customer
+              </h3>
+            </div>
+            <CardContent className="p-6">
+              <div className="text-center py-8">
+                <Camera className="w-16 h-16 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
+                <p className="text-gray-600 dark:text-gray-400">
+                  No photos provided by customer
+                </p>
               </div>
             </CardContent>
           </Card>
