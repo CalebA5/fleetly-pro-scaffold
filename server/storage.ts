@@ -133,6 +133,9 @@ export class MemStorage implements IStorage {
   private sessions: Session[] = [];
   private vehicles: Vehicle[] = [];
   private acceptedJobs: AcceptedJob[] = [];
+  private dailyEarnings: Map<string, { earnings: number; jobsCompleted: number }> = new Map(); // key: "operatorId-tier-YYYY-MM-DD"
+  private monthlyEarnings: Map<string, { earnings: number; jobsCompleted: number }> = new Map(); // key: "operatorId-tier-YYYY-MM"
+  private penalties: Array<{ operatorId: string; tier: string; acceptedJobId: string; amount: number; reason: string; progress: number }> = [];
   private nextJobId = 1;
   private nextOperatorId = 1;
   private nextServiceRequestId = 1;
@@ -869,23 +872,33 @@ export class MemStorage implements IStorage {
     return jobs;
   }
 
-  // Earnings & Penalties methods - stub implementations for interface compliance
+  // Earnings & Penalties methods - in-memory implementations
   async getDailyEarnings(operatorId: string, tier: string, date: string): Promise<any | undefined> {
-    // TODO: Implement database-backed earnings tracking
-    return undefined;
+    const key = `${operatorId}-${tier}-${date}`;
+    return this.dailyEarnings.get(key);
   }
 
   async upsertDailyEarnings(operatorId: string, tier: string, date: string, earningsToAdd: number, jobsToAdd: number): Promise<void> {
-    // TODO: Implement database-backed earnings tracking
+    const key = `${operatorId}-${tier}-${date}`;
+    const existing = this.dailyEarnings.get(key) || { earnings: 0, jobsCompleted: 0 };
+    this.dailyEarnings.set(key, {
+      earnings: existing.earnings + earningsToAdd,
+      jobsCompleted: existing.jobsCompleted + jobsToAdd
+    });
   }
 
   async getMonthlyEarnings(operatorId: string, tier: string, month: string): Promise<any | undefined> {
-    // TODO: Implement database-backed earnings tracking
-    return undefined;
+    const key = `${operatorId}-${tier}-${month}`;
+    return this.monthlyEarnings.get(key);
   }
 
   async upsertMonthlyEarnings(operatorId: string, tier: string, month: string, earningsToAdd: number, jobsToAdd: number): Promise<void> {
-    // TODO: Implement database-backed earnings tracking
+    const key = `${operatorId}-${tier}-${month}`;
+    const existing = this.monthlyEarnings.get(key) || { earnings: 0, jobsCompleted: 0 };
+    this.monthlyEarnings.set(key, {
+      earnings: existing.earnings + earningsToAdd,
+      jobsCompleted: existing.jobsCompleted + jobsToAdd
+    });
   }
 
   async getTodayEarnings(operatorId: string, tier: string): Promise<{ earnings: number; jobsCompleted: number }> {
@@ -893,8 +906,8 @@ export class MemStorage implements IStorage {
     const today = new Date().toISOString().split('T')[0];
     const dailyData = await this.getDailyEarnings(operatorId, tier, today);
     return {
-      earnings: dailyData ? parseFloat(dailyData.earnings || '0') : 0,
-      jobsCompleted: dailyData ? dailyData.jobsCompleted : 0
+      earnings: dailyData?.earnings || 0,
+      jobsCompleted: dailyData?.jobsCompleted || 0
     };
   }
 
@@ -903,12 +916,19 @@ export class MemStorage implements IStorage {
     const month = new Date().toISOString().substring(0, 7);
     const monthlyData = await this.getMonthlyEarnings(operatorId, tier, month);
     return {
-      earnings: monthlyData ? parseFloat(monthlyData.earnings || '0') : 0,
-      jobsCompleted: monthlyData ? monthlyData.jobsCompleted : 0
+      earnings: monthlyData?.earnings || 0,
+      jobsCompleted: monthlyData?.jobsCompleted || 0
     };
   }
 
   async createPenalty(operatorId: string, tier: string, acceptedJobId: string, amount: number, reason: string, progress: number): Promise<void> {
-    // TODO: Implement database-backed penalty tracking
+    this.penalties.push({
+      operatorId,
+      tier,
+      acceptedJobId,
+      amount,
+      reason,
+      progress
+    });
   }
 }

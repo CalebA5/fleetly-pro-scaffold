@@ -138,6 +138,17 @@ export default function ManualOperatorDashboard() {
     enabled: !!operatorId,
   });
 
+  // Fetch today's earnings (persistent across sessions)
+  const { data: todayEarnings } = useQuery<{ earnings: number; jobsCompleted: number }>({
+    queryKey: [`/api/earnings/today/${operatorId}`, { tier: "manual" }],
+    queryFn: async () => {
+      const response = await fetch(`/api/earnings/today/${operatorId}?tier=manual`);
+      if (!response.ok) throw new Error("Failed to fetch today's earnings");
+      return response.json();
+    },
+    enabled: !!operatorId,
+  });
+
   // Calculate accurate statistics
   const acceptedJobIds = acceptedJobsData.map(j => (j.jobData as any).id || j.jobSourceId);
   const availableRequestsCount = allRequests.filter(r => !acceptedJobIds.includes(r.id)).length;
@@ -365,7 +376,9 @@ export default function ManualOperatorDashboard() {
               <div className="flex items-center justify-between">
                 <div className="flex-1">
                   <p className="text-xs md:text-sm text-gray-600 dark:text-gray-400 mb-1">Today's Earnings</p>
-                  <p className="text-xl md:text-2xl font-bold text-black dark:text-white">$0</p>
+                  <p className="text-xl md:text-2xl font-bold text-black dark:text-white">
+                    ${todayEarnings?.earnings?.toFixed(2) || '0.00'}
+                  </p>
                   <p className="text-xs text-green-600 dark:text-green-400 mt-1 flex items-center gap-1">
                     <TrendingUp className="w-3 h-3" />
                     View details
@@ -422,7 +435,9 @@ export default function ManualOperatorDashboard() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs md:text-sm text-gray-600 dark:text-gray-400 mb-1">Completed Today</p>
-                  <p className="text-xl md:text-2xl font-bold text-black dark:text-white">0</p>
+                  <p className="text-xl md:text-2xl font-bold text-black dark:text-white">
+                    {todayEarnings?.jobsCompleted || 0}
+                  </p>
                 </div>
                 <CheckCircle style={{ width: 'clamp(1.125rem, 4vw, 1.5rem)', height: 'clamp(1.125rem, 4vw, 1.5rem)' }} className="text-green-600" />
               </div>

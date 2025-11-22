@@ -2015,7 +2015,7 @@ export function registerRoutes(storage: IStorage) {
   router.post("/api/accepted-jobs/:acceptedJobId/complete", async (req, res) => {
     try {
       const { acceptedJobId } = req.params;
-      const operatorId = req.body?.operatorId || req.query.operatorId as string;
+      const { operatorId, earnings } = req.body;
       
       if (!operatorId) {
         return res.status(400).json({ message: "operatorId is required" });
@@ -2030,7 +2030,30 @@ export function registerRoutes(storage: IStorage) {
         return res.status(403).json({ message: "Unauthorized - you don't own this job" });
       }
 
-      const job = await storage.completeAcceptedJob(acceptedJobId);
+      // Calculate earnings if not provided (use midpoint of budget range)
+      let actualEarnings = earnings;
+      if (!actualEarnings) {
+        const jobData = existingJob.jobData as any;
+        const budgetRange = jobData?.budgetRange || "$0-$0";
+        const match = budgetRange.match(/\$(\d+)-\$?(\d+)/);
+        if (match) {
+          actualEarnings = (parseInt(match[1]) + parseInt(match[2])) / 2;
+        } else {
+          actualEarnings = 0;
+        }
+      }
+
+      const job = await storage.completeAcceptedJob(acceptedJobId, actualEarnings);
+      
+      // Update earnings tracking (today & month)
+      const today = new Date().toISOString().split('T')[0];
+      const month = new Date().toISOString().substring(0, 7);
+      await storage.upsertDailyEarnings(operatorId, existingJob.tier, today, actualEarnings, 1);
+      await storage.upsertMonthlyEarnings(operatorId, existingJob.tier, month, actualEarnings, 1);
+      
+      // Update tier stats
+      await storage.incrementTierJobCount(operatorId, existingJob.tier, actualEarnings);
+      
       res.json(job);
     } catch (error) {
       console.error("Error completing job:", error);
@@ -2042,7 +2065,7 @@ export function registerRoutes(storage: IStorage) {
   router.post("/api/accepted-jobs/:acceptedJobId/cancel", async (req, res) => {
     try {
       const { acceptedJobId } = req.params;
-      const { reason, operatorId } = req.body;
+      const { reason, operatorId, cancelledByOperator = true } = req.body;
       
       if (!operatorId) {
         return res.status(400).json({ message: "operatorId is required" });
@@ -2061,8 +2084,27 @@ export function registerRoutes(storage: IStorage) {
         return res.status(403).json({ message: "Unauthorized - you don't own this job" });
       }
 
-      const job = await storage.cancelAcceptedJob(acceptedJobId, reason);
-      res.json(job);
+      const result = await storage.cancelAcceptedJob(acceptedJobId, reason, cancelledByOperator);
+      
+      // If there's a penalty (cancelled by operator before 50% completion), record it
+      if (result.penalty && result.penalty > 0) {
+        await storage.createPenalty(
+          operatorId,
+          existingJob.tier,
+          acceptedJobId,
+          result.penalty,
+          "cancellation_under_50_percent",
+          existingJob.progress
+        );
+      }
+      
+      res.json({
+        ...result.job,
+        penalty: result.penalty,
+        penaltyMessage: result.penalty 
+          ? `You will forfeit $${result.penalty.toFixed(2)} for cancelling before 50% completion.`
+          : undefined
+      });
     } catch (error) {
       console.error("Error cancelling job:", error);
       res.status(500).json({ message: "Failed to cancel job" });
@@ -2080,6 +2122,34 @@ export function registerRoutes(storage: IStorage) {
     } catch (error) {
       console.error("Error fetching operator active jobs:", error);
       res.status(500).json({ message: "Failed to fetch operator active jobs" });
+    }
+  });
+
+  // Get today's earnings for operator (by tier)
+  router.get("/api/earnings/today/:operatorId", async (req, res) => {
+    try {
+      const { operatorId } = req.params;
+      const tier = req.query.tier as string || "manual";
+      
+      const earnings = await storage.getTodayEarnings(operatorId, tier);
+      res.json(earnings);
+    } catch (error) {
+      console.error("Error fetching today's earnings:", error);
+      res.status(500).json({ message: "Failed to fetch today's earnings" });
+    }
+  });
+
+  // Get this month's earnings for operator (by tier)
+  router.get("/api/earnings/month/:operatorId", async (req, res) => {
+    try {
+      const { operatorId } = req.params;
+      const tier = req.query.tier as string || "manual";
+      
+      const earnings = await storage.getMonthEarnings(operatorId, tier);
+      res.json(earnings);
+    } catch (error) {
+      console.error("Error fetching month's earnings:", error);
+      res.status(500).json({ message: "Failed to fetch month's earnings" });
     }
   });
 
