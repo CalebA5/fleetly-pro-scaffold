@@ -519,15 +519,30 @@ export function registerRoutes(storage: IStorage) {
       
       const [operator] = await db.insert(operators).values(operatorData).returning();
       
-      // Link operator to user account by operatorId and update role
-      const userEmail = result.data.email;
-      if (userEmail) {
-        await db.update(users)
-          .set({ 
-            operatorId: result.data.operatorId,
-            role: 'operator'
-          })
-          .where(eq(users.email, userEmail));
+      // CRITICAL: Link operator to authenticated user account (not form email)
+      // Use session to get the actual logged-in user
+      const sessionId = (req as any).cookies?.sessionId;
+      if (sessionId) {
+        const session = await db.query.sessions.findFirst({
+          where: eq(sessions.sessionId, sessionId)
+        });
+        
+        if (session) {
+          // Update the authenticated user with operator_id
+          await db.update(users)
+            .set({ 
+              operatorId: result.data.operatorId,
+              role: 'operator'
+            })
+            .where(eq(users.userId, session.userId));
+          
+          // Update session for immediate frontend sync
+          if ((req as any).session?.user) {
+            (req as any).session.user.operatorId = result.data.operatorId;
+            (req as any).session.user.operatorTier = tier;
+            (req as any).session.user.subscribedTiers = subscribedTiers;
+          }
+        }
       }
       
       // Create initial tier stats for each subscribed tier
