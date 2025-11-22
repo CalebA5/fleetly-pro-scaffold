@@ -3,13 +3,23 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/enhanced-button";
 import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Users, MapPin, DollarSign, Clock, ChevronDown, MessageCircle, Phone, CheckCircle, Minimize2, Check } from "lucide-react";
+import { Users, MapPin, DollarSign, Clock, ChevronDown, MessageCircle, Phone, CheckCircle, Minimize2, Check, X, AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export interface CustomerGroup {
   id: string;
@@ -52,6 +62,8 @@ export function CustomerGrouping({
   const [contactMessage, setContactMessage] = useState("");
   // Track selected customers per group: Map<groupId, Set<customerIndex>>
   const [selectedCustomers, setSelectedCustomers] = useState<Map<string, Set<number>>>(new Map());
+  // Track group being minimized for confirmation dialog
+  const [groupToMinimize, setGroupToMinimize] = useState<CustomerGroup | null>(null);
 
   const toggleGroup = (groupId: string) => {
     setExpandedGroups(prev =>
@@ -69,12 +81,16 @@ export function CustomerGrouping({
     }
   };
 
-  const handleMinimizeGroup = (groupId: string) => {
-    setMinimizedGroups(prev => [...prev, groupId]);
+  const confirmMinimizeGroup = () => {
+    if (!groupToMinimize) return;
+    
+    setMinimizedGroups(prev => [...prev, groupToMinimize.id]);
     toast({
-      title: "Group Minimized",
-      description: "This customer group has been hidden from your view",
+      title: "Jobs Declined",
+      description: `You declined ${groupToMinimize.customerCount} jobs near ${groupToMinimize.location}`,
+      variant: "destructive",
     });
+    setGroupToMinimize(null);
   };
 
   const toggleCustomerSelection = (groupId: string, customerIndex: number) => {
@@ -350,6 +366,7 @@ export function CustomerGrouping({
                             <CardContent className="p-4">
                               <div className="flex items-start gap-3">
                                 <Checkbox 
+                                  variant="circular"
                                   checked={isSelected}
                                   onCheckedChange={() => toggleCustomerSelection(group.id, idx)}
                                   onClick={(e) => e.stopPropagation()}
@@ -376,7 +393,7 @@ export function CustomerGrouping({
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => handleMinimizeGroup(group.id)}
+                        onClick={() => setGroupToMinimize(group)}
                         className="px-3"
                         data-testid={`button-minimize-${group.id}`}
                       >
@@ -500,6 +517,7 @@ export function CustomerGrouping({
                           <CardContent className="p-3">
                             <div className="flex items-start gap-3">
                               <Checkbox 
+                                variant="circular"
                                 checked={isSelected}
                                 onCheckedChange={() => toggleCustomerSelection(group.id, idx)}
                                 onClick={(e) => e.stopPropagation()}
@@ -531,7 +549,7 @@ export function CustomerGrouping({
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => handleMinimizeGroup(group.id)}
+                    onClick={() => setGroupToMinimize(group)}
                     className="px-3"
                     data-testid={`button-minimize-${group.id}`}
                   >
@@ -609,6 +627,42 @@ export function CustomerGrouping({
 
         return GroupCard;
       })}
+
+      {/* Safety Confirmation Dialog for Minimizing/Declining Groups */}
+      <AlertDialog open={!!groupToMinimize} onOpenChange={(open) => !open && setGroupToMinimize(null)}>
+        <AlertDialogContent className="bg-white dark:bg-gray-900">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-black dark:text-white">
+              <AlertCircle className="h-5 w-5 text-orange-600" />
+              Decline Customer Group?
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-gray-600 dark:text-gray-400">
+              Are you sure you want to decline {groupToMinimize?.customerCount} jobs near {groupToMinimize?.location}?
+              <br /><br />
+              <span className="font-semibold text-orange-600 dark:text-orange-400">
+                Total value: {groupToMinimize?.totalValue}
+              </span>
+              <br />
+              This group will be hidden from your view and you won't be able to accept these jobs.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel 
+              className="border-gray-300 dark:border-gray-700"
+              data-testid="button-cancel-minimize"
+            >
+              Keep Group
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmMinimizeGroup}
+              className="bg-red-600 hover:bg-red-700 text-white"
+              data-testid="button-confirm-minimize"
+            >
+              Yes, Decline Jobs
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
