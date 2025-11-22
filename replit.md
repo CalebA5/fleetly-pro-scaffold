@@ -8,6 +8,25 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
+### November 22, 2025 - Final Bug Fixes: Autocomplete Scrolling, Weather Alert Persistence, UX Polish
+- **Address Autocomplete Scroll Fix**: Resolved dropdown closing when scrolling inside suggestions
+  - Dropdown now distinguishes between scrolling INSIDE the dropdown vs scrolling outside
+  - Event handler checks `event.target` to only close when scrolling outside the dropdown
+  - Users can now scroll through long suggestion lists without dropdown closing
+  - Implemented using simple absolute positioning instead of Popover for better stability
+- **Weather Alert Persistence System**: Implemented localStorage tracking with 24-hour TTL to prevent duplicate alerts
+  - Alerts tracked in localStorage with timestamp and auto-expire after 24 hours
+  - Fixed race condition by batching localStorage writes (collect all new IDs, write once)
+  - seenAlerts refreshed from localStorage before processing to apply TTL cleanup
+  - Toast notifications show only once per 24 hours per unique alert
+  - Location-filtered alerts shown to users in their city/state area
+- **First-Time Customer UX**: Removed intrusive location prompts, made onboarding smoother
+  - Removed automatic location detection on homepage mount
+  - Removed LocationPermissionPrompt component entirely (too intrusive)
+  - Added manual "Use my current location" button with toast feedback
+  - Homepage is now clean, value-focused, and less demanding
+  - Users opt-in to location sharing instead of being prompted automatically
+
 ### November 22, 2025 - Help Pages Created, Address Autocomplete Redesigned, Location Prompts Enhanced
 - **Help Pages Created**: Added four comprehensive help pages with working navigation
   - **User Guide** (/user-guide): Step-by-step customer instructions covering service booking, payments, ratings, and communication
