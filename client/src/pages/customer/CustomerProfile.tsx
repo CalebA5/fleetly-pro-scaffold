@@ -186,9 +186,6 @@ export const CustomerProfile = () => {
                     {customer.name}
                   </h1>
                   <div className="text-muted-foreground flex items-center gap-2 mt-1">
-                    <Badge variant="outline" className="font-mono text-xs hidden md:inline-flex">
-                      {customer.customerId}
-                    </Badge>
                     <span className="text-sm">Member since {new Date(parseInt(customer.customerId.split('-')[1])).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</span>
                   </div>
                 </div>
