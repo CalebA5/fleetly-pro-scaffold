@@ -24,13 +24,13 @@ export const BusinessDashboard = () => {
   const setupAttemptedRef = useRef(false);
 
   // Fetch business data
-  const { data: business, isLoading: businessLoading } = useQuery<Business>({
+  const { data: business, isLoading: businessLoading, error: businessError } = useQuery<Business>({
     queryKey: [`/api/business/${user?.businessId}`],
     enabled: !!user?.businessId,
   });
 
   // Fetch drivers
-  const { data: drivers = [], isLoading: driversLoading } = useQuery<Operator[]>({
+  const { data: drivers = [], isLoading: driversLoading, error: driversError } = useQuery<Operator[]>({
     queryKey: [`/api/business/drivers/${user?.businessId}`],
     enabled: !!user?.businessId,
   });
@@ -221,6 +221,7 @@ export const BusinessDashboard = () => {
     }
   };
 
+  // Show loading state while setting up business or loading data
   if (setupBusinessMutation.isPending || businessLoading || driversLoading) {
     return (
       <div className="min-h-screen bg-white dark:bg-black">
@@ -234,12 +235,56 @@ export const BusinessDashboard = () => {
     );
   }
 
-  if (!business && user?.businessId) {
+  // Show error state if business setup failed
+  if (setupBusinessMutation.isError && !user?.businessId) {
+    return (
+      <div className="min-h-screen bg-white dark:bg-black">
+        <Header onDriveAndEarn={() => setLocation("/drive-earn")} />
+        <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
+          <div className="text-lg text-black dark:text-white">Failed to set up business profile</div>
+          <Button 
+            onClick={() => {
+              setupAttemptedRef.current = false;
+              setupBusinessMutation.reset();
+              setupBusinessMutation.mutate();
+            }}
+            data-testid="button-retry-setup"
+          >
+            Retry Setup
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error state if business query failed
+  if (businessError || (user?.businessId && !business)) {
+    return (
+      <div className="min-h-screen bg-white dark:bg-black">
+        <Header onDriveAndEarn={() => setLocation("/drive-earn")} />
+        <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
+          <div className="text-lg text-black dark:text-white">Failed to load business dashboard</div>
+          <Button 
+            onClick={() => {
+              queryClient.invalidateQueries({ queryKey: [`/api/business/${user?.businessId}`] });
+              queryClient.invalidateQueries({ queryKey: [`/api/business/drivers/${user?.businessId}`] });
+            }}
+            data-testid="button-retry-load"
+          >
+            Retry
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  // If still no business but no error, show loading (waiting for auto-setup)
+  if (!business) {
     return (
       <div className="min-h-screen bg-white dark:bg-black">
         <Header onDriveAndEarn={() => setLocation("/drive-earn")} />
         <div className="flex items-center justify-center min-h-[60vh]">
-          <div className="text-lg text-black dark:text-white">Business not found</div>
+          <div className="text-lg text-black dark:text-white">Loading business dashboard...</div>
         </div>
       </div>
     );
