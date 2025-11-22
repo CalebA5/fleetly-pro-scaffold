@@ -212,7 +212,7 @@ export default function JobDetailsPage() {
           <AlertTriangle className="w-16 h-16 text-orange-500 mx-auto mb-4" />
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Job Not Found</h2>
           <p className="text-gray-600 dark:text-gray-400 mb-4">This job doesn't exist or has been removed.</p>
-          <Button onClick={() => setLocation("/operator/manual")} data-testid="button-back-to-dashboard">
+          <Button onClick={() => setLocation("/manual-operator")} data-testid="button-back-to-dashboard">
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back to Dashboard
           </Button>
@@ -226,6 +226,18 @@ export default function JobDetailsPage() {
   const isInProgress = job.status === "in_progress";
   const isCompleted = job.status === "completed";
   const isCancelled = job.status === "cancelled";
+  
+  // Determine dashboard path based on tier
+  const getDashboardPath = (tier: string) => {
+    const tierMap: Record<string, string> = {
+      'manual': '/manual-operator',
+      'equipped': '/equipped-operator',
+      'professional': '/operator'
+    };
+    return tierMap[tier.toLowerCase()] || '/manual-operator';
+  };
+  
+  const dashboardPath = getDashboardPath(job.tier);
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -235,7 +247,7 @@ export default function JobDetailsPage() {
         <div className="relative max-w-4xl mx-auto px-4 py-6">
           <Button
             variant="ghost"
-            onClick={() => setLocation("/operator/manual")}
+            onClick={() => setLocation(dashboardPath)}
             className="mb-3 text-white hover:bg-white/20"
             data-testid="button-back"
           >
