@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { MapPin, Loader2 } from "lucide-react";
+import { MapPin, Loader2, X } from "lucide-react";
 import { searchAddresses, type GeocodingResult } from "@/lib/geocoding";
 
 interface AutocompleteLocationProps {
@@ -141,6 +141,12 @@ export const AutocompleteLocation = ({
     setSuggestions([]);
   };
 
+  const handleClear = () => {
+    onChange("");
+    setSuggestions([]);
+    setOpen(false);
+  };
+
   return (
     <div ref={containerRef} className="relative w-full">
       <input
@@ -149,7 +155,7 @@ export const AutocompleteLocation = ({
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
         disabled={disabled}
-        className="flex h-10 w-full rounded-lg border-0 bg-gray-50 dark:bg-gray-700 px-3 py-2 text-base pr-10 placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-black dark:focus:ring-white disabled:cursor-not-allowed disabled:opacity-50 transition-all"
+        className="flex h-10 w-full rounded-lg border-0 bg-gray-50 dark:bg-gray-700 px-3 py-2 text-base pr-16 placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-black dark:focus:ring-white disabled:cursor-not-allowed disabled:opacity-50 transition-all"
         data-testid={testId}
         onFocus={() => {
           if (suggestions.length > 0) {
@@ -157,24 +163,43 @@ export const AutocompleteLocation = ({
           }
         }}
       />
-      {isSearching && (
-        <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 animate-spin text-gray-400" />
-      )}
-      {!isSearching && icon && (
-        <button
-          type="button"
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            onIconClick?.();
-          }}
-          className="absolute right-3 top-1/2 -translate-y-1/2 p-0.5 hover:bg-orange-100 dark:hover:bg-orange-900/20 rounded transition-colors cursor-pointer"
-          title="Use my current location"
-          data-testid="button-location-pin"
-        >
-          <MapPin className="w-4 h-4 text-gray-400 hover:text-orange-600 dark:hover:text-orange-400 transition-colors" />
-        </button>
-      )}
+      <div className="absolute right-1 top-1/2 -translate-y-1/2 flex items-center gap-0.5">
+        {value && !isSearching && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              handleClear();
+            }}
+            className="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-600 rounded transition-colors cursor-pointer"
+            title="Clear location"
+            data-testid={`${testId}-clear`}
+          >
+            <X className="w-4 h-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors" />
+          </button>
+        )}
+        {isSearching && (
+          <div className="p-1.5">
+            <Loader2 className="w-4 h-4 animate-spin text-gray-400" />
+          </div>
+        )}
+        {!isSearching && icon && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onIconClick?.();
+            }}
+            className="p-1.5 hover:bg-orange-100 dark:hover:bg-orange-900/20 rounded transition-colors cursor-pointer"
+            title="Use my current location"
+            data-testid="button-location-pin"
+          >
+            <MapPin className="w-4 h-4 text-gray-400 hover:text-orange-600 dark:hover:text-orange-400 transition-colors" />
+          </button>
+        )}
+      </div>
       
       {/* Dropdown suggestions */}
       {open && suggestions.length > 0 && (

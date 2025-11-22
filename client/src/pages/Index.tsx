@@ -12,7 +12,7 @@ import { AutocompleteLocation } from "@/components/AutocompleteLocation";
 import { LocationPermissionModal } from "@/components/LocationPermissionModal";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserLocation } from "@/contexts/LocationContext";
-import { MapPin, ArrowRight, Truck, Clock, Shield, Star, Search, Loader2 } from "lucide-react";
+import { MapPin, ArrowRight, Truck, Clock, Shield, Star, Search, Loader2, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import type { GeocodingResult } from "@/lib/geocoding";
 
@@ -43,6 +43,24 @@ const Index = () => {
       return () => clearTimeout(timer);
     }
   }, [isAuthLoading]);
+
+  // Auto-fill pickup with user's location address when available
+  useEffect(() => {
+    if (formattedAddress && !pickup) {
+      setPickup(formattedAddress);
+      if (location) {
+        setCurrentLat(location.coords.latitude);
+        setCurrentLon(location.coords.longitude);
+      }
+    }
+  }, [formattedAddress, location, pickup]);
+
+  // Clear location handler
+  const handleClearLocation = () => {
+    setPickup("");
+    setCurrentLat(null);
+    setCurrentLon(null);
+  };
 
   const handleAuthClick = (tab: "signin" | "signup", role: "customer" | "operator" = "customer") => {
     setAuthTab(tab);
