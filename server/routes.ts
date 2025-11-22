@@ -1961,6 +1961,17 @@ export function registerRoutes(storage: IStorage) {
         return res.status(403).json({ message: "Unauthorized - you don't own this job" });
       }
       
+      // BUSINESS LOGIC: Only one job in progress at a time
+      const operatorJobs = await storage.getAcceptedJobs(operatorId);
+      const inProgressJobs = operatorJobs.filter(j => 
+        j.status === "in_progress" && j.acceptedJobId !== acceptedJobId
+      );
+      if (inProgressJobs.length > 0) {
+        return res.status(409).json({ 
+          message: "You already have a job in progress. Please complete it before starting another job."
+        });
+      }
+      
       const job = await storage.startAcceptedJob(acceptedJobId);
       res.json(job);
     } catch (error) {

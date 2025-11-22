@@ -75,7 +75,8 @@ export default function JobDetailsPage() {
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/accepted-jobs", jobId] });
+      // Fix: Use exact:false to invalidate all matching queries including the one with operatorId
+      queryClient.invalidateQueries({ queryKey: ["/api/accepted-jobs", jobId], exact: false });
       toast({
         title: "Job Started",
         description: "You can now track your progress on this job.",
@@ -100,7 +101,8 @@ export default function JobDetailsPage() {
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/accepted-jobs", jobId] });
+      // Fix: Use exact:false to invalidate all matching queries
+      queryClient.invalidateQueries({ queryKey: ["/api/accepted-jobs", jobId], exact: false });
       toast({
         title: "Progress Updated",
         description: `Job progress: ${progress}%`,
@@ -125,14 +127,15 @@ export default function JobDetailsPage() {
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/accepted-jobs"] });
+      //Fix: Use exact:false to invalidate all matching queries
+      queryClient.invalidateQueries({ queryKey: ["/api/accepted-jobs"], exact: false });
       toast({
         title: "Job Completed! 🎉",
         description: "Great work! The job has been marked as completed.",
       });
       // Navigate back to dashboard after 2 seconds
       setTimeout(() => {
-        setLocation("/operator/manual");
+        setLocation(dashboardPath);
       }, 2000);
     },
     onError: (error: Error) => {
@@ -154,7 +157,8 @@ export default function JobDetailsPage() {
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/accepted-jobs"] });
+      // Fix: Use exact:false to invalidate all matching queries
+      queryClient.invalidateQueries({ queryKey: ["/api/accepted-jobs"], exact: false });
       toast({
         title: "Job Cancelled",
         description: "The job has been cancelled and removed from your queue.",
