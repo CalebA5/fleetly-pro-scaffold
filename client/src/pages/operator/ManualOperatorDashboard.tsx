@@ -454,8 +454,12 @@ export default function ManualOperatorDashboard() {
             </CardContent>
           </Card>
 
-          {/* Completed Today Card */}
-          <Card>
+          {/* Completed Today Card - Clickable to view Job History */}
+          <Card 
+            className="cursor-pointer hover:shadow-lg transition-shadow" 
+            onClick={() => setLocation("/operator/job-history")}
+            data-testid="card-completed-today"
+          >
             <CardContent className="p-4 md:p-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -463,8 +467,15 @@ export default function ManualOperatorDashboard() {
                   <p className="text-xl md:text-2xl font-bold text-black dark:text-white">
                     {todayEarnings?.jobsCompleted || 0}
                   </p>
+                  <p className="text-xs text-green-600 dark:text-green-400 mt-1 flex items-center gap-1">
+                    <CheckCircle className="w-3 h-3" />
+                    View history
+                  </p>
                 </div>
-                <CheckCircle style={{ width: 'clamp(1.125rem, 4vw, 1.5rem)', height: 'clamp(1.125rem, 4vw, 1.5rem)' }} className="text-green-600" />
+                <div className="flex flex-col items-center gap-1">
+                  <CheckCircle style={{ width: 'clamp(1.125rem, 4vw, 1.5rem)', height: 'clamp(1.125rem, 4vw, 1.5rem)' }} className="text-green-600" />
+                  <ChevronRight style={{ width: 'clamp(0.875rem, 2vw, 1rem)', height: 'clamp(0.875rem, 2vw, 1rem)' }} className="text-gray-400" />
+                </div>
               </div>
             </CardContent>
           </Card>

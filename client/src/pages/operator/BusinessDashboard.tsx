@@ -550,13 +550,25 @@ export const BusinessDashboard = () => {
             </div>
           </Card>
 
-          <Card className="p-6 border border-gray-200 dark:border-gray-800 bg-white dark:bg-black">
+          {/* Completed Today Card - Clickable to view Job History */}
+          <Card 
+            className="p-6 border border-gray-200 dark:border-gray-800 bg-white dark:bg-black cursor-pointer hover:shadow-lg transition-all hover:border-orange-500"
+            onClick={() => setLocation("/operator/job-history")}
+            data-testid="card-completed-today"
+          >
             <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Rating</p>
-                <p className="text-3xl font-bold text-black dark:text-white">{parseFloat(business.rating).toFixed(1)}</p>
+              <div className="flex-1">
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Completed Today</p>
+                <p className="text-3xl font-bold text-black dark:text-white">0</p>
+                <p className="text-xs text-green-600 dark:text-green-400 mt-1 flex items-center gap-1">
+                  <CheckCircle className="w-3 h-3" />
+                  View history
+                </p>
               </div>
-              <Star className="w-8 h-8 text-orange-500 fill-orange-500" />
+              <div className="flex flex-col items-center gap-1">
+                <CheckCircle className="w-8 h-8 text-green-600" />
+                <ChevronRight className="w-4 h-4 text-gray-400" />
+              </div>
             </div>
           </Card>
         </div>

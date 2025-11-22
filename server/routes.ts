@@ -1,7 +1,7 @@
 import { Router } from "express";
 import type { IStorage } from "./storage";
 import { db } from "./db";
-import { operators, customers, users, favorites, operatorTierStats, weatherAlerts, insertWeatherAlertSchema, emergencyRequests, dispatchQueue, insertEmergencyRequestSchema, insertDispatchQueueSchema, businesses, serviceRequests, operatorDailyEarnings, operatorMonthlyEarnings } from "@shared/schema";
+import { operators, customers, users, favorites, operatorTierStats, weatherAlerts, insertWeatherAlertSchema, emergencyRequests, dispatchQueue, insertEmergencyRequestSchema, insertDispatchQueueSchema, businesses, serviceRequests, operatorDailyEarnings, operatorMonthlyEarnings, acceptedJobs } from "@shared/schema";
 import { eq, sql, and, gte, or } from "drizzle-orm";
 import { insertJobSchema, insertServiceRequestSchema, insertCustomerSchema, insertOperatorSchema, insertRatingSchema, insertFavoriteSchema, insertOperatorLocationSchema, insertCustomerServiceHistorySchema, OPERATOR_TIER_INFO } from "@shared/schema";
 import { isWithinRadius } from "./utils/distance";
@@ -1875,7 +1875,26 @@ export function registerRoutes(storage: IStorage) {
         return res.status(400).json({ message: "operatorId is required" });
       }
 
-      const jobs = await storage.getAcceptedJobs(operatorId, tier);
+      // DATABASE FIX: Read from database instead of MemStorage for persistence
+      // Only return ACTIVE jobs (not completed or cancelled) - completed jobs go to Job History
+      const whereConditions = [
+        eq(acceptedJobs.operatorId, operatorId),
+        or(
+          eq(acceptedJobs.status, "accepted"),
+          eq(acceptedJobs.status, "in_progress")
+        )
+      ];
+      
+      // Filter by tier if provided
+      if (tier) {
+        whereConditions.push(eq(acceptedJobs.tier, tier));
+      }
+      
+      const jobs = await db.select()
+        .from(acceptedJobs)
+        .where(and(...whereConditions))
+        .orderBy(acceptedJobs.acceptedAt);
+      
       res.json(jobs);
     } catch (error) {
       console.error("Error fetching accepted jobs:", error);
@@ -2198,6 +2217,91 @@ export function registerRoutes(storage: IStorage) {
     }
   });
 
+  // ========== JOB HISTORY ENDPOINT ==========
+  
+  // Get completed job history for operator with filters
+  router.get("/api/operators/:operatorId/job-history", async (req, res) => {
+    try {
+      const { operatorId } = req.params;
+      const {
+        tier,
+        startDate,
+        endDate,
+        limit = "50",
+        offset = "0"
+      } = req.query as Record<string, string>;
+      
+      // SECURITY FIX: Validate and sanitize pagination params
+      const validLimit = Math.min(Math.max(parseInt(limit) || 50, 1), 100);
+      const validOffset = Math.max(parseInt(offset) || 0, 0);
+      
+      const whereConditions = [
+        eq(acceptedJobs.operatorId, operatorId),
+        eq(acceptedJobs.status, "completed") // Only completed jobs
+      ];
+      
+      // Filter by tier if provided
+      if (tier && tier !== "all") {
+        whereConditions.push(eq(acceptedJobs.tier, tier));
+      }
+      
+      // Filter by date range if provided
+      if (startDate) {
+        whereConditions.push(gte(acceptedJobs.completedAt, new Date(startDate)));
+      }
+      if (endDate) {
+        const endDateTime = new Date(endDate);
+        endDateTime.setHours(23, 59, 59, 999); // End of day
+        whereConditions.push(sql`${acceptedJobs.completedAt} <= ${endDateTime}`);
+      }
+      
+      // Query completed jobs from database with pagination
+      // Select specific columns for performance
+      const jobs = await db.select({
+        id: acceptedJobs.id,
+        acceptedJobId: acceptedJobs.acceptedJobId,
+        operatorId: acceptedJobs.operatorId,
+        tier: acceptedJobs.tier,
+        status: acceptedJobs.status,
+        jobData: acceptedJobs.jobData,
+        actualEarnings: acceptedJobs.actualEarnings,
+        completedAt: acceptedJobs.completedAt,
+        acceptedAt: acceptedJobs.acceptedAt
+      })
+        .from(acceptedJobs)
+        .where(and(...whereConditions))
+        .orderBy(sql`${acceptedJobs.completedAt} DESC`) // Newest first
+        .limit(validLimit)
+        .offset(validOffset);
+      
+      // Get total count for pagination
+      const totalResult = await db.select({ count: sql<number>`count(*)` })
+        .from(acceptedJobs)
+        .where(and(...whereConditions));
+      
+      const total = Number(totalResult[0]?.count || 0);
+      
+      // FIX: Convert actualEarnings from string to number for frontend
+      const jobsWithNumericEarnings = jobs.map(job => ({
+        ...job,
+        actualEarnings: job.actualEarnings ? parseFloat(job.actualEarnings) : 0
+      }));
+      
+      res.json({
+        jobs: jobsWithNumericEarnings,
+        pagination: {
+          total,
+          limit: validLimit,
+          offset: validOffset,
+          hasMore: validOffset + jobs.length < total
+        }
+      });
+    } catch (error) {
+      console.error("Error fetching job history:", error);
+      res.status(500).json({ message: "Failed to fetch job history" });
+    }
+  });
+  
   // Get operator's active jobs (for cross-tier checking)
   router.get("/api/accepted-jobs/operator/:operatorId/active", async (req, res) => {
     try {

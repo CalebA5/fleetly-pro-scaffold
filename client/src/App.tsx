@@ -22,6 +22,7 @@ import EquippedOperatorDashboard from "./pages/operator/EquippedOperatorDashboar
 import EarningsDetails from "./pages/operator/EarningsDetails";
 import NearbyJobsMap from "./pages/operator/NearbyJobsMap";
 import JobDetailsPage from "./pages/operator/JobDetailsPage";
+import { JobHistory as OperatorJobHistory } from "./pages/operator/JobHistory";
 import { DriveEarn } from "./pages/DriveEarn";
 import { HelpSupport } from "./pages/HelpSupport";
 import { UserGuide } from "./pages/UserGuide";
@@ -114,6 +115,11 @@ const App = () => (
               <Route path="/operator/jobs/:jobId">
                 <ProtectedRoute requireOperator>
                   <JobDetailsPage />
+                </ProtectedRoute>
+              </Route>
+              <Route path="/operator/job-history">
+                <ProtectedRoute requireOperator>
+                  <OperatorJobHistory />
                 </ProtectedRoute>
               </Route>
               <Route path="/operator">
