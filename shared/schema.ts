@@ -91,15 +91,30 @@ export type Operator = typeof operators.$inferSelect;
 
 export type OperatorTier = "professional" | "equipped" | "manual";
 
+export type TierApprovalStatus = "pending" | "under_review" | "approved" | "rejected" | "not_submitted";
+
 export type OperatorTierProfile = {
   tier: OperatorTier;
   subscribed: boolean;
   onboardingCompleted: boolean;
   onboardedAt?: string;
+  approvalStatus?: TierApprovalStatus;
+  approvalSubmittedAt?: string;
+  approvedAt?: string;
+  rejectionReason?: string;
+  canEarn?: boolean;
   vehicle?: string;
   licensePlate?: string;
   businessLicense?: string;
+  businessName?: string;
   services?: string[];
+  documents?: {
+    driversLicense?: string;
+    vehicleRegistration?: string;
+    insurance?: string;
+    businessLicense?: string;
+    certifications?: string[];
+  };
 };
 
 export type EquipmentItem = {
