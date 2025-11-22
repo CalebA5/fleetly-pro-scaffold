@@ -237,7 +237,7 @@ export const DriveEarn = () => {
         {/* Hero Section */}
         <div className="mb-12">
           <h1 className="text-4xl md:text-5xl font-bold text-black dark:text-white mb-4" data-testid="text-page-title">
-            Drive & Earn Dashboard
+            Drive & Earn
           </h1>
           <p className="text-xl text-gray-600 dark:text-gray-400">
             Manage your operator tiers and start earning
@@ -247,15 +247,7 @@ export const DriveEarn = () => {
         {/* My Tiers Section */}
         <div className="mb-8">
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold text-black dark:text-white">My Active Tiers</h2>
-            <Button
-              variant="outline"
-              onClick={() => setLocation("/operator/onboarding")}
-              data-testid="button-add-tier"
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Add New Tier
-            </Button>
+            <h2 className="text-2xl font-bold text-black dark:text-white">My Tiers</h2>
           </div>
 
           <div className="grid md:grid-cols-3 gap-6">
@@ -344,27 +336,6 @@ export const DriveEarn = () => {
                 </Card>
               );
             })}
-
-            {/* Add Tier Card */}
-            {subscribedTiers.length < 3 && (
-              <Card className="border-dashed border-2 hover:border-orange-500 hover:bg-orange-50 dark:hover:bg-orange-950/20 transition-all cursor-pointer">
-                <CardContent 
-                  className="flex flex-col items-center justify-center h-full min-h-[300px] p-6"
-                  onClick={() => setLocation("/operator/onboarding")}
-                  data-testid="button-add-tier-card"
-                >
-                  <div className="w-16 h-16 rounded-full bg-orange-100 dark:bg-orange-900 flex items-center justify-center mb-4">
-                    <Plus className="w-8 h-8 text-orange-600 dark:text-orange-400" />
-                  </div>
-                  <h3 className="text-lg font-semibold text-black dark:text-white mb-2">
-                    Add New Tier
-                  </h3>
-                  <p className="text-sm text-center text-muted-foreground">
-                    Expand your earning potential by adding another operator tier
-                  </p>
-                </CardContent>
-              </Card>
-            )}
           </div>
         </div>
 
@@ -400,13 +371,13 @@ export const DriveEarn = () => {
                           </div>
                         </div>
                         <Button
-                          variant="outline"
+                          variant="hero"
                           className="w-full"
                           onClick={() => setLocation("/operator/onboarding")}
-                          data-testid={`button-register-${tier}`}
+                          data-testid={`button-add-tier-${tier}`}
                         >
-                          <TierIcon className="w-4 h-4 mr-2" />
-                          Register for {info.label}
+                          <Plus className="w-4 h-4 mr-2" />
+                          Add This Tier
                         </Button>
                       </CardContent>
                     </Card>

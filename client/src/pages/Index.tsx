@@ -236,17 +236,21 @@ const Index = () => {
       {/* Hero Section with Location Search */}
       <section className="relative bg-white dark:bg-gray-900 py-12 md:py-20 overflow-hidden border-b border-gray-200 dark:border-gray-800 w-full">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-start">
-            <div>
-              <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-black dark:text-white leading-tight mb-4">
-                Get the service you need, when you need it
-              </h1>
-              <p className="text-lg md:text-xl text-gray-600 dark:text-gray-400 mb-8">
-                Professional snow plowing, towing, hauling, and courier services. Available 24/7.
-              </p>
+          {/* Heading - Above the grid */}
+          <div className="mb-8 lg:mb-12">
+            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-black dark:text-white leading-tight mb-4">
+              Get the service you need, when you need it
+            </h1>
+            <p className="text-lg md:text-xl text-gray-600 dark:text-gray-400">
+              Professional snow plowing, towing, hauling, and courier services. Available 24/7.
+            </p>
+          </div>
 
+          {/* Two-column grid - Location search and Services aligned */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-start">
+            <div className="space-y-4">
               {/* Interactive Location Search - Uber Style */}
-              <div className="space-y-4 bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700">
+              <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700">
                 <div className="space-y-3">
                   <div className="flex items-center gap-3">
                     <div className="w-3 h-3 rounded-full bg-black dark:bg-white flex-shrink-0"></div>
@@ -263,27 +267,6 @@ const Index = () => {
                       />
                     </div>
                   </div>
-                  {/* Use Current Location Button - Keep for visibility but icon is also clickable */}
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleUseCurrentLocation}
-                    disabled={loadingLocation}
-                    className="w-full text-orange-600 dark:text-orange-400 hover:text-orange-700 dark:hover:text-orange-300 hover:bg-orange-50 dark:hover:bg-orange-900/20"
-                    data-testid="button-use-current-location"
-                  >
-                    {loadingLocation ? (
-                      <>
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        Detecting location...
-                      </>
-                    ) : (
-                      <>
-                        <MapPin className="w-4 h-4 mr-2" />
-                        Use my current location
-                      </>
-                    )}
-                  </Button>
                   <div className="h-px bg-gray-200 dark:bg-gray-700 ml-6"></div>
                   <div className="flex items-center gap-3">
                     <div className="w-3 h-3 rounded bg-black dark:bg-white flex-shrink-0"></div>
@@ -308,18 +291,16 @@ const Index = () => {
               </div>
 
               {/* Quick Browse */}
-              <div className="mt-4">
-                <Button 
-                  variant="outline" 
-                  size="lg" 
-                  onClick={handleBrowseOperators}
-                  className="w-full border-2 border-black dark:border-white hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black transition-colors font-semibold"
-                  data-testid="button-browse-all-operators"
-                >
-                  Or browse all operators
-                  <ArrowRight className="ml-2 w-5 h-5" />
-                </Button>
-              </div>
+              <Button 
+                variant="outline" 
+                size="lg" 
+                onClick={handleBrowseOperators}
+                className="w-full border-2 border-black dark:border-white hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black transition-colors font-semibold"
+                data-testid="button-browse-all-operators"
+              >
+                Or browse all operators
+                <ArrowRight className="ml-2 w-5 h-5" />
+              </Button>
             </div>
 
             {/* Availability Preview - Shows After Search */}

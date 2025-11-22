@@ -32,6 +32,8 @@ import EmergencyTracking from "./pages/EmergencyTracking";
 import TestOperatorTiles from "./pages/TestOperatorTiles";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
+import { SignIn } from "./pages/SignIn";
+import { SignUp } from "./pages/SignUp";
 import { queryClient } from "@/lib/queryClient";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { LocationProvider } from "@/contexts/LocationContext";
@@ -49,6 +51,8 @@ const App = () => (
             <Sonner />
             <Switch>
               <Route path="/" component={Index} />
+              <Route path="/signin" component={SignIn} />
+              <Route path="/signup" component={SignUp} />
               <Route path="/emergency-sos" component={EmergencySOS} />
               <Route path="/emergency-tracking/:emergencyId" component={EmergencyTracking} />
               <Route path="/test-operator-tiles" component={TestOperatorTiles} />
