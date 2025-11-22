@@ -13,7 +13,7 @@ import {
   ArrowRight, 
   Award, 
   Truck,
-  Wrench, 
+  Snowflake, 
   Users, 
   Plus, 
   CheckCircle2,
@@ -183,7 +183,7 @@ export const DriveEarn = () => {
       case "equipped":
         return Truck;
       case "manual":
-        return Wrench;
+        return Snowflake;
       default:
         return Users;
     }
