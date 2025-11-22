@@ -12,7 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Users, DollarSign, Star, TrendingUp, Plus, Trash2, Award, ChevronRight, MapPin, AlertTriangle, CheckCircle } from "lucide-react";
+import { Users, DollarSign, Star, TrendingUp, Plus, Trash2, Award, ChevronRight, MapPin, AlertTriangle, CheckCircle, FileText } from "lucide-react";
 import { VehicleManagement } from "@/components/VehicleManagement";
 import { MobileBottomNav } from "@/components/MobileBottomNav";
 import { useLocation } from "wouter";
@@ -23,6 +23,7 @@ import { InfoTooltip } from "@/components/ui/info-tooltip";
 import { OperatorStatusToggle } from "@/components/operator/OperatorStatusToggle";
 import { UrgentRequestNotification, type UrgentRequest } from "@/components/operator/UrgentRequestNotification";
 import { DriverAssignmentModal } from "@/components/operator/DriverAssignmentModal";
+import { QuoteModal } from "@/components/operator/QuoteModal";
 
 export const BusinessDashboard = () => {
   const { user, updateUser } = useAuth();
@@ -35,6 +36,8 @@ export const BusinessDashboard = () => {
   const setupAttemptedRef = useRef(false);
   const [showDriverModal, setShowDriverModal] = useState(false);
   const [pendingRequestId, setPendingRequestId] = useState<string | null>(null);
+  const [quoteModalOpen, setQuoteModalOpen] = useState(false);
+  const [selectedRequest, setSelectedRequest] = useState<any | null>(null);
   
   // ALL MOCK DATA REMOVED - Dashboard is now 100% dynamic based on real database data
   // Urgent requests would come from backend API when implemented
@@ -670,11 +673,99 @@ export const BusinessDashboard = () => {
         {/* These sections displayed mock data without backend support */}
         {/* Will be re-added when backend endpoints are implemented */}
 
-        <Tabs defaultValue="drivers" className="space-y-8">
-          <TabsList className="grid w-full max-w-md grid-cols-2">
+        <Tabs defaultValue="jobs" className="space-y-8">
+          <TabsList className="grid w-full max-w-md grid-cols-3">
+            <TabsTrigger value="jobs" data-testid="tab-jobs">Jobs</TabsTrigger>
             <TabsTrigger value="drivers" data-testid="tab-drivers">Drivers</TabsTrigger>
             <TabsTrigger value="vehicles" data-testid="tab-vehicles">Fleet</TabsTrigger>
           </TabsList>
+
+          {/* Jobs Tab - Service Requests with Quote Workflow */}
+          <TabsContent value="jobs" className="space-y-6">
+            <div className="mb-4">
+              <h2 className="text-2xl font-bold text-black dark:text-white">Available Jobs</h2>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                Submit competitive quotes for service requests in your area
+              </p>
+            </div>
+
+            {requestsLoading ? (
+              <div className="text-center py-8 text-gray-600 dark:text-gray-400">Loading available jobs...</div>
+            ) : requests.length === 0 ? (
+              <Card className="p-12 text-center border border-gray-200 dark:border-gray-800 bg-white dark:bg-black">
+                <FileText className="w-16 h-16 text-gray-400 dark:text-gray-600 mx-auto mb-4" />
+                <p className="text-lg text-black dark:text-white mb-2">No Jobs Available</p>
+                <p className="text-gray-600 dark:text-gray-400">
+                  New service requests will appear here when customers need your services
+                </p>
+              </Card>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {requests.map((request) => (
+                  <Card
+                    key={request.requestId}
+                    className="p-6 border border-gray-200 dark:border-gray-800 bg-white dark:bg-black hover:shadow-lg transition-shadow"
+                    data-testid={`card-request-${request.requestId}`}
+                  >
+                    <div className="flex items-start justify-between mb-4">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-2">
+                          <h3 className="text-lg font-bold text-black dark:text-white">
+                            {request.serviceType}
+                          </h3>
+                          {request.isEmergency === 1 && (
+                            <Badge className="bg-red-500 text-white">
+                              <AlertTriangle className="w-3 h-3 mr-1" />
+                              Emergency
+                            </Badge>
+                          )}
+                        </div>
+                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">
+                          {request.customerName}
+                        </p>
+                        <p className="text-sm text-gray-600 dark:text-gray-400 flex items-center">
+                          <MapPin className="w-3 h-3 mr-1" />
+                          {request.location}
+                          {request.distance && (
+                            <span className="ml-2 text-xs text-gray-500">
+                              ({request.distance.toFixed(1)} km away)
+                            </span>
+                          )}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="mb-4">
+                      <p className="text-sm text-gray-700 dark:text-gray-300 line-clamp-2">
+                        {request.description}
+                      </p>
+                    </div>
+
+                    {request.budgetRange && (
+                      <div className="mb-4 flex items-center gap-2">
+                        <span className="text-xs text-gray-500 dark:text-gray-500">Customer Budget:</span>
+                        <Badge variant="outline" className="text-xs">
+                          {request.budgetRange}
+                        </Badge>
+                      </div>
+                    )}
+
+                    <Button
+                      className="w-full bg-orange-500 hover:bg-orange-600 text-white"
+                      onClick={() => {
+                        setSelectedRequest(request);
+                        setQuoteModalOpen(true);
+                      }}
+                      data-testid={`button-quote-${request.requestId}`}
+                    >
+                      <FileText className="w-4 h-4 mr-2" />
+                      Quote this Job
+                    </Button>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </TabsContent>
 
           <TabsContent value="drivers" className="space-y-6">
         {/* Driver Roster */}
@@ -862,6 +953,22 @@ export const BusinessDashboard = () => {
           newTier={tierSwitchInfo.newTier}
         />
       )}
+
+      {/* Quote Modal */}
+      {selectedRequest && (
+        <QuoteModal
+          open={quoteModalOpen}
+          onOpenChange={(open) => {
+            setQuoteModalOpen(open);
+            if (!open) setSelectedRequest(null);
+          }}
+          serviceRequest={selectedRequest}
+          operatorId={user?.operatorId || ''}
+          operatorName={user?.name || ''}
+          tier="professional"
+        />
+      )}
+
       <MobileBottomNav />
     </div>
   );
