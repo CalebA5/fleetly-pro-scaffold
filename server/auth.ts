@@ -5,6 +5,7 @@ import { eq, and, gt } from 'drizzle-orm';
 import { db } from './db';
 import { users, operators, sessions, customers } from '@shared/schema';
 import type { InsertUser, InsertOperator, InsertSession, InsertCustomer } from '@shared/schema';
+import { verifyNewUser, checkEmailDuplicate, checkNameDuplicate, normalizeEmail, normalizeName } from './userVerification';
 
 const router = Router();
 
@@ -23,6 +24,48 @@ function generateOperatorId(): string {
   return `OP-${Date.now()}-${crypto.randomBytes(4).toString('hex')}`;
 }
 
+// POST /api/auth/verify-email - Check if email is available (real-time validation)
+router.post('/verify-email', async (req, res) => {
+  try {
+    const { email } = req.body;
+    
+    if (!email) {
+      return res.status(400).json({ error: 'Email is required' });
+    }
+    
+    const result = await checkEmailDuplicate(email);
+    
+    res.json({
+      isAvailable: !result.isDuplicate,
+      message: result.message
+    });
+  } catch (error) {
+    console.error('Email verification error:', error);
+    res.status(500).json({ error: 'Failed to verify email' });
+  }
+});
+
+// POST /api/auth/verify-name - Check if name is available (real-time validation)
+router.post('/verify-name', async (req, res) => {
+  try {
+    const { name, email } = req.body;
+    
+    if (!name) {
+      return res.status(400).json({ error: 'Name is required' });
+    }
+    
+    const result = await checkNameDuplicate(name, email || '');
+    
+    res.json({
+      isAvailable: !result.isDuplicate,
+      message: result.message
+    });
+  } catch (error) {
+    console.error('Name verification error:', error);
+    res.status(500).json({ error: 'Failed to verify name' });
+  }
+});
+
 // POST /api/auth/signup - Create new account
 router.post('/signup', async (req, res) => {
   try {
@@ -36,13 +79,14 @@ router.post('/signup', async (req, res) => {
       return res.status(400).json({ error: 'Invalid role' });
     }
 
-    // Check if user already exists
-    const existingUser = await db.query.users.findFirst({
-      where: eq(users.email, email)
-    });
-
-    if (existingUser) {
-      return res.status(409).json({ error: 'Email already registered' });
+    // Comprehensive duplicate check (email + name similarity)
+    const verification = await verifyNewUser(name, email);
+    
+    if (!verification.isValid) {
+      return res.status(409).json({ 
+        error: 'Account verification failed',
+        details: verification.errors
+      });
     }
 
     // Hash password
@@ -54,18 +98,20 @@ router.post('/signup', async (req, res) => {
     // Create operator ID if role is operator
     const operatorId = role === 'operator' ? generateOperatorId() : null;
 
-    // Create user
+    // Create user with normalized fields for fast duplicate detection
     const newUser = {
       userId,
       name,
+      nameLower: normalizeName(name),
       email,
+      emailNormalized: normalizeEmail(email),
       passwordHash,
       role,
       operatorId,
       businessId: null,
-    } as InsertUser;
+    } as any;
 
-    const [createdUser] = await db.insert(users).values(newUser as any).returning();
+    const [createdUser] = await db.insert(users).values(newUser).returning();
 
     // Create customer record (all users can request services)
     const customerId = `CUST-${userId.split('-')[1]}`; // Use timestamp from userId

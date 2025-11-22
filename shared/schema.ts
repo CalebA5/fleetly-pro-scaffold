@@ -515,7 +515,9 @@ export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   userId: text("user_id").notNull().unique(),
   name: text("name").notNull(),
+  nameLower: text("name_lower"), // Normalized lowercase name for fast lookups
   email: text("email").notNull().unique(),
+  emailNormalized: text("email_normalized"), // Normalized email (removes Gmail dots, +aliases, etc.)
   passwordHash: text("password_hash"), // Will be null for mock auth
   role: text("role").notNull().default("customer"), // "customer" | "operator" | "business"
   operatorId: text("operator_id"), // Links to operators table if role is operator
