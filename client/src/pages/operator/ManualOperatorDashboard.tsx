@@ -321,6 +321,8 @@ export default function ManualOperatorDashboard() {
                 groups={mockCustomerGroups}
                 onAcceptGroup={handleAcceptGroup}
                 acceptedGroupIds={acceptedGroupIds}
+                operatorJobCount={3} // TODO: Fetch from operator profile API
+                minimumJobsRequired={5}
               />
             </CardContent>
           </Card>

@@ -523,6 +523,8 @@ export const BusinessDashboard = () => {
                 groups={mockCustomerGroups}
                 onAcceptGroup={handleAcceptGroup}
                 acceptedGroupIds={acceptedGroupIds}
+                operatorJobCount={12} // TODO: Fetch from operator profile API  
+                minimumJobsRequired={5}
               />
             </CardContent>
           </Card>
