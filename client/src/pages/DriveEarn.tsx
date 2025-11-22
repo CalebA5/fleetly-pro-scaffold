@@ -247,8 +247,14 @@ export const DriveEarn = () => {
                         </Badge>
                       )}
                     </div>
-                    <CardTitle className="text-xl">{tierInfo.label}</CardTitle>
-                    <CardDescription>{tierInfo.description}</CardDescription>
+                    <div className="flex items-center gap-2">
+                      <CardTitle className="text-xl">{tierInfo.label}</CardTitle>
+                      <InfoTooltip
+                        content={tierInfo.description}
+                        testId={`button-info-my-tier-${tier}`}
+                        ariaLabel={`${tierInfo.label} tier information`}
+                      />
+                    </div>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     {/* Tier Stats */}

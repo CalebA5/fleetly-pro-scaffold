@@ -10,11 +10,12 @@ import { Separator } from "@/components/ui/separator";
 import {
   ArrowLeft, User, Mail, Phone, Briefcase, Star, TrendingUp, Award, 
   DollarSign, CheckCircle, ChevronRight, ChevronDown, Edit, Truck, 
-  FileText, Clock, AlertCircle, Shield, Package
+  FileText, Clock, AlertCircle, Shield, Package, Wrench, MapPin
 } from "lucide-react";
 import type { ServiceRequest, Operator, OperatorTierStats, OperatorTierProfile, TierApprovalStatus } from "@shared/schema";
 import { OPERATOR_TIER_INFO } from "@shared/schema";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { InfoTooltip } from "@/components/ui/info-tooltip";
 
 export const Profile = () => {
   const { user } = useAuth();
@@ -157,11 +158,15 @@ export const Profile = () => {
           {/* Customer Activity - Interactive Sections */}
           <Card>
             <CardHeader className="bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 pb-4">
-              <CardTitle className="flex items-center gap-2 text-lg">
+              <div className="flex items-center gap-2">
                 <User style={{ width: 'clamp(1rem, 4vw, 1.25rem)', height: 'clamp(1rem, 4vw, 1.25rem)' }} />
-                Customer Activity
-              </CardTitle>
-              <CardDescription className="text-xs md:text-sm">Tap any stat to view details</CardDescription>
+                <CardTitle className="text-lg">Customer Activity</CardTitle>
+                <InfoTooltip
+                  content="Tap any stat to view detailed information about your service requests, completed jobs, and favorites."
+                  testId="button-info-customer-activity"
+                  ariaLabel="Customer activity information"
+                />
+              </div>
             </CardHeader>
             <CardContent className="pt-4">
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -320,11 +325,15 @@ export const Profile = () => {
           {hasAnyTier && (
             <Card>
               <CardHeader className="bg-gradient-to-r from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20 pb-4">
-                <CardTitle className="flex items-center gap-2 text-lg">
+                <div className="flex items-center gap-2">
                   <Briefcase style={{ width: 'clamp(1rem, 4vw, 1.25rem)', height: 'clamp(1rem, 4vw, 1.25rem)' }} />
-                  Operator Performance
-                </CardTitle>
-                <CardDescription className="text-xs md:text-sm">Your earnings and statistics across all tiers</CardDescription>
+                  <CardTitle className="text-lg">Operator Performance</CardTitle>
+                  <InfoTooltip
+                    content="Your earnings, job statistics, and tier-specific information. Expand each tier to see detailed onboarding information, verification status, and edit options."
+                    testId="button-info-operator-performance"
+                    ariaLabel="Operator performance information"
+                  />
+                </div>
               </CardHeader>
               <CardContent className="pt-4 space-y-4">
                 {/* Tier-Specific Sections - Expandable */}
@@ -477,6 +486,36 @@ export const Profile = () => {
                                     <Badge key={idx} variant="outline" className="text-xs">{service}</Badge>
                                   ))}
                                 </div>
+                              </div>
+                            )}
+
+                            {/* Equipment Inventory - Manual Operators */}
+                            {tier === "manual" && operatorData?.equipmentInventory && (
+                              <div className="bg-white/50 dark:bg-gray-800/50 p-3 rounded-lg">
+                                <h5 className="font-semibold text-sm mb-2 flex items-center gap-2">
+                                  <Wrench style={{ width: 'clamp(0.875rem, 3vw, 1rem)', height: 'clamp(0.875rem, 3vw, 1rem)' }} className="text-orange-600" />
+                                  Equipment Inventory
+                                </h5>
+                                <div className="flex flex-wrap gap-1">
+                                  {(operatorData.equipmentInventory as any[]).map((equipment: any, idx: number) => (
+                                    <Badge key={idx} variant="outline" className="text-xs bg-green-50 dark:bg-green-900/20">
+                                      {equipment.displayName || equipment}
+                                    </Badge>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Operating Radius */}
+                            {tierInfo.radiusKm && (
+                              <div className="bg-white/50 dark:bg-gray-800/50 p-3 rounded-lg">
+                                <h5 className="font-semibold text-sm mb-2 flex items-center gap-2">
+                                  <MapPin style={{ width: 'clamp(0.875rem, 3vw, 1rem)', height: 'clamp(0.875rem, 3vw, 1rem)' }} className="text-orange-600" />
+                                  Operating Radius
+                                </h5>
+                                <p className="text-xs text-gray-700 dark:text-gray-300">
+                                  You can accept jobs within <span className="font-semibold">{tierInfo.radiusKm}km</span> from your home location.
+                                </p>
                               </div>
                             )}
 

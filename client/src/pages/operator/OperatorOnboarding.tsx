@@ -1186,6 +1186,7 @@ export const OperatorOnboarding = () => {
                           className="flex items-center space-x-2"
                         >
                           <Checkbox
+                            variant="circular"
                             id={equipment}
                             checked={formData.equipment.includes(equipment)}
                             onCheckedChange={() => handleEquipmentToggle(equipment)}
@@ -1235,6 +1236,7 @@ export const OperatorOnboarding = () => {
                           className="flex items-center space-x-2"
                         >
                           <Checkbox
+                            variant="circular"
                             id={service}
                             checked={formData.services.includes(service)}
                             onCheckedChange={() => handleServiceToggle(service)}
@@ -1268,6 +1270,7 @@ export const OperatorOnboarding = () => {
                   </div>
                   <div className="flex items-center space-x-2">
                     <Checkbox
+                      variant="circular"
                       id="emergencyAvailable"
                       checked={formData.emergencyAvailable}
                       onCheckedChange={(checked) => handleInputChange("emergencyAvailable", !!checked)}
