@@ -6,7 +6,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/co
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Users, MapPin, DollarSign, Clock, ChevronDown, MessageCircle, Phone, CheckCircle } from "lucide-react";
+import { Users, MapPin, DollarSign, Clock, ChevronDown, MessageCircle, Phone, CheckCircle, Minimize2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 
@@ -29,12 +29,22 @@ interface CustomerGroupingProps {
   onAcceptGroup?: (groupId: string) => void;
   onContactGroup?: (groupId: string, message: string) => void;
   acceptedGroupIds?: string[]; // Allow parents to manage accepted state
+  operatorJobCount?: number; // Number of completed jobs operator has
+  minimumJobsRequired?: number; // Minimum jobs needed to unlock customer grouping
 }
 
-export function CustomerGrouping({ groups, onAcceptGroup, onContactGroup, acceptedGroupIds = [] }: CustomerGroupingProps) {
+export function CustomerGrouping({ 
+  groups, 
+  onAcceptGroup, 
+  onContactGroup, 
+  acceptedGroupIds = [],
+  operatorJobCount = 0,
+  minimumJobsRequired = 5
+}: CustomerGroupingProps) {
   const { toast } = useToast();
   const isMobile = useMediaQuery("(max-width: 768px)");
   const [expandedGroups, setExpandedGroups] = useState<string[]>([]);
+  const [minimizedGroups, setMinimizedGroups] = useState<string[]>([]);
   const [selectedGroup, setSelectedGroup] = useState<CustomerGroup | null>(null);
   const [contactMessage, setContactMessage] = useState("");
 
@@ -54,6 +64,14 @@ export function CustomerGrouping({ groups, onAcceptGroup, onContactGroup, accept
     }
   };
 
+  const handleMinimizeGroup = (groupId: string) => {
+    setMinimizedGroups(prev => [...prev, groupId]);
+    toast({
+      title: "Group Minimized",
+      description: "This customer group has been hidden from your view",
+    });
+  };
+
   const handleContactGroup = () => {
     if (!selectedGroup) return;
     
@@ -70,8 +88,48 @@ export function CustomerGrouping({ groups, onAcceptGroup, onContactGroup, accept
     setSelectedGroup(null);
   };
 
-  // Filter out accepted groups
-  const availableGroups = groups.filter(g => !acceptedGroupIds.includes(g.id));
+  // Check if operator has unlocked customer grouping
+  const hasUnlockedGrouping = operatorJobCount >= minimumJobsRequired;
+
+  // Filter out accepted and minimized groups
+  const availableGroups = groups.filter(g => 
+    !acceptedGroupIds.includes(g.id) && !minimizedGroups.includes(g.id)
+  );
+
+  // Show locked state if operator hasn't completed enough jobs
+  if (!hasUnlockedGrouping) {
+    return (
+      <Card className="border-dashed bg-gray-50 dark:bg-gray-900/50">
+        <CardContent className="flex flex-col items-center justify-center py-12">
+          <Users className="h-12 w-12 text-gray-400 dark:text-gray-600 mb-3" />
+          <p className="text-gray-600 dark:text-gray-400 text-center font-semibold">
+            Customer Grouping Locked
+          </p>
+          <p className="text-sm text-gray-500 dark:text-gray-500 mt-2 text-center max-w-md">
+            Complete {minimumJobsRequired} jobs to unlock customer grouping and boost your earnings by accepting multiple customers at once
+          </p>
+          <div className="mt-4 bg-white dark:bg-black rounded-lg p-4 border border-gray-200 dark:border-gray-800">
+            <div className="flex items-center gap-3">
+              <div className="flex-1">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-xs font-medium text-gray-600 dark:text-gray-400">Progress</span>
+                  <span className="text-xs font-bold text-orange-600 dark:text-orange-400">
+                    {operatorJobCount}/{minimumJobsRequired} jobs
+                  </span>
+                </div>
+                <div className="w-full bg-gray-200 dark:bg-gray-800 rounded-full h-2">
+                  <div 
+                    className="bg-orange-500 h-2 rounded-full transition-all"
+                    style={{ width: `${(operatorJobCount / minimumJobsRequired) * 100}%` }}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   if (availableGroups.length === 0) {
     return (
@@ -83,7 +141,9 @@ export function CustomerGrouping({ groups, onAcceptGroup, onContactGroup, accept
           </p>
           <p className="text-sm text-muted-foreground mt-1">
             {groups.length > 0 
-              ? "All groups have been accepted!" 
+              ? minimizedGroups.length > 0 
+                ? `${minimizedGroups.length} group${minimizedGroups.length > 1 ? 's' : ''} minimized`
+                : "All groups have been accepted!" 
               : "Groups will appear when multiple customers in same area request services"}
           </p>
         </CardContent>
@@ -181,6 +241,15 @@ export function CustomerGrouping({ groups, onAcceptGroup, onContactGroup, accept
                       ))}
                     </div>
                     <div className="absolute bottom-0 left-0 right-0 p-4 bg-background border-t flex gap-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleMinimizeGroup(group.id)}
+                        className="px-3"
+                        data-testid={`button-minimize-${group.id}`}
+                      >
+                        <Minimize2 className="h-4 w-4" />
+                      </Button>
                       <Dialog>
                         <DialogTrigger asChild>
                           <Button
@@ -272,6 +341,15 @@ export function CustomerGrouping({ groups, onAcceptGroup, onContactGroup, accept
               {/* Action buttons - desktop only (mobile has them in sheet footer) */}
               {!isMobile && (
                 <div className="flex gap-2 pt-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleMinimizeGroup(group.id)}
+                    className="px-3"
+                    data-testid={`button-minimize-${group.id}`}
+                  >
+                    <Minimize2 className="h-4 w-4" />
+                  </Button>
                   <Dialog>
                     <DialogTrigger asChild>
                       <Button

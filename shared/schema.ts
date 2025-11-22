@@ -567,3 +567,46 @@ export const insertDispatchQueueSchema = z.object({
 export type InsertDispatchQueue = z.infer<typeof insertDispatchQueueSchema>;
 export type DispatchQueue = typeof dispatchQueue.$inferSelect;
 export type DispatchStatus = "pending" | "notified" | "accepted" | "declined" | "expired";
+
+// Equipment Media - Tool photos for manual operators showing their equipment
+export const equipmentMedia = pgTable("equipment_media", {
+  id: serial("id").primaryKey(),
+  mediaId: text("media_id").notNull().unique(),
+  operatorId: text("operator_id").notNull(),
+  equipmentType: text("equipment_type").notNull(), // "snow_shovel", "rake", "snowblower", "ladder", etc.
+  photoUrl: text("photo_url").notNull(),
+  uploadedAt: timestamp("uploaded_at").defaultNow().notNull(),
+  isActive: integer("is_active").notNull().default(1), // Can be deactivated if equipment no longer available
+});
+
+export const insertEquipmentMediaSchema = createInsertSchema(equipmentMedia).omit({
+  id: true,
+  uploadedAt: true,
+});
+
+export type InsertEquipmentMedia = z.infer<typeof insertEquipmentMediaSchema>;
+export type EquipmentMedia = typeof equipmentMedia.$inferSelect;
+
+// Job Assignments - Selective customer acceptance from groups (customer-level granularity)
+export const jobAssignments = pgTable("job_assignments", {
+  id: serial("id").primaryKey(),
+  assignmentId: text("assignment_id").notNull().unique(),
+  groupId: text("group_id").notNull(), // Links to customer group
+  customerId: text("customer_id").notNull(), // Individual customer within group
+  operatorId: text("operator_id").notNull(),
+  serviceRequestId: text("service_request_id"), // Links to actual service request
+  status: text("status").notNull().default("pending"), // "pending" | "accepted" | "declined" | "completed" | "cancelled"
+  acceptedAt: timestamp("accepted_at"),
+  declinedAt: timestamp("declined_at"),
+  completedAt: timestamp("completed_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertJobAssignmentSchema = createInsertSchema(jobAssignments).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertJobAssignment = z.infer<typeof insertJobAssignmentSchema>;
+export type JobAssignment = typeof jobAssignments.$inferSelect;
+export type JobAssignmentStatus = "pending" | "accepted" | "declined" | "completed" | "cancelled";
