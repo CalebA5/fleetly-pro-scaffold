@@ -45,6 +45,7 @@ export default function EquippedOperatorDashboard() {
   const [tierSwitchInfo, setTierSwitchInfo] = useState<{ currentTier: string; newTier: string } | null>(null);
   const [customerGroupsOpen, setCustomerGroupsOpen] = useState(true);
   const [urgentRequestsOpen, setUrgentRequestsOpen] = useState(true);
+  const [jobsOpen, setJobsOpen] = useState(true);
   const [showVehicleModal, setShowVehicleModal] = useState(false);
   const [pendingRequestId, setPendingRequestId] = useState<string | null>(null);
   
@@ -387,7 +388,9 @@ export default function EquippedOperatorDashboard() {
               <div className="flex items-center justify-between">
                 <div className="flex-1">
                   <p className="text-xs md:text-sm text-gray-600 dark:text-gray-400 mb-1">Today's Earnings</p>
-                  <p className="text-xl md:text-2xl font-bold text-black dark:text-white">$0</p>
+                  <p className="text-xl md:text-2xl font-bold text-black dark:text-white">
+                    ${(todayEarnings?.earnings ?? 0).toFixed(2)}
+                  </p>
                   <p className="text-xs text-green-600 dark:text-green-400 mt-1 flex items-center gap-1">
                     <TrendingUp className="w-3 h-3" />
                     View details
@@ -448,7 +451,9 @@ export default function EquippedOperatorDashboard() {
               <div className="flex items-center justify-between">
                 <div className="flex-1">
                   <p className="text-sm text-gray-600 dark:text-gray-400">Completed Today</p>
-                  <p className="text-2xl font-bold text-black dark:text-white">0</p>
+                  <p className="text-2xl font-bold text-black dark:text-white">
+                    {todayEarnings?.jobsCompleted || 0}
+                  </p>
                   <p className="text-xs text-green-600 dark:text-green-400 mt-1 flex items-center gap-1">
                     <CheckCircle className="w-3 h-3" />
                     View history
@@ -462,6 +467,198 @@ export default function EquippedOperatorDashboard() {
             </CardContent>
           </Card>
         </div>
+
+        {/* JOBS IN PROGRESS - Prominent display with animations */}
+        {acceptedJobsData.filter(job => job.status === "in_progress").length > 0 && (
+          <Card className="mb-8 border-4 border-green-400 dark:border-green-600 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950 dark:to-emerald-950 shadow-2xl animate-pulse-border">
+            <CardHeader className="pb-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="relative">
+                    <div className="absolute inset-0 bg-green-500 rounded-full animate-ping opacity-75"></div>
+                    <div className="relative bg-green-500 rounded-full p-3">
+                      <Clock className="w-6 h-6 text-white" />
+                    </div>
+                  </div>
+                  <div>
+                    <CardTitle className="text-2xl text-black dark:text-white flex items-center gap-2">
+                      JOB IN PROGRESS
+                      <Badge className="bg-green-600 text-white text-sm animate-pulse">
+                        ACTIVE
+                      </Badge>
+                    </CardTitle>
+                    <CardDescription className="text-gray-700 dark:text-gray-300 mt-1">
+                      You're currently working on {acceptedJobsData.filter(job => job.status === "in_progress").length} job{acceptedJobsData.filter(job => job.status === "in_progress").length > 1 ? 's' : ''}
+                    </CardDescription>
+                  </div>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {acceptedJobsData.filter(job => job.status === "in_progress").map((acceptedJob) => {
+                  const jobData = acceptedJob.jobData as any;
+                  const isEmergency = jobData.isEmergency === true || jobData.isEmergency === 1;
+                  
+                  return (
+                    <div
+                      key={acceptedJob.acceptedJobId}
+                      className="border-2 border-green-300 dark:border-green-700 rounded-xl p-6 bg-white dark:bg-gray-900 shadow-lg hover:shadow-xl transition-shadow"
+                      data-testid={`in-progress-job-${acceptedJob.acceptedJobId}`}
+                    >
+                      <div className="flex items-start justify-between mb-4">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-2">
+                            <h3 className="text-xl font-bold text-black dark:text-white">
+                              {jobData.customerName || 'Customer'}
+                            </h3>
+                            {isEmergency && (
+                              <Badge className="bg-red-600 text-white text-xs">
+                                EMERGENCY
+                              </Badge>
+                            )}
+                          </div>
+                          <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                            {jobData.description || jobData.serviceType || 'Service Request'}
+                          </p>
+                          <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400">
+                            <span className="flex items-center gap-1">
+                              <MapPin className="w-4 h-4" />
+                              {jobData.location}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {/* Progress Bar */}
+                      <div className="mb-4">
+                        <div className="flex justify-between text-sm mb-2">
+                          <span className="text-gray-600 dark:text-gray-400">Progress</span>
+                          <span className="font-semibold text-green-600">{acceptedJob.progress}%</span>
+                        </div>
+                        <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                          <div 
+                            className="h-full bg-gradient-to-r from-green-500 to-emerald-500 transition-all duration-500"
+                            style={{ width: `${acceptedJob.progress}%` }}
+                          ></div>
+                        </div>
+                      </div>
+
+                      <Button
+                        onClick={() => setLocation(`/operator/job-details/${acceptedJob.acceptedJobId}`)}
+                        className="w-full bg-green-600 hover:bg-green-700 text-white text-lg py-6"
+                        data-testid={`button-continue-job-${acceptedJob.acceptedJobId}`}
+                      >
+                        <ChevronRight className="w-5 h-5 mr-2" />
+                        Continue Working on This Job
+                      </Button>
+                    </div>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* ALL ACCEPTED JOBS - Collapsible panel */}
+        <Collapsible open={jobsOpen} onOpenChange={setJobsOpen}>
+          <Card className="mb-8 border-2 border-blue-200 dark:border-blue-800">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div style={{ width: 'clamp(2rem, 6vw, 2.5rem)', height: 'clamp(2rem, 6vw, 2.5rem)' }} className="bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center">
+                    <CheckCircle style={{ width: 'clamp(1rem, 3vw, 1.25rem)', height: 'clamp(1rem, 3vw, 1.25rem)' }} className="text-blue-600 dark:text-blue-400" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-black dark:text-white">My Jobs</CardTitle>
+                    <CardDescription>Track all your accepted jobs</CardDescription>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Badge className="bg-blue-500 text-white">
+                    {acceptedJobsData.length} ACTIVE
+                  </Badge>
+                  <CollapsibleTrigger asChild>
+                    <Button variant="ghost" size="sm" data-testid="button-toggle-jobs">
+                      {jobsOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                    </Button>
+                  </CollapsibleTrigger>
+                </div>
+              </div>
+            </CardHeader>
+            <CollapsibleContent>
+              <CardContent>
+                {acceptedJobsData.length > 0 ? (
+                  <div className="space-y-3">
+                    {acceptedJobsData.map((acceptedJob) => {
+                      const jobData = acceptedJob.jobData as any;
+                      const isEmergency = jobData.isEmergency === true || jobData.isEmergency === 1;
+                      
+                      return (
+                        <div
+                          key={acceptedJob.acceptedJobId}
+                          className="border-2 border-blue-200 dark:border-blue-700 rounded-lg p-4 bg-blue-50 dark:bg-blue-950"
+                          data-testid={`job-${acceptedJob.acceptedJobId}`}
+                        >
+                          <div className="flex items-start justify-between mb-2">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-1">
+                                <h3 className="font-semibold text-black dark:text-white">
+                                  {jobData.customerName || 'Customer'}
+                                </h3>
+                                {isEmergency && (
+                                  <Badge className="bg-red-600 text-white text-xs">
+                                    EMERGENCY
+                                  </Badge>
+                                )}
+                                <Badge className={
+                                  acceptedJob.status === "in_progress"
+                                    ? "bg-blue-500 text-white text-xs"
+                                    : "bg-gray-500 text-white text-xs"
+                                }>
+                                  {acceptedJob.status === "in_progress" ? `${acceptedJob.progress}%` : "ACCEPTED"}
+                                </Badge>
+                              </div>
+                              <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                                {jobData.description || jobData.serviceType || 'Service Request'}
+                              </p>
+                              <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400">
+                                <span className="flex items-center gap-1">
+                                  <MapPin className="w-4 h-4" />
+                                  {jobData.location}
+                                  {jobData.distance && ` (${jobData.distance}km)`}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                          <Button
+                            onClick={() => setLocation(`/operator/job-details/${acceptedJob.acceptedJobId}`)}
+                            variant="outline"
+                            size="sm"
+                            className="w-full mt-2"
+                            data-testid={`button-view-job-${acceptedJob.acceptedJobId}`}
+                          >
+                            View Details <ChevronRight className="w-4 h-4 ml-1" />
+                          </Button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <CheckCircle className="w-12 h-12 text-gray-300 dark:text-gray-700 mx-auto mb-3" />
+                    <h3 className="text-lg font-semibold text-black dark:text-white mb-2">
+                      No Active Jobs
+                    </h3>
+                    <p className="text-gray-500 dark:text-gray-500 max-w-md mx-auto">
+                      Accept jobs from the Available Jobs section below to get started. Your accepted jobs will appear here.
+                    </p>
+                  </div>
+                )}
+              </CardContent>
+            </CollapsibleContent>
+          </Card>
+        </Collapsible>
 
         {/* EQUIPPED-SPECIFIC: Fleet Performance Overview */}
         <Card className="mb-8 bg-gradient-to-r from-slate-50 to-blue-50 dark:from-slate-900 dark:to-blue-950 border-2 border-blue-200 dark:border-blue-800">
@@ -765,67 +962,105 @@ export default function EquippedOperatorDashboard() {
           </CardHeader>
           <CardContent>
             {isLoading ? (
-              <div className="space-y-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {[1, 2, 3].map((i) => (
-                  <div key={i} className="h-24 bg-gray-100 dark:bg-gray-800 rounded animate-pulse" />
+                  <div key={i} className="h-48 bg-gray-100 dark:bg-gray-800 rounded-xl animate-pulse" />
                 ))}
               </div>
             ) : nearbyRequests.length > 0 ? (
-              <div className="space-y-3">
-                {nearbyRequests.map((request) => (
-                  <div
-                    key={request.id}
-                    className="border border-gray-200 dark:border-gray-800 rounded-lg p-4 hover:border-blue-500 dark:hover:border-blue-500 transition-colors"
-                  >
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-2">
-                          <h3 className="font-semibold text-black dark:text-white">
-                            {request.customerName}
-                          </h3>
-                          <Badge variant="outline" className="text-xs">
-                            {request.serviceType}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {nearbyRequests.map((request) => {
+                  const isEmergency = request.isEmergency === 1;
+                  const priorityColor = isEmergency 
+                    ? "border-red-400 dark:border-red-600 bg-gradient-to-br from-red-50 to-orange-50 dark:from-red-950 dark:to-orange-950"
+                    : "border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900";
+                  
+                  return (
+                    <div
+                      key={request.id}
+                      className={`border-2 rounded-xl p-5 hover:shadow-xl transition-all duration-300 hover:-translate-y-1 ${priorityColor}`}
+                      data-testid={`service-request-${request.id}`}
+                    >
+                      {/* Priority Badge */}
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex items-center gap-2">
+                          {isEmergency && (
+                            <div className="relative">
+                              <div className="absolute inset-0 bg-red-500 rounded-full animate-ping opacity-75"></div>
+                              <AlertCircle className="relative w-5 h-5 text-red-600 dark:text-red-400" />
+                            </div>
+                          )}
+                          <Badge 
+                            className={isEmergency 
+                              ? "bg-red-600 text-white text-xs font-bold animate-pulse" 
+                              : "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 text-xs"}
+                          >
+                            {isEmergency ? "🚨 EMERGENCY" : request.serviceType}
                           </Badge>
-                          {request.isEmergency === 1 && (
-                            <Badge className="bg-red-500 text-white text-xs">
-                              Emergency
-                            </Badge>
-                          )}
                         </div>
-                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
-                          {request.description}
-                        </p>
-                        <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400">
-                          <span className="flex items-center gap-1">
-                            <MapPin className="w-4 h-4" />
-                            {request.location}
-                            {request.distance && ` (${request.distance}km)`}
-                          </span>
-                          {request.budgetRange && (
-                            <span className="flex items-center gap-1">
-                              <DollarSign className="w-4 h-4" />
-                              {request.budgetRange}
-                            </span>
-                          )}
-                        </div>
+                        {request.distance && (
+                          <Badge variant="outline" className="text-xs">
+                            {request.distance}km
+                          </Badge>
+                        )}
                       </div>
+
+                      {/* Customer Name */}
+                      <h3 className="text-lg font-bold text-black dark:text-white mb-2">
+                        {request.customerName}
+                      </h3>
+
+                      {/* Description */}
+                      <p className="text-sm text-gray-600 dark:text-gray-400 mb-4 line-clamp-2 min-h-[40px]">
+                        {request.description || "Service request details"}
+                      </p>
+
+                      {/* Location */}
+                      <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 mb-4">
+                        <MapPin className="w-4 h-4 flex-shrink-0" />
+                        <span className="truncate">{request.location}</span>
+                      </div>
+
+                      {/* Budget */}
+                      {request.budgetRange && (
+                        <div className="flex items-center gap-2 text-sm font-semibold text-green-600 dark:text-green-400 mb-4">
+                          <DollarSign className="w-4 h-4" />
+                          <span>{request.budgetRange}</span>
+                        </div>
+                      )}
+
+                      {/* Action Button */}
                       {acceptedJobs.includes(request.id) ? (
-                        <Badge className="bg-green-500 text-white">
-                          <CheckCircle className="w-4 h-4 mr-1" />
+                        <div className="w-full py-3 px-4 bg-green-100 dark:bg-green-900 rounded-lg flex items-center justify-center gap-2 font-semibold text-green-700 dark:text-green-300">
+                          <CheckCircle className="w-5 h-5" />
                           Accepted
-                        </Badge>
+                        </div>
                       ) : (
                         <Button
                           onClick={() => handleAcceptJob(request.id)}
-                          className="bg-black hover:bg-gray-800 text-white dark:bg-white dark:text-black dark:hover:bg-gray-200"
+                          className={`w-full ${
+                            isEmergency
+                              ? "bg-red-600 hover:bg-red-700 text-white text-base font-bold shadow-lg shadow-red-500/50"
+                              : "bg-blue-600 hover:bg-blue-700 text-white"
+                          }`}
                           data-testid={`button-accept-${request.id}`}
                         >
-                          Accept Job
+                          {isEmergency ? (
+                            <>
+                              <AlertCircle className="w-5 h-5 mr-2" />
+                              Accept Emergency
+                            </>
+                          ) : (
+                            <>
+                              <CheckCircle className="w-5 h-5 mr-2" />
+                              Accept Job
+                            </>
+                          )}
                         </Button>
                       )}
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             ) : (
               <div className="text-center py-12">
