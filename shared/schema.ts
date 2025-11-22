@@ -66,6 +66,7 @@ export const operators = pgTable("operators", {
   operatorTier: text("operator_tier"),
   subscribedTiers: text("subscribed_tiers").array().notNull().default([]),
   activeTier: text("active_tier"),
+  viewTier: text("view_tier"),
   isCertified: integer("is_certified").notNull().default(1),
   businessLicense: text("business_license"),
   homeLatitude: decimal("home_latitude", { precision: 10, scale: 7 }),

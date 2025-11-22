@@ -1236,10 +1236,18 @@ export function registerRoutes(storage: IStorage) {
         return res.status(400).json({ message: "Tier not subscribed" });
       }
       
-      // Update active tier in database
+      // IMPORTANT: Update viewTier to track which dashboard is being viewed
+      // activeTier in database represents which tier the operator is ONLINE on (only set via toggle-online)
+      // viewTier in database tracks which dashboard they're currently viewing (persists across reloads)
+      
       await db.update(operators)
-        .set({ activeTier: newTier })
+        .set({ viewTier: newTier })
         .where(eq(operators.operatorId, operatorId));
+      
+      // Update session for frontend routing
+      if ((req as any).session?.user) {
+        (req as any).session.user.activeTier = newTier;
+      }
       
       res.json({ message: "Tier switched successfully" });
     } catch (error) {
@@ -1286,16 +1294,26 @@ export function registerRoutes(storage: IStorage) {
         }
       };
       
-      // Update database with new tier, set as active, and store tier profiles
+      // Update database with new tier, set as viewing tier, and store tier profiles
+      // IMPORTANT: Do NOT set activeTier in database here  
+      // activeTier represents which tier is ONLINE, not which tier was just added
+      // viewTier tracks which dashboard to show (persists across reloads)
+      // User must manually go online after adding a tier
       const [updatedOperator] = await db.update(operators)
         .set({ 
           subscribedTiers: updatedTiers,
-          activeTier: tier,
-          operatorTier: tier,
+          operatorTier: tier, // Set as primary tier for legacy compatibility
+          viewTier: tier, // Set as current viewing tier
           operatorTierProfiles: updatedProfiles
         })
         .where(eq(operators.operatorId, operatorId))
         .returning();
+      
+      // Update session for frontend routing
+      if ((req as any).session?.user) {
+        (req as any).session.user.activeTier = tier;
+        (req as any).session.user.subscribedTiers = updatedTiers;
+      }
       
       // Create initial tier stats for the new tier
       await db.insert(operatorTierStats).values({
