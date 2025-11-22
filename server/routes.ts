@@ -493,6 +493,14 @@ export function registerRoutes(storage: IStorage) {
       
       const [operator] = await db.insert(operators).values(operatorData).returning();
       
+      // Link operator to user account by operatorId
+      const userEmail = result.data.email;
+      if (userEmail) {
+        await db.update(users)
+          .set({ operatorId: result.data.operatorId })
+          .where(eq(users.email, userEmail));
+      }
+      
       // Create initial tier stats for each subscribed tier
       const tierStatsToCreate = subscribedTiers.map(tier => ({
         operatorId: result.data.operatorId,
@@ -1188,14 +1196,15 @@ export function registerRoutes(storage: IStorage) {
       };
       
       // Update database with new tier, set as active, and store tier profiles
-      await db.update(operators)
+      const [updatedOperator] = await db.update(operators)
         .set({ 
           subscribedTiers: updatedTiers,
           activeTier: tier,
           operatorTier: tier,
           operatorTierProfiles: updatedProfiles
         })
-        .where(eq(operators.operatorId, operatorId));
+        .where(eq(operators.operatorId, operatorId))
+        .returning();
       
       // Create initial tier stats for the new tier
       await db.insert(operatorTierStats).values({
@@ -1211,7 +1220,8 @@ export function registerRoutes(storage: IStorage) {
       res.json({ 
         message: "Tier added successfully",
         activeTier: tier,
-        subscribedTiers: updatedTiers
+        subscribedTiers: updatedTiers,
+        operator: updatedOperator
       });
     } catch (error) {
       console.error("Error adding tier:", error);
