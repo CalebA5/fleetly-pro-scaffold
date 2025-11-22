@@ -931,4 +931,15 @@ export class MemStorage implements IStorage {
       progress
     });
   }
+
+  async incrementTierJobCount(operatorId: string, tier: string, earnings: number): Promise<void> {
+    // This method is a no-op for in-memory storage
+    // In database implementation, this would update operatorTierStats table
+    // For now, earnings tracking is handled by upsertDailyEarnings/upsertMonthlyEarnings
+  }
+
+  async updateTierRating(operatorId: string, tier: string, newRating: number): Promise<void> {
+    // This method is a no-op for in-memory storage
+    // In database implementation, this would update operatorTierStats table
+  }
 }

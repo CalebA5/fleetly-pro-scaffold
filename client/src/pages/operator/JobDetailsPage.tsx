@@ -128,18 +128,19 @@ export default function JobDetailsPage() {
       });
     },
     onSuccess: () => {
-      //Fix: Invalidate all queries to update dashboard metrics
+      // FIXED: Invalidate ALL queries - accepted jobs, earnings, AND service requests
       queryClient.invalidateQueries({ queryKey: ["/api/accepted-jobs"], exact: false });
       queryClient.invalidateQueries({ queryKey: [`/api/earnings/today/${operatorId}`], exact: false });
       queryClient.invalidateQueries({ queryKey: [`/api/earnings/month/${operatorId}`], exact: false });
+      queryClient.invalidateQueries({ queryKey: [`/api/service-requests/for-operator/${operatorId}`], exact: false });
       toast({
         title: "Job Completed! 🎉",
         description: "Great work! The job has been marked as completed.",
       });
-      // Navigate back to dashboard after 2 seconds
+      // Navigate back to dashboard after showing toast
       setTimeout(() => {
         setLocation(dashboardPath);
-      }, 2000);
+      }, 1500);
     },
     onError: (error: Error) => {
       toast({
@@ -160,14 +161,22 @@ export default function JobDetailsPage() {
       });
     },
     onSuccess: () => {
-      // Fix: Use exact:false to invalidate all matching queries
+      // FIXED: Invalidate ALL queries - accepted jobs AND service requests
       queryClient.invalidateQueries({ queryKey: ["/api/accepted-jobs"], exact: false });
+      queryClient.invalidateQueries({ queryKey: [`/api/service-requests/for-operator/${operatorId}`], exact: false });
+      queryClient.invalidateQueries({ queryKey: [`/api/earnings/today/${operatorId}`], exact: false });
+      
+      // UX FIX: Close dialog first, then navigate to prevent stuck overlay
+      setShowCancelDialog(false);
       toast({
         title: "Job Cancelled",
         description: "The job has been cancelled and removed from your queue.",
       });
-      setShowCancelDialog(false);
-      setLocation("/operator/manual");
+      
+      // Navigate back to dashboard after dialog closes
+      setTimeout(() => {
+        setLocation(dashboardPath);
+      }, 100);
     },
     onError: (error: Error) => {
       toast({

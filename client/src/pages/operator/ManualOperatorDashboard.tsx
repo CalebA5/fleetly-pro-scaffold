@@ -161,9 +161,14 @@ export default function ManualOperatorDashboard() {
   // Online toggle mutation
   const toggleOnlineMutation = useMutation({
     mutationFn: async ({ goOnline, confirmed = false }: { goOnline: boolean; confirmed?: boolean }) => {
-      // Prevent going online if there are active jobs
-      if (goOnline && acceptedJobsData.length > 0) {
-        throw new Error("ACTIVE_JOBS_EXIST");
+      // Block toggling for any non-terminal job (accepted/in_progress/started, not completed/cancelled)
+      const activeJobs = acceptedJobsData.filter(job => 
+        job.status !== 'completed' && job.status !== 'cancelled'
+      );
+      
+      // Prevent going online OR offline if there are active jobs
+      if (activeJobs.length > 0) {
+        throw new Error(goOnline ? "CANNOT_GO_ONLINE_WITH_JOBS" : "CANNOT_GO_OFFLINE_WITH_JOBS");
       }
       
       return apiRequest(`/api/operators/${operatorId}/toggle-online`, {
@@ -195,23 +200,32 @@ export default function ManualOperatorDashboard() {
       });
     },
     onError: (error: any) => {
-      // Handle active jobs error
-      if (error?.message === "ACTIVE_JOBS_EXIST") {
+      // Handle active jobs errors (both online and offline)
+      if (error?.message === "CANNOT_GO_ONLINE_WITH_JOBS") {
         toast({
           title: "Cannot Go Online",
-          description: `You have ${acceptedJobsData.length} active job${acceptedJobsData.length > 1 ? 's' : ''}. Please complete or abandon them before going online.`,
+          description: `You have ${acceptedJobsData.length} active job${acceptedJobsData.length > 1 ? 's' : ''}. Please complete or cancel them first.`,
           variant: "destructive",
         });
         return;
       }
       
-      // Check if error is due to active jobs blocking
+      if (error?.message === "CANNOT_GO_OFFLINE_WITH_JOBS") {
+        toast({
+          title: "Cannot Go Offline",
+          description: `You have ${acceptedJobsData.length} active job${acceptedJobsData.length > 1 ? 's' : ''} in progress. Please complete or cancel them first.`,
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // Check if error is from backend (active jobs blocking)
       if (error.message) {
         try {
           const errorData = JSON.parse(error.message);
           if (errorData.error === "active_jobs") {
             toast({
-              title: "Cannot Go Online",
+              title: errorData.message.includes("cannot go offline") ? "Cannot Go Offline" : "Cannot Switch Tier",
               description: errorData.message,
               variant: "destructive",
             });

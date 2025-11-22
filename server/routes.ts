@@ -1384,16 +1384,26 @@ export function registerRoutes(storage: IStorage) {
         return res.status(400).json({ message: "Cannot go online for unsubscribed tier" });
       }
       
-      // NEW: Check if operator is already online on a different tier
+      // FIXED: Block offline toggle for any non-terminal job (accepted/in_progress/started, not completed/cancelled)
+      const allAcceptedJobs = await storage.getAcceptedJobs(operatorId);
+      const activeJobs = allAcceptedJobs.filter(job => 
+        job.status !== 'completed' && job.status !== 'cancelled'
+      );
+      
+      // Prevent going offline if operator has active jobs in current tier
+      if (isOnline === 0 && operator.isOnline === 1 && operator.activeTier) {
+        if (activeJobs.length > 0) {
+          return res.status(409).json({ 
+            error: "active_jobs",
+            message: `You cannot go offline while you have ${activeJobs.length} active job(s) in progress. Please complete or cancel your current jobs first.`,
+            currentTier: operator.activeTier,
+            activeJobCount: activeJobs.length
+          });
+        }
+      }
+      
+      // Check if operator is already online on a different tier
       if (isOnline === 1 && operator.isOnline === 1 && operator.activeTier !== activeTier) {
-        // Check for active (confirmed) jobs on the currently online tier
-        const activeJobs = await db.query.serviceRequests.findMany({
-          where: and(
-            eq(serviceRequests.operatorId, operatorId),
-            eq(serviceRequests.status, "confirmed")
-          )
-        });
-        
         if (activeJobs.length > 0) {
           // Block switching - operator has active jobs
           return res.status(409).json({ 

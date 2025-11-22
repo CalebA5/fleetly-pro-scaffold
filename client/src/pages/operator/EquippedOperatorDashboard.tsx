@@ -139,13 +139,13 @@ export default function EquippedOperatorDashboard() {
       });
     },
     onError: (error: any) => {
-      // Check if error is due to active jobs blocking
+      // Check if error is due to active jobs blocking (online or offline)
       if (error.message) {
         try {
           const errorData = JSON.parse(error.message);
           if (errorData.error === "active_jobs") {
             toast({
-              title: "Cannot Go Online",
+              title: errorData.message.includes("cannot go offline") ? "Cannot Go Offline" : "Cannot Switch Tier",
               description: errorData.message,
               variant: "destructive",
             });
