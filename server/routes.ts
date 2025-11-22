@@ -1,7 +1,7 @@
 import { Router } from "express";
 import type { IStorage } from "./storage";
 import { db } from "./db";
-import { operators, customers, favorites, operatorTierStats, weatherAlerts, insertWeatherAlertSchema, emergencyRequests, dispatchQueue, insertEmergencyRequestSchema, insertDispatchQueueSchema } from "@shared/schema";
+import { operators, customers, users, favorites, operatorTierStats, weatherAlerts, insertWeatherAlertSchema, emergencyRequests, dispatchQueue, insertEmergencyRequestSchema, insertDispatchQueueSchema } from "@shared/schema";
 import { eq, sql, and, gte, or } from "drizzle-orm";
 import { insertJobSchema, insertServiceRequestSchema, insertCustomerSchema, insertOperatorSchema, insertRatingSchema, insertFavoriteSchema, insertOperatorLocationSchema, insertCustomerServiceHistorySchema, OPERATOR_TIER_INFO } from "@shared/schema";
 import { isWithinRadius } from "./utils/distance";
@@ -493,11 +493,14 @@ export function registerRoutes(storage: IStorage) {
       
       const [operator] = await db.insert(operators).values(operatorData).returning();
       
-      // Link operator to user account by operatorId
+      // Link operator to user account by operatorId and update role
       const userEmail = result.data.email;
       if (userEmail) {
         await db.update(users)
-          .set({ operatorId: result.data.operatorId })
+          .set({ 
+            operatorId: result.data.operatorId,
+            role: 'operator'
+          })
           .where(eq(users.email, userEmail));
       }
       

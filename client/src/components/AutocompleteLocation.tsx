@@ -1,7 +1,4 @@
 import { useState, useEffect, useRef } from "react";
-import { Input } from "@/components/ui/input";
-import { Command, CommandEmpty, CommandGroup, CommandItem, CommandList } from "@/components/ui/command";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { MapPin, Loader2 } from "lucide-react";
 import { searchAddresses, type GeocodingResult } from "@/lib/geocoding";
 
@@ -31,6 +28,8 @@ export const AutocompleteLocation = ({
   const abortController = useRef<AbortController | null>(null);
   const activeController = useRef<AbortController | null>(null);
   const justSelected = useRef(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     // Skip search if we just selected an item
@@ -95,6 +94,43 @@ export const AutocompleteLocation = ({
     };
   }, [value]);
 
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        containerRef.current &&
+        !containerRef.current.contains(event.target as Node)
+      ) {
+        setOpen(false);
+      }
+    };
+
+    if (open) {
+      document.addEventListener("mousedown", handleClickOutside);
+      return () => document.removeEventListener("mousedown", handleClickOutside);
+    }
+  }, [open]);
+
+  // Close dropdown on scroll (but not when scrolling inside dropdown)
+  useEffect(() => {
+    const handleScroll = (event: Event) => {
+      // Don't close if scrolling inside the dropdown itself
+      if (
+        dropdownRef.current &&
+        event.target instanceof Node &&
+        dropdownRef.current.contains(event.target)
+      ) {
+        return;
+      }
+      setOpen(false);
+    };
+
+    if (open) {
+      window.addEventListener("scroll", handleScroll, true);
+      return () => window.removeEventListener("scroll", handleScroll, true);
+    }
+  }, [open]);
+
   const handleSelect = (result: GeocodingResult) => {
     justSelected.current = true;
     onChange(result.fullAddress);
@@ -104,71 +140,56 @@ export const AutocompleteLocation = ({
   };
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <div className="relative w-full">
-          <input
-            type="text"
-            value={value}
-            onChange={(e) => onChange(e.target.value)}
-            placeholder={placeholder}
-            disabled={disabled}
-            className="flex h-10 w-full rounded-lg border-0 bg-gray-50 dark:bg-gray-700 px-3 py-2 text-base pr-10 placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-black dark:focus:ring-white disabled:cursor-not-allowed disabled:opacity-50 transition-all"
-            data-testid={testId}
-            onFocus={() => {
-              if (suggestions.length > 0) {
-                setOpen(true);
-              }
-            }}
-          />
-          {isSearching && (
-            <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 animate-spin text-gray-400" />
-          )}
-          {!isSearching && icon && (
-            <MapPin className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-          )}
+    <div ref={containerRef} className="relative w-full">
+      <input
+        type="text"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        disabled={disabled}
+        className="flex h-10 w-full rounded-lg border-0 bg-gray-50 dark:bg-gray-700 px-3 py-2 text-base pr-10 placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-black dark:focus:ring-white disabled:cursor-not-allowed disabled:opacity-50 transition-all"
+        data-testid={testId}
+        onFocus={() => {
+          if (suggestions.length > 0) {
+            setOpen(true);
+          }
+        }}
+      />
+      {isSearching && (
+        <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 animate-spin text-gray-400" />
+      )}
+      {!isSearching && icon && (
+        <MapPin className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+      )}
+      
+      {/* Dropdown suggestions */}
+      {open && suggestions.length > 0 && (
+        <div
+          ref={dropdownRef}
+          className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-[100] max-h-64 overflow-y-auto"
+        >
+          {suggestions.map((result, index) => (
+            <div
+              key={`${result.lat}-${result.lon}-${index}`}
+              onClick={() => handleSelect(result)}
+              className="cursor-pointer px-3 py-2.5 hover:bg-orange-50 dark:hover:bg-orange-900/20 transition-colors flex items-start gap-2 border-b border-gray-100 dark:border-gray-700 last:border-0"
+              data-testid={`autocomplete-item-${index}`}
+            >
+              <MapPin className="w-4 h-4 mt-0.5 text-orange-500 flex-shrink-0" />
+              <div className="flex-1 min-w-0">
+                <div className="text-sm font-semibold truncate text-black dark:text-white">
+                  {result.fullAddress}
+                </div>
+                {result.cityState && (
+                  <div className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                    {result.cityState}
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
         </div>
-      </PopoverTrigger>
-      <PopoverContent 
-        className="p-0 w-[--radix-popover-trigger-width] shadow-lg border-2 border-gray-200 dark:border-gray-700 z-50" 
-        align="start"
-        onOpenAutoFocus={(e) => e.preventDefault()}
-      >
-        <Command className="rounded-lg">
-          <CommandList className="max-h-64">
-            {suggestions.length === 0 && !isSearching && (
-              <CommandEmpty className="py-6 text-center text-gray-500">
-                No locations found
-              </CommandEmpty>
-            )}
-            {suggestions.length > 0 && (
-              <CommandGroup>
-                {suggestions.map((result, index) => (
-                  <CommandItem
-                    key={`${result.lat}-${result.lon}-${index}`}
-                    value={result.fullAddress}
-                    onSelect={() => handleSelect(result)}
-                    className="cursor-pointer px-3 py-2.5 hover:bg-orange-50 dark:hover:bg-orange-900/20 transition-colors rounded-md mx-1 my-0.5"
-                    data-testid={`autocomplete-item-${index}`}
-                  >
-                    <MapPin className="w-4 h-4 mr-2 text-orange-500 flex-shrink-0" />
-                    <div className="flex-1 min-w-0">
-                      <div className="text-sm font-semibold truncate text-black dark:text-white">
-                        {result.fullAddress}
-                      </div>
-                      {result.cityState && (
-                        <div className="text-xs text-gray-500 dark:text-gray-400 truncate">
-                          {result.cityState}
-                        </div>
-                      )}
-                    </div>
-                  </CommandItem>
-                ))}
-              </CommandGroup>
-            )}
-          </CommandList>
-        </Command>
-      </PopoverContent>
-    </Popover>
+      )}
+    </div>
   );
 };

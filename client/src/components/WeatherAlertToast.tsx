@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { useUserLocation } from "@/contexts/LocationContext";
@@ -20,15 +20,67 @@ interface WeatherAlert {
   isActive: number;
 }
 
+interface SeenAlert {
+  alertId: string;
+  seenAt: number; // timestamp
+}
+
+const STORAGE_KEY = "fleetly_seen_weather_alerts";
+const ALERT_TTL = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+
+/**
+ * Get seen alerts from localStorage with expiry cleanup
+ */
+function getSeenAlerts(): Set<string> {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (!stored) return new Set();
+    
+    const seenAlerts: SeenAlert[] = JSON.parse(stored);
+    const now = Date.now();
+    
+    // Filter out expired alerts (older than 24 hours)
+    const validAlerts = seenAlerts.filter(
+      alert => (now - alert.seenAt) < ALERT_TTL
+    );
+    
+    // Update localStorage with cleaned list
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(validAlerts));
+    
+    return new Set(validAlerts.map(a => a.alertId));
+  } catch (error) {
+    console.error("Failed to load seen alerts:", error);
+    return new Set();
+  }
+}
+
+/**
+ * Mark an alert as seen in localStorage
+ */
+function markAlertAsSeen(alertId: string) {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    const seenAlerts: SeenAlert[] = stored ? JSON.parse(stored) : [];
+    
+    // Don't add duplicates
+    if (!seenAlerts.some(a => a.alertId === alertId)) {
+      seenAlerts.push({ alertId, seenAt: Date.now() });
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(seenAlerts));
+    }
+  } catch (error) {
+    console.error("Failed to save seen alert:", error);
+  }
+}
+
 /**
  * Weather Alert Toast Notifications
  * Displays severe weather alerts as toast notifications that auto-dismiss
- * Waits for location permission to be handled first for accurate alerts
+ * Persists seen alerts to localStorage to prevent repeat notifications
  */
 export function WeatherAlertToast() {
   const { toast } = useToast();
   const { cityState, permissionStatus } = useUserLocation();
-  const shownAlerts = useRef<Set<string>>(new Set());
+  const [seenAlerts, setSeenAlerts] = useState<Set<string>>(() => getSeenAlerts());
 
   // Delay alert fetching until location permission is handled
   const shouldFetchAlerts = permissionStatus !== "prompt";
@@ -41,6 +93,10 @@ export function WeatherAlertToast() {
 
   useEffect(() => {
     if (!alerts || alerts.length === 0) return;
+
+    // Refresh seen alerts from localStorage to apply TTL cleanup
+    const currentSeenAlerts = getSeenAlerts();
+    setSeenAlerts(currentSeenAlerts);
 
     // Filter alerts by user's location if available for maximum accuracy
     let relevantAlerts = alerts;
@@ -56,10 +112,13 @@ export function WeatherAlertToast() {
       });
     }
 
+    // Collect new alert IDs to prevent race conditions from multiple writes
+    const newAlertIds: string[] = [];
+
     // Show toast for new alerts that haven't been shown yet
     relevantAlerts.forEach((alert) => {
-      if (!shownAlerts.current.has(alert.alertId)) {
-        shownAlerts.current.add(alert.alertId);
+      if (!currentSeenAlerts.has(alert.alertId)) {
+        newAlertIds.push(alert.alertId);
 
         const isWinterWeather = ["Winter Storm", "Snow", "Blizzard", "Ice"].some(
           term => alert.event.includes(term)
@@ -114,13 +173,33 @@ export function WeatherAlertToast() {
       }
     });
 
-    // Clean up shown alerts that have expired
-    const currentAlertIds = new Set(alerts.map(a => a.alertId));
-    shownAlerts.current.forEach(alertId => {
-      if (!currentAlertIds.has(alertId)) {
-        shownAlerts.current.delete(alertId);
+    // Batch write all new alert IDs to localStorage to prevent race conditions
+    if (newAlertIds.length > 0) {
+      try {
+        const stored = localStorage.getItem(STORAGE_KEY);
+        const seenAlerts: SeenAlert[] = stored ? JSON.parse(stored) : [];
+        const now = Date.now();
+        
+        // Add all new alerts at once
+        const newSeenAlerts: SeenAlert[] = newAlertIds.map(alertId => ({
+          alertId,
+          seenAt: now
+        }));
+        
+        // Combine with existing, avoiding duplicates
+        const combined = [...seenAlerts, ...newSeenAlerts];
+        const unique = combined.filter((item, index, self) =>
+          index === self.findIndex((t) => t.alertId === item.alertId)
+        );
+        
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(unique));
+        
+        // Update state with all new IDs
+        setSeenAlerts(new Set([...currentSeenAlerts, ...newAlertIds]));
+      } catch (error) {
+        console.error("Failed to save seen alerts:", error);
       }
-    });
+    }
   }, [alerts, toast, cityState]);
 
   return null; // This component doesn't render anything, just shows toasts
