@@ -131,6 +131,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const signOut = async () => {
     try {
+      // If user is an operator, set them to offline before signing out
+      if (user?.operatorId) {
+        try {
+          await fetch(`/api/operators/${user.operatorId}/toggle-online`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify({ isOnline: 0, activeTier: null }),
+          });
+        } catch (offlineError) {
+          console.error("Failed to set operator offline:", offlineError);
+          // Continue with sign out even if this fails
+        }
+      }
+      
       await fetch("/api/auth/signout", {
         method: "POST",
         credentials: "include",

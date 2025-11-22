@@ -1086,6 +1086,17 @@ export function registerRoutes(storage: IStorage) {
   });
 
   // Business management routes
+  router.post("/api/business", async (req, res) => {
+    try {
+      const businessData = req.body;
+      const business = await storage.createBusiness(businessData);
+      res.status(201).json(business);
+    } catch (error) {
+      console.error("Error creating business:", error);
+      res.status(500).json({ message: "Failed to create business" });
+    }
+  });
+
   router.get("/api/business/:businessId", async (req, res) => {
     const business = await storage.getBusiness(req.params.businessId);
     if (!business) {
@@ -1229,6 +1240,51 @@ export function registerRoutes(storage: IStorage) {
     } catch (error) {
       console.error("Error adding tier:", error);
       res.status(500).json({ message: "Failed to add tier" });
+    }
+  });
+
+  // Toggle operator online/offline status
+  router.post("/api/operators/:operatorId/toggle-online", async (req, res) => {
+    try {
+      const { isOnline, activeTier } = req.body;
+      const operatorId = req.params.operatorId;
+      
+      // Get operator from database
+      const operator = await db.query.operators.findFirst({
+        where: eq(operators.operatorId, operatorId)
+      });
+      
+      if (!operator) {
+        return res.status(404).json({ message: "Operator not found" });
+      }
+      
+      // If going online, verify the tier is subscribed
+      if (isOnline === 1 && activeTier && !operator.subscribedTiers.includes(activeTier)) {
+        return res.status(400).json({ message: "Cannot go online for unsubscribed tier" });
+      }
+      
+      // CRITICAL: Enforce mutual exclusivity - only one tier can be online at a time
+      // When going online for a tier, ensure we're offline for all other tiers
+      // When going offline, set everything to offline
+      
+      const updates = {
+        isOnline,
+        activeTier: isOnline === 1 ? activeTier : null
+      };
+      
+      // Update online status and active tier atomically
+      await db.update(operators)
+        .set(updates)
+        .where(eq(operators.operatorId, operatorId));
+      
+      res.json({ 
+        message: isOnline === 1 ? `You are now online as ${activeTier}` : "You are now offline",
+        isOnline,
+        activeTier: isOnline === 1 ? activeTier : null
+      });
+    } catch (error) {
+      console.error("Error toggling online status:", error);
+      res.status(500).json({ message: "Failed to toggle online status" });
     }
   });
 

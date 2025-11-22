@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/enhanced-button";
 import { Badge } from "@/components/ui/badge";
@@ -7,6 +7,9 @@ import { MapPin, Clock, DollarSign, Users, Snowflake, AlertCircle, CheckCircle }
 import { Header } from "@/components/Header";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLocation } from "wouter";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import type { Operator } from "@shared/schema";
 
 interface ServiceRequest {
   id: number;
@@ -38,6 +41,7 @@ export default function ManualOperatorDashboard() {
   const { user } = useAuth();
   const [, setLocation] = useLocation();
   const [acceptedJobs, setAcceptedJobs] = useState<number[]>([]);
+  const { toast } = useToast();
 
   // Customer grouping - in production, this would come from backend
   // Empty for now - will be populated with real data
@@ -46,9 +50,47 @@ export default function ManualOperatorDashboard() {
   // Use operator-specific endpoint that filters by tier and radius
   const operatorId = user?.operatorId || "OP-MANUAL-001";
   
+  // Fetch operator data to get current online status
+  const { data: operatorData } = useQuery<Operator>({
+    queryKey: [`/api/operators/by-id/${operatorId}`],
+    enabled: !!operatorId,
+  });
+  
   const { data: nearbySnowRequests = [], isLoading } = useQuery<ServiceRequest[]>({
     queryKey: [`/api/service-requests/for-operator/${operatorId}`],
     enabled: !!operatorId,
+  });
+  
+  // Calculate if this tier is currently online
+  const isOnline = operatorData?.isOnline === 1 && operatorData?.activeTier === "manual";
+  
+  // Online toggle mutation
+  const toggleOnlineMutation = useMutation({
+    mutationFn: async (goOnline: boolean) => {
+      return apiRequest(`/api/operators/${operatorId}/toggle-online`, {
+        method: "POST",
+        body: JSON.stringify({ 
+          isOnline: goOnline ? 1 : 0,
+          activeTier: goOnline ? "manual" : null
+        }),
+      });
+    },
+    onSuccess: (_, goOnline) => {
+      queryClient.invalidateQueries({ queryKey: [`/api/operators/by-id/${operatorId}`] });
+      toast({
+        title: goOnline ? "You're Online" : "You're Offline",
+        description: goOnline 
+          ? "You can now receive job requests as a Manual Operator" 
+          : "You won't receive any new job requests",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to update online status. Please try again.",
+        variant: "destructive",
+      });
+    },
   });
 
   const handleAcceptJob = (requestId: number) => {
@@ -66,19 +108,40 @@ export default function ManualOperatorDashboard() {
       <Header
         onSignIn={() => {}}
         onSignUp={() => {}}
-        onDriveAndEarn={() => setLocation("/operator/onboarding")}
+        onDriveAndEarn={() => setLocation("/drive-earn")}
       />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header Section */}
         <div className="mb-8">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center">
-              <Snowflake className="w-6 h-6 text-green-600 dark:text-green-400" />
+          <div className="flex items-center justify-between flex-wrap gap-4">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center">
+                <Snowflake className="w-6 h-6 text-green-600 dark:text-green-400" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold text-black dark:text-white">Manual Operator Dashboard</h1>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  5km Operating Radius
+                </p>
+              </div>
             </div>
-            <p className="text-gray-600 dark:text-gray-400">
-              5km Operating Radius
-            </p>
+            
+            {/* Online Toggle Button */}
+            <Button
+              variant={isOnline ? "default" : "outline"}
+              size="lg"
+              onClick={() => toggleOnlineMutation.mutate(!isOnline)}
+              disabled={toggleOnlineMutation.isPending}
+              className={`px-8 py-6 rounded-lg font-semibold transition-all ${
+                isOnline 
+                  ? "bg-green-600 hover:bg-green-700 text-white" 
+                  : "border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
+              }`}
+              data-testid="button-toggle-online"
+            >
+              {toggleOnlineMutation.isPending ? "Updating..." : isOnline ? "Online" : "Offline"}
+            </Button>
           </div>
         </div>
 

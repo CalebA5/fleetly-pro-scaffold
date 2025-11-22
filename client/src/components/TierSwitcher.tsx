@@ -186,21 +186,29 @@ export function TierSwitcher() {
               <DropdownMenuItem
                 key={tier}
                 onClick={() => handleTierClick(tier)}
-                className="flex items-center justify-between cursor-pointer"
+                className={`flex items-center justify-between cursor-pointer ${
+                  !isSubscribed ? "opacity-50 hover:opacity-70" : ""
+                }`}
+                disabled={!isSubscribed && false} // Keep clickable to show upgrade dialog
                 data-testid={`menu-item-tier-${tier}`}
               >
                 <div className="flex items-center gap-2">
-                  <span>{TIER_INFO[tier].badge}</span>
-                  <span className={TIER_INFO[tier].color}>
+                  <span className={!isSubscribed ? "grayscale" : ""}>{TIER_INFO[tier].badge}</span>
+                  <span className={`${TIER_INFO[tier].color} ${!isSubscribed ? "text-gray-400 dark:text-gray-500" : ""}`}>
                     {TIER_INFO[tier].label}
                   </span>
+                  {!isSubscribed && (
+                    <span className="text-xs px-2 py-0.5 bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded ml-1">
+                      Add Tier
+                    </span>
+                  )}
                 </div>
                 <div className="flex items-center gap-1">
                   {isSubscribed && (
                     <Check className="w-4 h-4 text-green-600" data-testid={`icon-subscribed-${tier}`} />
                   )}
                   {isActive && (
-                    <span className="text-xs px-2 py-0.5 bg-black dark:bg-white text-white dark:text-black rounded">
+                    <span className="text-xs px-2 py-0.5 bg-black dark:bg-white text-white dark:text-black rounded font-semibold">
                       Active
                     </span>
                   )}

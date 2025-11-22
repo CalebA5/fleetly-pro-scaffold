@@ -293,6 +293,44 @@ export const OperatorOnboarding = () => {
           throw new Error("Operator created but no operatorId returned");
         }
 
+        // If professional tier, create a business record
+        let businessId: string | null = null;
+        if (selectedTier === "professional") {
+          businessId = `BUS-${user.email.replace(/[^a-zA-Z0-9]/g, '-')}-${Date.now()}`;
+          
+          const businessData = {
+            businessId,
+            name: formData.businessName || `${user.name}'s Business`,
+            email: formData.email || user.email,
+            phone: formData.phone || "",
+            businessLicense: formData.licenseNumber || "",
+            address: formData.address || "",
+            city: "",
+            state: "",
+            zipCode: "",
+          };
+
+          const businessResponse = await fetch("/api/business", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify(businessData),
+          });
+
+          if (!businessResponse.ok) {
+            console.error("Business creation failed, but operator was created");
+            // Don't throw error - operator is created, just log the failure
+          } else {
+            // Update operator with businessId
+            await fetch(`/api/operators/${operator.operatorId}`, {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              credentials: "include",
+              body: JSON.stringify({ businessId }),
+            });
+          }
+        }
+
         // Refetch user from server first to get authoritative state
         await refetchUser();
         
@@ -300,7 +338,8 @@ export const OperatorOnboarding = () => {
         updateUser({ 
           operatorId: operator.operatorId,
           operatorProfileComplete: true,
-          operatorTier: selectedTier 
+          operatorTier: selectedTier,
+          businessId: businessId || undefined
         });
         
         // Invalidate operator queries to ensure fresh data
