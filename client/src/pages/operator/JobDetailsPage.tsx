@@ -65,6 +65,8 @@ export default function JobDetailsPage() {
     mutationFn: async () => {
       return await apiRequest(`/api/accepted-jobs/${jobId}/start`, {
         method: "POST",
+        body: JSON.stringify({ operatorId }),
+        headers: { "Content-Type": "application/json" },
       });
     },
     onSuccess: () => {
@@ -113,6 +115,8 @@ export default function JobDetailsPage() {
     mutationFn: async () => {
       return await apiRequest(`/api/accepted-jobs/${jobId}/complete`, {
         method: "POST",
+        body: JSON.stringify({ operatorId }),
+        headers: { "Content-Type": "application/json" },
       });
     },
     onSuccess: () => {
@@ -225,40 +229,54 @@ export default function JobDetailsPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      {/* Header with Back Button */}
-      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
-        <div className="max-w-4xl mx-auto px-4 py-4">
+      {/* Professional Header with Gradient */}
+      <div className="relative bg-gradient-to-br from-orange-500 via-orange-600 to-orange-700 text-white">
+        <div className="absolute inset-0 bg-black/10"></div>
+        <div className="relative max-w-4xl mx-auto px-4 py-6">
           <Button
             variant="ghost"
             onClick={() => setLocation("/operator/manual")}
-            className="mb-2"
+            className="mb-3 text-white hover:bg-white/20"
             data-testid="button-back"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back to Dashboard
           </Button>
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-                Job #{job.acceptedJobId.slice(0, 8)}
-              </h1>
-              <p className="text-sm text-gray-600 dark:text-gray-400">
-                {jobData.serviceType || jobData.service || "Service Request"}
-              </p>
+          <div className="flex items-start justify-between">
+            <div className="flex-1">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="bg-white/20 backdrop-blur-sm rounded-lg p-2">
+                  <Truck className="w-8 h-8 text-white" />
+                </div>
+                <div>
+                  <h1 className="text-2xl md:text-3xl font-bold">
+                    {jobData.serviceType || jobData.service || "Service Request"}
+                  </h1>
+                  <p className="text-orange-100 text-sm">
+                    Job #{job.acceptedJobId.slice(0, 12)}
+                  </p>
+                </div>
+              </div>
+              {jobData.isEmergency && (
+                <Badge className="bg-red-600 text-white border-0">
+                  <AlertTriangle className="w-3 h-3 mr-1" />
+                  EMERGENCY
+                </Badge>
+              )}
             </div>
             <Badge
-              className={
+              className={`text-sm px-4 py-2 ${
                 isCompleted
-                  ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
+                  ? "bg-green-500 text-white border-0"
                   : isCancelled
-                  ? "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
+                  ? "bg-gray-700 text-white border-0"
                   : isInProgress
-                  ? "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
-                  : "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200"
-              }
+                  ? "bg-blue-500 text-white border-0"
+                  : "bg-white/20 text-white border-white/30"
+              }`}
               data-testid={`badge-status-${job.status}`}
             >
-              {job.status.toUpperCase()}
+              {isInProgress ? `${job.progress}% COMPLETE` : job.status.toUpperCase().replace("_", " ")}
             </Badge>
           </div>
         </div>
@@ -267,41 +285,116 @@ export default function JobDetailsPage() {
       <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
         {/* Emergency Alert */}
         {jobData.isEmergency && (
-          <Alert className="bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800">
-            <AlertTriangle className="h-4 w-4 text-red-600 dark:text-red-400" />
-            <AlertDescription className="text-red-800 dark:text-red-200">
+          <Alert className="border-l-4 border-l-red-600 bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 shadow-md">
+            <AlertTriangle className="h-5 w-5 text-red-600 dark:text-red-400" />
+            <AlertDescription className="text-red-800 dark:text-red-200 font-medium ml-2">
               <strong>EMERGENCY SERVICE</strong> - This request requires immediate attention!
             </AlertDescription>
           </Alert>
         )}
 
+        {/* Timeline Tracker */}
+        {!isCancelled && (
+          <Card className="border-0 shadow-lg overflow-hidden">
+            <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-gray-800 dark:to-gray-800 px-6 py-4 border-b">
+              <h3 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                <Clock className="w-5 h-5 text-blue-600" />
+                Job Timeline
+              </h3>
+            </div>
+            <CardContent className="p-6">
+              <div className="relative">
+                {/* Timeline Line */}
+                <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-gradient-to-b from-blue-500 via-purple-500 to-green-500"></div>
+                
+                {/* Timeline Steps */}
+                <div className="space-y-6 relative">
+                  {/* Accepted */}
+                  <div className="flex items-start gap-4">
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 ${isAccepted || isInProgress || isCompleted ? 'bg-blue-500 border-blue-500' : 'bg-gray-200 border-gray-300'} z-10`}>
+                      <CheckCircle2 className={`w-5 h-5 ${isAccepted || isInProgress || isCompleted ? 'text-white' : 'text-gray-400'}`} />
+                    </div>
+                    <div className="flex-1 pt-1">
+                      <p className="font-semibold text-gray-900 dark:text-white">Job Accepted</p>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">{new Date(job.acceptedAt).toLocaleString()}</p>
+                    </div>
+                  </div>
+                  
+                  {/* In Progress */}
+                  <div className="flex items-start gap-4">
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 ${isInProgress || isCompleted ? 'bg-purple-500 border-purple-500' : 'bg-gray-200 border-gray-300'} z-10`}>
+                      <Play className={`w-5 h-5 ${isInProgress || isCompleted ? 'text-white' : 'text-gray-400'}`} />
+                    </div>
+                    <div className="flex-1 pt-1">
+                      <p className="font-semibold text-gray-900 dark:text-white">Job Started</p>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">
+                        {job.startedAt ? new Date(job.startedAt).toLocaleString() : 'Not started yet'}
+                      </p>
+                    </div>
+                  </div>
+                  
+                  {/* Completed */}
+                  <div className="flex items-start gap-4">
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 ${isCompleted ? 'bg-green-500 border-green-500' : 'bg-gray-200 border-gray-300'} z-10`}>
+                      <CheckCircle2 className={`w-5 h-5 ${isCompleted ? 'text-white' : 'text-gray-400'}`} />
+                    </div>
+                    <div className="flex-1 pt-1">
+                      <p className="font-semibold text-gray-900 dark:text-white">Job Completed</p>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">
+                        {job.completedAt ? new Date(job.completedAt).toLocaleString() : 'Pending'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Progress Card */}
         {!isCompleted && !isCancelled && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Clock className="w-5 h-5 text-orange-500" />
+          <Card className="border-0 shadow-lg overflow-hidden">
+            <div className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-gray-800 dark:to-gray-800 px-6 py-4 border-b">
+              <h3 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                <Clock className="w-5 h-5 text-green-600" />
                 Job Progress
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
+              </h3>
+            </div>
+            <CardContent className="p-6 space-y-6">
+              {/* Progress Bar with Percentage */}
               <div>
-                <div className="flex justify-between items-center mb-2">
-                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                <div className="flex justify-between items-center mb-3">
+                  <span className="text-lg font-bold text-gray-900 dark:text-white">
                     {job.progress}% Complete
                   </span>
-                  <span className="text-xs text-gray-500 dark:text-gray-400">
-                    {isAccepted ? "Not started" : "In progress"}
-                  </span>
+                  <Badge
+                    variant={isInProgress ? "default" : "secondary"}
+                    className={isInProgress ? "bg-blue-600 text-white" : ""}
+                  >
+                    {isAccepted ? "READY TO START" : "IN PROGRESS"}
+                  </Badge>
                 </div>
-                <Progress value={job.progress} className="h-3" />
+                <div className="relative">
+                  <Progress value={job.progress} className="h-4 bg-gray-200 dark:bg-gray-700" />
+                  {job.progress > 10 && (
+                    <div className="absolute inset-0 flex items-center px-2 pointer-events-none">
+                      <span className="text-xs font-bold text-white drop-shadow-md">
+                        {job.progress}%
+                      </span>
+                    </div>
+                  )}
+                </div>
               </div>
 
               {isInProgress && (
-                <div className="space-y-3">
+                <div className="p-4 bg-blue-50 dark:bg-blue-900/10 rounded-lg border border-blue-200 dark:border-blue-800 space-y-4">
                   <div>
-                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 block">
-                      Update Progress: {progress}%
+                    <label className="text-sm font-semibold text-gray-900 dark:text-white mb-3 block flex items-center justify-between">
+                      <span className="flex items-center gap-2">
+                        <Truck className="w-4 h-4 text-blue-600" />
+                        Update Progress
+                      </span>
+                      <span className="text-2xl font-bold text-blue-600">{progress}%</span>
                     </label>
                     <input
                       type="range"
@@ -309,32 +402,37 @@ export default function JobDetailsPage() {
                       max="100"
                       value={progress}
                       onChange={(e) => setProgress(Number(e.target.value))}
-                      className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700"
+                      className="w-full h-3 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700 accent-blue-600"
                       data-testid="input-progress-slider"
                     />
+                    <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400 mt-1">
+                      <span>0%</span>
+                      <span>50%</span>
+                      <span>100%</span>
+                    </div>
                   </div>
                   <Button
                     onClick={handleUpdateProgress}
                     disabled={updateProgressMutation.isPending || progress === job.progress}
-                    className="w-full"
+                    className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold"
                     data-testid="button-update-progress"
                   >
-                    Save Progress ({progress}%)
+                    {updateProgressMutation.isPending ? "Saving..." : `Save Progress (${progress}%)`}
                   </Button>
                 </div>
               )}
 
               {/* Action Buttons */}
-              <div className="flex gap-3 pt-4">
+              <div className="grid grid-cols-1 gap-3 pt-2">
                 {isAccepted && (
                   <Button
                     onClick={() => startJobMutation.mutate()}
                     disabled={startJobMutation.isPending}
-                    className="flex-1 bg-green-600 hover:bg-green-700 text-white"
+                    className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-semibold py-6 shadow-lg"
                     data-testid="button-start-job"
                   >
-                    <Play className="w-4 h-4 mr-2" />
-                    Start Job
+                    <Play className="w-5 h-5 mr-2" />
+                    {startJobMutation.isPending ? "Starting..." : "Start Job"}
                   </Button>
                 )}
 
@@ -342,11 +440,11 @@ export default function JobDetailsPage() {
                   <Button
                     onClick={handleCompleteJob}
                     disabled={completeJobMutation.isPending || job.progress < 100}
-                    className="flex-1 bg-green-600 hover:bg-green-700 text-white"
+                    className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-semibold py-6 shadow-lg disabled:opacity-50"
                     data-testid="button-complete-job"
                   >
-                    <CheckCircle2 className="w-4 h-4 mr-2" />
-                    Complete Job
+                    <CheckCircle2 className="w-5 h-5 mr-2" />
+                    {job.progress < 100 ? `Complete at 100% (Currently ${job.progress}%)` : completeJobMutation.isPending ? "Completing..." : "Complete Job"}
                   </Button>
                 )}
 
@@ -354,10 +452,10 @@ export default function JobDetailsPage() {
                   onClick={() => setShowCancelDialog(true)}
                   disabled={cancelJobMutation.isPending}
                   variant="outline"
-                  className="flex-1 border-red-300 text-red-600 hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-900/20"
+                  className="border-2 border-red-300 text-red-600 hover:bg-red-50 hover:border-red-400 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-900/20 font-semibold py-6"
                   data-testid="button-cancel-job"
                 >
-                  <XCircle className="w-4 h-4 mr-2" />
+                  <XCircle className="w-5 h-5 mr-2" />
                   Cancel Job
                 </Button>
               </div>
@@ -366,91 +464,125 @@ export default function JobDetailsPage() {
         )}
 
         {/* Customer Information */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <User className="w-5 h-5 text-orange-500" />
+        <Card className="border-0 shadow-lg overflow-hidden">
+          <div className="bg-gradient-to-r from-orange-50 to-red-50 dark:from-gray-800 dark:to-gray-800 px-6 py-4 border-b">
+            <h3 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+              <User className="w-5 h-5 text-orange-600" />
               Customer Information
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="flex items-center gap-3">
-              <User className="w-4 h-4 text-gray-400" />
-              <div>
-                <p className="text-sm text-gray-500 dark:text-gray-400">Customer</p>
-                <p className="font-medium text-gray-900 dark:text-white" data-testid="text-customer-name">
-                  {jobData.customerName || jobData.name || "Customer"}
-                </p>
-              </div>
-            </div>
-            {jobData.customerPhone && (
-              <div className="flex items-center gap-3">
-                <Phone className="w-4 h-4 text-gray-400" />
-                <div>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">Phone</p>
-                  <a
-                    href={`tel:${jobData.customerPhone}`}
-                    className="font-medium text-orange-600 dark:text-orange-400 hover:underline"
-                    data-testid="link-customer-phone"
-                  >
-                    {jobData.customerPhone}
-                  </a>
+            </h3>
+          </div>
+          <CardContent className="p-6">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-full bg-orange-100 dark:bg-orange-900/20 flex items-center justify-center">
+                    <User className="w-6 h-6 text-orange-600 dark:text-orange-400" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">Customer Name</p>
+                    <p className="font-semibold text-gray-900 dark:text-white text-lg" data-testid="text-customer-name">
+                      {jobData.customerName || jobData.name || "Customer"}
+                    </p>
+                  </div>
                 </div>
               </div>
-            )}
+              
+              {jobData.customerPhone && (
+                <div className="flex items-center justify-between p-4 bg-green-50 dark:bg-green-900/10 rounded-lg border border-green-200 dark:border-green-800">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-full bg-green-100 dark:bg-green-900/20 flex items-center justify-center">
+                      <Phone className="w-6 h-6 text-green-600 dark:text-green-400" />
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">Phone Number</p>
+                      <p className="font-semibold text-gray-900 dark:text-white" data-testid="link-customer-phone">
+                        {jobData.customerPhone}
+                      </p>
+                    </div>
+                  </div>
+                  <a
+                    href={`tel:${jobData.customerPhone}`}
+                    className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2"
+                  >
+                    <Phone className="w-4 h-4" />
+                    Call
+                  </a>
+                </div>
+              )}
+            </div>
           </CardContent>
         </Card>
 
         {/* Job Details */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Truck className="w-5 h-5 text-orange-500" />
-              Job Details
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Service Type</p>
-              <p className="font-medium text-gray-900 dark:text-white" data-testid="text-service-type">
-                {jobData.serviceType || jobData.service || "N/A"}
-              </p>
+        <Card className="border-0 shadow-lg overflow-hidden">
+          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-800 dark:to-gray-800 px-6 py-4 border-b">
+            <h3 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+              <Truck className="w-5 h-5 text-blue-600" />
+              Service Details
+            </h3>
+          </div>
+          <CardContent className="p-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Service Type */}
+              <div className="p-4 bg-blue-50 dark:bg-blue-900/10 rounded-lg border border-blue-200 dark:border-blue-800">
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-1 flex items-center gap-1">
+                  <Truck className="w-3 h-3" />
+                  Service Type
+                </p>
+                <p className="font-semibold text-gray-900 dark:text-white" data-testid="text-service-type">
+                  {jobData.serviceType || jobData.service || "N/A"}
+                </p>
+              </div>
+
+              {/* Price */}
+              {jobData.estimatedPrice && (
+                <div className="p-4 bg-green-50 dark:bg-green-900/10 rounded-lg border border-green-200 dark:border-green-800">
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-1 flex items-center gap-1">
+                    <DollarSign className="w-4 h-4" />
+                    Estimated Price
+                  </p>
+                  <p className="text-2xl font-bold text-green-700 dark:text-green-400" data-testid="text-price">
+                    ${jobData.estimatedPrice}
+                  </p>
+                </div>
+              )}
             </div>
 
+            {/* Location */}
             {jobData.location && (
-              <div>
-                <p className="text-sm text-gray-500 dark:text-gray-400 mb-1 flex items-center gap-2">
-                  <MapPin className="w-4 h-4" />
-                  Location
-                </p>
-                <p className="font-medium text-gray-900 dark:text-white" data-testid="text-location">
-                  {jobData.location}
-                </p>
+              <div className="mt-4 p-4 bg-purple-50 dark:bg-purple-900/10 rounded-lg border border-purple-200 dark:border-purple-800">
+                <div className="flex items-start gap-3">
+                  <MapPin className="w-5 h-5 text-purple-600 dark:text-purple-400 mt-0.5" />
+                  <div className="flex-1">
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Service Location</p>
+                    <p className="font-medium text-gray-900 dark:text-white" data-testid="text-location">
+                      {jobData.location}
+                    </p>
+                    <a
+                      href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(jobData.location)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm text-purple-600 dark:text-purple-400 hover:underline mt-2 inline-flex items-center gap-1"
+                    >
+                      <MapPin className="w-3 h-3" />
+                      Open in Maps
+                    </a>
+                  </div>
+                </div>
               </div>
             )}
 
+            {/* Description */}
             {jobData.description && (
-              <div>
-                <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Description</p>
-                <p className="text-gray-900 dark:text-white" data-testid="text-description">
+              <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Job Description</p>
+                <p className="text-gray-900 dark:text-white leading-relaxed" data-testid="text-description">
                   {jobData.description}
                 </p>
               </div>
             )}
 
-            {jobData.estimatedPrice && (
-              <div>
-                <p className="text-sm text-gray-500 dark:text-gray-400 mb-1 flex items-center gap-2">
-                  <DollarSign className="w-4 h-4" />
-                  Estimated Price
-                </p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white" data-testid="text-price">
-                  ${jobData.estimatedPrice}
-                </p>
-              </div>
-            )}
-
-            <Separator />
+            <Separator className="my-4" />
 
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
