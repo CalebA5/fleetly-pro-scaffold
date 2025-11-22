@@ -25,6 +25,11 @@ The service request schema includes normalized fields like `serviceType`, `isEme
 ### UI/UX Decisions
 The design is inspired by Uber's clean, modern aesthetic, emphasizing simplicity with a black-and-white color scheme and orange accents for CTAs. It features minimal design, bold typography, custom "enhanced-button" components, gradients for premium UI elements, and supports dark mode. An intelligent adaptive theming system switches between 4 seasonal color palettes (Winter, Spring, Summer, Autumn) and time-of-day awareness for light/dark mode, with user override options and localStorage persistence.
 
+**First-Time User Experience:**
+- **LocationPermissionModal**: Beautiful onboarding modal that prompts new users for location access 1 second after landing, featuring three key benefits (Find Nearby Operators, Faster Service, Emergency Support) with icons and descriptions. Includes reverse geocoding to convert GPS coordinates to human-readable addresses with fallback handling. User choice is persisted in localStorage to prevent repeated prompts.
+- **Custom CSS Animations**: fade-in, slide-in-up, and pulse-slow animations with configurable delays (100ms, 200ms, 300ms, 1000ms) for smooth transitions and better perceived performance.
+- **Progressive Disclosure**: System guides new users through key features without overwhelming them.
+
 ### Feature Specifications
 - **Quote-Based Negotiation System**: Competitive quote workflow where operators submit quotes (NOT instant job acceptance). Customers review quotes in the Quote Center (/customer/quotes) and can accept, decline, or counter quotes. All three operator tiers (Manual, Equipped, Professional) have integrated "Quote this Job" workflow with auto-calculated pricing based on tier-specific pricing configs. Quotes expire after 12 hours. Database-backed with operatorQuotes and operatorPricingConfigs tables. Backend endpoints: POST /api/service-requests/:id/quotes, GET /api/quotes/customer/:customerId, POST /api/quotes/:id/respond.
 - **Multi-Driver Business Management System**: Enables businesses to manage drivers, track performance, and assign services.
