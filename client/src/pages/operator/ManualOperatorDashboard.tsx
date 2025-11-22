@@ -13,6 +13,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { Operator } from "@shared/schema";
 import { TierOnlineConfirmDialog } from "@/components/TierOnlineConfirmDialog";
 import { CustomerGrouping, type CustomerGroup } from "@/components/operator/CustomerGrouping";
+import { InfoTooltip } from "@/components/ui/info-tooltip";
 
 interface ServiceRequest {
   id: number;
@@ -182,10 +183,10 @@ export default function ManualOperatorDashboard() {
                 <Snowflake style={{ width: 'clamp(1.25rem, 4vw, 1.5rem)', height: 'clamp(1.25rem, 4vw, 1.5rem)' }} className="text-green-600 dark:text-green-400" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-black dark:text-white">Manual Operator Dashboard</h1>
-                <p className="text-sm text-gray-600 dark:text-gray-400">
-                  5km Operating Radius
-                </p>
+                <div className="flex items-center gap-2">
+                  <h1 className="text-2xl font-bold text-black dark:text-white">Manual Operator Dashboard</h1>
+                  <InfoTooltip content="Manual operators can only accept jobs within 5 kilometers of their registered home address. This ensures efficient service delivery and prevents operator clashing in neighborhoods." />
+                </div>
               </div>
             </div>
             
@@ -294,12 +295,12 @@ export default function ManualOperatorDashboard() {
                     <Users style={{ width: 'clamp(1rem, 3vw, 1.25rem)', height: 'clamp(1rem, 3vw, 1.25rem)' }} className="text-orange-600 dark:text-orange-400" />
                   </div>
                   <div>
-                    <CardTitle className="text-black dark:text-white">
-                      Nearby Customer Groups
-                    </CardTitle>
-                    <CardDescription className="text-gray-600 dark:text-gray-400">
-                      Accept multiple customers in the same area for maximum efficiency
-                    </CardDescription>
+                    <div className="flex items-center gap-2">
+                      <CardTitle className="text-black dark:text-white">
+                        Nearby Customer Groups
+                      </CardTitle>
+                      <InfoTooltip content="Accept multiple customers in the same area for maximum efficiency. Customer groups expire when slots fill or after the time limit." />
+                    </div>
                   </div>
                 </div>
                 <Badge className="bg-orange-500 text-white">
