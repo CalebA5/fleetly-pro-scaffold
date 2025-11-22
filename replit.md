@@ -54,8 +54,9 @@ The design is inspired by Uber's clean, modern aesthetic, emphasizing simplicity
 - **Operator-User Linkage Security**: POST `/api/operators` enforces authenticated session requirement (401 if no session) and REJECTS operator creation if form email doesn't match session email (403 with debug info). Operator records ALWAYS use `req.session.user.email` for operator email (not form-submitted email), preventing orphaned operator profiles and unauthorized operator creation. Links operators to users via `req.session.user.userId` for secure account association.
 - **Accurate Location Positioning System**: Comprehensive location handling on the homepage with smart auto-population and manual control. Features include:
   - **Location Icon Button**: Always fetches fresh GPS coordinates with `enableHighAccuracy: true` and `maximumAge: 0` to ensure accurate positioning
-  - **X Clear Button**: Manual clear functionality with `userHasCleared` flag that prevents unwanted auto-refill from LocationContext updates
-  - **Smart Auto-Population**: Auto-fills pickup field with most recent GPS location ONLY when user hasn't manually cleared it
+  - **X Clear Button**: Manual clear functionality with `userHasCleared` flag that prevents unwanted auto-refill from LocationContext updates. Fixed blur/doubling visual issue by removing redundant transition classes.
+  - **Smart Auto-Population**: Auto-fills pickup field with most recent GPS location ONLY when user hasn't manually cleared it. On page load, automatically restores last used location from localStorage (whether from location sharing or manual entry).
+  - **Persistent Location Storage**: Stores both formatted address and coordinates in localStorage, automatically restoring them on page reload for seamless UX
   - **50km Radius Filtering**: "See Available Operators" button filters operators within 50km using Haversine distance calculation, with radius parameter included in both direct navigation and geocode fallback flows
   - **Smart Map Centering**: "Browse Other Operators" implements 4-level fallback priority: (1) pickup field with coordinates, (2) geocode pickup address, (3) current GPS location, (4) prompt for location access or manual browse
   - **Real-Time Location Hook**: Created `useRealtimeLocation.ts` with `watchPosition` API for continuous location tracking while app is in use
