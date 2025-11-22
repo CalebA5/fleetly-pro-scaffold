@@ -44,22 +44,27 @@ const Index = () => {
     }
   }, [isAuthLoading]);
 
-  // Auto-fill pickup with user's location address when available
+  // Auto-fill pickup with user's location address when available (only once on mount)
+  const [hasAutoFilled, setHasAutoFilled] = useState(false);
+  
   useEffect(() => {
-    if (formattedAddress && !pickup) {
+    if (formattedAddress && !pickup && !hasAutoFilled) {
       setPickup(formattedAddress);
+      setHasAutoFilled(true);
       if (location) {
         setCurrentLat(location.coords.latitude);
         setCurrentLon(location.coords.longitude);
       }
     }
-  }, [formattedAddress, location, pickup]);
+  }, [formattedAddress, location, pickup, hasAutoFilled]);
 
-  // Clear location handler
+  // Clear location handler - prevents auto-refill by marking as user action
   const handleClearLocation = () => {
     setPickup("");
     setCurrentLat(null);
     setCurrentLon(null);
+    // Prevent auto-refill after user explicitly clears
+    setHasAutoFilled(true);
   };
 
   const handleAuthClick = (tab: "signin" | "signup", role: "customer" | "operator" = "customer") => {
