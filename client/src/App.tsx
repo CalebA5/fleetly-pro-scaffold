@@ -20,6 +20,10 @@ import { BusinessDashboard } from "./pages/operator/BusinessDashboard";
 import ManualOperatorDashboard from "./pages/operator/ManualOperatorDashboard";
 import EquippedOperatorDashboard from "./pages/operator/EquippedOperatorDashboard";
 import { HelpSupport } from "./pages/HelpSupport";
+import { UserGuide } from "./pages/UserGuide";
+import { OperatorGuide } from "./pages/OperatorGuide";
+import { CommunityForum } from "./pages/CommunityForum";
+import { BlogUpdates } from "./pages/BlogUpdates";
 import { Profile } from "./pages/Profile";
 import { Notifications } from "./pages/Notifications";
 import EmergencySOS from "./pages/EmergencySOS";
@@ -48,6 +52,10 @@ const App = () => (
               <Route path="/emergency-tracking/:emergencyId" component={EmergencyTracking} />
               <Route path="/test-operator-tiles" component={TestOperatorTiles} />
               <Route path="/help" component={HelpSupport} />
+              <Route path="/user-guide" component={UserGuide} />
+              <Route path="/operator-guide" component={OperatorGuide} />
+              <Route path="/community-forum" component={CommunityForum} />
+              <Route path="/blog" component={BlogUpdates} />
               <Route path="/profile" component={Profile} />
               <Route path="/notifications" component={Notifications} />
               

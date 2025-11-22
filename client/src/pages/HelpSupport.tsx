@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link, useLocation } from "wouter";
 import { useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/enhanced-button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -28,6 +29,7 @@ import {
 export const HelpSupport = () => {
   const { toast } = useToast();
   const { user } = useAuth();
+  const [, setLocation] = useLocation();
   const [showAuthDialog, setShowAuthDialog] = useState(false);
   const [authTab, setAuthTab] = useState<"signin" | "signup">("signin");
   
@@ -344,22 +346,30 @@ export const HelpSupport = () => {
                 <CardTitle className="text-black dark:text-white">Additional Resources</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                <Button variant="ghost" className="w-full justify-start" data-testid="link-user-guide">
-                  <ChevronRight className="w-4 h-4 mr-2" />
-                  User Guide
-                </Button>
-                <Button variant="ghost" className="w-full justify-start" data-testid="link-operator-guide">
-                  <ChevronRight className="w-4 h-4 mr-2" />
-                  Operator Guide
-                </Button>
-                <Button variant="ghost" className="w-full justify-start" data-testid="link-community">
-                  <ChevronRight className="w-4 h-4 mr-2" />
-                  Community Forum
-                </Button>
-                <Button variant="ghost" className="w-full justify-start" data-testid="link-blog">
-                  <ChevronRight className="w-4 h-4 mr-2" />
-                  Blog & Updates
-                </Button>
+                <Link href="/user-guide">
+                  <Button variant="ghost" className="w-full justify-start" data-testid="link-user-guide">
+                    <ChevronRight className="w-4 h-4 mr-2" />
+                    User Guide
+                  </Button>
+                </Link>
+                <Link href="/operator-guide">
+                  <Button variant="ghost" className="w-full justify-start" data-testid="link-operator-guide">
+                    <ChevronRight className="w-4 h-4 mr-2" />
+                    Operator Guide
+                  </Button>
+                </Link>
+                <Link href="/community-forum">
+                  <Button variant="ghost" className="w-full justify-start" data-testid="link-community">
+                    <ChevronRight className="w-4 h-4 mr-2" />
+                    Community Forum
+                  </Button>
+                </Link>
+                <Link href="/blog">
+                  <Button variant="ghost" className="w-full justify-start" data-testid="link-blog">
+                    <ChevronRight className="w-4 h-4 mr-2" />
+                    Blog & Updates
+                  </Button>
+                </Link>
               </CardContent>
             </Card>
           </div>

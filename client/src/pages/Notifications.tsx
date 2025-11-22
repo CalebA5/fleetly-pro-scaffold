@@ -1,11 +1,13 @@
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowLeft, CloudSnow, Cloud, AlertTriangle, Calendar, MapPin } from "lucide-react";
+import { ArrowLeft, CloudSnow, Cloud, AlertTriangle, Calendar, MapPin, MapPinOff } from "lucide-react";
 import { format } from "date-fns";
+import { useLocation as useLocationContext } from "@/contexts/LocationContext";
 
 interface WeatherAlert {
   id: number;
@@ -24,6 +26,19 @@ interface WeatherAlert {
 }
 
 export function Notifications() {
+  const { hasLocation } = useLocationContext();
+  const [locationDenied, setLocationDenied] = useState(false);
+
+  useEffect(() => {
+    if ("permissions" in navigator) {
+      navigator.permissions.query({ name: "geolocation" }).then((result) => {
+        if (result.state === "denied") {
+          setLocationDenied(true);
+        }
+      });
+    }
+  }, []);
+
   const { data: alerts, isLoading } = useQuery<WeatherAlert[]>({
     queryKey: ['/api/weather/alerts'],
     refetchInterval: 4 * 60 * 60 * 1000, // Refresh every 4 hours
@@ -90,9 +105,46 @@ export function Notifications() {
             <h1 className="text-2xl md:text-4xl font-bold bg-gradient-to-r from-orange-600 to-orange-500 bg-clip-text text-transparent" data-testid="text-page-title">
               Weather Alerts
             </h1>
-            <p className="text-sm md:text-base text-muted-foreground">Service-relevant weather notifications</p>
+            <p className="text-sm md:text-base text-muted-foreground">Service-relevant weather notifications for your area</p>
           </div>
         </div>
+
+        {/* Location Permission Prompt */}
+        {(!hasLocation || locationDenied) && (
+          <Card className="mb-6 border-orange-200 dark:border-orange-800 bg-orange-50 dark:bg-orange-900/20">
+            <CardContent className="pt-6">
+              <div className="flex items-start gap-3">
+                <MapPinOff className="w-5 h-5 text-orange-600 dark:text-orange-400 flex-shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <h3 className="font-semibold text-black dark:text-white mb-1">Enable Location Services</h3>
+                  <p className="text-sm text-gray-700 dark:text-gray-300 mb-3">
+                    To get accurate weather alerts for your area and improve operator matching, please enable location access.
+                  </p>
+                  <Button 
+                    size="sm" 
+                    className="bg-orange-600 text-white hover:bg-orange-700 dark:bg-orange-500 dark:hover:bg-orange-600"
+                    onClick={() => {
+                      if ("geolocation" in navigator) {
+                        navigator.geolocation.getCurrentPosition(
+                          () => {
+                            setLocationDenied(false);
+                            window.location.reload();
+                          },
+                          () => {
+                            setLocationDenied(true);
+                          }
+                        );
+                      }
+                    }}
+                    data-testid="button-enable-location-alerts"
+                  >
+                    Allow Location
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Active Alerts - Compact List */}
         {activeAlerts.length > 0 && (
