@@ -6,9 +6,10 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/co
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Users, MapPin, DollarSign, Clock, ChevronDown, MessageCircle, Phone, CheckCircle, Minimize2 } from "lucide-react";
+import { Users, MapPin, DollarSign, Clock, ChevronDown, MessageCircle, Phone, CheckCircle, Minimize2, Check } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
+import { Checkbox } from "@/components/ui/checkbox";
 
 export interface CustomerGroup {
   id: string;
@@ -47,6 +48,8 @@ export function CustomerGrouping({
   const [minimizedGroups, setMinimizedGroups] = useState<string[]>([]);
   const [selectedGroup, setSelectedGroup] = useState<CustomerGroup | null>(null);
   const [contactMessage, setContactMessage] = useState("");
+  // Track selected customers per group: Map<groupId, Set<customerIndex>>
+  const [selectedCustomers, setSelectedCustomers] = useState<Map<string, Set<number>>>(new Map());
 
   const toggleGroup = (groupId: string) => {
     setExpandedGroups(prev =>
@@ -69,6 +72,73 @@ export function CustomerGrouping({
     toast({
       title: "Group Minimized",
       description: "This customer group has been hidden from your view",
+    });
+  };
+
+  const toggleCustomerSelection = (groupId: string, customerIndex: number) => {
+    setSelectedCustomers(prev => {
+      const newMap = new Map(prev);
+      const groupSelections = new Set(newMap.get(groupId) || []);
+      
+      if (groupSelections.has(customerIndex)) {
+        groupSelections.delete(customerIndex);
+      } else {
+        groupSelections.add(customerIndex);
+      }
+      
+      if (groupSelections.size === 0) {
+        newMap.delete(groupId);
+      } else {
+        newMap.set(groupId, groupSelections);
+      }
+      
+      return newMap;
+    });
+  };
+
+  const handleAcceptSelected = (groupId: string) => {
+    const selectedSet = selectedCustomers.get(groupId);
+    const group = groups.find(g => g.id === groupId);
+    
+    if (!selectedSet || selectedSet.size === 0 || !group) {
+      toast({
+        title: "No customers selected",
+        description: "Please select at least one customer to accept",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    toast({
+      title: "Customers Accepted",
+      description: `Accepted ${selectedSet.size} of ${group.customerCount} customers`,
+    });
+
+    // Clear selections for this group
+    setSelectedCustomers(prev => {
+      const newMap = new Map(prev);
+      newMap.delete(groupId);
+      return newMap;
+    });
+
+    // TODO: Send to backend with selected customer indices
+    console.log(`Accepted customers from group ${groupId}:`, Array.from(selectedSet));
+  };
+
+  const selectAllCustomers = (groupId: string, customerCount: number) => {
+    setSelectedCustomers(prev => {
+      const newMap = new Map(prev);
+      const allIndices = new Set(Array.from({ length: customerCount }, (_, i) => i));
+      newMap.set(groupId, allIndices);
+      return newMap;
+    });
+  };
+
+  const deselectAllCustomers = (groupId: string) => {
+    setSelectedCustomers(prev => {
+      const newMap = new Map(prev);
+      newMap.delete(groupId);
+      return newMap;
     });
   };
 

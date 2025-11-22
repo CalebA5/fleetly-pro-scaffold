@@ -1,4 +1,4 @@
-import { Home, Search, Heart, User, FileText, LogIn, UserPlus } from "lucide-react";
+import { Home, Search, Heart, User, FileText, LogIn, UserPlus, Truck } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
 import { useState, useEffect, useRef } from "react";
@@ -74,6 +74,12 @@ export function MobileBottomNav() {
       testId: "nav-browse"
     },
     {
+      icon: Truck,
+      label: "Drive & Earn",
+      path: "/drive-earn",
+      testId: "nav-drive-earn"
+    },
+    {
       icon: LogIn,
       label: "Sign In",
       path: "/signin",
@@ -94,7 +100,7 @@ export function MobileBottomNav() {
         isVisible ? "translate-y-0" : "translate-y-full"
       )}
     >
-      <div className={cn("grid h-16", user ? "grid-cols-5" : "grid-cols-4")}>
+      <div className={cn("grid h-16", user ? "grid-cols-5" : "grid-cols-5")}>
         {navItems.map((item) => {
           const isActive = location === item.path || 
             (item.path !== "/" && location.startsWith(item.path));
