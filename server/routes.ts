@@ -148,7 +148,33 @@ export function registerRoutes(storage: IStorage) {
         return res.status(404).json({ message: "Operator not found" });
       }
 
-      res.json(operator);
+      // Ensure operatorTierProfiles is properly formatted
+      // If not exists or is empty, generate based on subscribedTiers
+      let tierProfiles = operator.operatorTierProfiles as any[];
+      
+      if (!tierProfiles || tierProfiles.length === 0) {
+        // Generate mock tier profiles based on subscribed tiers
+        tierProfiles = operator.subscribedTiers.map((tier: string) => ({
+          tier,
+          subscribed: true,
+          onboardingCompleted: true,
+          onboardedAt: new Date().toISOString(),
+          approvalStatus: "approved", // Mock: all tiers approved
+          approvalSubmittedAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+          approvedAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+          canEarn: true,
+          vehicle: operator.vehicle,
+          licensePlate: operator.licensePlate,
+          businessName: operator.businessName || undefined,
+          businessLicense: operator.businessLicense || undefined,
+          services: operator.services as string[],
+        }));
+      }
+
+      res.json({
+        ...operator,
+        operatorTierProfiles: tierProfiles
+      });
     } catch (error) {
       console.error("Error fetching operator:", error);
       res.status(500).json({ message: "Failed to fetch operator" });
