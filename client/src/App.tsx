@@ -80,7 +80,6 @@ const App = () => (
               
               {/* Public tier selection/onboarding - no auth required */}
               <Route path="/drive-earn" component={DriveEarn} />
-              <Route path="/operator/onboarding" component={OperatorOnboarding} />
               
               {/* Protected operator dashboards - require operator auth */}
               <Route path="/business">

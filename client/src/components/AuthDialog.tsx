@@ -92,7 +92,7 @@ export const AuthDialog = ({
         onAuthSuccess();
       } else if (signupRole === "operator") {
         // Only redirect if no callback (default behavior)
-        setLocation("/operator/onboarding");
+        setLocation("/drive-earn");
       }
     } catch (error) {
       toast({

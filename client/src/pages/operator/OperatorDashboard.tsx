@@ -13,9 +13,9 @@ const OperatorHomeRouter = () => {
   const [, setLocation] = useLocation();
 
   useEffect(() => {
-    // Redirect to onboarding if profile not complete
+    // Redirect to Drive & Earn page if profile not complete
     if (user?.role === "operator" && !user.operatorProfileComplete) {
-      setLocation("/operator/onboarding");
+      setLocation("/drive-earn");
     }
   }, [user, setLocation]);
 

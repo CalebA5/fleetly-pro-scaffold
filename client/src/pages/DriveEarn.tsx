@@ -141,7 +141,7 @@ export const DriveEarn = () => {
             <Button
               variant="hero"
               size="lg"
-              onClick={() => setLocation("/operator/onboarding")}
+              onClick={() => setLocation("/drive-earn")}
               data-testid="button-start-onboarding"
             >
               <Plus className="w-5 h-5 mr-2" />
@@ -373,7 +373,7 @@ export const DriveEarn = () => {
                         <Button
                           variant="hero"
                           className="w-full"
-                          onClick={() => setLocation("/operator/onboarding")}
+                          onClick={() => window.location.href = "/operator/onboarding?tier=" + tier}
                           data-testid={`button-add-tier-${tier}`}
                         >
                           <Plus className="w-4 h-4 mr-2" />

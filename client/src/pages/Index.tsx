@@ -39,7 +39,7 @@ const Index = () => {
   const handleDriveAndEarn = () => {
     if (isAuthenticated) {
       // Always go to Drive & Earn page (tier selection/management)
-      setLocation("/operator/onboarding");
+      setLocation("/drive-earn");
     } else {
       // Show signup dialog for operator role
       handleAuthClick("signup", "operator");
@@ -270,19 +270,22 @@ const Index = () => {
                   <div className="h-px bg-gray-200 dark:bg-gray-700 ml-6"></div>
                   <div className="flex items-center gap-3">
                     <div className="w-3 h-3 rounded bg-black dark:bg-white flex-shrink-0"></div>
-                    <Input
-                      placeholder="Enter dropoff location (optional)"
-                      value={dropoff}
-                      onChange={(e) => setDropoff(e.target.value)}
-                      className="flex-1 border-0 bg-gray-50 dark:bg-gray-700 focus-visible:ring-1 focus-visible:ring-black dark:focus-visible:ring-white text-base"
-                      data-testid="input-dropoff-location"
-                    />
+                    <div className="flex-1">
+                      <AutocompleteLocation
+                        value={dropoff}
+                        onChange={setDropoff}
+                        onSelectLocation={() => {}}
+                        placeholder="Enter dropoff location (optional)"
+                        testId="input-dropoff-location"
+                        icon={false}
+                      />
+                    </div>
                   </div>
                 </div>
                 <Button 
                   size="lg" 
                   onClick={handleSearchService}
-                  className="w-full bg-black text-white hover:bg-gray-800 dark:bg-white dark:text-black dark:hover:bg-gray-200 font-semibold"
+                  className="w-full mt-4 bg-black text-white hover:bg-gray-800 dark:bg-white dark:text-black dark:hover:bg-gray-200 font-semibold"
                   data-testid="button-search-services"
                 >
                   <Search className="mr-2 w-5 h-5" />
