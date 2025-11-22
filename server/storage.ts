@@ -133,6 +133,9 @@ export interface IStorage {
   getQuotesByOperator(operatorId: string): Promise<OperatorQuote[]>;
   updateQuote(quoteId: string, updates: Partial<InsertOperatorQuote>): Promise<OperatorQuote | undefined>;
   getOperatorQuoteForRequest(operatorId: string, serviceRequestId: string): Promise<OperatorQuote | undefined>;
+
+  // Alternative operator matching (for declined jobs)
+  findAlternativeOperators(serviceRequestId: string, excludeOperatorIds?: string[]): Promise<Array<Operator & { distanceKm: number }>>;
 }
 
 export class MemStorage implements IStorage {
@@ -1054,5 +1057,83 @@ export class MemStorage implements IStorage {
     return this.quotes.find(
       (q) => q.operatorId === operatorId && q.serviceRequestId === serviceRequestId
     );
+  }
+
+  async findAlternativeOperators(serviceRequestId: string, excludeOperatorIds: string[] = []): Promise<Array<Operator & { distanceKm: number }>> {
+    // Get the service request to extract location and service type
+    const request = this.serviceRequests.find((r) => r.requestId === serviceRequestId);
+    if (!request || !request.latitude || !request.longitude) {
+      return [];
+    }
+
+    const requestLat = parseFloat(request.latitude.toString());
+    const requestLon = parseFloat(request.longitude.toString());
+
+    // Haversine formula to calculate distance in kilometers
+    const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
+      const R = 6371; // Earth's radius in km
+      const dLat = (lat2 - lat1) * Math.PI / 180;
+      const dLon = (lon2 - lon1) * Math.PI / 180;
+      const a = 
+        Math.sin(dLat/2) * Math.sin(dLat/2) +
+        Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+        Math.sin(dLon/2) * Math.sin(dLon/2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+      return R * c;
+    };
+
+    // Get all operators that offer this service type
+    const matchingOperators = this.operators.filter((op) => {
+      // Exclude already-declined operators
+      if (excludeOperatorIds.includes(op.operatorId)) return false;
+
+      // Check if operator offers this service type
+      const services = Array.isArray(op.services) ? op.services : [];
+      if (!services.includes(request.serviceType)) return false;
+
+      // Check if operator has valid location
+      if (!op.latitude || !op.longitude) return false;
+
+      return true;
+    });
+
+    // Calculate distance and filter by tier operating radius
+    const operatorsWithDistance = matchingOperators.map((op) => {
+      const opLat = parseFloat(op.latitude!.toString());
+      const opLon = parseFloat(op.longitude!.toString());
+      const distanceKm = calculateDistance(requestLat, requestLon, opLat, opLon);
+
+      return {
+        ...op,
+        distanceKm
+      };
+    }).filter((op) => {
+      // Filter by tier operating radius
+      const tier = op.activeTier || op.operatorTier || 'manual';
+      const tierInfo = {
+        professional: null, // No radius restriction
+        equipped: 15, // 15km radius
+        manual: 5, // 5km radius from home
+      };
+      
+      const maxRadius = tierInfo[tier as keyof typeof tierInfo];
+      if (maxRadius === null) return true; // Professional - no limit
+      
+      return op.distanceKm <= maxRadius;
+    });
+
+    // Sort by rating (highest first), then by distance (closest first)
+    operatorsWithDistance.sort((a, b) => {
+      const ratingA = parseFloat(a.rating?.toString() || '0');
+      const ratingB = parseFloat(b.rating?.toString() || '0');
+      
+      if (ratingA !== ratingB) {
+        return ratingB - ratingA; // Higher rating first
+      }
+      
+      return a.distanceKm - b.distanceKm; // Closer first if ratings equal
+    });
+
+    return operatorsWithDistance;
   }
 }

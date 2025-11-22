@@ -13,8 +13,8 @@ import { OperatorMap } from "./pages/customer/OperatorMap";
 import { OperatorProfile } from "./pages/customer/OperatorProfile";
 import { AIAssist } from "./pages/customer/AIAssist";
 import { Favorites } from "./pages/customer/Favorites";
-import { Requests } from "./pages/customer/Requests";
 import QuoteCenter from "./pages/customer/QuoteCenter";
+import RequestStatus from "./pages/customer/RequestStatus";
 import { OperatorOnboarding } from "./pages/operator/OperatorOnboarding";
 import { BusinessDashboard } from "./pages/operator/BusinessDashboard";
 import ManualOperatorDashboard from "./pages/operator/ManualOperatorDashboard";
@@ -76,7 +76,7 @@ const App = () => (
               <Route path="/customer/operator-map" component={OperatorMap} />
               <Route path="/customer/operator-profile/:operatorId" component={OperatorProfile} />
               <Route path="/customer/favorites" component={Favorites} />
-              <Route path="/customer/requests" component={Requests} />
+              <Route path="/customer/requests" component={RequestStatus} />
               <Route path="/customer/ai-assist" component={AIAssist} />
               <Route path="/customer/create-request" component={CreateServiceRequest} />
               <Route path="/customer/service-request" component={ServiceRequest} />
@@ -84,6 +84,7 @@ const App = () => (
               <Route path="/customer/history" component={JobHistory} />
               <Route path="/customer/profile" component={CustomerProfile} />
               <Route path="/customer/quotes" component={QuoteCenter} />
+              <Route path="/customer/request-status" component={RequestStatus} />
               
               {/* Public tier selection/onboarding - no auth required */}
               <Route path="/drive-earn" component={DriveEarn} />

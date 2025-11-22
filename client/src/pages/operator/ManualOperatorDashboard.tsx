@@ -18,6 +18,8 @@ import { InfoTooltip } from "@/components/ui/info-tooltip";
 import { OperatorStatusToggle } from "@/components/operator/OperatorStatusToggle";
 import type { UrgentRequest } from "@/components/operator/UrgentRequestNotification";
 import { QuoteModal } from "@/components/operator/QuoteModal";
+import { RequestDetailsModal } from "@/components/operator/RequestDetailsModal";
+import { DeclineReasonModal } from "@/components/operator/DeclineReasonModal";
 
 interface ServiceRequest {
   id: number;
@@ -42,6 +44,8 @@ export default function ManualOperatorDashboard() {
   const [requestsOpen, setRequestsOpen] = useState(true);
   const [jobsOpen, setJobsOpen] = useState(true);
   const [quoteModalOpen, setQuoteModalOpen] = useState(false);
+  const [requestDetailsOpen, setRequestDetailsOpen] = useState(false);
+  const [declineModalOpen, setDeclineModalOpen] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState<any>(null);
   
   // ALL MOCK DATA REMOVED - Dashboard is now 100% dynamic
@@ -820,6 +824,35 @@ export default function ManualOperatorDashboard() {
         />
       )}
       
+      {/* Request Details Modal */}
+      {selectedRequest && (
+        <RequestDetailsModal
+          open={requestDetailsOpen}
+          onOpenChange={setRequestDetailsOpen}
+          request={selectedRequest}
+          onQuote={(req) => {
+            setSelectedRequest(req);
+            setQuoteModalOpen(true);
+          }}
+          onDecline={(req) => {
+            setSelectedRequest(req);
+            setDeclineModalOpen(true);
+          }}
+        />
+      )}
+
+      {/* Decline Reason Modal */}
+      {selectedRequest && (
+        <DeclineReasonModal
+          open={declineModalOpen}
+          onOpenChange={setDeclineModalOpen}
+          request={selectedRequest}
+          operatorId={operatorId}
+          operatorName={user?.name || "Manual Operator"}
+          tier="manual"
+        />
+      )}
+
       <MobileBottomNav />
     </div>
   );

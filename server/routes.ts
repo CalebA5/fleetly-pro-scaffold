@@ -680,9 +680,41 @@ export function registerRoutes(storage: IStorage) {
   });
 
   router.get("/api/service-requests", async (req, res) => {
-    const customerId = req.query.customerId as string | undefined;
-    const requests = await storage.getServiceRequests(customerId);
-    res.json(requests);
+    try {
+      const customerId = req.query.customerId as string | undefined;
+      
+      // CRITICAL SECURITY: Enforce authentication and customer ownership
+      if (!req.session?.userId) {
+        return res.status(401).json({ error: "Unauthorized - no session" });
+      }
+      
+      // Get the logged-in user's customer record
+      const userCustomer = await db.query.customers.findFirst({
+        where: eq(customers.userId, req.session.userId)
+      });
+      
+      // If customerId is provided, verify it matches the logged-in customer
+      if (customerId) {
+        if (!userCustomer || userCustomer.customerId !== customerId) {
+          return res.status(403).json({ error: "Forbidden - cannot access other customer's requests" });
+        }
+        
+        const requests = await storage.getServiceRequests(customerId);
+        return res.json(requests);
+      }
+      
+      // If no customerId provided but user is authenticated, use their customerId
+      if (userCustomer) {
+        const requests = await storage.getServiceRequests(userCustomer.customerId);
+        return res.json(requests);
+      }
+      
+      // No customerId and not a customer - return empty array
+      return res.json([]);
+    } catch (error) {
+      console.error("Error fetching service requests:", error);
+      return res.status(500).json({ error: "Failed to fetch service requests" });
+    }
   });
 
   router.get("/api/service-requests/for-operator/:operatorId", async (req, res) => {
@@ -2888,6 +2920,432 @@ export function registerRoutes(storage: IStorage) {
     } catch (error) {
       console.error("Error responding to quote:", error);
       res.status(500).json({ message: "Failed to respond to quote" });
+    }
+  });
+
+  // Operator declines a service request with reason
+  router.post("/api/service-requests/:requestId/decline", async (req, res) => {
+    try {
+      const { requestId } = req.params;
+      const { operatorId, operatorName, tier, declineReason, declineNotes } = req.body;
+      
+      if (!operatorId || !tier || !declineReason) {
+        return res.status(400).json({ message: "Missing required fields: operatorId, tier, declineReason" });
+      }
+      
+      // Validate decline reason
+      const validReasons = ["distance", "budget", "nature_of_job", "other"];
+      if (!validReasons.includes(declineReason)) {
+        return res.status(400).json({ message: "Invalid decline reason. Must be one of: distance, budget, nature_of_job, other" });
+      }
+      
+      // Get the service request
+      const request = await db.select()
+        .from(serviceRequests)
+        .where(eq(serviceRequests.requestId, requestId))
+        .limit(1);
+      
+      if (request.length === 0) {
+        return res.status(404).json({ message: "Service request not found" });
+      }
+      
+      // Create a declined quote record for tracking
+      const quoteId = `quote_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      const now = new Date();
+      
+      await db.insert(operatorQuotes).values({
+        quoteId,
+        serviceRequestId: requestId,
+        operatorId,
+        operatorName: operatorName || 'Unknown Operator',
+        tier,
+        amount: "0", // Declined, so no quote amount
+        status: "operator_declined",
+        declineReason,
+        declineNotes: declineNotes || null,
+        operatorAccepted: 0,
+        respondedAt: now,
+        expiresAt: now, // Already expired since declined
+        history: [{
+          action: "operator_declined",
+          timestamp: now.toISOString(),
+          actor: operatorId,
+          reason: declineReason,
+          notes: declineNotes
+        }]
+      });
+      
+      // Update service request status to operator_declined
+      await db.update(serviceRequests)
+        .set({
+          status: "operator_declined",
+          respondedAt: now,
+          decisionAt: now
+        })
+        .where(eq(serviceRequests.requestId, requestId));
+      
+      res.json({ 
+        message: "Job declined", 
+        declineReason, 
+        declineNotes,
+        quoteId 
+      });
+    } catch (error) {
+      console.error("Error declining service request:", error);
+      res.status(500).json({ message: "Failed to decline service request" });
+    }
+  });
+
+  // Operator submits quote AND accepts job simultaneously (enhanced workflow)
+  router.post("/api/service-requests/:requestId/quote-and-accept", async (req, res) => {
+    try {
+      const { requestId } = req.params;
+      const { operatorId, operatorName, tier, amount, breakdown, notes } = req.body;
+      
+      if (!operatorId || !tier || !amount) {
+        return res.status(400).json({ message: "Missing required fields: operatorId, tier, amount" });
+      }
+      
+      // Get the service request
+      const request = await db.select()
+        .from(serviceRequests)
+        .where(eq(serviceRequests.requestId, requestId))
+        .limit(1);
+      
+      if (request.length === 0) {
+        return res.status(404).json({ message: "Service request not found" });
+      }
+      
+      // Create quote with operator_accepted status
+      const quoteId = `quote_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      const now = new Date();
+      const expiresAt = new Date(now.getTime() + 12 * 60 * 60 * 1000); // 12 hours from now
+      
+      const newQuote = await db.insert(operatorQuotes).values({
+        quoteId,
+        serviceRequestId: requestId,
+        operatorId,
+        operatorName: operatorName || 'Unknown Operator',
+        tier,
+        amount: amount.toString(),
+        breakdown: breakdown || null,
+        notes: notes || null,
+        status: "operator_accepted", // Operator has accepted
+        operatorAccepted: 1, // Flag set to true
+        expiresAt,
+        history: [{
+          action: "quote_and_accept",
+          timestamp: now.toISOString(),
+          actor: operatorId,
+          amount
+        }]
+      }).returning();
+      
+      // Create accepted job immediately
+      const acceptedJobId = `job_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      
+      await db.insert(acceptedJobs).values({
+        acceptedJobId,
+        serviceRequestId: requestId,
+        operatorId,
+        operatorName: operatorName || 'Unknown Operator',
+        tier,
+        status: "accepted",
+        jobData: request[0],
+        jobSourceId: requestId,
+        progress: 0,
+        agreedPrice: amount.toString()
+      });
+      
+      // Update service request status to operator_accepted
+      await db.update(serviceRequests)
+        .set({
+          status: "operator_accepted",
+          operatorId,
+          operatorName: operatorName || 'Unknown Operator',
+          respondedAt: now,
+          decisionAt: now,
+          selectedQuoteId: quoteId,
+          quoteStatus: "decided",
+          quoteCount: sql`${serviceRequests.quoteCount} + 1`
+        })
+        .where(eq(serviceRequests.requestId, requestId));
+      
+      res.json({ 
+        message: "Quote submitted and job accepted", 
+        quoteId,
+        acceptedJobId,
+        quote: newQuote[0]
+      });
+    } catch (error) {
+      console.error("Error submitting quote and accepting job:", error);
+      res.status(500).json({ message: "Failed to submit quote and accept job" });
+    }
+  });
+
+  // Emergency broadcast - send emergency request to all nearby operators
+  router.post("/api/service-requests/:requestId/emergency-broadcast", async (req, res) => {
+    try {
+      const { requestId } = req.params;
+      const { radiusKm = 25 } = req.body; // Default 25km radius for emergencies
+      
+      // Get the service request
+      const request = await db.select()
+        .from(serviceRequests)
+        .where(eq(serviceRequests.requestId, requestId))
+        .limit(1);
+      
+      if (request.length === 0) {
+        return res.status(404).json({ message: "Service request not found" });
+      }
+      
+      const reqData = request[0];
+      
+      if (!reqData.isEmergency) {
+        return res.status(400).json({ message: "This endpoint is only for emergency requests" });
+      }
+      
+      if (!reqData.latitude || !reqData.longitude) {
+        return res.status(400).json({ message: "Service request has no location data" });
+      }
+      
+      const requestLat = parseFloat(reqData.latitude.toString());
+      const requestLon = parseFloat(reqData.longitude.toString());
+      
+      // Haversine formula to calculate distance in kilometers
+      const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
+        const R = 6371; // Earth's radius in km
+        const dLat = (lat2 - lat1) * Math.PI / 180;
+        const dLon = (lon2 - lon1) * Math.PI / 180;
+        const a = 
+          Math.sin(dLat/2) * Math.sin(dLat/2) +
+          Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+          Math.sin(dLon/2) * Math.sin(dLon/2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        return R * c;
+      };
+      
+      // Get all operators that offer this service type
+      const allOperators = await db.select().from(operators);
+      
+      const nearbyOperators = allOperators.filter((op) => {
+        // Check if operator offers this service type
+        const services = Array.isArray(op.services) ? op.services : [];
+        if (!services.includes(reqData.serviceType)) return false;
+        
+        // Check if operator has valid location
+        if (!op.latitude || !op.longitude) return false;
+        
+        // Calculate distance
+        const opLat = parseFloat(op.latitude.toString());
+        const opLon = parseFloat(op.longitude.toString());
+        const distanceKm = calculateDistance(requestLat, requestLon, opLat, opLon);
+        
+        // Filter by emergency broadcast radius (typically larger than normal)
+        return distanceKm <= radiusKm;
+      });
+      
+      // Calculate priority score for each operator and create dispatch queue entries
+      const dispatchEntries = [];
+      const now = new Date();
+      const expiryTime = new Date(now.getTime() + 15 * 60 * 1000); // 15 minutes to respond
+      
+      for (let i = 0; i < nearbyOperators.length; i++) {
+        const op = nearbyOperators[i];
+        const opLat = parseFloat(op.latitude!.toString());
+        const opLon = parseFloat(op.longitude!.toString());
+        const distanceKm = calculateDistance(requestLat, requestLon, opLat, opLon);
+        const rating = parseFloat(op.rating?.toString() || '0');
+        
+        // Get operator's tier stats for average response time (if available)
+        const tier = op.activeTier || op.operatorTier || 'manual';
+        const tierStats = await db.select()
+          .from(operatorTierStats)
+          .where(and(
+            eq(operatorTierStats.operatorId, op.operatorId),
+            eq(operatorTierStats.tier, tier)
+          ))
+          .limit(1);
+        
+        // Calculate average response time from previous dispatch queue entries
+        const previousResponses = await db.select()
+          .from(dispatchQueue)
+          .where(and(
+            eq(dispatchQueue.operatorId, op.operatorId),
+            sql`${dispatchQueue.responseTimeSeconds} IS NOT NULL`
+          ))
+          .limit(10);
+        
+        const avgResponseTime = previousResponses.length > 0
+          ? previousResponses.reduce((sum, r) => sum + (r.responseTimeSeconds || 0), 0) / previousResponses.length
+          : 300; // Default 5 minutes if no history
+        
+        dispatchEntries.push({
+          operator: op,
+          distanceKm,
+          rating,
+          avgResponseTime,
+          tier
+        });
+      }
+      
+      // Sort by priority: rating (highest first), then response time (fastest first), then distance (closest first)
+      dispatchEntries.sort((a, b) => {
+        // Primary: rating
+        if (a.rating !== b.rating) {
+          return b.rating - a.rating; // Higher rating first
+        }
+        
+        // Secondary: average response time
+        if (a.avgResponseTime !== b.avgResponseTime) {
+          return a.avgResponseTime - b.avgResponseTime; // Faster response first
+        }
+        
+        // Tertiary: distance
+        return a.distanceKm - b.distanceKm; // Closer first
+      });
+      
+      // Create dispatch queue entries
+      const createdEntries = [];
+      for (let i = 0; i < dispatchEntries.length; i++) {
+        const entry = dispatchEntries[i];
+        const queueId = `queue_${Date.now()}_${Math.random().toString(36).substr(2, 9)}_${i}`;
+        
+        const result = await db.insert(dispatchQueue).values({
+          queueId,
+          serviceRequestId: requestId,
+          emergencyId: reqData.requestId, // Link to emergency request
+          operatorId: entry.operator.operatorId,
+          queuePosition: i + 1, // Priority order
+          status: "pending",
+          notifiedAt: now,
+          expiresAt: expiryTime,
+          distanceKm: entry.distanceKm.toString(),
+          operatorRatingSnapshot: entry.rating.toString(),
+          operatorAvgResponseTime: entry.avgResponseTime.toString()
+        }).returning();
+        
+        createdEntries.push(result[0]);
+      }
+      
+      res.json({
+        message: "Emergency broadcast sent",
+        totalOperatorsNotified: createdEntries.length,
+        dispatchEntries: createdEntries.map((e, i) => ({
+          operatorId: e.operatorId,
+          queuePosition: e.queuePosition,
+          distanceKm: e.distanceKm,
+          rating: e.operatorRatingSnapshot,
+          avgResponseTime: e.operatorAvgResponseTime
+        }))
+      });
+    } catch (error) {
+      console.error("Error broadcasting emergency request:", error);
+      res.status(500).json({ message: "Failed to broadcast emergency request" });
+    }
+  });
+
+  // Find alternative operators when a job is declined
+  router.get("/api/service-requests/:requestId/alternative-operators", async (req, res) => {
+    try {
+      const { requestId } = req.params;
+      const { excludeOperatorIds } = req.query;
+      
+      // Parse excludeOperatorIds from query string
+      const excludeList = excludeOperatorIds 
+        ? (Array.isArray(excludeOperatorIds) ? excludeOperatorIds : [excludeOperatorIds])
+        : [];
+      
+      // Get the service request
+      const request = await db.select()
+        .from(serviceRequests)
+        .where(eq(serviceRequests.requestId, requestId))
+        .limit(1);
+      
+      if (request.length === 0) {
+        return res.status(404).json({ message: "Service request not found" });
+      }
+      
+      const reqData = request[0];
+      
+      if (!reqData.latitude || !reqData.longitude) {
+        return res.status(400).json({ message: "Service request has no location data" });
+      }
+      
+      const requestLat = parseFloat(reqData.latitude.toString());
+      const requestLon = parseFloat(reqData.longitude.toString());
+      
+      // Haversine formula to calculate distance in kilometers
+      const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
+        const R = 6371; // Earth's radius in km
+        const dLat = (lat2 - lat1) * Math.PI / 180;
+        const dLon = (lon2 - lon1) * Math.PI / 180;
+        const a = 
+          Math.sin(dLat/2) * Math.sin(dLat/2) +
+          Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+          Math.sin(dLon/2) * Math.sin(dLon/2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        return R * c;
+      };
+      
+      // Get all operators that offer this service type
+      const allOperators = await db.select().from(operators);
+      
+      const matchingOperators = allOperators.filter((op) => {
+        // Exclude already-declined operators
+        if (excludeList.includes(op.operatorId)) return false;
+        
+        // Check if operator offers this service type
+        const services = Array.isArray(op.services) ? op.services : [];
+        if (!services.includes(reqData.serviceType)) return false;
+        
+        // Check if operator has valid location
+        if (!op.latitude || !op.longitude) return false;
+        
+        return true;
+      });
+      
+      // Calculate distance and filter by tier operating radius
+      const operatorsWithDistance = matchingOperators.map((op) => {
+        const opLat = parseFloat(op.latitude!.toString());
+        const opLon = parseFloat(op.longitude!.toString());
+        const distanceKm = calculateDistance(requestLat, requestLon, opLat, opLon);
+        
+        return {
+          ...op,
+          distanceKm
+        };
+      }).filter((op) => {
+        // Filter by tier operating radius
+        const tier = op.activeTier || op.operatorTier || 'manual';
+        const tierInfo = {
+          professional: null, // No radius restriction
+          equipped: 15, // 15km radius
+          manual: 5, // 5km radius from home
+        };
+        
+        const maxRadius = tierInfo[tier as keyof typeof tierInfo];
+        if (maxRadius === null) return true; // Professional - no limit
+        
+        return op.distanceKm <= maxRadius;
+      });
+      
+      // Sort by rating (highest first), then by distance (closest first)
+      operatorsWithDistance.sort((a, b) => {
+        const ratingA = parseFloat(a.rating?.toString() || '0');
+        const ratingB = parseFloat(b.rating?.toString() || '0');
+        
+        if (ratingA !== ratingB) {
+          return ratingB - ratingA; // Higher rating first
+        }
+        
+        return a.distanceKm - b.distanceKm; // Closer first if ratings equal
+      });
+      
+      res.json(operatorsWithDistance);
+    } catch (error) {
+      console.error("Error finding alternative operators:", error);
+      res.status(500).json({ message: "Failed to find alternative operators" });
     }
   });
 
