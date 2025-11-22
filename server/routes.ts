@@ -1139,6 +1139,79 @@ export function registerRoutes(storage: IStorage) {
     }
   });
 
+  // Create business for existing professional operator (fix for legacy accounts)
+  router.post("/api/operators/:operatorId/setup-business", async (req, res) => {
+    try {
+      const operatorId = req.params.operatorId;
+      
+      // Get operator from database
+      const operator = await db.query.operators.findFirst({
+        where: eq(operators.operatorId, operatorId)
+      });
+      
+      if (!operator) {
+        return res.status(404).json({ message: "Operator not found" });
+      }
+      
+      // Check if operator is professional tier
+      if (operator.operatorTier !== "professional" && !operator.subscribedTiers?.includes("professional")) {
+        return res.status(400).json({ message: "Only professional operators can have a business" });
+      }
+      
+      // Check if already has a business
+      if (operator.businessId) {
+        return res.status(400).json({ message: "Operator already has a business", businessId: operator.businessId });
+      }
+      
+      // Get user from database (don't rely on session)
+      const dbUser = await db.query.users.findFirst({
+        where: eq(users.operatorId, operatorId)
+      });
+      
+      if (!dbUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Create business ID
+      const businessId = `BUS-${dbUser.email.replace(/[^a-zA-Z0-9]/g, '-')}-${Date.now()}`;
+      
+      // Create business
+      const businessData = {
+        businessId,
+        name: `${dbUser.name}'s Business`,
+        email: dbUser.email,
+        phone: "",
+        businessLicense: "",
+        address: "",
+        city: "",
+        state: "",
+        zipCode: "",
+      };
+      
+      const business = await storage.createBusiness(businessData);
+      
+      // Update operator with businessId
+      await db.update(operators)
+        .set({ businessId })
+        .where(eq(operators.operatorId, operatorId));
+      
+      // Update user with businessId
+      await db.update(users)
+        .set({ businessId })
+        .where(eq(users.operatorId, operatorId));
+      
+      // Update session if it exists
+      if ((req as any).session?.user) {
+        (req as any).session.user.businessId = businessId;
+      }
+      
+      res.json({ business, businessId });
+    } catch (error) {
+      console.error("Error setting up business:", error);
+      res.status(500).json({ message: "Failed to setup business" });
+    }
+  });
+
   // Tier Switching Routes
   router.post("/api/operators/:operatorId/switch-tier", async (req, res) => {
     try {

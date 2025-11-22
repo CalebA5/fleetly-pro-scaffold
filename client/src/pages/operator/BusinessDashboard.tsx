@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
 import { Header } from "@/components/Header";
@@ -17,10 +17,11 @@ import { useLocation } from "wouter";
 import type { Operator, Business } from "@shared/schema";
 
 export const BusinessDashboard = () => {
-  const { user } = useAuth();
+  const { user, updateUser } = useAuth();
   const { toast } = useToast();
   const [, setLocation] = useLocation();
   const [showAddDriverDialog, setShowAddDriverDialog] = useState(false);
+  const setupAttemptedRef = useRef(false);
 
   // Fetch business data
   const { data: business, isLoading: businessLoading } = useQuery<Business>({
@@ -42,6 +43,71 @@ export const BusinessDashboard = () => {
 
   // Calculate if this tier is currently online
   const isOnline = operatorData?.isOnline === 1 && operatorData?.activeTier === "professional";
+
+  // Business setup mutation for existing operators
+  const setupBusinessMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest(`/api/operators/${user?.operatorId}/setup-business`, {
+        method: "POST",
+      });
+    },
+    onSuccess: async (data) => {
+      const { businessId } = data;
+      
+      // Update local user context with businessId from mutation response
+      updateUser({ businessId });
+      
+      // Invalidate queries to refetch data
+      queryClient.invalidateQueries({ queryKey: [`/api/business/${businessId}`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/operators/by-id/${user?.operatorId}`] });
+      
+      toast({
+        title: "Business Created",
+        description: "Your business profile has been set up successfully!",
+      });
+    },
+    onError: (error: any) => {
+      console.error("Failed to setup business:", error);
+      
+      // If business already exists (400 error), extract businessId and treat as success
+      if (error.message) {
+        try {
+          const errorData = JSON.parse(error.message);
+          if (errorData.businessId) {
+            // Business already exists, use the existing businessId
+            updateUser({ businessId: errorData.businessId });
+            queryClient.invalidateQueries({ queryKey: [`/api/business/${errorData.businessId}`] });
+            queryClient.invalidateQueries({ queryKey: [`/api/operators/by-id/${user?.operatorId}`] });
+            toast({
+              title: "Business Ready",
+              description: "Your business profile is set up and ready to use!",
+            });
+            return; // Don't show error toast
+          }
+        } catch (e) {
+          // Error message wasn't JSON, continue to show error toast
+        }
+      }
+      
+      toast({
+        title: "Setup Error",
+        description: error.message || "Failed to create business profile. Please contact support.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Auto-trigger business setup for professional operators without a business
+  // Use ref to ensure we only attempt once per component mount
+  useEffect(() => {
+    if (user?.operatorId && 
+        (user.subscribedTiers?.includes("professional") || user.operatorTier === "professional") && 
+        !user.businessId &&
+        !setupAttemptedRef.current) {
+      setupAttemptedRef.current = true;
+      setupBusinessMutation.mutate();
+    }
+  }, [user?.operatorId, user?.businessId]);
 
   // Online toggle mutation
   const toggleOnlineMutation = useMutation({
@@ -155,18 +221,20 @@ export const BusinessDashboard = () => {
     }
   };
 
-  if (businessLoading || driversLoading) {
+  if (setupBusinessMutation.isPending || businessLoading || driversLoading) {
     return (
       <div className="min-h-screen bg-white dark:bg-black">
         <Header onDriveAndEarn={() => setLocation("/drive-earn")} />
         <div className="flex items-center justify-center min-h-[60vh]">
-          <div className="text-lg text-black dark:text-white">Loading business dashboard...</div>
+          <div className="text-lg text-black dark:text-white">
+            {setupBusinessMutation.isPending ? "Setting up your business profile..." : "Loading business dashboard..."}
+          </div>
         </div>
       </div>
     );
   }
 
-  if (!business) {
+  if (!business && user?.businessId) {
     return (
       <div className="min-h-screen bg-white dark:bg-black">
         <Header onDriveAndEarn={() => setLocation("/drive-earn")} />
