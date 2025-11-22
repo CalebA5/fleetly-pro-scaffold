@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ArrowLeft, CloudSnow, Cloud, AlertTriangle, Calendar, MapPin, MapPinOff } from "lucide-react";
 import { format } from "date-fns";
-import { useLocation } from "@/contexts/LocationContext";
+import { useUserLocation } from "@/contexts/LocationContext";
 
 interface WeatherAlert {
   id: number;
@@ -26,8 +26,9 @@ interface WeatherAlert {
 }
 
 export function Notifications() {
-  const { hasLocation } = useLocation();
+  const { location, permissionStatus } = useUserLocation();
   const [locationDenied, setLocationDenied] = useState(false);
+  const hasLocation = location !== null || permissionStatus === "granted";
 
   useEffect(() => {
     if ("permissions" in navigator) {

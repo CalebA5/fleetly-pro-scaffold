@@ -8,6 +8,30 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
+### November 22, 2025 - Help Pages Created, Address Autocomplete Redesigned, Location Prompts Enhanced
+- **Help Pages Created**: Added four comprehensive help pages with working navigation
+  - **User Guide** (/user-guide): Step-by-step customer instructions covering service booking, payments, ratings, and communication
+  - **Operator Guide** (/operator-guide): Getting started guide for operators with tier system explanation and business growth tips
+  - **Community Forum** (/community-forum): Discussion hub with active topics, member stats, and popular threads
+  - **Blog & Updates** (/blog): News feed with product updates, success stories, tips, and safety information
+  - All pages follow consistent black/white theme with orange accents
+  - Links from Help page now properly route to all new pages
+- **Address Autocomplete Redesigned**: Enhanced user interface with modern styling
+  - Added orange accent border on focus states (ring-2 ring-orange-500)
+  - Improved dropdown with shadow-lg, better spacing, and rounded corners
+  - Higher z-index (z-50) prevents overlap with location permission prompts
+  - Orange-colored icons and hover states (hover:bg-orange-50)
+  - Smooth transitions and better visual feedback
+- **Location Permission on Alerts Page**: Added location prompt to Weather Alerts page
+  - Displays when user hasn't granted location permission
+  - Explains dual purpose: accurate weather alerts AND better operator matching
+  - One-click "Allow Location" button triggers browser permission dialog
+  - Orange-themed card with MapPinOff icon for visual consistency
+- **Technical Fix**: Resolved import conflict in Notifications page
+  - Changed from incorrect `useLocation` import to proper `useUserLocation` hook
+  - Fixed "Importing binding name 'useLocation' is not found" error
+  - App now loads correctly without console errors
+
 ### November 21, 2025 - Tier Persistence Fixed, Routing & Location UX Improvements
 - **Drive & Earn Detection**: Fixed issue where registered operators weren't detected because session wasn't updated after onboarding
   - Added `/api/operators/by-user/:email` endpoint to fetch operator profiles by email
