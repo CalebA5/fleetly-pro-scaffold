@@ -155,22 +155,26 @@ export const Header = ({ onSignIn, onSignUp, onDriveAndEarn }: HeaderProps) => {
               Drive & Earn
             </Button>
 
-            {/* Seasonal Theme Selector */}
-            <ThemeSelector />
+            {/* Seasonal Theme Selector - Hide on very small screens */}
+            <div className="hidden sm:block">
+              <ThemeSelector />
+            </div>
 
             {!isAuthenticated ? (
               <>
+                {/* Sign in/Sign up buttons - Hide on mobile, available via bottom nav Profile icon */}
                 <Button 
                   variant="outline" 
                   size="sm"
                   onClick={onSignIn}
+                  className="hidden md:inline-flex"
                   data-testid="button-sign-in"
                 >
                   Sign in
                 </Button>
                 <Button 
                   size="sm"
-                  className="bg-black text-white hover:bg-gray-800 dark:bg-white dark:text-black dark:hover:bg-gray-200" 
+                  className="hidden md:inline-flex bg-black text-white hover:bg-gray-800 dark:bg-white dark:text-black dark:hover:bg-gray-200" 
                   onClick={onSignUp}
                   data-testid="button-sign-up"
                 >
