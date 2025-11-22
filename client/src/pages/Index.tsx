@@ -26,7 +26,7 @@ const Index = () => {
   const [loadingLocation, setLoadingLocation] = useState(false);
   const [currentLat, setCurrentLat] = useState<number | null>(null);
   const [currentLon, setCurrentLon] = useState<number | null>(null);
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated, user, isLoading: isAuthLoading } = useAuth();
   const { toast } = useToast();
   const { setFormattedAddress, formattedAddress, location } = useUserLocation();
 
@@ -213,6 +213,21 @@ const Index = () => {
       setCurrentLon(location.coords.longitude);
     }
   }, [formattedAddress, location, pickup, currentLat, currentLon]);
+
+  // Show loading skeleton while auth is initializing to prevent flash
+  if (isAuthLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col pb-20 md:pb-0">
+        <Header />
+        <div className="container mx-auto px-4 py-8">
+          <div className="h-96 flex items-center justify-center">
+            <Loader2 className="w-8 h-8 animate-spin text-orange-500" />
+          </div>
+        </div>
+        <MobileBottomNav />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen w-full bg-white dark:bg-gray-900 overflow-x-hidden">

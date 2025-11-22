@@ -34,15 +34,33 @@ type OperatorWithStats = Operator & {
 };
 
 export const DriveEarn = () => {
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, isLoading: isAuthLoading } = useAuth();
   const [, setLocation] = useLocation();
   const [showAuthDialog, setShowAuthDialog] = useState(false);
 
   // Fetch operator data if user has operatorId
-  const { data: operatorData, isLoading } = useQuery<OperatorWithStats>({
+  const { data: operatorData, isLoading: isOperatorLoading } = useQuery<OperatorWithStats>({
     queryKey: [`/api/operators/by-id/${user?.operatorId}`],
     enabled: !!user?.operatorId && isAuthenticated,
   });
+
+  // Show loading skeleton while auth is initializing
+  if (isAuthLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col pb-20 md:pb-0">
+        <Header />
+        <div className="container mx-auto px-4 py-8">
+          <Skeleton className="h-48 w-full mb-8" />
+          <div className="grid md:grid-cols-3 gap-6">
+            <Skeleton className="h-64" />
+            <Skeleton className="h-64" />
+            <Skeleton className="h-64" />
+          </div>
+        </div>
+        <MobileBottomNav />
+      </div>
+    );
+  }
 
   // If not authenticated, show auth prompt
   if (!isAuthenticated) {
@@ -124,8 +142,8 @@ export const DriveEarn = () => {
     );
   }
 
-  // Show loading state
-  if (isLoading) {
+  // Show loading state while operator data is loading
+  if (isOperatorLoading) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col pb-20 md:pb-0">
         <Header />
