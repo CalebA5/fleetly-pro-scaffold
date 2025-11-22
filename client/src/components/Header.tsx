@@ -31,63 +31,16 @@ export const Header = ({ onSignIn, onSignUp, onDriveAndEarn }: HeaderProps) => {
   // Check if user is on an operator dashboard route
   const isOnOperatorDashboard = ['/operator', '/manual-operator', '/equipped-operator', '/business'].includes(location);
 
-  const handleDriveAndEarnClick = async () => {
-    // Smart routing: if user has operator tier, go to dashboard; otherwise onboarding
-    if (isAuthenticated && user) {
+  const handleDriveAndEarnClick = () => {
+    // Always go to Drive & Earn page for smooth navigation flow
+    setLocation("/drive-earn");
+    
+    // Call the callback if provided
+    if (onDriveAndEarn) {
       try {
-        // Fetch operator data from backend to check if user has any tiers
-        // Use email instead of userId since operators table doesn't have userId
-        const response = await fetch(`/api/operators/by-user/${encodeURIComponent(user.email)}`);
-        const operators = await response.json();
-        
-        if (operators && operators.length > 0) {
-          // User has at least one operator profile - determine which dashboard to show
-          const operator = operators[0]; // Use first operator
-          
-          // Navigate based on active tier
-          switch (operator.activeTier || operator.operatorTier) {
-            case 'professional':
-              setLocation("/business");
-              break;
-            case 'equipped':
-              setLocation("/equipped-operator");
-              break;
-            case 'manual':
-              setLocation("/manual-operator");
-              break;
-            default:
-              setLocation("/operator");
-          }
-        } else {
-          // No operator profiles found - go to onboarding
-          setLocation("/operator/onboarding");
-        }
-        
-        // Call the callback if provided (after navigation)
-        if (onDriveAndEarn) {
-          try {
-            onDriveAndEarn();
-          } catch (error) {
-            console.error("Error in Drive & Earn callback:", error);
-          }
-        }
+        onDriveAndEarn();
       } catch (error) {
-        console.error("Error checking operator status:", error);
-        // On error, default to onboarding
-        setLocation("/operator/onboarding");
-        
-        // Call the callback if provided
-        if (onDriveAndEarn) {
-          try {
-            onDriveAndEarn();
-          } catch (error) {
-            console.error("Error in Drive & Earn callback:", error);
-          }
-        }
-      }
-    } else {
-      if (onSignUp) {
-        onSignUp();
+        console.error("Error in Drive & Earn callback:", error);
       }
     }
   };

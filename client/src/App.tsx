@@ -19,6 +19,7 @@ import { OperatorOnboarding } from "./pages/operator/OperatorOnboarding";
 import { BusinessDashboard } from "./pages/operator/BusinessDashboard";
 import ManualOperatorDashboard from "./pages/operator/ManualOperatorDashboard";
 import EquippedOperatorDashboard from "./pages/operator/EquippedOperatorDashboard";
+import { DriveEarn } from "./pages/DriveEarn";
 import { HelpSupport } from "./pages/HelpSupport";
 import { UserGuide } from "./pages/UserGuide";
 import { OperatorGuide } from "./pages/OperatorGuide";
@@ -74,6 +75,7 @@ const App = () => (
               <Route path="/customer/profile" component={CustomerProfile} />
               
               {/* Public tier selection/onboarding - no auth required */}
+              <Route path="/drive-earn" component={DriveEarn} />
               <Route path="/operator/onboarding" component={OperatorOnboarding} />
               
               {/* Protected operator dashboards - require operator auth */}
