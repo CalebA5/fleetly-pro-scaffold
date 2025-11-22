@@ -139,6 +139,11 @@ export default function ManualOperatorDashboard() {
   // Online toggle mutation
   const toggleOnlineMutation = useMutation({
     mutationFn: async ({ goOnline, confirmed = false }: { goOnline: boolean; confirmed?: boolean }) => {
+      // Prevent going online if there are active jobs
+      if (goOnline && acceptedJobs.length > 0) {
+        throw new Error("ACTIVE_JOBS_EXIST");
+      }
+      
       return apiRequest(`/api/operators/${operatorId}/toggle-online`, {
         method: "POST",
         body: JSON.stringify({ 
@@ -168,6 +173,16 @@ export default function ManualOperatorDashboard() {
       });
     },
     onError: (error: any) => {
+      // Handle active jobs error
+      if (error?.message === "ACTIVE_JOBS_EXIST") {
+        toast({
+          title: "Cannot Go Online",
+          description: `You have ${acceptedJobs.length} active job${acceptedJobs.length > 1 ? 's' : ''}. Please complete or abandon them before going online.`,
+          variant: "destructive",
+        });
+        return;
+      }
+      
       // Check if error is due to active jobs blocking
       if (error.message) {
         try {
@@ -198,6 +213,16 @@ export default function ManualOperatorDashboard() {
   };
 
   const handleAcceptJob = (requestId: number) => {
+    // Check if operator is online before accepting
+    if (!isOnline) {
+      toast({
+        title: "Cannot Accept Job",
+        description: "You must be online to accept jobs. Toggle your status above to go online.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     setAcceptedJobs([...acceptedJobs, requestId]);
     // In production, send accept request to backend
   };
@@ -234,6 +259,16 @@ export default function ManualOperatorDashboard() {
 
   // Request handlers - for both urgent and regular requests
   const handleAcceptRequest = (requestId: string) => {
+    // Check if operator is online before accepting
+    if (!isOnline) {
+      toast({
+        title: "Cannot Accept Job",
+        description: "You must be online to accept jobs. Toggle your status above to go online.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     setAcceptedJobs(prev => [...prev, requestId]);
     // Keep request in list (moved to Jobs section visually via filtering)
     const request = allRequests.find(r => r.id === requestId);
@@ -261,13 +296,22 @@ export default function ManualOperatorDashboard() {
       />
 
       {/* Mobile-First Sticky Toggle */}
-      <OperatorStatusToggle
-        isOnline={isOnline}
-        onToggle={(goOnline) => toggleOnlineMutation.mutate({ goOnline })}
-        isPending={toggleOnlineMutation.isPending}
-        variant="mobile"
-        label="Manual Operator"
-      />
+      <div>
+        <OperatorStatusToggle
+          isOnline={isOnline}
+          onToggle={(goOnline) => toggleOnlineMutation.mutate({ goOnline })}
+          isPending={toggleOnlineMutation.isPending}
+          variant="mobile"
+          label="Manual Operator"
+        />
+        {!isOnline && acceptedJobs.length > 0 && (
+          <div className="bg-yellow-50 dark:bg-yellow-900/20 border-b border-yellow-200 dark:border-yellow-800 px-4 py-2">
+            <p className="text-xs text-yellow-800 dark:text-yellow-200 text-center">
+              ⚠️ You have {acceptedJobs.length} active job{acceptedJobs.length > 1 ? 's' : ''}. Complete or abandon them to go online.
+            </p>
+          </div>
+        )}
+      </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 
@@ -492,12 +536,14 @@ export default function ManualOperatorDashboard() {
                           <div className="flex gap-2">
                             <Button
                               onClick={() => handleAcceptRequest(request.id)}
+                              disabled={!isOnline}
                               className={`flex-1 ${
                                 request.isEmergency
                                   ? 'bg-red-600 hover:bg-red-700'
                                   : 'bg-purple-600 hover:bg-purple-700'
-                              } text-white`}
+                              } text-white disabled:opacity-50 disabled:cursor-not-allowed`}
                               data-testid={`button-accept-request-${request.id}`}
+                              title={!isOnline ? "You must be online to accept jobs" : ""}
                             >
                               <CheckCircle className="w-4 h-4 mr-2" />
                               {request.isEmergency ? 'Accept Emergency' : 'Accept Request'}
