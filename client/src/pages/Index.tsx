@@ -9,6 +9,7 @@ import { MobileBottomNav } from "@/components/MobileBottomNav";
 import { WeatherAlertToast } from "@/components/WeatherAlertToast";
 import { EmergencySOSButton } from "@/components/EmergencySOSButton";
 import { AutocompleteLocation } from "@/components/AutocompleteLocation";
+import { LocationPermissionModal } from "@/components/LocationPermissionModal";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserLocation } from "@/contexts/LocationContext";
 import { MapPin, ArrowRight, Truck, Clock, Shield, Star, Search, Loader2 } from "lucide-react";
@@ -26,9 +27,22 @@ const Index = () => {
   const [loadingLocation, setLoadingLocation] = useState(false);
   const [currentLat, setCurrentLat] = useState<number | null>(null);
   const [currentLon, setCurrentLon] = useState<number | null>(null);
+  const [showLocationPermission, setShowLocationPermission] = useState(false);
   const { isAuthenticated, user, isLoading: isAuthLoading } = useAuth();
   const { toast } = useToast();
   const { setFormattedAddress, formattedAddress, location } = useUserLocation();
+
+  // Check if user should see location permission prompt
+  useEffect(() => {
+    const hasBeenPrompted = localStorage.getItem('fleetly_location_prompted');
+    if (!hasBeenPrompted && !isAuthLoading) {
+      // Delay prompt by 1 second for better UX
+      const timer = setTimeout(() => {
+        setShowLocationPermission(true);
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [isAuthLoading]);
 
   const handleAuthClick = (tab: "signin" | "signup", role: "customer" | "operator" = "customer") => {
     setAuthTab(tab);
@@ -524,6 +538,11 @@ const Index = () => {
         onOpenChange={setShowAuthDialog} 
         defaultTab={authTab}
         signupRole={signupRole}
+      />
+
+      <LocationPermissionModal
+        open={showLocationPermission}
+        onOpenChange={setShowLocationPermission}
       />
 
       {/* Mobile Bottom Navigation */}
