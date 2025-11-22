@@ -107,12 +107,13 @@ export const AutocompleteLocation = ({
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <div className="relative w-full">
-          <Input
+          <input
+            type="text"
             value={value}
             onChange={(e) => onChange(e.target.value)}
             placeholder={placeholder}
             disabled={disabled}
-            className="w-full border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:border-transparent dark:focus-visible:ring-orange-400 text-base pr-10 rounded-lg transition-all hover:border-gray-400 dark:hover:border-gray-500"
+            className="flex h-10 w-full rounded-lg border-0 bg-gray-50 dark:bg-gray-700 px-3 py-2 text-base pr-10 placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-black dark:focus:ring-white disabled:cursor-not-allowed disabled:opacity-50 transition-all"
             data-testid={testId}
             onFocus={() => {
               if (suggestions.length > 0) {
@@ -121,7 +122,7 @@ export const AutocompleteLocation = ({
             }}
           />
           {isSearching && (
-            <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 animate-spin text-orange-500" />
+            <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 animate-spin text-gray-400" />
           )}
           {!isSearching && icon && (
             <MapPin className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
