@@ -1,5 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useLocation } from "wouter";
+import mapboxgl from "mapbox-gl";
+import "mapbox-gl/dist/mapbox-gl.css";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -28,6 +30,9 @@ import {
   User,
   Phone,
   Truck,
+  Camera,
+  Eye,
+  Navigation,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
@@ -628,6 +633,61 @@ export default function JobDetailsPage() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Mini Map - Customer Location */}
+        {(jobData.latitude && jobData.longitude) && (
+          <Card className="border-0 shadow-lg overflow-hidden">
+            <div className="bg-gradient-to-r from-indigo-50 to-blue-50 dark:from-gray-800 dark:to-gray-800 px-6 py-4 border-b">
+              <h3 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                <MapPin className="w-5 h-5 text-indigo-600" />
+                Customer Location
+              </h3>
+            </div>
+            <CardContent className="p-0">
+              <MiniMap 
+                latitude={Number(jobData.latitude)} 
+                longitude={Number(jobData.longitude)}
+                location={jobData.location}
+              />
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Customer Photos */}
+        {jobData.photos && jobData.photos.length > 0 && (
+          <Card className="border-0 shadow-lg overflow-hidden">
+            <div className="bg-gradient-to-r from-pink-50 to-rose-50 dark:from-gray-800 dark:to-gray-800 px-6 py-4 border-b">
+              <h3 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                <Camera className="w-5 h-5 text-pink-600" />
+                Photos from Customer ({jobData.photos.length})
+              </h3>
+            </div>
+            <CardContent className="p-6">
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                {jobData.photos.map((photo: string, index: number) => (
+                  <div 
+                    key={index}
+                    className="relative aspect-square rounded-lg overflow-hidden group cursor-pointer hover:shadow-xl transition-shadow"
+                    onClick={() => window.open(photo, '_blank')}
+                  >
+                    <img
+                      src={photo}
+                      alt={`Customer photo ${index + 1}`}
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                    />
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
+                      <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="bg-white rounded-full p-2">
+                          <Eye className="w-5 h-5 text-gray-900" />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </div>
 
       {/* Cancel Dialog */}
@@ -667,6 +727,73 @@ export default function JobDetailsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+    </div>
+  );
+}
+
+// Mini Map Component
+function MiniMap({ latitude, longitude, location }: { latitude: number, longitude: number, location: string }) {
+  const mapContainer = useRef<HTMLDivElement>(null);
+  const map = useRef<mapboxgl.Map | null>(null);
+
+  useEffect(() => {
+    if (!mapContainer.current || map.current) return;
+
+    // Initialize Mapbox
+    mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN || '';
+
+    // Create map
+    map.current = new mapboxgl.Map({
+      container: mapContainer.current,
+      style: 'mapbox://styles/mapbox/streets-v12',
+      center: [longitude, latitude],
+      zoom: 14,
+      interactive: true,
+    });
+
+    // Add navigation controls
+    map.current.addControl(new mapboxgl.NavigationControl(), 'top-right');
+
+    // Add custom marker at customer location
+    const el = document.createElement('div');
+    el.className = 'custom-marker';
+    el.style.width = '40px';
+    el.style.height = '40px';
+    el.style.backgroundImage = `url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23f97316" stroke="white" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3" fill="white"></circle></svg>')`;
+    el.style.backgroundSize = 'contain';
+    el.style.backgroundRepeat = 'no-repeat';
+
+    new mapboxgl.Marker(el)
+      .setLngLat([longitude, latitude])
+      .setPopup(
+        new mapboxgl.Popup({ offset: 25 })
+          .setHTML(`<div class="p-2"><p class="font-semibold text-gray-900">Customer Location</p><p class="text-sm text-gray-600">${location}</p></div>`)
+      )
+      .addTo(map.current);
+
+    return () => {
+      map.current?.remove();
+      map.current = null;
+    };
+  }, [latitude, longitude, location]);
+
+  return (
+    <div className="relative">
+      <div ref={mapContainer} className="h-[300px] md:h-[400px] w-full" />
+      <div className="absolute top-4 left-4 bg-white dark:bg-gray-800 rounded-lg shadow-lg px-4 py-2 flex items-center gap-2">
+        <Navigation className="w-4 h-4 text-orange-600" />
+        <div>
+          <p className="text-xs text-gray-500 dark:text-gray-400">Navigate to</p>
+          <a
+            href={`https://www.google.com/maps/dir/?api=1&destination=${latitude},${longitude}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-sm font-semibold text-orange-600 hover:underline"
+          >
+            Get Directions
+          </a>
+        </div>
+      </div>
     </div>
   );
 }
