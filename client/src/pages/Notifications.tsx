@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ArrowLeft, CloudSnow, Cloud, AlertTriangle, Calendar, MapPin, MapPinOff } from "lucide-react";
 import { format } from "date-fns";
-import { useLocation as useLocationContext } from "@/contexts/LocationContext";
+import { useLocation } from "@/contexts/LocationContext";
 
 interface WeatherAlert {
   id: number;
@@ -26,7 +26,7 @@ interface WeatherAlert {
 }
 
 export function Notifications() {
-  const { hasLocation } = useLocationContext();
+  const { hasLocation } = useLocation();
   const [locationDenied, setLocationDenied] = useState(false);
 
   useEffect(() => {
