@@ -18,9 +18,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { useMutation } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import type { Operator } from "@shared/schema";
 
 const TIER_INFO = {
   professional: { label: "Professional & Certified", badge: "🏆", color: "text-amber-600" },
@@ -50,6 +51,15 @@ export function TierSwitcher() {
 
   const subscribedTiers = user?.subscribedTiers || [user?.activeTier || "professional"];
   const activeTier = user?.activeTier || user?.operatorTier || "professional";
+  
+  // Fetch operator data to get which tier is actually online
+  const { data: operatorData } = useQuery<Operator>({
+    queryKey: ['/api/operators/by-id', user?.operatorId],
+    enabled: !!user?.operatorId,
+  });
+  
+  // Tier is online if operator is online (isOnline === 1) and this is the active tier
+  const onlineTier = operatorData?.isOnline === 1 ? operatorData?.activeTier : null;
 
   const equippedForm = useForm({
     resolver: zodResolver(equippedTierSchema),
@@ -77,15 +87,36 @@ export function TierSwitcher() {
         body: JSON.stringify({ newTier }),
       });
     },
-    onSuccess: (_, newTier) => {
+    onSuccess: async (_, newTier) => {
       updateUser({ activeTier: newTier });
+      
+      // Invalidate operator query so Online badge updates immediately
+      queryClient.invalidateQueries({ queryKey: ['/api/operators/by-id', user?.operatorId] });
+      
+      // Refetch session once to ensure frontend is in sync with backend
+      let freshBusinessId = user?.businessId;
+      try {
+        const response = await fetch("/api/auth/session", { credentials: "include" });
+        if (response.ok) {
+          const userData = await response.json();
+          updateUser({
+            activeTier: userData.activeTier,
+            businessId: userData.businessId,
+            subscribedTiers: userData.subscribedTiers,
+          });
+          freshBusinessId = userData.businessId;
+        }
+      } catch (error) {
+        console.error("Failed to refetch session:", error);
+      }
+      
       toast({
         title: "Tier Switched",
         description: `You are now operating as ${TIER_INFO[newTier].label}`,
       });
       
-      // Navigate to the appropriate dashboard for the switched tier
-      if (user?.businessId) {
+      // Navigate to the appropriate dashboard using fresh session data
+      if (freshBusinessId) {
         // Business owners always go to business dashboard
         setLocation('/business');
       } else {
@@ -109,12 +140,33 @@ export function TierSwitcher() {
         body: JSON.stringify(data),
       });
     },
-    onSuccess: (_, variables) => {
+    onSuccess: async (_, variables) => {
       const newSubscribedTiers = [...subscribedTiers, variables.tier] as ("professional" | "equipped" | "manual")[];
       updateUser({ 
         subscribedTiers: newSubscribedTiers,
         activeTier: variables.tier as "professional" | "equipped" | "manual"
       });
+      
+      // Invalidate operator query so Online badge updates immediately
+      queryClient.invalidateQueries({ queryKey: ['/api/operators/by-id', user?.operatorId] });
+      
+      // Refetch session once to ensure frontend is in sync with backend
+      let freshBusinessId = user?.businessId;
+      try {
+        const response = await fetch("/api/auth/session", { credentials: "include" });
+        if (response.ok) {
+          const userData = await response.json();
+          updateUser({
+            activeTier: userData.activeTier,
+            businessId: userData.businessId,
+            subscribedTiers: userData.subscribedTiers,
+          });
+          freshBusinessId = userData.businessId;
+        }
+      } catch (error) {
+        console.error("Failed to refetch session:", error);
+      }
+      
       toast({
         title: "Tier Added",
         description: `You can now operate as ${TIER_INFO[variables.tier as keyof typeof TIER_INFO].label}`,
@@ -122,8 +174,8 @@ export function TierSwitcher() {
       setShowUpgradeDialog(false);
       setSelectedTier(null);
       
-      // Navigate to the appropriate dashboard for the new tier
-      if (user?.businessId) {
+      // Navigate to the appropriate dashboard using fresh session data
+      if (freshBusinessId) {
         // Business owners always go to business dashboard
         setLocation('/business');
       } else {
@@ -180,7 +232,7 @@ export function TierSwitcher() {
           
           {(["professional", "equipped", "manual"] as const).map((tier) => {
             const isSubscribed = subscribedTiers.includes(tier);
-            const isActive = tier === activeTier;
+            const isOnline = tier === onlineTier; // Only show "Active" on the tier that is online
             
             return (
               <DropdownMenuItem
@@ -207,9 +259,9 @@ export function TierSwitcher() {
                   {isSubscribed && (
                     <Check className="w-4 h-4 text-green-600" data-testid={`icon-subscribed-${tier}`} />
                   )}
-                  {isActive && (
-                    <span className="text-xs px-2 py-0.5 bg-black dark:bg-white text-white dark:text-black rounded font-semibold">
-                      Active
+                  {isOnline && (
+                    <span className="text-xs px-2 py-0.5 bg-green-600 text-white rounded font-semibold">
+                      Online
                     </span>
                   )}
                 </div>
