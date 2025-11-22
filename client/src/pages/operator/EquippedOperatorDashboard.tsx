@@ -4,8 +4,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/enhanced-button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { MapPin, Clock, DollarSign, Truck, AlertCircle, CheckCircle, Filter, Users } from "lucide-react";
+import { MapPin, Clock, DollarSign, Truck, AlertCircle, CheckCircle, Filter, Users, ChevronRight, TrendingUp } from "lucide-react";
 import { Header } from "@/components/Header";
+import { MobileBottomNav } from "@/components/MobileBottomNav";
 import { useAuth } from "@/contexts/AuthContext";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { VehicleManagement } from "@/components/VehicleManagement";
@@ -227,38 +228,63 @@ export default function EquippedOperatorDashboard() {
 
           <TabsContent value="jobs" className="space-y-8">
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-          <Card>
-            <CardContent className="p-6">
+        {/* Stats Cards - Clickable for Mobile Optimization */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          {/* Earnings Card - Clickable */}
+          <Card 
+            className="cursor-pointer hover:shadow-lg transition-all hover:border-orange-500"
+            onClick={() => setLocation("/operator/earnings")}
+            data-testid="card-earnings"
+          >
+            <CardContent className="p-4 md:p-6">
               <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">Today's Earnings</p>
-                  <p className="text-2xl font-bold text-black dark:text-white">$0</p>
+                <div className="flex-1">
+                  <p className="text-xs md:text-sm text-gray-600 dark:text-gray-400 mb-1">Today's Earnings</p>
+                  <p className="text-xl md:text-2xl font-bold text-black dark:text-white">$0</p>
+                  <p className="text-xs text-green-600 dark:text-green-400 mt-1 flex items-center gap-1">
+                    <TrendingUp className="w-3 h-3" />
+                    View details
+                  </p>
                 </div>
-                <DollarSign className="w-8 h-8 text-green-600" />
+                <div className="flex flex-col items-center gap-2">
+                  <DollarSign className="w-6 h-6 md:w-8 md:h-8 text-green-600" />
+                  <ChevronRight className="w-4 h-4 text-gray-400" />
+                </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card>
-            <CardContent className="p-6">
+          {/* Jobs Nearby Card - Clickable */}
+          <Card 
+            className="cursor-pointer hover:shadow-lg transition-all hover:border-orange-500"
+            onClick={() => setLocation("/operator/nearby-jobs")}
+            data-testid="card-nearby-jobs"
+          >
+            <CardContent className="p-4 md:p-6">
               <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">Jobs Nearby</p>
-                  <p className="text-2xl font-bold text-black dark:text-white">{nearbyRequests.length}</p>
+                <div className="flex-1">
+                  <p className="text-xs md:text-sm text-gray-600 dark:text-gray-400 mb-1">Jobs Nearby</p>
+                  <p className="text-xl md:text-2xl font-bold text-black dark:text-white">{nearbyRequests.length}</p>
+                  <p className="text-xs text-blue-600 dark:text-blue-400 mt-1 flex items-center gap-1">
+                    <MapPin className="w-3 h-3" />
+                    View on map
+                  </p>
                 </div>
-                <MapPin className="w-8 h-8 text-blue-600" />
+                <div className="flex flex-col items-center gap-2">
+                  <MapPin className="w-6 h-6 md:w-8 md:h-8 text-blue-600" />
+                  <ChevronRight className="w-4 h-4 text-gray-400" />
+                </div>
               </div>
             </CardContent>
           </Card>
 
+          {/* Customer Groups Card */}
           <Card>
-            <CardContent className="p-6">
+            <CardContent className="p-4 md:p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">Customer Groups</p>
-                  <p className="text-2xl font-bold text-black dark:text-white">{mockCustomerGroups.length}</p>
+                  <p className="text-xs md:text-sm text-gray-600 dark:text-gray-400 mb-1">Customer Groups</p>
+                  <p className="text-xl md:text-2xl font-bold text-black dark:text-white">{mockCustomerGroups.length}</p>
                 </div>
                 <Users className="w-8 h-8 text-orange-600" />
               </div>
@@ -586,6 +612,7 @@ export default function EquippedOperatorDashboard() {
         currentTier={tierSwitchInfo?.currentTier || ""}
         newTier={tierSwitchInfo?.newTier || ""}
       />
+      <MobileBottomNav />
     </div>
   );
 }

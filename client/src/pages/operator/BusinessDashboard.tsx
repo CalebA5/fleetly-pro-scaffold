@@ -11,8 +11,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Users, DollarSign, Star, TrendingUp, Plus, Trash2, Award } from "lucide-react";
+import { Users, DollarSign, Star, TrendingUp, Plus, Trash2, Award, ChevronRight, MapPin } from "lucide-react";
 import { VehicleManagement } from "@/components/VehicleManagement";
+import { MobileBottomNav } from "@/components/MobileBottomNav";
 import { useLocation } from "wouter";
 import type { Operator, Business } from "@shared/schema";
 import { TierOnlineConfirmDialog } from "@/components/TierOnlineConfirmDialog";
@@ -363,34 +364,69 @@ export const BusinessDashboard = () => {
         </div>
 
         {/* Performance Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-          <Card className="p-6 border border-gray-200 dark:border-gray-800 bg-white dark:bg-black">
+        {/* Stats Cards - Clickable for Mobile Optimization */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          <Card className="p-4 md:p-6 border border-gray-200 dark:border-gray-800 bg-white dark:bg-black">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Total Drivers</p>
-                <p className="text-3xl font-bold text-black dark:text-white">{business.totalDrivers}</p>
+                <p className="text-xs md:text-sm text-gray-600 dark:text-gray-400 mb-1">Total Drivers</p>
+                <p className="text-2xl md:text-3xl font-bold text-black dark:text-white">{business.totalDrivers}</p>
               </div>
-              <Users className="w-8 h-8 text-orange-500" />
+              <Users className="w-6 h-6 md:w-8 md:h-8 text-orange-500" />
             </div>
           </Card>
 
-          <Card className="p-6 border border-gray-200 dark:border-gray-800 bg-white dark:bg-black">
+          {/* Jobs Card - Clickable to map */}
+          <Card 
+            className="p-4 md:p-6 border border-gray-200 dark:border-gray-800 bg-white dark:bg-black cursor-pointer hover:shadow-lg transition-all hover:border-orange-500"
+            onClick={() => setLocation("/operator/nearby-jobs")}
+            data-testid="card-nearby-jobs"
+          >
             <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Total Jobs</p>
-                <p className="text-3xl font-bold text-black dark:text-white">{business.totalJobs}</p>
+              <div className="flex-1">
+                <p className="text-xs md:text-sm text-gray-600 dark:text-gray-400 mb-1">Total Jobs</p>
+                <p className="text-2xl md:text-3xl font-bold text-black dark:text-white">{business.totalJobs}</p>
+                <p className="text-xs text-blue-600 dark:text-blue-400 mt-1 flex items-center gap-1">
+                  <MapPin className="w-3 h-3" />
+                  View on map
+                </p>
               </div>
-              <TrendingUp className="w-8 h-8 text-orange-500" />
+              <div className="flex flex-col items-center gap-2">
+                <TrendingUp className="w-6 h-6 md:w-8 md:h-8 text-orange-500" />
+                <ChevronRight className="w-4 h-4 text-gray-400" />
+              </div>
             </div>
           </Card>
 
-          <Card className="p-6 border border-gray-200 dark:border-gray-800 bg-white dark:bg-black">
+          {/* Earnings Card - Clickable */}
+          <Card 
+            className="p-4 md:p-6 border border-gray-200 dark:border-gray-800 bg-white dark:bg-black cursor-pointer hover:shadow-lg transition-all hover:border-orange-500"
+            onClick={() => setLocation("/operator/earnings")}
+            data-testid="card-earnings"
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex-1">
+                <p className="text-xs md:text-sm text-gray-600 dark:text-gray-400 mb-1">Total Earnings</p>
+                <p className="text-2xl md:text-3xl font-bold text-black dark:text-white">${business.totalEarnings}</p>
+                <p className="text-xs text-green-600 dark:text-green-400 mt-1 flex items-center gap-1">
+                  <TrendingUp className="w-3 h-3" />
+                  View details
+                </p>
+              </div>
+              <div className="flex flex-col items-center gap-2">
+                <DollarSign className="w-6 h-6 md:w-8 md:h-8 text-green-600" />
+                <ChevronRight className="w-4 h-4 text-gray-400" />
+              </div>
+            </div>
+          </Card>
+
+          <Card className="p-4 md:p-6 border border-gray-200 dark:border-gray-800 bg-white dark:bg-black">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Total Earnings</p>
-                <p className="text-3xl font-bold text-black dark:text-white">${business.totalEarnings}</p>
+                <p className="text-xs md:text-sm text-gray-600 dark:text-gray-400 mb-1">Avg Rating</p>
+                <p className="text-2xl md:text-3xl font-bold text-black dark:text-white">{business.rating}</p>
               </div>
-              <DollarSign className="w-8 h-8 text-orange-500" />
+              <Star className="w-6 h-6 md:w-8 md:h-8 text-orange-500 fill-orange-500" />
             </div>
           </Card>
 
@@ -597,6 +633,7 @@ export const BusinessDashboard = () => {
           newTier={tierSwitchInfo.newTier}
         />
       )}
+      <MobileBottomNav />
     </div>
   );
 };

@@ -19,6 +19,8 @@ import { OperatorOnboarding } from "./pages/operator/OperatorOnboarding";
 import { BusinessDashboard } from "./pages/operator/BusinessDashboard";
 import ManualOperatorDashboard from "./pages/operator/ManualOperatorDashboard";
 import EquippedOperatorDashboard from "./pages/operator/EquippedOperatorDashboard";
+import EarningsDetails from "./pages/operator/EarningsDetails";
+import NearbyJobsMap from "./pages/operator/NearbyJobsMap";
 import { DriveEarn } from "./pages/DriveEarn";
 import { HelpSupport } from "./pages/HelpSupport";
 import { UserGuide } from "./pages/UserGuide";
@@ -96,6 +98,16 @@ const App = () => (
               <Route path="/equipped-operator">
                 <ProtectedRoute requireOperator>
                   <EquippedOperatorDashboard />
+                </ProtectedRoute>
+              </Route>
+              <Route path="/operator/earnings">
+                <ProtectedRoute requireOperator>
+                  <EarningsDetails />
+                </ProtectedRoute>
+              </Route>
+              <Route path="/operator/nearby-jobs">
+                <ProtectedRoute requireOperator>
+                  <NearbyJobsMap />
                 </ProtectedRoute>
               </Route>
               <Route path="/operator">
