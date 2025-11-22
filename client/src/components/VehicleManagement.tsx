@@ -422,6 +422,7 @@ export function VehicleManagement({ tierType }: VehicleManagementProps) {
                       {serviceTypes.map((service) => (
                         <div key={service} className="flex items-center space-x-2">
                           <Checkbox
+                            variant="circular"
                             id={service}
                             checked={field.value.includes(service)}
                             onCheckedChange={(checked) => {

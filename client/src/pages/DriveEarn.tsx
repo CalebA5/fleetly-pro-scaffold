@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Header } from "@/components/Header";
+import { InfoTooltip } from "@/components/ui/info-tooltip";
 import { MobileBottomNav } from "@/components/MobileBottomNav";
 import { useAuth } from "@/contexts/AuthContext";
 import { OPERATOR_TIER_INFO, type Operator } from "@shared/schema";
@@ -80,8 +81,14 @@ export const DriveEarn = () => {
 
           <Card className="mb-8">
             <CardHeader className="text-center">
-              <CardTitle className="text-2xl">Get Started as an Operator</CardTitle>
-              <CardDescription>Sign in or create an account to begin</CardDescription>
+              <div className="flex items-center justify-center gap-2">
+                <CardTitle className="text-2xl">Get Started as an Operator</CardTitle>
+                <InfoTooltip
+                  content="Create an operator account to start earning with your vehicle. Choose your tier based on your equipment and services offered."
+                  testId="button-info-get-started"
+                  ariaLabel="Get started information"
+                />
+              </div>
             </CardHeader>
             <CardContent className="flex justify-center gap-4">
               <Button
@@ -109,8 +116,14 @@ export const DriveEarn = () => {
               <Card key={tier} className="hover:shadow-lg transition-shadow">
                 <CardHeader>
                   <div className="text-4xl mb-2">{info.badge}</div>
-                  <CardTitle className="text-lg">{info.label}</CardTitle>
-                  <CardDescription className="text-sm">{info.description}</CardDescription>
+                  <div className="flex items-center gap-2">
+                    <CardTitle className="text-lg">{info.label}</CardTitle>
+                    <InfoTooltip
+                      content={info.description}
+                      testId={`button-info-tier-${tier}`}
+                      ariaLabel={`${info.label} tier information`}
+                    />
+                  </div>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-2 text-sm">
