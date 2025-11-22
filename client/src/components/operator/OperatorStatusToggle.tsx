@@ -104,7 +104,7 @@ export function OperatorStatusToggle({
             isOnline={isOnline}
             onToggle={onToggle}
             isPending={isPending}
-            size="lg"
+            size="md"
           />
         </div>
       </div>

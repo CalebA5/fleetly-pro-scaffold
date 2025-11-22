@@ -16,7 +16,7 @@ import { TierOnlineConfirmDialog } from "@/components/TierOnlineConfirmDialog";
 import { CustomerGrouping, type CustomerGroup } from "@/components/operator/CustomerGrouping";
 import { InfoTooltip } from "@/components/ui/info-tooltip";
 import { OperatorStatusToggle } from "@/components/operator/OperatorStatusToggle";
-import { UrgentRequestNotification, type UrgentRequest } from "@/components/operator/UrgentRequestNotification";
+import type { UrgentRequest } from "@/components/operator/UrgentRequestNotification";
 
 interface ServiceRequest {
   id: number;
@@ -33,13 +33,14 @@ interface ServiceRequest {
 export default function ManualOperatorDashboard() {
   const { user } = useAuth();
   const [, setLocation] = useLocation();
-  const [acceptedJobs, setAcceptedJobs] = useState<number[]>([]);
+  const [acceptedJobs, setAcceptedJobs] = useState<Array<number | string>>([]);
   const [acceptedGroupIds, setAcceptedGroupIds] = useState<string[]>([]);
   const { toast } = useToast();
   const [showTierSwitchDialog, setShowTierSwitchDialog] = useState(false);
   const [tierSwitchInfo, setTierSwitchInfo] = useState<{ currentTier: string; newTier: string } | null>(null);
   const [customerGroupsOpen, setCustomerGroupsOpen] = useState(true);
   const [urgentRequestsOpen, setUrgentRequestsOpen] = useState(true);
+  const [activeJobsOpen, setActiveJobsOpen] = useState(true);
   
   // Mock urgent requests for demonstration (in production, would come from WebSocket or polling)
   const [urgentRequests, setUrgentRequests] = useState<UrgentRequest[]>([
@@ -203,7 +204,8 @@ export default function ManualOperatorDashboard() {
 
   // Urgent request handlers
   const handleAcceptUrgent = (requestId: string) => {
-    setUrgentRequests(prev => prev.filter(r => r.id !== requestId));
+    setAcceptedJobs(prev => [...prev, requestId]);
+    // Note: Keep urgent request in list but marked as accepted, only remove on completion/dismissal
     toast({
       title: "Emergency Request Accepted!",
       description: "Job added to your active list. Navigate there immediately!",
@@ -225,14 +227,6 @@ export default function ManualOperatorDashboard() {
 
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900 pb-16 md:pb-0">
-      {/* Urgent Request Notifications */}
-      <UrgentRequestNotification
-        requests={urgentRequests}
-        onAccept={handleAcceptUrgent}
-        onDecline={handleDeclineUrgent}
-        onDismiss={handleDismissUrgent}
-      />
-      
       <Header
         onSignIn={() => {}}
         onSignUp={() => {}}
@@ -250,22 +244,15 @@ export default function ManualOperatorDashboard() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 
-        {/* Header Section */}
-        <div className="mb-8">
-          <div className="flex items-center gap-3">
-            <div style={{ width: 'clamp(2.5rem, 8vw, 3rem)', height: 'clamp(2.5rem, 8vw, 3rem)' }} className="bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center">
-              <Snowflake style={{ width: 'clamp(1.25rem, 4vw, 1.5rem)', height: 'clamp(1.25rem, 4vw, 1.5rem)' }} className="text-green-600 dark:text-green-400" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-2xl font-bold text-black dark:text-white">Manual Operator Dashboard</h1>
-                <InfoTooltip 
-                  content="Manual operators can only accept jobs within 5 kilometers of their registered home address. This ensures efficient service delivery and prevents operator clashing in neighborhoods." 
-                  testId="button-info-operating-radius"
-                  ariaLabel="Operating radius information"
-                />
-              </div>
-            </div>
+        {/* Header Section with Info */}
+        <div className="mb-6 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Snowflake className="w-5 h-5 text-green-600 dark:text-green-400" />
+            <InfoTooltip 
+              content="Manual operators can only accept jobs within 5 kilometers of their registered home address. This ensures efficient service delivery and prevents operator clashing in neighborhoods." 
+              testId="button-info-operating-radius"
+              ariaLabel="Operating radius information"
+            />
           </div>
         </div>
 
@@ -345,6 +332,159 @@ export default function ManualOperatorDashboard() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Active Jobs Section - Manual Operator */}
+        {acceptedJobs.length > 0 && (
+          <Collapsible open={activeJobsOpen} onOpenChange={setActiveJobsOpen} className="mb-8">
+            <Card className="border-2 border-blue-200 dark:border-blue-800">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div style={{ width: 'clamp(2rem, 6vw, 2.5rem)', height: 'clamp(2rem, 6vw, 2.5rem)' }} className="bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center">
+                      <CheckCircle style={{ width: 'clamp(1rem, 3vw, 1.25rem)', height: 'clamp(1rem, 3vw, 1.25rem)' }} className="text-blue-600 dark:text-blue-400" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <CardTitle className="text-black dark:text-white">
+                          Active Jobs
+                        </CardTitle>
+                        <InfoTooltip 
+                          content="Jobs you've accepted and are currently working on. Complete these to earn and maintain your rating." 
+                          testId="button-info-active-jobs"
+                          ariaLabel="Active jobs information"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Badge className="bg-blue-500 text-white">
+                      {acceptedJobs.length} ACTIVE
+                    </Badge>
+                    <CollapsibleTrigger asChild>
+                      <Button variant="ghost" size="sm" data-testid="button-toggle-active-jobs">
+                        {activeJobsOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                      </Button>
+                    </CollapsibleTrigger>
+                  </div>
+                </div>
+              </CardHeader>
+              <CollapsibleContent>
+                <CardContent>
+                  <div className="space-y-3">
+                    {acceptedJobs.map((jobId) => {
+                      const regularJob = typeof jobId === 'number' ? nearbySnowRequests.find(r => r.id === jobId) : undefined;
+                      const urgentJob = typeof jobId === 'string' ? urgentRequests.find(r => r.id === jobId) : undefined;
+                      
+                      if (regularJob) {
+                        return (
+                          <div
+                            key={jobId}
+                            className="border-2 border-blue-200 dark:border-blue-700 rounded-lg p-4 bg-blue-50 dark:bg-blue-950"
+                            data-testid={`active-job-${jobId}`}
+                          >
+                            <div className="flex items-start justify-between mb-2">
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <h3 className="font-semibold text-black dark:text-white">
+                                    {regularJob.customerName}
+                                  </h3>
+                                  {regularJob.isEmergency === 1 && (
+                                    <Badge className="bg-red-600 text-white text-xs">
+                                      EMERGENCY
+                                    </Badge>
+                                  )}
+                                </div>
+                                <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                                  {regularJob.serviceType}
+                                </p>
+                                <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400">
+                                  <span className="flex items-center gap-1">
+                                    <MapPin className="w-4 h-4" />
+                                    {regularJob.location}
+                                    {regularJob.distance && ` (${regularJob.distance}km)`}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                            <div className="flex gap-2">
+                              <Button
+                                onClick={() => setLocation(`/operator/jobs/${jobId}`)}
+                                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
+                                data-testid={`button-view-job-${jobId}`}
+                              >
+                                View Details
+                              </Button>
+                              <Button
+                                variant="outline"
+                                className="border-green-500 text-green-600 hover:bg-green-50"
+                                data-testid={`button-complete-job-${jobId}`}
+                              >
+                                Mark Complete
+                              </Button>
+                            </div>
+                          </div>
+                        );
+                      }
+                      
+                      if (urgentJob) {
+                        return (
+                          <div
+                            key={jobId}
+                            className="border-2 border-blue-200 dark:border-blue-700 rounded-lg p-4 bg-blue-50 dark:bg-blue-950"
+                            data-testid={`active-job-${jobId}`}
+                          >
+                            <div className="flex items-start justify-between mb-2">
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <h3 className="font-semibold text-black dark:text-white">
+                                    {urgentJob.customerName}
+                                  </h3>
+                                  {urgentJob.isEmergency && (
+                                    <Badge className="bg-red-600 text-white text-xs">
+                                      EMERGENCY
+                                    </Badge>
+                                  )}
+                                </div>
+                                <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                                  {urgentJob.description}
+                                </p>
+                                <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400">
+                                  <span className="flex items-center gap-1">
+                                    <MapPin className="w-4 h-4" />
+                                    {urgentJob.location}
+                                    {urgentJob.distance && ` (${urgentJob.distance}km)`}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                            <div className="flex gap-2">
+                              <Button
+                                onClick={() => setLocation(`/operator/jobs/${jobId}`)}
+                                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
+                                data-testid={`button-view-job-${jobId}`}
+                              >
+                                View Details
+                              </Button>
+                              <Button
+                                variant="outline"
+                                className="border-green-500 text-green-600 hover:bg-green-50"
+                                data-testid={`button-complete-job-${jobId}`}
+                              >
+                                Mark Complete
+                              </Button>
+                            </div>
+                          </div>
+                        );
+                      }
+                      
+                      return null;
+                    })}
+                  </div>
+                </CardContent>
+              </CollapsibleContent>
+            </Card>
+          </Collapsible>
+        )}
 
         {/* Responsive Grid: Customer Groups + Urgent Requests */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
@@ -433,9 +573,9 @@ export default function ManualOperatorDashboard() {
               </CardHeader>
               <CollapsibleContent>
                 <CardContent>
-                  {urgentRequests.length > 0 ? (
+                  {urgentRequests.filter(r => !acceptedJobs.includes(r.id)).length > 0 ? (
                     <div className="space-y-3">
-                      {urgentRequests.map((request) => (
+                      {urgentRequests.filter(r => !acceptedJobs.includes(r.id)).map((request) => (
                         <div
                           key={request.id}
                           className="border-2 border-red-300 dark:border-red-700 rounded-lg p-4 bg-red-50 dark:bg-red-950"
@@ -527,9 +667,9 @@ export default function ManualOperatorDashboard() {
                   <div key={i} className="h-24 bg-gray-100 dark:bg-gray-800 rounded animate-pulse" />
                 ))}
               </div>
-            ) : nearbySnowRequests.length > 0 ? (
+            ) : nearbySnowRequests.filter(r => !acceptedJobs.includes(r.id)).length > 0 ? (
               <div className="space-y-3">
-                {nearbySnowRequests.map((request) => (
+                {nearbySnowRequests.filter(r => !acceptedJobs.includes(r.id)).map((request) => (
                   <div
                     key={request.id}
                     className="border border-gray-200 dark:border-gray-800 rounded-lg p-4 hover:border-orange-500 dark:hover:border-orange-500 transition-colors"
@@ -563,20 +703,13 @@ export default function ManualOperatorDashboard() {
                           )}
                         </div>
                       </div>
-                      {acceptedJobs.includes(request.id) ? (
-                        <Badge className="bg-green-500 text-white">
-                          <CheckCircle className="w-4 h-4 mr-1" />
-                          Accepted
-                        </Badge>
-                      ) : (
-                        <Button
-                          onClick={() => handleAcceptJob(request.id)}
-                          className="bg-black hover:bg-gray-800 text-white dark:bg-white dark:text-black dark:hover:bg-gray-200"
-                          data-testid={`button-accept-${request.id}`}
-                        >
-                          Accept Job
-                        </Button>
-                      )}
+                      <Button
+                        onClick={() => handleAcceptJob(request.id)}
+                        className="bg-black hover:bg-gray-800 text-white dark:bg-white dark:text-black dark:hover:bg-gray-200"
+                        data-testid={`button-accept-${request.id}`}
+                      >
+                        Accept Job
+                      </Button>
                     </div>
                   </div>
                 ))}
