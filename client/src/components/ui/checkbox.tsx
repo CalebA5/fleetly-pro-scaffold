@@ -11,7 +11,7 @@ interface CheckboxProps extends React.ComponentPropsWithoutRef<typeof CheckboxPr
 const Checkbox = React.forwardRef<
   React.ElementRef<typeof CheckboxPrimitive.Root>,
   CheckboxProps
->(({ className, variant = "square", ...props }, ref) => (
+>(({ className, variant = "circular", ...props }, ref) => (
   <CheckboxPrimitive.Root
     ref={ref}
     className={cn(

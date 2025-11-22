@@ -14,6 +14,8 @@ import type { Operator } from "@shared/schema";
 import { TierOnlineConfirmDialog } from "@/components/TierOnlineConfirmDialog";
 import { CustomerGrouping, type CustomerGroup } from "@/components/operator/CustomerGrouping";
 import { InfoTooltip } from "@/components/ui/info-tooltip";
+import { OperatorStatusToggle } from "@/components/operator/OperatorStatusToggle";
+import { UrgentRequestNotification, type UrgentRequest } from "@/components/operator/UrgentRequestNotification";
 
 interface ServiceRequest {
   id: number;
@@ -35,6 +37,22 @@ export default function ManualOperatorDashboard() {
   const { toast } = useToast();
   const [showTierSwitchDialog, setShowTierSwitchDialog] = useState(false);
   const [tierSwitchInfo, setTierSwitchInfo] = useState<{ currentTier: string; newTier: string } | null>(null);
+  
+  // Mock urgent requests for demonstration (in production, would come from WebSocket or polling)
+  const [urgentRequests, setUrgentRequests] = useState<UrgentRequest[]>([
+    {
+      id: "URG-001",
+      type: "emergency",
+      customerName: "City Hospital",
+      serviceType: "Snow Plowing",
+      location: "123 Emergency Lane",
+      distance: 1.2,
+      estimatedValue: "$120-180",
+      description: "Emergency access needed - ambulance route blocked",
+      expiresIn: 5,
+      isEmergency: true,
+    },
+  ]);
 
   // Customer grouping - in production, this would come from backend
   const mockCustomerGroups: CustomerGroup[] = [
@@ -180,8 +198,38 @@ export default function ManualOperatorDashboard() {
     });
   };
 
+  // Urgent request handlers
+  const handleAcceptUrgent = (requestId: string) => {
+    setUrgentRequests(prev => prev.filter(r => r.id !== requestId));
+    toast({
+      title: "Emergency Request Accepted!",
+      description: "Job added to your active list. Navigate there immediately!",
+    });
+  };
+
+  const handleDeclineUrgent = (requestId: string) => {
+    setUrgentRequests(prev => prev.filter(r => r.id !== requestId));
+    toast({
+      title: "Request Declined",
+      description: "The job has been offered to another operator.",
+      variant: "destructive",
+    });
+  };
+
+  const handleDismissUrgent = (requestId: string) => {
+    setUrgentRequests(prev => prev.filter(r => r.id !== requestId));
+  };
+
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900 pb-16 md:pb-0">
+      {/* Urgent Request Notifications */}
+      <UrgentRequestNotification
+        requests={urgentRequests}
+        onAccept={handleAcceptUrgent}
+        onDecline={handleDeclineUrgent}
+        onDismiss={handleDismissUrgent}
+      />
+      
       <Header
         onSignIn={() => {}}
         onSignUp={() => {}}
@@ -189,40 +237,32 @@ export default function ManualOperatorDashboard() {
       />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Operator Status Toggle - Mobile Optimized */}
+        <OperatorStatusToggle
+          isOnline={isOnline}
+          onToggle={(goOnline) => toggleOnlineMutation.mutate({ goOnline })}
+          isPending={toggleOnlineMutation.isPending}
+          activeTier="Manual Operator"
+          variant="mobile"
+          className="mb-6"
+        />
+
         {/* Header Section */}
         <div className="mb-8">
-          <div className="flex items-center justify-between flex-wrap gap-4">
-            <div className="flex items-center gap-3">
-              <div style={{ width: 'clamp(2.5rem, 8vw, 3rem)', height: 'clamp(2.5rem, 8vw, 3rem)' }} className="bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center">
-                <Snowflake style={{ width: 'clamp(1.25rem, 4vw, 1.5rem)', height: 'clamp(1.25rem, 4vw, 1.5rem)' }} className="text-green-600 dark:text-green-400" />
-              </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <h1 className="text-2xl font-bold text-black dark:text-white">Manual Operator Dashboard</h1>
-                  <InfoTooltip 
-                    content="Manual operators can only accept jobs within 5 kilometers of their registered home address. This ensures efficient service delivery and prevents operator clashing in neighborhoods." 
-                    testId="button-info-operating-radius"
-                    ariaLabel="Operating radius information"
-                  />
-                </div>
+          <div className="flex items-center gap-3">
+            <div style={{ width: 'clamp(2.5rem, 8vw, 3rem)', height: 'clamp(2.5rem, 8vw, 3rem)' }} className="bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center">
+              <Snowflake style={{ width: 'clamp(1.25rem, 4vw, 1.5rem)', height: 'clamp(1.25rem, 4vw, 1.5rem)' }} className="text-green-600 dark:text-green-400" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h1 className="text-2xl font-bold text-black dark:text-white">Manual Operator Dashboard</h1>
+                <InfoTooltip 
+                  content="Manual operators can only accept jobs within 5 kilometers of their registered home address. This ensures efficient service delivery and prevents operator clashing in neighborhoods." 
+                  testId="button-info-operating-radius"
+                  ariaLabel="Operating radius information"
+                />
               </div>
             </div>
-            
-            {/* Online Toggle Button */}
-            <Button
-              variant={isOnline ? "default" : "outline"}
-              size="lg"
-              onClick={() => toggleOnlineMutation.mutate({ goOnline: !isOnline })}
-              disabled={toggleOnlineMutation.isPending}
-              className={`px-8 py-6 rounded-lg font-semibold transition-all ${
-                isOnline 
-                  ? "bg-green-600 hover:bg-green-700 text-white" 
-                  : "border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
-              }`}
-              data-testid="button-toggle-online"
-            >
-              {toggleOnlineMutation.isPending ? "Updating..." : isOnline ? "Online" : "Offline"}
-            </Button>
           </div>
         </div>
 
