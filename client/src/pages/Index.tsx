@@ -44,27 +44,27 @@ const Index = () => {
     }
   }, [isAuthLoading]);
 
-  // Auto-fill pickup with user's location address when available (only once on mount)
-  const [hasAutoFilled, setHasAutoFilled] = useState(false);
+  // Track if user has manually cleared the location field
+  const [userHasCleared, setUserHasCleared] = useState(false);
   
+  // Auto-fill pickup with user's location address when available
+  // But ONLY if user hasn't manually cleared the field
   useEffect(() => {
-    if (formattedAddress && !pickup && !hasAutoFilled) {
+    if (formattedAddress && !pickup && !userHasCleared) {
       setPickup(formattedAddress);
-      setHasAutoFilled(true);
       if (location) {
         setCurrentLat(location.coords.latitude);
         setCurrentLon(location.coords.longitude);
       }
     }
-  }, [formattedAddress, location, pickup, hasAutoFilled]);
+  }, [formattedAddress, location, pickup, userHasCleared]);
 
-  // Clear location handler - prevents auto-refill by marking as user action
+  // Clear location handler - mark that user has manually cleared
   const handleClearLocation = () => {
     setPickup("");
     setCurrentLat(null);
     setCurrentLon(null);
-    // Prevent auto-refill after user explicitly clears
-    setHasAutoFilled(true);
+    setUserHasCleared(true); // Prevent auto-refill after manual clear
   };
 
   const handleAuthClick = (tab: "signin" | "signup", role: "customer" | "operator" = "customer") => {
@@ -89,34 +89,64 @@ const Index = () => {
     setCurrentLon(result.lon);
     // Store in LocationContext
     setFormattedAddress(result.fullAddress, result.lat, result.lon);
+    // Allow auto-fill again since user has EXPLICITLY selected a location
+    setUserHasCleared(false);
   };
 
   const handleSearchService = async () => {
     if (pickup) {
       // If we don't have coordinates yet, geocode the address first
       if (currentLat === null || currentLon === null) {
-        await geocodeAndNavigate(pickup);
+        await geocodeAndNavigate(pickup, true); // Pass true for radius filter
       } else {
-        setShowAvailability(true);
+        // Navigate to operators map with 50km radius filter
+        setLocation(`/customer/operators?lat=${currentLat}&lon=${currentLon}&address=${encodeURIComponent(pickup)}&radius=50`);
       }
+    } else {
+      toast({
+        title: "Location required",
+        description: "Please enter a pickup location to see available operators.",
+        variant: "destructive",
+      });
     }
   };
 
-  // Navigate to operators map with location params
+  // Navigate to operators map with smart centering logic
   const handleBrowseOperators = async () => {
-    // Check for null explicitly (not truthiness, to allow 0,0 coordinates)
-    if (currentLat !== null && currentLon !== null) {
+    // Priority 1: If there's a location in the pickup field with coordinates, use that
+    if (pickup.trim() && currentLat !== null && currentLon !== null) {
       setLocation(`/customer/operators?lat=${currentLat}&lon=${currentLon}&address=${encodeURIComponent(pickup)}`);
-    } else if (pickup.trim()) {
-      // User entered location but no coordinates - geocode it
-      await geocodeAndNavigate(pickup);
-    } else {
-      setLocation("/customer/operators");
+      return;
     }
+    
+    // Priority 2: If pickup has text but no coordinates, geocode it first
+    if (pickup.trim()) {
+      await geocodeAndNavigate(pickup);
+      return;
+    }
+    
+    // Priority 3: Use current GPS location if available (from LocationContext)
+    if (location && location.coords) {
+      const lat = location.coords.latitude;
+      const lon = location.coords.longitude;
+      const address = formattedAddress || "Current Location";
+      setLocation(`/customer/operators?lat=${lat}&lon=${lon}&address=${encodeURIComponent(address)}`);
+      return;
+    }
+    
+    // Priority 4: No location data - prompt for location access
+    toast({
+      title: "Location needed",
+      description: "Please share your location or enter a pickup address to browse operators.",
+      variant: "default",
+    });
+    
+    // Show location permission modal
+    setShowLocationPermission(true);
   };
 
   // Geocode address/city to coordinates
-  const geocodeAndNavigate = async (address: string) => {
+  const geocodeAndNavigate = async (address: string, includeRadius: boolean = false) => {
     try {
       const response = await fetch(
         `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(address)}&format=json&limit=1`
@@ -131,8 +161,9 @@ const Index = () => {
         // Store in context
         setFormattedAddress(display_name, latitude, longitude);
         
-        // Navigate with coordinates
-        setLocation(`/customer/operators?lat=${latitude}&lon=${longitude}&address=${encodeURIComponent(display_name)}`);
+        // Navigate with coordinates and optional radius filter
+        const radiusParam = includeRadius ? '&radius=50' : '';
+        setLocation(`/customer/operators?lat=${latitude}&lon=${longitude}&address=${encodeURIComponent(display_name)}${radiusParam}`);
       } else {
         toast({
           title: "Location not found",
@@ -160,7 +191,7 @@ const Index = () => {
     }
   };
 
-  // Manual location detection (triggered by button click)
+  // Manual location detection (triggered by button click) - ALWAYS gets fresh location
   const handleUseCurrentLocation = async () => {
     // Check if geolocation is supported
     if (!navigator.geolocation) {
@@ -185,7 +216,12 @@ const Index = () => {
         try {
           // Use OpenStreetMap Nominatim for reverse geocoding
           const response = await fetch(
-            `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`
+            `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`,
+            {
+              headers: {
+                'User-Agent': 'Fleetly-Location-App'
+              }
+            }
           );
           const data = await response.json();
 
@@ -204,9 +240,12 @@ const Index = () => {
             // Store in LocationContext
             setFormattedAddress(finalAddress, latitude, longitude);
             
+            // Allow auto-fill again since we just fetched a new location
+            setUserHasCleared(false);
+            
             toast({
-              title: "Location detected",
-              description: "Your current location has been set.",
+              title: "Location updated",
+              description: "Your current location has been updated.",
             });
           }
         } catch (error) {
@@ -223,33 +262,30 @@ const Index = () => {
       (error) => {
         console.log("Location access denied or unavailable");
         setLoadingLocation(false);
+        
+        let errorMessage = "Please allow location access to use this feature.";
+        if (error.code === error.TIMEOUT) {
+          errorMessage = "Location request timed out. Please try again.";
+        } else if (error.code === error.POSITION_UNAVAILABLE) {
+          errorMessage = "Location information is unavailable.";
+        }
+        
         toast({
           title: "Location access denied",
-          description: "Please allow location access to use this feature.",
+          description: errorMessage,
           variant: "destructive",
         });
       },
       {
-        enableHighAccuracy: false,
-        timeout: 5000,
-        maximumAge: 300000 // Cache location for 5 minutes
+        enableHighAccuracy: true, // Always get the most accurate location
+        timeout: 10000, // 10 second timeout
+        maximumAge: 0 // NO caching - always get fresh location
       }
     );
   };
 
-  // Watch LocationContext for address changes and sync to pickup field
-  useEffect(() => {
-    if (formattedAddress && !pickup) {
-      // Only auto-fill if pickup field is empty
-      setPickup(formattedAddress);
-    }
-    
-    // Also update coordinates if location has changed
-    if (location && (currentLat === null || currentLon === null)) {
-      setCurrentLat(location.coords.latitude);
-      setCurrentLon(location.coords.longitude);
-    }
-  }, [formattedAddress, location, pickup, currentLat, currentLon]);
+  // REMOVED: This duplicate useEffect was causing auto-refill even after manual clear
+  // The first useEffect (with userHasCleared flag) now handles all auto-fill logic properly
 
   // Show loading skeleton while auth is initializing to prevent flash
   if (isAuthLoading) {
@@ -312,7 +348,7 @@ const Index = () => {
                 <div className="space-y-3">
                   <div className="flex items-center gap-3">
                     <div className="w-3 h-3 rounded-full bg-black dark:bg-white flex-shrink-0"></div>
-                    <div className="flex-1">
+                    <div className="flex-1 relative">
                       <AutocompleteLocation
                         value={pickup}
                         onChange={setPickup}
@@ -323,6 +359,17 @@ const Index = () => {
                         testId="input-pickup-location"
                         icon={!loadingLocation}
                       />
+                      {/* Clear button - only show when there's text */}
+                      {pickup && !loadingLocation && (
+                        <button
+                          onClick={handleClearLocation}
+                          className="absolute right-10 top-1/2 -translate-y-1/2 p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
+                          data-testid="button-clear-location"
+                          aria-label="Clear location"
+                        >
+                          <X className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+                        </button>
+                      )}
                     </div>
                   </div>
                   <div className="h-px bg-gray-200 dark:bg-gray-700 ml-6"></div>

@@ -59,16 +59,31 @@ export const OperatorMap = () => {
   const contextLat = contextLocation?.coords.latitude ?? null;
   const contextLon = contextLocation?.coords.longitude ?? null;
   
-  // Parse URL parameters for location
+  // Parse URL parameters for location and radius
   const searchParams = new URLSearchParams(window.location.search);
   const urlLat = searchParams.get('lat');
   const urlLon = searchParams.get('lon');
   const urlAddress = searchParams.get('address');
+  const urlRadius = searchParams.get('radius'); // in kilometers
   
   // Use URL params if available, otherwise fall back to LocationContext
   const userLat = urlLat ? parseFloat(urlLat) : (contextLat !== null ? contextLat : null);
   const userLon = urlLon ? parseFloat(urlLon) : (contextLon !== null ? contextLon : null);
   const effectiveAddress = urlAddress || contextAddress;
+  const radiusFilter = urlRadius ? parseFloat(urlRadius) : null; // null means no radius filter
+
+  // Haversine distance calculation (returns distance in km)
+  const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
+    const R = 6371; // Earth's radius in km
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = 
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+      Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+  };
   
   // Reset sidebar minimize state when switching to list view and disable map interactions
   useEffect(() => {
@@ -307,7 +322,7 @@ export const OperatorMap = () => {
   // State for favorites filter
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
 
-  // Filter operators by selected service AND favorites AND self-exclusion
+  // Filter operators by selected service AND favorites AND self-exclusion AND radius
   const operators = allOperators?.filter(op => {
     // Filter by service if selected
     const matchesService = !selectedService || op.services?.includes(selectedService);
@@ -318,7 +333,16 @@ export const OperatorMap = () => {
     // Self-exclusion: if user is also an operator, hide their own profile
     const isNotSelf = !user?.operatorId || op.operatorId !== user.operatorId;
     
-    return matchesService && matchesFavorites && isNotSelf;
+    // Filter by distance radius if specified
+    let withinRadius = true;
+    if (radiusFilter !== null && userLat !== null && userLon !== null) {
+      const opLat = parseFloat(op.latitude);
+      const opLon = parseFloat(op.longitude);
+      const distance = calculateDistance(userLat, userLon, opLat, opLon);
+      withinRadius = distance <= radiusFilter;
+    }
+    
+    return matchesService && matchesFavorites && isNotSelf && withinRadius;
   });
 
   // Get map style URL based on selection

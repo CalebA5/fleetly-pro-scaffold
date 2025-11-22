@@ -43,19 +43,20 @@ export default function RequestStatus() {
   const [selectedTab, setSelectedTab] = useState("all");
 
   // CRITICAL: Fetch only THIS customer's requests using server-side filtering
+  // FIX: Use user.id instead of user.customerId (which doesn't exist)
   const { data: requests, isLoading } = useQuery({
-    queryKey: ['/api/service-requests', 'customer', user?.customerId],
+    queryKey: ['/api/service-requests', 'customer', user?.id],
     queryFn: async () => {
-      if (!user?.customerId) {
+      if (!user?.id) {
         throw new Error("No customer ID");
       }
-      const response = await fetch(`/api/service-requests?customerId=${user.customerId}`);
+      const response = await fetch(`/api/service-requests?customerId=${user.id}`);
       if (!response.ok) {
         throw new Error("Failed to fetch requests");
       }
       return response.json();
     },
-    enabled: !!user?.customerId
+    enabled: !!user?.id
   });
 
   if (!user) {
@@ -99,58 +100,58 @@ export default function RequestStatus() {
     };
 
     return (
-      <Card className="p-6 hover:shadow-lg transition-shadow bg-white dark:bg-gray-800">
-        <div className="space-y-4">
+      <Card className="p-4 md:p-6 hover:shadow-lg transition-shadow bg-white dark:bg-gray-800">
+        <div className="space-y-3">
           {/* Header */}
-          <div className="flex items-start justify-between">
-            <div className="flex-1">
-              <div className="flex items-center gap-2">
-                <h3 className="font-semibold text-lg text-gray-900 dark:text-white">
+          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h3 className="font-semibold text-base md:text-lg text-gray-900 dark:text-white break-words">
                   {request.serviceType}
                 </h3>
                 {request.isEmergency === 1 && (
-                  <Badge variant="destructive" className="text-xs">
+                  <Badge variant="destructive" className="text-xs shrink-0">
                     <AlertCircle className="w-3 h-3 mr-1" />
                     EMERGENCY
                   </Badge>
                 )}
               </div>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+              <p className="text-xs md:text-sm text-gray-500 dark:text-gray-400 mt-1 truncate">
                 Request ID: {request.requestId}
               </p>
             </div>
-            <Badge className={`${STATUS_COLORS[request.status as keyof typeof STATUS_COLORS] || STATUS_COLORS.pending} flex items-center gap-1`}>
+            <Badge className={`${STATUS_COLORS[request.status as keyof typeof STATUS_COLORS] || STATUS_COLORS.pending} flex items-center gap-1 shrink-0 whitespace-nowrap text-xs`}>
               <StatusIcon className="w-3 h-3" />
               {request.status.replace(/_/g, ' ').toUpperCase()}
             </Badge>
           </div>
 
           {/* Location */}
-          <div className="flex items-start gap-2 text-sm">
-            <MapPin className="w-4 h-4 text-gray-500 dark:text-gray-400 mt-0.5" />
-            <span className="text-gray-700 dark:text-gray-300">{request.location}</span>
+          <div className="flex items-start gap-2 text-xs md:text-sm">
+            <MapPin className="w-4 h-4 text-gray-500 dark:text-gray-400 mt-0.5 shrink-0" />
+            <span className="text-gray-700 dark:text-gray-300 break-words">{request.location}</span>
           </div>
 
           {/* Budget */}
           {request.budgetRange && (
-            <div className="flex items-center gap-2 text-sm">
-              <DollarSign className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+            <div className="flex items-center gap-2 text-xs md:text-sm">
+              <DollarSign className="w-4 h-4 text-gray-500 dark:text-gray-400 shrink-0" />
               <span className="text-gray-700 dark:text-gray-300">{request.budgetRange}</span>
             </div>
           )}
 
           {/* Operator Info (if assigned) */}
           {request.operatorName && (
-            <div className="flex items-center gap-2 text-sm">
-              <User className="w-4 h-4 text-gray-500 dark:text-gray-400" />
-              <span className="text-gray-700 dark:text-gray-300">
+            <div className="flex items-center gap-2 text-xs md:text-sm">
+              <User className="w-4 h-4 text-gray-500 dark:text-gray-400 shrink-0" />
+              <span className="text-gray-700 dark:text-gray-300 break-words">
                 Operator: {request.operatorName}
               </span>
             </div>
           )}
 
           {/* Timeline */}
-          <div className="text-sm text-gray-500 dark:text-gray-400">
+          <div className="text-xs md:text-sm text-gray-500 dark:text-gray-400">
             Requested {formatDistanceToNow(new Date(request.requestedAt), { addSuffix: true })}
           </div>
 
@@ -174,22 +175,22 @@ export default function RequestStatus() {
           )}
 
           {/* Actions */}
-          <div className="flex gap-2 pt-2">
+          <div className="flex flex-col sm:flex-row gap-2 pt-2">
             {isAssigned ? (
               <Button
                 size="sm"
-                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
+                className="w-full sm:flex-1 bg-blue-600 hover:bg-blue-700 text-white text-xs md:text-sm"
                 onClick={handleViewDetails}
                 data-testid={`button-track-job-${request.requestId}`}
               >
-                <Eye className="w-4 h-4 mr-2" />
-                Track Job Progress
+                <Eye className="w-4 h-4 mr-2 shrink-0" />
+                <span className="truncate">Track Job Progress</span>
               </Button>
             ) : (
               <Button
                 variant="outline"
                 size="sm"
-                className="flex-1"
+                className="w-full sm:flex-1 text-xs md:text-sm"
                 onClick={handleViewDetails}
                 data-testid={`button-view-details-${request.requestId}`}
               >
@@ -199,11 +200,11 @@ export default function RequestStatus() {
             {isDeclined && (
               <Button
                 size="sm"
-                className="flex-1 bg-orange-600 hover:bg-orange-700 text-white"
+                className="w-full sm:flex-1 bg-orange-600 hover:bg-orange-700 text-white text-xs md:text-sm"
                 data-testid={`button-find-alternative-${request.requestId}`}
               >
-                <Search className="w-4 h-4 mr-2" />
-                Find Alternative Operator
+                <Search className="w-4 h-4 mr-2 shrink-0" />
+                <span className="truncate">Find Alternative Operator</span>
               </Button>
             )}
           </div>
@@ -223,21 +224,21 @@ export default function RequestStatus() {
         </div>
 
         <Tabs value={selectedTab} onValueChange={setSelectedTab} className="space-y-6">
-          <TabsList className="grid grid-cols-5 w-full">
-            <TabsTrigger value="all" data-testid="tab-all">
-              All ({groupedRequests.all.length})
+          <TabsList className="grid grid-cols-5 w-full gap-1">
+            <TabsTrigger value="all" data-testid="tab-all" className="text-xs md:text-sm px-2 py-2">
+              <span className="hidden sm:inline">All </span>({groupedRequests.all.length})
             </TabsTrigger>
-            <TabsTrigger value="pending" data-testid="tab-pending">
-              Pending ({groupedRequests.pending.length})
+            <TabsTrigger value="pending" data-testid="tab-pending" className="text-xs md:text-sm px-2 py-2">
+              <span className="hidden sm:inline">Pending </span>({groupedRequests.pending.length})
             </TabsTrigger>
-            <TabsTrigger value="accepted" data-testid="tab-accepted">
-              Accepted ({groupedRequests.accepted.length})
+            <TabsTrigger value="accepted" data-testid="tab-accepted" className="text-xs md:text-sm px-2 py-2">
+              <span className="hidden sm:inline">Accepted </span>({groupedRequests.accepted.length})
             </TabsTrigger>
-            <TabsTrigger value="declined" data-testid="tab-declined">
-              Declined ({groupedRequests.declined.length})
+            <TabsTrigger value="declined" data-testid="tab-declined" className="text-xs md:text-sm px-2 py-2">
+              <span className="hidden sm:inline">Declined </span>({groupedRequests.declined.length})
             </TabsTrigger>
-            <TabsTrigger value="completed" data-testid="tab-completed">
-              Completed ({groupedRequests.completed.length})
+            <TabsTrigger value="completed" data-testid="tab-completed" className="text-xs md:text-sm px-2 py-2">
+              <span className="hidden sm:inline">Completed </span>({groupedRequests.completed.length})
             </TabsTrigger>
           </TabsList>
 
