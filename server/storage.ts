@@ -14,6 +14,9 @@ import type {
   OperatorTierStats, InsertOperatorTierStats,
   AcceptedJob, InsertAcceptedJob
 } from "@shared/schema";
+import { db } from "./db";
+import { operatorDailyEarnings, operatorMonthlyEarnings, operatorPenalties, acceptedJobs } from "@shared/schema";
+import { eq, and } from "drizzle-orm";
 
 export interface IStorage {
   getJobs(customerId?: string): Promise<Job[]>;
@@ -102,9 +105,18 @@ export interface IStorage {
   updateAcceptedJobStatus(acceptedJobId: string, status: string): Promise<AcceptedJob | undefined>;
   updateAcceptedJobProgress(acceptedJobId: string, progress: number): Promise<AcceptedJob | undefined>;
   startAcceptedJob(acceptedJobId: string): Promise<AcceptedJob | undefined>;
-  completeAcceptedJob(acceptedJobId: string): Promise<AcceptedJob | undefined>;
-  cancelAcceptedJob(acceptedJobId: string, reason: string): Promise<AcceptedJob | undefined>;
+  completeAcceptedJob(acceptedJobId: string, earnings: number): Promise<AcceptedJob | undefined>;
+  cancelAcceptedJob(acceptedJobId: string, reason: string, cancelledByOperator: boolean): Promise<{ job: AcceptedJob | undefined; penalty?: number }>;
   getOperatorActiveJobs(operatorId: string, excludeTier?: string): Promise<AcceptedJob[]>;
+
+  // Earnings & Penalties (persistent metrics tracking)
+  getDailyEarnings(operatorId: string, tier: string, date: string): Promise<any | undefined>;
+  upsertDailyEarnings(operatorId: string, tier: string, date: string, earningsToAdd: number, jobsToAdd: number): Promise<void>;
+  getMonthlyEarnings(operatorId: string, tier: string, month: string): Promise<any | undefined>;
+  upsertMonthlyEarnings(operatorId: string, tier: string, month: string, earningsToAdd: number, jobsToAdd: number): Promise<void>;
+  getTodayEarnings(operatorId: string, tier: string): Promise<{ earnings: number; jobsCompleted: number }>;
+  getMonthEarnings(operatorId: string, tier: string): Promise<{ earnings: number; jobsCompleted: number }>;
+  createPenalty(operatorId: string, tier: string, acceptedJobId: string, amount: number, reason: string, progress: number): Promise<void>;
 }
 
 export class MemStorage implements IStorage {
@@ -813,22 +825,38 @@ export class MemStorage implements IStorage {
     return job;
   }
 
-  async completeAcceptedJob(acceptedJobId: string): Promise<AcceptedJob | undefined> {
+  async completeAcceptedJob(acceptedJobId: string, earnings: number): Promise<AcceptedJob | undefined> {
     const job = this.acceptedJobs.find((j) => j.acceptedJobId === acceptedJobId);
     if (!job) return undefined;
     job.status = "completed";
     job.completedAt = new Date();
     job.progress = 100;
+    job.actualEarnings = earnings.toString();
     return job;
   }
 
-  async cancelAcceptedJob(acceptedJobId: string, reason: string): Promise<AcceptedJob | undefined> {
+  async cancelAcceptedJob(acceptedJobId: string, reason: string, cancelledByOperator: boolean): Promise<{ job: AcceptedJob | undefined; penalty?: number }> {
     const job = this.acceptedJobs.find((j) => j.acceptedJobId === acceptedJobId);
-    if (!job) return undefined;
+    if (!job) return { job: undefined };
+    
     job.status = "cancelled";
     job.cancelledAt = new Date();
     job.cancellationReason = reason;
-    return job;
+    job.cancelledByOperator = cancelledByOperator ? 1 : 0;
+    
+    let penalty: number | undefined;
+    if (cancelledByOperator && job.progress < 50) {
+      // Calculate penalty from budget range or estimated earnings
+      const jobData = job.jobData as any;
+      const budgetRange = jobData?.budgetRange || "$0";
+      const match = budgetRange.match(/\$(\d+)-\$?(\d+)/);
+      if (match) {
+        const midpoint = (parseInt(match[1]) + parseInt(match[2])) / 2;
+        penalty = midpoint;
+      }
+    }
+    
+    return { job, penalty };
   }
 
   async getOperatorActiveJobs(operatorId: string, excludeTier?: string): Promise<AcceptedJob[]> {
@@ -839,5 +867,48 @@ export class MemStorage implements IStorage {
       jobs = jobs.filter((j) => j.tier !== excludeTier);
     }
     return jobs;
+  }
+
+  // Earnings & Penalties methods - stub implementations for interface compliance
+  async getDailyEarnings(operatorId: string, tier: string, date: string): Promise<any | undefined> {
+    // TODO: Implement database-backed earnings tracking
+    return undefined;
+  }
+
+  async upsertDailyEarnings(operatorId: string, tier: string, date: string, earningsToAdd: number, jobsToAdd: number): Promise<void> {
+    // TODO: Implement database-backed earnings tracking
+  }
+
+  async getMonthlyEarnings(operatorId: string, tier: string, month: string): Promise<any | undefined> {
+    // TODO: Implement database-backed earnings tracking
+    return undefined;
+  }
+
+  async upsertMonthlyEarnings(operatorId: string, tier: string, month: string, earningsToAdd: number, jobsToAdd: number): Promise<void> {
+    // TODO: Implement database-backed earnings tracking
+  }
+
+  async getTodayEarnings(operatorId: string, tier: string): Promise<{ earnings: number; jobsCompleted: number }> {
+    // Get today's date in YYYY-MM-DD format
+    const today = new Date().toISOString().split('T')[0];
+    const dailyData = await this.getDailyEarnings(operatorId, tier, today);
+    return {
+      earnings: dailyData ? parseFloat(dailyData.earnings || '0') : 0,
+      jobsCompleted: dailyData ? dailyData.jobsCompleted : 0
+    };
+  }
+
+  async getMonthEarnings(operatorId: string, tier: string): Promise<{ earnings: number; jobsCompleted: number }> {
+    // Get current month in YYYY-MM format
+    const month = new Date().toISOString().substring(0, 7);
+    const monthlyData = await this.getMonthlyEarnings(operatorId, tier, month);
+    return {
+      earnings: monthlyData ? parseFloat(monthlyData.earnings || '0') : 0,
+      jobsCompleted: monthlyData ? monthlyData.jobsCompleted : 0
+    };
+  }
+
+  async createPenalty(operatorId: string, tier: string, acceptedJobId: string, amount: number, reason: string, progress: number): Promise<void> {
+    // TODO: Implement database-backed penalty tracking
   }
 }

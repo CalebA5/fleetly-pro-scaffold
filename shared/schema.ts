@@ -191,6 +191,45 @@ export const insertOperatorDailyEarningsSchema = createInsertSchema(operatorDail
 export type InsertOperatorDailyEarnings = z.infer<typeof insertOperatorDailyEarningsSchema>;
 export type OperatorDailyEarnings = typeof operatorDailyEarnings.$inferSelect;
 
+export const operatorMonthlyEarnings = pgTable("operator_monthly_earnings", {
+  id: serial("id").primaryKey(),
+  operatorId: text("operator_id").notNull(),
+  tier: text("tier").notNull(),
+  month: text("month").notNull(), // Format: YYYY-MM
+  jobsCompleted: integer("jobs_completed").notNull().default(0),
+  earnings: decimal("earnings", { precision: 10, scale: 2 }).notNull().default("0"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertOperatorMonthlyEarningsSchema = createInsertSchema(operatorMonthlyEarnings).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertOperatorMonthlyEarnings = z.infer<typeof insertOperatorMonthlyEarningsSchema>;
+export type OperatorMonthlyEarnings = typeof operatorMonthlyEarnings.$inferSelect;
+
+export const operatorPenalties = pgTable("operator_penalties", {
+  id: serial("id").primaryKey(),
+  operatorId: text("operator_id").notNull(),
+  tier: text("tier").notNull(),
+  acceptedJobId: text("accepted_job_id").notNull(),
+  penaltyAmount: decimal("penalty_amount", { precision: 10, scale: 2 }).notNull(),
+  reason: text("reason").notNull(), // "cancellation_under_50_percent" | "customer_complaint" | etc.
+  progress: integer("progress").notNull(), // Progress at time of penalty
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertOperatorPenaltySchema = createInsertSchema(operatorPenalties).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertOperatorPenalty = z.infer<typeof insertOperatorPenaltySchema>;
+export type OperatorPenalty = typeof operatorPenalties.$inferSelect;
+
 export const serviceRequests = pgTable("service_requests", {
   id: serial("id").primaryKey(),
   requestId: text("request_id").notNull().unique(),
@@ -642,6 +681,8 @@ export const acceptedJobs = pgTable("accepted_jobs", {
   status: text("status").notNull().default("accepted"), // "accepted" | "in_progress" | "completed" | "cancelled"
   progress: integer("progress").notNull().default(0), // 0-100 percentage
   jobData: jsonb("job_data").notNull(), // Full job/request details stored as JSON
+  actualEarnings: decimal("actual_earnings", { precision: 10, scale: 2 }), // Actual earnings from this job
+  cancelledByOperator: integer("cancelled_by_operator").default(0), // 1 if operator cancelled, 0 if customer/system cancelled
   acceptedAt: timestamp("accepted_at").defaultNow().notNull(),
   startedAt: timestamp("started_at"),
   completedAt: timestamp("completed_at"),
