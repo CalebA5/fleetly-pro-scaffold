@@ -46,7 +46,7 @@ export const Profile = () => {
 
   // Parse tier profiles from operator data
   const tierProfiles = (operatorData?.operatorTierProfiles as OperatorTierProfile[] | undefined) || [];
-  const hasAnyTier = operatorData && operatorData.subscribedTiers.length > 0;
+  const hasAnyTier = tierProfiles.length > 0 || (operatorData && operatorData.subscribedTiers.length > 0);
 
   // Get approval status badge
   const getApprovalStatusBadge = (status: TierApprovalStatus | undefined) => {
