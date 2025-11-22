@@ -307,6 +307,20 @@ export const BusinessDashboard = () => {
     });
   };
 
+  const handleAcceptCustomers = (groupId: string, customerIndices: number[]) => {
+    const group = mockCustomerGroups.find(g => g.id === groupId);
+    if (!group) return;
+    
+    // Mark group as accepted (partial acceptance still removes the group from view)
+    setAcceptedGroupIds(prev => [...prev, groupId]);
+    
+    // In production, send selective accept to backend with customer indices
+    toast({
+      title: "Customers Accepted!",
+      description: `Accepted ${customerIndices.length} of ${group.customerCount} jobs in ${group.location}`,
+    });
+  };
+
   // Show loading state while setting up business or loading data
   if (setupBusinessMutation.isPending || businessLoading || driversLoading) {
     return (
@@ -522,6 +536,7 @@ export const BusinessDashboard = () => {
               <CustomerGrouping 
                 groups={mockCustomerGroups}
                 onAcceptGroup={handleAcceptGroup}
+                onAcceptCustomers={handleAcceptCustomers}
                 acceptedGroupIds={acceptedGroupIds}
                 operatorJobCount={12} // TODO: Fetch from operator profile API  
                 minimumJobsRequired={5}

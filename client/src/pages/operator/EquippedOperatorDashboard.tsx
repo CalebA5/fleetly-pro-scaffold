@@ -174,6 +174,20 @@ export default function EquippedOperatorDashboard() {
     });
   };
 
+  const handleAcceptCustomers = (groupId: string, customerIndices: number[]) => {
+    const group = mockCustomerGroups.find(g => g.id === groupId);
+    if (!group) return;
+    
+    // Mark group as accepted (partial acceptance still removes the group from view)
+    setAcceptedGroupIds(prev => [...prev, groupId]);
+    
+    // In production, send selective accept to backend with customer indices
+    toast({
+      title: "Customers Accepted!",
+      description: `Accepted ${customerIndices.length} of ${group.customerCount} jobs in ${group.location}`,
+    });
+  };
+
   const availableServices = ["Towing", "Hauling", "Courier", "Roadside Assistance"];
 
   return (
@@ -333,6 +347,7 @@ export default function EquippedOperatorDashboard() {
               <CustomerGrouping 
                 groups={mockCustomerGroups}
                 onAcceptGroup={handleAcceptGroup}
+                onAcceptCustomers={handleAcceptCustomers}
                 acceptedGroupIds={acceptedGroupIds}
                 operatorJobCount={7} // TODO: Fetch from operator profile API
                 minimumJobsRequired={5}

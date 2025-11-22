@@ -166,6 +166,20 @@ export default function ManualOperatorDashboard() {
     // In production, this would invalidate queries and refetch
   };
 
+  const handleAcceptCustomers = (groupId: string, customerIndices: number[]) => {
+    const group = mockCustomerGroups.find(g => g.id === groupId);
+    if (!group) return;
+    
+    // Mark group as accepted (partial acceptance still removes the group from view)
+    setAcceptedGroupIds(prev => [...prev, groupId]);
+    
+    // In production, send selective accept to backend with customer indices
+    toast({
+      title: "Customers Accepted!",
+      description: `Accepted ${customerIndices.length} of ${group.customerCount} jobs in ${group.location}`,
+    });
+  };
+
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900 pb-16 md:pb-0">
       <Header
@@ -320,6 +334,7 @@ export default function ManualOperatorDashboard() {
               <CustomerGrouping 
                 groups={mockCustomerGroups}
                 onAcceptGroup={handleAcceptGroup}
+                onAcceptCustomers={handleAcceptCustomers}
                 acceptedGroupIds={acceptedGroupIds}
                 operatorJobCount={3} // TODO: Fetch from operator profile API
                 minimumJobsRequired={5}

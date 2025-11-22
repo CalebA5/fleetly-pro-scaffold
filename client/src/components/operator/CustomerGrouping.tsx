@@ -28,6 +28,7 @@ export interface CustomerGroup {
 interface CustomerGroupingProps {
   groups: CustomerGroup[];
   onAcceptGroup?: (groupId: string) => void;
+  onAcceptCustomers?: (groupId: string, customerIndices: number[]) => void; // For selective acceptance
   onContactGroup?: (groupId: string, message: string) => void;
   acceptedGroupIds?: string[]; // Allow parents to manage accepted state
   operatorJobCount?: number; // Number of completed jobs operator has
@@ -36,7 +37,8 @@ interface CustomerGroupingProps {
 
 export function CustomerGrouping({ 
   groups, 
-  onAcceptGroup, 
+  onAcceptGroup,
+  onAcceptCustomers, 
   onContactGroup, 
   acceptedGroupIds = [],
   operatorJobCount = 0,
@@ -109,10 +111,27 @@ export function CustomerGrouping({
       return;
     }
 
-    toast({
-      title: "Customers Accepted",
-      description: `Accepted ${selectedSet.size} of ${group.customerCount} customers`,
-    });
+    const selectedIndices = Array.from(selectedSet);
+
+    // If all customers selected, use accept group instead
+    if (selectedSet.size === group.customerCount) {
+      if (onAcceptGroup) {
+        onAcceptGroup(groupId);
+      }
+      toast({
+        title: "All Customers Accepted",
+        description: `Accepted all ${group.customerCount} customers from this group`,
+      });
+    } else {
+      // Selective acceptance callback
+      if (onAcceptCustomers) {
+        onAcceptCustomers(groupId, selectedIndices);
+      }
+      toast({
+        title: "Customers Accepted",
+        description: `Accepted ${selectedSet.size} of ${group.customerCount} customers`,
+      });
+    }
 
     // Clear selections for this group
     setSelectedCustomers(prev => {
@@ -120,9 +139,6 @@ export function CustomerGrouping({
       newMap.delete(groupId);
       return newMap;
     });
-
-    // TODO: Send to backend with selected customer indices
-    console.log(`Accepted customers from group ${groupId}:`, Array.from(selectedSet));
   };
 
   const selectAllCustomers = (groupId: string, customerCount: number) => {
@@ -294,21 +310,67 @@ export function CustomerGrouping({
                         {group.location}
                       </SheetTitle>
                     </SheetHeader>
-                    <div className="mt-6 space-y-3 overflow-y-auto max-h-[calc(80vh-180px)]">
-                      {group.customers.map((customer, idx) => (
-                        <Card key={idx} className="border-l-4 border-l-orange-500">
-                          <CardContent className="p-4">
-                            <div className="font-medium">{customer.name}</div>
-                            <div className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
-                              <MapPin className="h-3 w-3" />
-                              {customer.address}
-                            </div>
-                            <Badge variant="secondary" className="mt-2 text-xs">
-                              {customer.service}
-                            </Badge>
-                          </CardContent>
-                        </Card>
-                      ))}
+                    <div className="mt-4 mb-2 flex items-center justify-between px-1">
+                      <span className="text-sm text-muted-foreground">
+                        {selectedCustomers.get(group.id)?.size || 0} of {group.customerCount} selected
+                      </span>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => selectAllCustomers(group.id, group.customerCount)}
+                          data-testid={`button-select-all-${group.id}`}
+                        >
+                          Select All
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => deselectAllCustomers(group.id)}
+                          data-testid={`button-deselect-all-${group.id}`}
+                        >
+                          Clear
+                        </Button>
+                      </div>
+                    </div>
+                    <div className="mt-2 space-y-3 overflow-y-auto max-h-[calc(80vh-240px)]">
+                      {group.customers.map((customer, idx) => {
+                        const isSelected = selectedCustomers.get(group.id)?.has(idx) || false;
+                        return (
+                          <Card 
+                            key={idx} 
+                            className={`border-l-4 cursor-pointer transition-all ${
+                              isSelected 
+                                ? 'border-l-orange-500 bg-orange-50 dark:bg-orange-950/30' 
+                                : 'border-l-gray-300 dark:border-l-gray-700'
+                            }`}
+                            onClick={() => toggleCustomerSelection(group.id, idx)}
+                            data-testid={`card-customer-${group.id}-${idx}`}
+                          >
+                            <CardContent className="p-4">
+                              <div className="flex items-start gap-3">
+                                <Checkbox 
+                                  checked={isSelected}
+                                  onCheckedChange={() => toggleCustomerSelection(group.id, idx)}
+                                  onClick={(e) => e.stopPropagation()}
+                                  className="mt-1"
+                                  data-testid={`checkbox-customer-${group.id}-${idx}`}
+                                />
+                                <div className="flex-1">
+                                  <div className="font-medium">{customer.name}</div>
+                                  <div className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
+                                    <MapPin className="h-3 w-3" />
+                                    {customer.address}
+                                  </div>
+                                  <Badge variant="secondary" className="mt-2 text-xs">
+                                    {customer.service}
+                                  </Badge>
+                                </div>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        );
+                      })}
                     </div>
                     <div className="absolute bottom-0 left-0 right-0 p-4 bg-background border-t flex gap-2">
                       <Button
@@ -359,14 +421,27 @@ export function CustomerGrouping({
                         </DialogContent>
                       </Dialog>
                       {!isAccepted && (
-                        <Button
-                          onClick={() => handleAcceptGroup(group.id)}
-                          className="flex-1"
-                          data-testid={`button-accept-all-${group.id}`}
-                        >
-                          <CheckCircle className="h-4 w-4 mr-2" />
-                          Accept All
-                        </Button>
+                        <>
+                          <Button
+                            onClick={() => handleAcceptSelected(group.id)}
+                            variant="default"
+                            className="flex-1"
+                            disabled={(selectedCustomers.get(group.id)?.size || 0) === 0}
+                            data-testid={`button-accept-selected-${group.id}`}
+                          >
+                            <Check className="h-4 w-4 mr-2" />
+                            Accept ({selectedCustomers.get(group.id)?.size || 0})
+                          </Button>
+                          <Button
+                            onClick={() => handleAcceptGroup(group.id)}
+                            variant="outline"
+                            className="flex-1"
+                            data-testid={`button-accept-all-${group.id}`}
+                          >
+                            <CheckCircle className="h-4 w-4 mr-2" />
+                            All
+                          </Button>
+                        </>
                       )}
                     </div>
                   </SheetContent>
@@ -385,25 +460,67 @@ export function CustomerGrouping({
                       <ChevronDown className={`h-4 w-4 ml-2 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
                     </Button>
                   </CollapsibleTrigger>
-                  <CollapsibleContent className="mt-3 space-y-2">
-                    {group.customers.map((customer, idx) => (
-                      <Card key={idx} className="border-l-4 border-l-orange-500">
-                        <CardContent className="p-3">
-                          <div className="flex items-center justify-between">
-                            <div className="flex-1">
-                              <div className="font-medium text-sm">{customer.name}</div>
-                              <div className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
-                                <MapPin className="h-3 w-3" />
-                                {customer.address}
+                  <CollapsibleContent className="mt-3 space-y-3">
+                    <div className="flex items-center justify-between px-1 mb-2">
+                      <span className="text-sm text-muted-foreground">
+                        {selectedCustomers.get(group.id)?.size || 0} of {group.customerCount} selected
+                      </span>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => selectAllCustomers(group.id, group.customerCount)}
+                          data-testid={`button-select-all-${group.id}`}
+                        >
+                          Select All
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => deselectAllCustomers(group.id)}
+                          data-testid={`button-deselect-all-${group.id}`}
+                        >
+                          Clear
+                        </Button>
+                      </div>
+                    </div>
+                    {group.customers.map((customer, idx) => {
+                      const isSelected = selectedCustomers.get(group.id)?.has(idx) || false;
+                      return (
+                        <Card 
+                          key={idx} 
+                          className={`border-l-4 cursor-pointer transition-all ${
+                            isSelected 
+                              ? 'border-l-orange-500 bg-orange-50 dark:bg-orange-950/30' 
+                              : 'border-l-gray-300 dark:border-l-gray-700'
+                          }`}
+                          onClick={() => toggleCustomerSelection(group.id, idx)}
+                          data-testid={`card-customer-${group.id}-${idx}`}
+                        >
+                          <CardContent className="p-3">
+                            <div className="flex items-start gap-3">
+                              <Checkbox 
+                                checked={isSelected}
+                                onCheckedChange={() => toggleCustomerSelection(group.id, idx)}
+                                onClick={(e) => e.stopPropagation()}
+                                className="mt-1"
+                                data-testid={`checkbox-customer-${group.id}-${idx}`}
+                              />
+                              <div className="flex-1">
+                                <div className="font-medium text-sm">{customer.name}</div>
+                                <div className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
+                                  <MapPin className="h-3 w-3" />
+                                  {customer.address}
+                                </div>
+                                <Badge variant="secondary" className="mt-2 text-xs">
+                                  {customer.service}
+                                </Badge>
                               </div>
-                              <Badge variant="secondary" className="mt-2 text-xs">
-                                {customer.service}
-                              </Badge>
                             </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
                   </CollapsibleContent>
                 </Collapsible>
               )}
@@ -460,15 +577,29 @@ export function CustomerGrouping({
                     </DialogContent>
                   </Dialog>
                   {!isAccepted && (
-                    <Button
-                      onClick={() => handleAcceptGroup(group.id)}
-                      size="sm"
-                      className="flex-1"
-                      data-testid={`button-accept-all-${group.id}`}
-                    >
-                      <CheckCircle className="h-4 w-4 mr-2" />
-                      Accept All
-                    </Button>
+                    <>
+                      <Button
+                        onClick={() => handleAcceptSelected(group.id)}
+                        variant="default"
+                        size="sm"
+                        className="flex-1"
+                        disabled={(selectedCustomers.get(group.id)?.size || 0) === 0}
+                        data-testid={`button-accept-selected-${group.id}`}
+                      >
+                        <Check className="h-4 w-4 mr-2" />
+                        Accept ({selectedCustomers.get(group.id)?.size || 0})
+                      </Button>
+                      <Button
+                        onClick={() => handleAcceptGroup(group.id)}
+                        variant="outline"
+                        size="sm"
+                        className="flex-1"
+                        data-testid={`button-accept-all-${group.id}`}
+                      >
+                        <CheckCircle className="h-4 w-4 mr-2" />
+                        All
+                      </Button>
+                    </>
                   )}
                 </div>
               )}
