@@ -1,7 +1,7 @@
 import { Router } from "express";
 import type { IStorage } from "./storage";
 import { db } from "./db";
-import { operators, customers, users, favorites, operatorTierStats, weatherAlerts, insertWeatherAlertSchema, emergencyRequests, dispatchQueue, insertEmergencyRequestSchema, insertDispatchQueueSchema } from "@shared/schema";
+import { operators, customers, users, favorites, operatorTierStats, weatherAlerts, insertWeatherAlertSchema, emergencyRequests, dispatchQueue, insertEmergencyRequestSchema, insertDispatchQueueSchema, businesses } from "@shared/schema";
 import { eq, sql, and, gte, or } from "drizzle-orm";
 import { insertJobSchema, insertServiceRequestSchema, insertCustomerSchema, insertOperatorSchema, insertRatingSchema, insertFavoriteSchema, insertOperatorLocationSchema, insertCustomerServiceHistorySchema, OPERATOR_TIER_INFO } from "@shared/schema";
 import { isWithinRadius } from "./utils/distance";
@@ -1098,7 +1098,9 @@ export function registerRoutes(storage: IStorage) {
   });
 
   router.get("/api/business/:businessId", async (req, res) => {
-    const business = await storage.getBusiness(req.params.businessId);
+    const business = await db.query.businesses.findFirst({
+      where: eq(businesses.businessId, req.params.businessId)
+    });
     if (!business) {
       return res.status(404).json({ message: "Business not found" });
     }
@@ -1175,7 +1177,7 @@ export function registerRoutes(storage: IStorage) {
       // Create business ID
       const businessId = `BUS-${dbUser.email.replace(/[^a-zA-Z0-9]/g, '-')}-${Date.now()}`;
       
-      // Create business
+      // Create business in database
       const businessData = {
         businessId,
         name: `${dbUser.name}'s Business`,
@@ -1188,7 +1190,9 @@ export function registerRoutes(storage: IStorage) {
         zipCode: "",
       };
       
-      const business = await storage.createBusiness(businessData);
+      const [business] = await db.insert(businesses)
+        .values(businessData)
+        .returning();
       
       // Update operator with businessId
       await db.update(operators)
