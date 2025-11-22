@@ -15,6 +15,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { Operator } from "@shared/schema";
 import { TierOnlineConfirmDialog } from "@/components/TierOnlineConfirmDialog";
+import { CustomerGrouping, type CustomerGroup } from "@/components/operator/CustomerGrouping";
 
 interface ServiceRequest {
   id: number;
@@ -26,20 +27,6 @@ interface ServiceRequest {
   isEmergency: number;
   budgetRange: string;
   distance?: number; // Distance from operator in km
-}
-
-interface CustomerGroup {
-  id: string;
-  location: string;
-  customerCount: number;
-  totalValue: string;
-  customers: Array<{
-    name: string;
-    address: string;
-    service: string;
-  }>;
-  distance: number;
-  expiresIn: number; // minutes
 }
 
 export default function EquippedOperatorDashboard() {
@@ -304,7 +291,7 @@ export default function EquippedOperatorDashboard() {
           </Card>
         </div>
 
-        {/* Customer Grouping Section */}
+        {/* Customer Grouping Section - Mobile-First with Bottom Sheets */}
         <div className="mb-8">
           <Card className="border-2 border-orange-200 dark:border-orange-800">
             <CardHeader>
@@ -327,69 +314,11 @@ export default function EquippedOperatorDashboard() {
                 </Badge>
               </div>
             </CardHeader>
-            <CardContent className="space-y-4">
-              {mockCustomerGroups.length > 0 ? (
-                mockCustomerGroups.map((group) => (
-                  <div
-                    key={group.id}
-                    className="border border-gray-200 dark:border-gray-800 rounded-lg p-4 hover:border-orange-500 dark:hover:border-orange-500 transition-colors"
-                  >
-                    <div className="flex items-start justify-between mb-4">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-2">
-                          <h3 className="font-semibold text-black dark:text-white">
-                            {group.location}
-                          </h3>
-                          <Badge variant="outline" className="text-xs">
-                            {group.customerCount} customers
-                          </Badge>
-                        </div>
-                        <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400">
-                          <span className="flex items-center gap-1">
-                            <MapPin className="w-4 h-4" />
-                            {group.distance}km away
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <DollarSign className="w-4 h-4" />
-                            {group.totalValue}
-                          </span>
-                          <span className="flex items-center gap-1 text-orange-600 dark:text-orange-400">
-                            <Clock className="w-4 h-4" />
-                            Expires in {group.expiresIn}min
-                          </span>
-                        </div>
-                      </div>
-                      <Button
-                        onClick={() => handleAcceptGroup(group.id)}
-                        className="bg-orange-500 hover:bg-orange-600 text-white"
-                        data-testid={`button-accept-group-${group.id}`}
-                      >
-                        Accept All ({group.customerCount})
-                      </Button>
-                    </div>
-
-                    {/* Customer List */}
-                    <div className="pl-4 border-l-2 border-gray-200 dark:border-gray-800 space-y-2">
-                      {group.customers.map((customer, idx) => (
-                        <div key={idx} className="flex items-center justify-between text-sm">
-                          <div>
-                            <p className="font-medium text-black dark:text-white">{customer.name}</p>
-                            <p className="text-gray-500 dark:text-gray-500">{customer.address}</p>
-                          </div>
-                          <Badge variant="outline" className="text-xs">
-                            {customer.service}
-                          </Badge>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ))
-              ) : (
-                <div className="text-center py-8">
-                  <Users className="w-12 h-12 text-gray-300 dark:text-gray-700 mx-auto mb-3" />
-                  <p className="text-gray-500 dark:text-gray-500">No customer groups available</p>
-                </div>
-              )}
+            <CardContent>
+              <CustomerGrouping 
+                groups={mockCustomerGroups}
+                onAcceptGroup={handleAcceptGroup}
+              />
             </CardContent>
           </Card>
         </div>
