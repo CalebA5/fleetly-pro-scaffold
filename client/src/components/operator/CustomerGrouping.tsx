@@ -28,13 +28,13 @@ interface CustomerGroupingProps {
   groups: CustomerGroup[];
   onAcceptGroup?: (groupId: string) => void;
   onContactGroup?: (groupId: string, message: string) => void;
+  acceptedGroupIds?: string[]; // Allow parents to manage accepted state
 }
 
-export function CustomerGrouping({ groups, onAcceptGroup, onContactGroup }: CustomerGroupingProps) {
+export function CustomerGrouping({ groups, onAcceptGroup, onContactGroup, acceptedGroupIds = [] }: CustomerGroupingProps) {
   const { toast } = useToast();
   const isMobile = useMediaQuery("(max-width: 768px)");
   const [expandedGroups, setExpandedGroups] = useState<string[]>([]);
-  const [acceptedGroupIds, setAcceptedGroupIds] = useState<string[]>([]);
   const [selectedGroup, setSelectedGroup] = useState<CustomerGroup | null>(null);
   const [contactMessage, setContactMessage] = useState("");
 
@@ -48,12 +48,7 @@ export function CustomerGrouping({ groups, onAcceptGroup, onContactGroup }: Cust
     const group = groups.find(g => g.id === groupId);
     if (!group) return;
 
-    setAcceptedGroupIds(prev => [...prev, groupId]);
-    toast({
-      title: "Group Accepted",
-      description: `Accepted ${group.customerCount} jobs near ${group.location}`,
-    });
-    
+    // Let parent manage accepted state
     if (onAcceptGroup) {
       onAcceptGroup(groupId);
     }
@@ -75,7 +70,10 @@ export function CustomerGrouping({ groups, onAcceptGroup, onContactGroup }: Cust
     setSelectedGroup(null);
   };
 
-  if (groups.length === 0) {
+  // Filter out accepted groups
+  const availableGroups = groups.filter(g => !acceptedGroupIds.includes(g.id));
+
+  if (availableGroups.length === 0) {
     return (
       <Card className="border-dashed">
         <CardContent className="flex flex-col items-center justify-center py-12">
@@ -84,7 +82,9 @@ export function CustomerGrouping({ groups, onAcceptGroup, onContactGroup }: Cust
             No customer groupings available yet
           </p>
           <p className="text-sm text-muted-foreground mt-1">
-            Groups will appear when multiple customers in same area request services
+            {groups.length > 0 
+              ? "All groups have been accepted!" 
+              : "Groups will appear when multiple customers in same area request services"}
           </p>
         </CardContent>
       </Card>
@@ -95,7 +95,7 @@ export function CustomerGrouping({ groups, onAcceptGroup, onContactGroup }: Cust
   // Desktop: Use inline expandable cards
   return (
     <div className="space-y-3">
-      {groups.map((group) => {
+      {availableGroups.map((group) => {
         const isExpanded = expandedGroups.includes(group.id);
         const isAccepted = acceptedGroupIds.includes(group.id);
 

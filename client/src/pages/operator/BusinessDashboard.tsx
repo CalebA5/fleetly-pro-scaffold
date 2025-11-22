@@ -27,6 +27,7 @@ export const BusinessDashboard = () => {
   const [showAddDriverDialog, setShowAddDriverDialog] = useState(false);
   const [showTierSwitchDialog, setShowTierSwitchDialog] = useState(false);
   const [tierSwitchInfo, setTierSwitchInfo] = useState<{ currentTier: string; newTier: string } | null>(null);
+  const [acceptedGroupIds, setAcceptedGroupIds] = useState<string[]>([]);
   const setupAttemptedRef = useRef(false);
 
   // Mock customer groups data - in production, comes from backend
@@ -294,6 +295,10 @@ export const BusinessDashboard = () => {
   const handleAcceptGroup = (groupId: string) => {
     const group = mockCustomerGroups.find(g => g.id === groupId);
     if (!group) return;
+    
+    // Mark group as accepted
+    setAcceptedGroupIds(prev => [...prev, groupId]);
+    
     // In production, send bulk accept request to backend
     toast({
       title: "Group Accepted",
@@ -512,6 +517,7 @@ export const BusinessDashboard = () => {
               <CustomerGrouping 
                 groups={mockCustomerGroups}
                 onAcceptGroup={handleAcceptGroup}
+                acceptedGroupIds={acceptedGroupIds}
               />
             </CardContent>
           </Card>

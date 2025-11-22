@@ -33,6 +33,7 @@ export default function EquippedOperatorDashboard() {
   const { user } = useAuth();
   const [, setLocation] = useLocation();
   const [acceptedJobs, setAcceptedJobs] = useState<number[]>([]);
+  const [acceptedGroupIds, setAcceptedGroupIds] = useState<string[]>([]);
   const [serviceFilter, setServiceFilter] = useState<string>("all");
   const { toast } = useToast();
   const [showTierSwitchDialog, setShowTierSwitchDialog] = useState(false);
@@ -159,8 +160,17 @@ export default function EquippedOperatorDashboard() {
   };
 
   const handleAcceptGroup = (groupId: string) => {
+    const group = mockCustomerGroups.find(g => g.id === groupId);
+    if (!group) return;
+    
+    // Mark group as accepted
+    setAcceptedGroupIds(prev => [...prev, groupId]);
+    
     // In production, send bulk accept to backend
-    alert(`Accepted all ${mockCustomerGroups.find(g => g.id === groupId)?.customerCount} customers in group!`);
+    toast({
+      title: "Jobs Accepted!",
+      description: `Successfully accepted ${group.customerCount} jobs in ${group.location}.`,
+    });
   };
 
   const availableServices = ["Towing", "Hauling", "Courier", "Roadside Assistance"];
@@ -318,6 +328,7 @@ export default function EquippedOperatorDashboard() {
               <CustomerGrouping 
                 groups={mockCustomerGroups}
                 onAcceptGroup={handleAcceptGroup}
+                acceptedGroupIds={acceptedGroupIds}
               />
             </CardContent>
           </Card>
