@@ -75,8 +75,8 @@ export default function JobDetailsPage() {
       });
     },
     onSuccess: () => {
-      // Fix: Use exact:false to invalidate all matching queries including the one with operatorId
-      queryClient.invalidateQueries({ queryKey: ["/api/accepted-jobs", jobId], exact: false });
+      // Fix: Invalidate all accepted jobs queries to update dashboard
+      queryClient.invalidateQueries({ queryKey: ["/api/accepted-jobs"], exact: false });
       toast({
         title: "Job Started",
         description: "You can now track your progress on this job.",
@@ -101,8 +101,9 @@ export default function JobDetailsPage() {
       });
     },
     onSuccess: () => {
-      // Fix: Use exact:false to invalidate all matching queries
-      queryClient.invalidateQueries({ queryKey: ["/api/accepted-jobs", jobId], exact: false });
+      // Fix: Invalidate all accepted jobs queries and earnings to update dashboard
+      queryClient.invalidateQueries({ queryKey: ["/api/accepted-jobs"], exact: false });
+      queryClient.invalidateQueries({ queryKey: [`/api/earnings/today/${operatorId}`], exact: false });
       toast({
         title: "Progress Updated",
         description: `Job progress: ${progress}%`,
@@ -127,8 +128,10 @@ export default function JobDetailsPage() {
       });
     },
     onSuccess: () => {
-      //Fix: Use exact:false to invalidate all matching queries
+      //Fix: Invalidate all queries to update dashboard metrics
       queryClient.invalidateQueries({ queryKey: ["/api/accepted-jobs"], exact: false });
+      queryClient.invalidateQueries({ queryKey: [`/api/earnings/today/${operatorId}`], exact: false });
+      queryClient.invalidateQueries({ queryKey: [`/api/earnings/month/${operatorId}`], exact: false });
       toast({
         title: "Job Completed! 🎉",
         description: "Great work! The job has been marked as completed.",
