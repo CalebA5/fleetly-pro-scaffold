@@ -72,6 +72,28 @@ export default function EquippedOperatorDashboard() {
     enabled: !!operatorId,
   });
 
+  // Fetch accepted jobs from database (persistent across sessions)
+  const { data: acceptedJobsData = [], isLoading: isLoadingJobs } = useQuery<import("@shared/schema").AcceptedJob[]>({
+    queryKey: ["/api/accepted-jobs", { operatorId, tier: "equipped" }],
+    queryFn: async () => {
+      const response = await fetch(`/api/accepted-jobs?operatorId=${operatorId}&tier=equipped`);
+      if (!response.ok) throw new Error("Failed to fetch accepted jobs");
+      return response.json();
+    },
+    enabled: !!operatorId,
+  });
+
+  // Fetch today's earnings (persistent across sessions)
+  const { data: todayEarnings } = useQuery<{ earnings: number; jobsCompleted: number }>({
+    queryKey: [`/api/earnings/today/${operatorId}`, { tier: "equipped" }],
+    queryFn: async () => {
+      const response = await fetch(`/api/earnings/today/${operatorId}?tier=equipped`);
+      if (!response.ok) throw new Error("Failed to fetch today's earnings");
+      return response.json();
+    },
+    enabled: !!operatorId,
+  });
+
   // Fetch customer groups unlock status (tracks total jobs completed per tier)
   const { data: unlockStatus } = useQuery<{ 
     isUnlocked: boolean; 
@@ -89,6 +111,16 @@ export default function EquippedOperatorDashboard() {
   // Online toggle mutation
   const toggleOnlineMutation = useMutation({
     mutationFn: async ({ goOnline, confirmed = false }: { goOnline: boolean; confirmed?: boolean }) => {
+      // Block toggling for any non-terminal job (accepted/in_progress/started, not completed/cancelled)
+      const activeJobs = acceptedJobsData.filter(job => 
+        job.status !== 'completed' && job.status !== 'cancelled'
+      );
+      
+      // Prevent going online OR offline if there are active jobs
+      if (activeJobs.length > 0) {
+        throw new Error(goOnline ? "CANNOT_GO_ONLINE_WITH_JOBS" : "CANNOT_GO_OFFLINE_WITH_JOBS");
+      }
+      
       return apiRequest(`/api/operators/${operatorId}/toggle-online`, {
         method: "POST",
         body: JSON.stringify({ 
@@ -118,7 +150,26 @@ export default function EquippedOperatorDashboard() {
       });
     },
     onError: (error: any) => {
-      // Check if error is due to active jobs blocking (online or offline)
+      // Handle active jobs errors (both online and offline)
+      if (error?.message === "CANNOT_GO_ONLINE_WITH_JOBS") {
+        toast({
+          title: "Cannot Go Online",
+          description: `You have ${acceptedJobsData.length} active job${acceptedJobsData.length > 1 ? 's' : ''}. Please complete or cancel them first.`,
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      if (error?.message === "CANNOT_GO_OFFLINE_WITH_JOBS") {
+        toast({
+          title: "Cannot Go Offline",
+          description: `You have ${acceptedJobsData.length} active job${acceptedJobsData.length > 1 ? 's' : ''} in progress. Please complete or cancel them first.`,
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // Check if error is due to active jobs blocking from backend
       if (error.message) {
         try {
           const errorData = JSON.parse(error.message);

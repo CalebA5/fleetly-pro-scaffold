@@ -61,6 +61,44 @@ export const BusinessDashboard = () => {
     enabled: !!user?.operatorId,
   });
 
+  // Fetch service requests for this operator (filtered by tier and proximity)
+  const { data: requests = [], isLoading: requestsLoading } = useQuery<{
+    id: number;
+    requestId: string;
+    customerName: string;
+    serviceType: string;
+    location: string;
+    description: string;
+    isEmergency: number;
+    budgetRange: string;
+    distance?: number;
+  }[]>({
+    queryKey: [`/api/service-requests/for-operator/${user?.operatorId}`],
+    enabled: !!user?.operatorId,
+  });
+
+  // Fetch accepted jobs from database (persistent across sessions)
+  const { data: acceptedJobsData = [], isLoading: isLoadingJobs } = useQuery<import("@shared/schema").AcceptedJob[]>({
+    queryKey: ["/api/accepted-jobs", { operatorId: user?.operatorId, tier: "professional" }],
+    queryFn: async () => {
+      const response = await fetch(`/api/accepted-jobs?operatorId=${user?.operatorId}&tier=professional`);
+      if (!response.ok) throw new Error("Failed to fetch accepted jobs");
+      return response.json();
+    },
+    enabled: !!user?.operatorId,
+  });
+
+  // Fetch today's earnings (persistent across sessions)
+  const { data: todayEarnings } = useQuery<{ earnings: number; jobsCompleted: number }>({
+    queryKey: [`/api/earnings/today/${user?.operatorId}`, { tier: "professional" }],
+    queryFn: async () => {
+      const response = await fetch(`/api/earnings/today/${user?.operatorId}?tier=professional`);
+      if (!response.ok) throw new Error("Failed to fetch today's earnings");
+      return response.json();
+    },
+    enabled: !!user?.operatorId,
+  });
+
   // Fetch customer groups unlock status (tracks total jobs completed per tier)
   const { data: unlockStatus } = useQuery<{ 
     isUnlocked: boolean; 
@@ -143,6 +181,16 @@ export const BusinessDashboard = () => {
   // Online toggle mutation
   const toggleOnlineMutation = useMutation({
     mutationFn: async ({ goOnline, confirmed = false }: { goOnline: boolean; confirmed?: boolean }) => {
+      // Block toggling for any non-terminal job (accepted/in_progress/started, not completed/cancelled)
+      const activeJobs = acceptedJobsData.filter(job => 
+        job.status !== 'completed' && job.status !== 'cancelled'
+      );
+      
+      // Prevent going online OR offline if there are active jobs
+      if (activeJobs.length > 0) {
+        throw new Error(goOnline ? "CANNOT_GO_ONLINE_WITH_JOBS" : "CANNOT_GO_OFFLINE_WITH_JOBS");
+      }
+      
       return apiRequest(`/api/operators/${user?.operatorId}/toggle-online`, {
         method: "POST",
         body: JSON.stringify({ 
