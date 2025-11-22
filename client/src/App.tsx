@@ -14,6 +14,7 @@ import { OperatorProfile } from "./pages/customer/OperatorProfile";
 import { AIAssist } from "./pages/customer/AIAssist";
 import { Favorites } from "./pages/customer/Favorites";
 import { Requests } from "./pages/customer/Requests";
+import QuoteCenter from "./pages/customer/QuoteCenter";
 import { OperatorOnboarding } from "./pages/operator/OperatorOnboarding";
 import { BusinessDashboard } from "./pages/operator/BusinessDashboard";
 import ManualOperatorDashboard from "./pages/operator/ManualOperatorDashboard";
@@ -82,6 +83,7 @@ const App = () => (
               <Route path="/customer/tracking" component={JobTracking} />
               <Route path="/customer/history" component={JobHistory} />
               <Route path="/customer/profile" component={CustomerProfile} />
+              <Route path="/customer/quotes" component={QuoteCenter} />
               
               {/* Public tier selection/onboarding - no auth required */}
               <Route path="/drive-earn" component={DriveEarn} />

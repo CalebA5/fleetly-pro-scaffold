@@ -159,14 +159,29 @@ export function QuoteModal({
       return;
     }
 
+    // Generate unique quote ID
+    const quoteId = `quote_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    
+    // Set expiration to 12 hours from now
+    const expiresAt = new Date(Date.now() + 12 * 60 * 60 * 1000).toISOString();
+
     createQuoteMutation.mutate({
+      quoteId,
+      serviceRequestId: serviceRequest.requestId,
       operatorId,
       operatorName,
       tier,
       amount: quoteAmount.toString(),
       breakdown,
       notes,
-      autoCalcSnapshot: breakdown
+      autoCalcSnapshot: breakdown,
+      status: "sent",
+      expiresAt,
+      history: [{
+        action: "created",
+        timestamp: new Date().toISOString(),
+        actor: operatorId
+      }]
     });
   };
 

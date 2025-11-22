@@ -2609,6 +2609,81 @@ export function registerRoutes(storage: IStorage) {
     }
   });
 
+  // Get all quotes for a customer across all service requests
+  router.get("/api/quotes/customer/:customerId", async (req, res) => {
+    try {
+      const customerId = parseInt(req.params.customerId);
+      
+      // Get all service requests by this customer
+      const requests = await db.select()
+        .from(serviceRequests)
+        .where(eq(serviceRequests.customerId, customerId));
+      
+      if (requests.length === 0) {
+        return res.json([]);
+      }
+      
+      // Get all quotes for these requests  
+      const requestIds = requests.map(r => r.requestId);
+      const quotes = await db.select()
+        .from(operatorQuotes)
+        .where(sql`${operatorQuotes.serviceRequestId} IN (${sql.join(requestIds.map(id => sql`${id}`), sql`, `)})`)
+        .orderBy(sql`${operatorQuotes.submittedAt} DESC`);
+      
+      // Get operator details
+      const operatorIds = [...new Set(quotes.map(q => q.operatorId))];
+      const operatorDetails = await db.select()
+        .from(operators)
+        .where(sql`${operators.id} IN (${sql.join(operatorIds.map(id => sql`${id}`), sql`, `)})`);
+      
+      // Combine quote data with service request and operator info
+      const quotesWithDetails = quotes.map(quote => {
+        const request = requests.find(r => r.requestId === quote.serviceRequestId);
+        const operator = operatorDetails.find(op => op.id === quote.operatorId);
+        
+        // Map status from backend to frontend expected values
+        let frontendStatus = quote.status;
+        if (quote.status === "sent") frontendStatus = "pending";
+        else if (quote.status === "customer_accepted") frontendStatus = "accepted";
+        else if (quote.status === "customer_declined") frontendStatus = "declined";
+        else if (quote.status === "counter_pending" || quote.status === "counter_sent") frontendStatus = "countered";
+        
+        return {
+          id: quote.quoteId,
+          serviceRequestId: quote.serviceRequestId,
+          operatorId: quote.operatorId,
+          operatorName: quote.operatorName,
+          operatorTier: quote.tier,
+          operatorRating: operator?.rating || null,
+          amount: parseFloat(quote.amount),
+          breakdown: quote.breakdown || {},
+          message: quote.notes,
+          status: frontendStatus,
+          expiresAt: quote.expiresAt?.toISOString() || new Date(Date.now() + 12 * 60 * 60 * 1000).toISOString(),
+          createdAt: quote.submittedAt?.toISOString() || new Date().toISOString(),
+          serviceRequest: request ? {
+            id: request.requestId,
+            serviceType: request.serviceType,
+            location: request.location,
+            description: request.description || "",
+            isEmergency: request.isEmergency === 1
+          } : {
+            id: quote.serviceRequestId,
+            serviceType: "Unknown",
+            location: "Unknown",
+            description: "",
+            isEmergency: false
+          }
+        };
+      });
+      
+      res.json(quotesWithDetails);
+    } catch (error) {
+      console.error("Error fetching customer quotes:", error);
+      res.status(500).json({ message: "Failed to fetch customer quotes" });
+    }
+  });
+
   // Get quotes by operator
   router.get("/api/operators/:operatorId/quotes", async (req, res) => {
     try {
