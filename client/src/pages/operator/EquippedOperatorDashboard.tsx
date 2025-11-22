@@ -48,57 +48,15 @@ export default function EquippedOperatorDashboard() {
   const [showVehicleModal, setShowVehicleModal] = useState(false);
   const [pendingRequestId, setPendingRequestId] = useState<string | null>(null);
   
-  // Mock vehicle data - in production would come from database
-  const mockVehicles = [
-    { id: "VH-001", name: "Tow Truck Alpha", type: "Heavy-duty Tow Truck", status: "available" as const, currentJobs: 0, maxCapacity: 2 },
-    { id: "VH-002", name: "Flatbed Beta", type: "Flatbed Trailer", status: "busy" as const, currentJobs: 1, maxCapacity: 2 },
-    { id: "VH-003", name: "Hauler Gamma", type: "Cargo Hauler", status: "available" as const, currentJobs: 0, maxCapacity: 3 },
-  ];
+  // ALL MOCK DATA REMOVED - Dashboard is now 100% dynamic
+  // VehicleManagement component handles real vehicle CRUD via database
+  const mockVehicles: never[] = [];
   
-  // Mock urgent requests for demonstration
-  const [urgentRequests, setUrgentRequests] = useState<UrgentRequest[]>([
-    {
-      id: "URG-EQ-001",
-      type: "emergency",
-      customerName: "Interstate Logistics",
-      serviceType: "Towing",
-      location: "Highway 401, Exit 52",
-      distance: 3.5,
-      estimatedValue: "$200-300",
-      description: "18-wheeler breakdown blocking emergency lane",
-      expiresIn: 4,
-      isEmergency: true,
-    },
-  ]);
+  // Urgent requests - empty by default, would be populated by backend when implemented
+  const [urgentRequests, setUrgentRequests] = useState<UrgentRequest[]>([]);
 
-  // Mock data for customer grouping - in production, this would come from backend
-  const mockCustomerGroups: CustomerGroup[] = [
-    {
-      id: "CG-001",
-      location: "Downtown District",
-      customerCount: 3,
-      totalValue: "$240-320",
-      customers: [
-        { name: "ABC Corp", address: "100 Main St", service: "Towing" },
-        { name: "XYZ Logistics", address: "102 Main St", service: "Hauling" },
-        { name: "Quick Delivery", address: "104 Main St", service: "Courier" },
-      ],
-      distance: 3.5,
-      expiresIn: 25,
-    },
-    {
-      id: "CG-002",
-      location: "Industrial Park",
-      customerCount: 2,
-      totalValue: "$180-240",
-      customers: [
-        { name: "Factory Direct", address: "50 Industrial Ave", service: "Equipment Transport" },
-        { name: "Warehouse Plus", address: "52 Industrial Ave", service: "Hauling" },
-      ],
-      distance: 8.2,
-      expiresIn: 40,
-    },
-  ];
+  // Customer groups - empty by default, would come from backend when implemented
+  const mockCustomerGroups: CustomerGroup[] = [];
 
   // Use operator-specific endpoint that filters by tier and radius (15km for equipped operators)
   const operatorId = user?.operatorId || "OP-EQUIPPED-001";

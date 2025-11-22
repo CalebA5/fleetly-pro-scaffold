@@ -41,77 +41,12 @@ export default function ManualOperatorDashboard() {
   const [requestsOpen, setRequestsOpen] = useState(true);
   const [jobsOpen, setJobsOpen] = useState(true);
   
-  // All incoming requests - prioritized by urgency, distance, and pay
-  // In production, this would come from WebSocket/polling and be auto-sorted
-  const [allRequests, setAllRequests] = useState<UrgentRequest[]>([
-    {
-      id: "URG-001",
-      type: "emergency",
-      customerName: "City Hospital",
-      serviceType: "Snow Plowing",
-      location: "123 Emergency Lane",
-      distance: 1.2,
-      estimatedValue: "$120-180",
-      description: "Emergency access needed - ambulance route blocked",
-      expiresIn: 5,
-      isEmergency: true,
-    },
-    {
-      id: "REQ-002",
-      type: "new_job",
-      customerName: "Main Street Bistro",
-      serviceType: "Snow Plowing",
-      location: "100 Main St",
-      distance: 2.3,
-      estimatedValue: "$60-90",
-      description: "Parking lot clearing needed",
-      expiresIn: 45,
-      isEmergency: false,
-    },
-    {
-      id: "REQ-003",
-      type: "new_job",
-      customerName: "Johnson Residence",
-      serviceType: "Snow Plowing",
-      location: "15 River Rd",
-      distance: 3.8,
-      estimatedValue: "$40-60",
-      description: "Driveway and walkway clearing",
-      expiresIn: 32,
-      isEmergency: false,
-    },
-  ]);
+  // ALL MOCK DATA REMOVED - Dashboard is now 100% dynamic
+  // Requests come from database via /api/service-requests/for-operator endpoint
+  const [allRequests, setAllRequests] = useState<UrgentRequest[]>([]);
 
-  // Customer grouping - in production, this would come from backend
-  const mockCustomerGroups: CustomerGroup[] = [
-    {
-      id: "CG-001",
-      location: "Downtown Snow District",
-      customerCount: 4,
-      totalValue: "$240-360",
-      customers: [
-        { name: "Main Street Bistro", address: "100 Main St", service: "Parking Lot" },
-        { name: "Corner Pharmacy", address: "102 Main St", service: "Sidewalk" },
-        { name: "City Bank", address: "104 Main St", service: "Parking & Entrance" },
-        { name: "Elm Apartments", address: "106 Main St", service: "Driveway" },
-      ],
-      distance: 2.3,
-      expiresIn: 18,
-    },
-    {
-      id: "CG-002",
-      location: "Riverside Homes",
-      customerCount: 3,
-      totalValue: "$180-270",
-      customers: [
-        { name: "Johnson Residence", address: "15 River Rd", service: "Driveway" },
-        { name: "Williams Home", address: "17 River Rd", service: "Driveway" },
-        { name: "Davis Family", address: "19 River Rd", service: "Driveway & Walkway" },
-      ],
-      distance: 3.8,
-      expiresIn: 32,
-    },
-  ];
+  // Customer groups - empty by default, would come from backend when implemented
+  const mockCustomerGroups: CustomerGroup[] = [];
 
   // Use operator-specific endpoint that filters by tier and radius
   const operatorId = user?.operatorId || "OP-MANUAL-001";

@@ -36,60 +36,12 @@ export const BusinessDashboard = () => {
   const [showDriverModal, setShowDriverModal] = useState(false);
   const [pendingRequestId, setPendingRequestId] = useState<string | null>(null);
   
-  // Mock driver data - in production would come from database
-  const mockDrivers = [
-    { id: "DRV-001", name: "Alex Thompson", status: "online" as const, currentJobs: 0, maxCapacity: 3, rating: 4.9, preferredServices: ["Towing", "Hauling"] },
-    { id: "DRV-002", name: "Sarah Mitchell", status: "busy" as const, currentJobs: 2, maxCapacity: 3, rating: 4.8, preferredServices: ["Courier", "Express Delivery"] },
-    { id: "DRV-003", name: "Marcus Chen", status: "online" as const, currentJobs: 1, maxCapacity: 4, rating: 4.95, preferredServices: ["Equipment Transport", "Heavy Hauling"] },
-  ];
-  
-  // Mock urgent requests for demonstration
-  const [urgentRequests, setUrgentRequests] = useState<UrgentRequest[]>([
-    {
-      id: "URG-BUS-001",
-      type: "new_job",
-      customerName: "Industrial Park Group",
-      serviceType: "Fleet Services",
-      location: "Industrial Park Zone",
-      distance: 2.1,
-      estimatedValue: "$800-1200",
-      description: "5 businesses need fleet services - high value opportunity",
-      expiresIn: 6,
-      isEmergency: false,
-    },
-  ]);
+  // ALL MOCK DATA REMOVED - Dashboard is now 100% dynamic based on real database data
+  // Urgent requests would come from backend API when implemented
+  const [urgentRequests, setUrgentRequests] = useState<UrgentRequest[]>([]);
 
-  // Mock customer groups data - in production, comes from backend
-  const mockCustomerGroups: CustomerGroup[] = [
-    {
-      id: "CG-BUS-001",
-      location: "Commercial District",
-      customerCount: 5,
-      totalValue: "$450-650",
-      customers: [
-        { name: "Metro Logistics", address: "200 Commerce St", service: "Long Haul Transport" },
-        { name: "City Wide Moving", address: "202 Commerce St", service: "Freight Delivery" },
-        { name: "Express Shipping Co", address: "204 Commerce St", service: "Package Pickup" },
-        { name: "Industrial Supply", address: "206 Commerce St", service: "Equipment Transport" },
-        { name: "Warehouse Direct", address: "208 Commerce St", service: "Bulk Hauling" },
-      ],
-      distance: 5.2,
-      expiresIn: 35,
-    },
-    {
-      id: "CG-BUS-002",
-      location: "Airport Zone",
-      customerCount: 3,
-      totalValue: "$320-480",
-      customers: [
-        { name: "Cargo Air Freight", address: "Airport Terminal 2", service: "Airport Shuttle" },
-        { name: "Overnight Delivery", address: "Airport Access Rd", service: "Express Courier" },
-        { name: "Import/Export Inc", address: "Cargo Way", service: "Customs Transport" },
-      ],
-      distance: 12.8,
-      expiresIn: 45,
-    },
-  ];
+  // Customer groups would come from backend API when implemented
+  const mockCustomerGroups: CustomerGroup[] = [];
 
   // Fetch business data
   const { data: business, isLoading: businessLoading, error: businessError } = useQuery<Business>({
@@ -453,13 +405,7 @@ export const BusinessDashboard = () => {
 
   return (
     <div className="min-h-screen bg-white dark:bg-black">
-      {/* Urgent Request Notifications */}
-      <UrgentRequestNotification
-        requests={urgentRequests}
-        onAccept={handleAcceptUrgent}
-        onDecline={handleDeclineUrgent}
-        onDismiss={handleDismissUrgent}
-      />
+      {/* Urgent Request Notifications - REMOVED: No backend support yet */}
       
       <Header onDriveAndEarn={() => setLocation("/drive-earn")} />
       
@@ -672,143 +618,9 @@ export const BusinessDashboard = () => {
           </CardContent>
         </Card>
 
-        {/* Responsive Grid: Customer Groups + Urgent Requests */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-          {/* Customer Grouping Section */}
-          <Card className="border-2 border-orange-200 dark:border-orange-800">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-orange-100 dark:bg-orange-900 rounded-full flex items-center justify-center">
-                    <Users className="w-5 h-5 text-orange-600 dark:text-orange-400" />
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <CardTitle className="text-black dark:text-white">
-                        Nearby Customer Groups
-                      </CardTitle>
-                      <InfoTooltip 
-                        content="Accept multiple customers in the same area for maximum efficiency. Customer groups expire when slots fill or after the time limit." 
-                        testId="button-info-customer-groups"
-                        ariaLabel="Customer grouping information"
-                      />
-                    </div>
-                  </div>
-                </div>
-                <Badge className="bg-orange-500 text-white">
-                  BOOST EARNINGS
-                </Badge>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <CustomerGrouping 
-                groups={mockCustomerGroups}
-                onAcceptGroup={handleAcceptGroup}
-                onAcceptCustomers={handleAcceptCustomers}
-                acceptedGroupIds={acceptedGroupIds}
-                operatorJobCount={unlockStatus?.jobsCompleted || 0}
-                minimumJobsRequired={unlockStatus?.minimumJobsRequired || 5}
-              />
-            </CardContent>
-          </Card>
-
-          {/* Urgent Requests Panel */}
-          <Card className="border-2 border-red-200 dark:border-red-800">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-red-100 dark:bg-red-900 rounded-full flex items-center justify-center">
-                    <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400" />
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <CardTitle className="text-black dark:text-white">
-                        Urgent Requests
-                      </CardTitle>
-                      <InfoTooltip 
-                        content="Emergency and high-priority jobs that need immediate response. These jobs pay premium rates." 
-                        testId="button-info-urgent-requests"
-                        ariaLabel="Urgent requests information"
-                      />
-                    </div>
-                  </div>
-                </div>
-                <Badge className="bg-red-500 text-white">
-                  PRIORITY
-                </Badge>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {urgentRequests.length > 0 ? (
-                <div className="space-y-3">
-                  {urgentRequests.map((request) => (
-                    <div
-                      key={request.id}
-                      className="border-2 border-red-300 dark:border-red-700 rounded-lg p-4 bg-red-50 dark:bg-red-950"
-                      data-testid={`urgent-request-${request.id}`}
-                    >
-                      <div className="flex items-start justify-between mb-3">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-2">
-                            <h3 className="font-semibold text-black dark:text-white">
-                              {request.customerName}
-                            </h3>
-                            {request.isEmergency && (
-                              <Badge className="bg-red-600 text-white text-xs">
-                                EMERGENCY
-                              </Badge>
-                            )}
-                          </div>
-                          <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-                            {request.description}
-                          </p>
-                          <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400">
-                            <span className="flex items-center gap-1">
-                              <MapPin className="w-4 h-4" />
-                              {request.location}
-                              {request.distance && ` (${request.distance}km)`}
-                            </span>
-                            {request.estimatedValue && (
-                              <span className="flex items-center gap-1">
-                                <DollarSign className="w-4 h-4" />
-                                {request.estimatedValue}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                      <div className="flex gap-2">
-                        <Button
-                          onClick={() => handleAcceptUrgent(request.id)}
-                          className="flex-1 bg-red-600 hover:bg-red-700 text-white"
-                          data-testid={`button-accept-urgent-${request.id}`}
-                        >
-                          <CheckCircle className="w-4 h-4 mr-2" />
-                          Accept Urgent
-                        </Button>
-                        <Button
-                          onClick={() => handleDeclineUrgent(request.id)}
-                          variant="outline"
-                          className="border-gray-300 dark:border-gray-600"
-                          data-testid={`button-decline-urgent-${request.id}`}
-                        >
-                          Decline
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-8">
-                  <AlertTriangle className="w-12 h-12 text-gray-300 dark:text-gray-700 mx-auto mb-3" />
-                  <p className="text-gray-500 dark:text-gray-500">
-                    No urgent requests right now
-                  </p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
+        {/* Customer Groups & Urgent Requests features removed */}
+        {/* These sections displayed mock data without backend support */}
+        {/* Will be re-added when backend endpoints are implemented */}
 
         <Tabs defaultValue="drivers" className="space-y-8">
           <TabsList className="grid w-full max-w-md grid-cols-2">
