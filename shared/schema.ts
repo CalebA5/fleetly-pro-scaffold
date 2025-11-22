@@ -2,6 +2,19 @@ import { pgTable, serial, text, timestamp, integer, decimal, jsonb, unique, inde
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
+// Status Enums for Enhanced Quote Workflow
+export const QUOTE_STATUSES = ["draft", "sent", "accepted", "operator_accepted", "customer_accepted", "customer_declined", "operator_declined", "operator_withdrawn", "expired", "counter_pending", "counter_sent"] as const;
+export type QuoteStatus = typeof QUOTE_STATUSES[number];
+export const quoteStatusSchema = z.enum(QUOTE_STATUSES);
+
+export const SERVICE_REQUEST_STATUSES = ["pending", "operator_pending", "operator_accepted", "operator_declined", "assigned", "in_progress", "completed", "cancelled", "disputed"] as const;
+export type ServiceRequestStatus = typeof SERVICE_REQUEST_STATUSES[number];
+export const serviceRequestStatusSchema = z.enum(SERVICE_REQUEST_STATUSES);
+
+export const DECLINE_REASONS = ["distance", "budget", "nature_of_job", "other"] as const;
+export type DeclineReason = typeof DECLINE_REASONS[number];
+export const declineReasonSchema = z.enum(DECLINE_REASONS);
+
 export const jobs = pgTable("jobs", {
   id: serial("id").primaryKey(),
   jobNumber: text("job_number").notNull().unique(),
@@ -285,11 +298,14 @@ export const operatorQuotes = pgTable("operator_quotes", {
   tier: text("tier").notNull(), // Which tier the operator is quoting as
   amount: decimal("amount", { precision: 10, scale: 2 }).notNull(), // Final quote amount
   breakdown: jsonb("breakdown"), // { "baseRate": 50, "distanceCost": 20, "urgencyMultiplier": 1.5, "total": 105 }
-  status: text("status").notNull().default("sent"), // "draft" | "sent" | "customer_accepted" | "customer_declined" | "operator_withdrawn" | "expired" | "counter_pending" | "counter_sent"
+  status: text("status").notNull().default("sent"), // QuoteStatus enum: "draft" | "sent" | "accepted" | "operator_accepted" | "customer_accepted" | "customer_declined" | "operator_declined" | "operator_withdrawn" | "expired" | "counter_pending" | "counter_sent"
+  operatorAccepted: integer("operator_accepted").notNull().default(0), // 1 = operator has accepted (quote+accept workflow), 0 = quote only
   customerResponseNotes: text("customer_response_notes"), // Customer feedback on quote
   counterAmount: decimal("counter_amount", { precision: 10, scale: 2 }), // If customer counters
   autoCalcSnapshot: jsonb("auto_calc_snapshot"), // Snapshot of pricing factors used
   notes: text("notes"), // Operator's notes on the quote
+  declineReason: text("decline_reason"), // DeclineReason enum: "distance" | "budget" | "nature_of_job" | "other"
+  declineNotes: text("decline_notes"), // Additional explanation when operator declines
   expiresAt: timestamp("expires_at"), // Auto-decline after expiry (default 12 hours)
   submittedAt: timestamp("submitted_at").defaultNow().notNull(),
   respondedAt: timestamp("responded_at"), // When customer responded
@@ -299,6 +315,8 @@ export const operatorQuotes = pgTable("operator_quotes", {
   serviceRequestIdx: index("idx_quotes_service_request").on(table.serviceRequestId),
   operatorIdx: index("idx_quotes_operator").on(table.operatorId),
   statusIdx: index("idx_quotes_status").on(table.status),
+  // Composite index for service request + status queries
+  serviceRequestStatusIdx: index("idx_quotes_service_request_status").on(table.serviceRequestId, table.status),
 }));
 
 export const insertOperatorQuoteSchema = createInsertSchema(operatorQuotes).omit({
@@ -320,7 +338,7 @@ export const serviceRequests = pgTable("service_requests", {
   isEmergency: integer("is_emergency").notNull().default(0),
   urgencyLevel: text("urgency_level"), // Added urgency level column
   description: text("description").notNull(),
-  status: text("status").notNull().default("pending"), // pending, assigned, in_progress, completed, cancelled, disputed
+  status: text("status").notNull().default("pending"), // ServiceRequestStatus enum: "pending" | "operator_pending" | "operator_accepted" | "operator_declined" | "assigned" | "in_progress" | "completed" | "cancelled" | "disputed"
   location: text("location").notNull(),
   latitude: decimal("latitude", { precision: 10, scale: 7 }),
   longitude: decimal("longitude", { precision: 10, scale: 7 }),
@@ -333,6 +351,7 @@ export const serviceRequests = pgTable("service_requests", {
   estimatedCost: decimal("estimated_cost", { precision: 10, scale: 2 }),
   requestedAt: timestamp("requested_at").defaultNow().notNull(),
   respondedAt: timestamp("responded_at"),
+  decisionAt: timestamp("decision_at"), // When operator accepted/declined
   // Uber-style payment and completion tracking
   completedAt: timestamp("completed_at"),
   paymentStatus: text("payment_status"), // pending, captured, available, paid_out, refunded
@@ -348,7 +367,10 @@ export const serviceRequests = pgTable("service_requests", {
   quoteStatus: text("quote_status").default("open"), // "open" | "decided" | "expired"
   quoteCount: integer("quote_count").default(0), // Denormalized count for fast filtering
   lastQuoteAt: timestamp("last_quote_at"), // Last time a quote was submitted
-});
+}, (table) => ({
+  // Composite index for status + emergency queries as recommended by architect
+  statusEmergencyIdx: index("idx_service_requests_status_emergency").on(table.status, table.isEmergency),
+}));
 
 const baseServiceRequestSchema = z.object({
   customerId: z.string(),
@@ -703,8 +725,17 @@ export const dispatchQueue = pgTable("dispatch_queue", {
   respondedAt: timestamp("responded_at"),
   expiresAt: timestamp("expires_at"), // Auto-decline after X minutes
   distanceKm: decimal("distance_km", { precision: 10, scale: 2 }), // Distance from operator to job
+  // Priority snapshot fields (frozen at dispatch time for consistent prioritization)
+  operatorRatingSnapshot: decimal("operator_rating_snapshot", { precision: 3, scale: 2 }), // Operator's rating when dispatched
+  operatorAvgResponseTime: decimal("operator_avg_response_time", { precision: 10, scale: 2 }), // Avg response time in seconds
+  responseTimeSeconds: integer("response_time_seconds"), // Time taken to respond to this specific request
   createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+}, (table) => ({
+  // Composite indexes for efficient queries as recommended by architect
+  serviceRequestStatusIdx: index("idx_dispatch_service_request_status").on(table.serviceRequestId, table.status),
+  emergencyStatusIdx: index("idx_dispatch_emergency_status").on(table.emergencyId, table.status),
+  operatorStatusIdx: index("idx_dispatch_operator_status").on(table.operatorId, table.status),
+}));
 
 export const insertDispatchQueueSchema = z.object({
   queueId: z.string(),
