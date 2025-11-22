@@ -15,7 +15,7 @@ const buttonVariants = cva(
         ghost: "hover:bg-accent hover:text-accent-foreground",
         link: "text-primary underline-offset-4 hover:underline",
         // Fleetly custom variants
-        hero: "bg-gradient-primary text-primary-foreground hover:shadow-glow transform hover:scale-105",
+        hero: "bg-orange-500 text-white hover:bg-orange-600 dark:bg-orange-500 dark:text-white dark:hover:bg-orange-600 shadow-md hover:shadow-lg transform hover:scale-105",
         accent: "bg-accent text-accent-foreground hover:bg-accent-dark shadow-md hover:shadow-lg",
         success: "bg-success text-success-foreground hover:bg-success/90 shadow-md",
         warning: "bg-warning text-warning-foreground hover:bg-warning/90 shadow-md",

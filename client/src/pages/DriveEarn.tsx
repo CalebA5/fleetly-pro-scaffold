@@ -124,65 +124,7 @@ export const DriveEarn = () => {
     );
   }
 
-  // If no operator profile yet, redirect to onboarding
-  if (!user?.operatorId) {
-    return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col pb-20 md:pb-0">
-        <Header />
-        
-        <div className="container mx-auto px-4 py-16 max-w-4xl">
-          <div className="text-center mb-12">
-            <h1 className="text-4xl md:text-5xl font-bold text-black dark:text-white mb-4">
-              Welcome to Drive & Earn
-            </h1>
-            <p className="text-xl text-gray-600 dark:text-gray-400 mb-8">
-              Choose your operator tier to get started
-            </p>
-            <Button
-              variant="hero"
-              size="lg"
-              onClick={() => setLocation("/drive-earn")}
-              data-testid="button-start-onboarding"
-            >
-              <Plus className="w-5 h-5 mr-2" />
-              Get Started
-            </Button>
-          </div>
-
-          {/* Tier Overview Cards */}
-          <div className="grid md:grid-cols-3 gap-6">
-            {Object.entries(OPERATOR_TIER_INFO).map(([tier, info]) => (
-              <Card key={tier} className="hover:shadow-lg transition-shadow">
-                <CardHeader>
-                  <div className="text-4xl mb-2">{info.badge}</div>
-                  <CardTitle className="text-lg">{info.label}</CardTitle>
-                  <CardDescription className="text-sm">{info.description}</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Rate Multiplier:</span>
-                      <span className="font-semibold">{info.pricingMultiplier}x</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Service Radius:</span>
-                      <span className="font-semibold">
-                        {info.radiusKm ? `${info.radiusKm}km` : "Unlimited"}
-                      </span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-
-        <MobileBottomNav />
-      </div>
-    );
-  }
-
-  // User has operator profile - show their tiers and dashboards
+  // Show loading state
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col pb-20 md:pb-0">
@@ -201,7 +143,7 @@ export const DriveEarn = () => {
   }
 
   const subscribedTiers = operatorData?.subscribedTiers || [];
-  const activeTier = operatorData?.activeTier || operatorData?.operatorTier || "manual";
+  const activeTier = operatorData?.activeTier || operatorData?.operatorTier || null;
 
   const getTierDashboardPath = (tier: string) => {
     switch (tier) {
@@ -373,7 +315,7 @@ export const DriveEarn = () => {
                         <Button
                           variant="hero"
                           className="w-full"
-                          onClick={() => window.location.href = "/operator/onboarding?tier=" + tier}
+                          onClick={() => setLocation(`/operator/onboarding?tier=${tier}`)}
                           data-testid={`button-add-tier-${tier}`}
                         >
                           <Plus className="w-4 h-4 mr-2" />
