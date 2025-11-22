@@ -287,46 +287,48 @@ export const DriveEarn = () => {
                   </CardHeader>
                   <CardContent className="space-y-4">
                     {/* Tier Stats */}
-                    {tierStats && (
-                      <div className="grid grid-cols-2 gap-3 pt-4 border-t">
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                            <TrendingUp className="w-3 h-3" />
-                            Jobs Completed
-                          </div>
-                          <p className="text-lg font-bold text-black dark:text-white">
-                            {tierStats.jobsCompleted}
-                          </p>
+                    <div className="grid grid-cols-2 gap-3 pt-4 border-t">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                          <Star className="w-3 h-3" />
+                          Tier Rating
                         </div>
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                            <DollarSign className="w-3 h-3" />
-                            Earnings
-                          </div>
-                          <p className="text-lg font-bold text-green-600 dark:text-green-400">
-                            ${tierStats.totalEarnings}
-                          </p>
-                        </div>
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                            <Star className="w-3 h-3" />
-                            Rating
-                          </div>
-                          <p className="text-lg font-bold text-black dark:text-white">
-                            {tierStats.rating || "N/A"}
-                          </p>
-                        </div>
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                            <Users className="w-3 h-3" />
-                            Reviews
-                          </div>
-                          <p className="text-lg font-bold text-black dark:text-white">
-                            {tierStats.totalRatings}
-                          </p>
-                        </div>
+                        <p className="text-lg font-bold text-black dark:text-white">
+                          {tierStats?.rating ? Number(tierStats.rating).toFixed(1) : "New"}
+                        </p>
                       </div>
-                    )}
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                          <TrendingUp className="w-3 h-3" />
+                          Tier Jobs
+                        </div>
+                        <p className="text-lg font-bold text-black dark:text-white">
+                          {tierStats?.jobsCompleted || 0}
+                        </p>
+                      </div>
+                      <div className="space-y-1 col-span-2">
+                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                          <DollarSign className="w-3 h-3" />
+                          Tier Earnings
+                        </div>
+                        <p className="text-lg font-bold text-green-600 dark:text-green-400">
+                          ${tierStats?.totalEarnings || "0.00"}
+                        </p>
+                      </div>
+                      {tierStats?.lastActiveAt && (
+                        <div className="space-y-1 col-span-2">
+                          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                            Member Since
+                          </div>
+                          <p className="text-sm text-black dark:text-white">
+                            {new Date(tierStats.lastActiveAt).toLocaleDateString('en-US', { 
+                              month: 'long', 
+                              year: 'numeric' 
+                            })}
+                          </p>
+                        </div>
+                      )}
+                    </div>
 
                     <Button
                       variant={isActive ? "hero" : "outline"}
