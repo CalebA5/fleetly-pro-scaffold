@@ -1,10 +1,12 @@
-import { Home, Search, Heart, User, FileText } from "lucide-react";
+import { Home, Search, Heart, User, FileText, LogIn, UserPlus } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
 import { useState, useEffect, useRef } from "react";
+import { useAuth } from "@/contexts/AuthContext";
 
 export function MobileBottomNav() {
   const [location] = useLocation();
+  const { user } = useAuth();
   const [isVisible, setIsVisible] = useState(true);
   const lastScrollY = useRef(0);
 
@@ -26,7 +28,8 @@ export function MobileBottomNav() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []); // Empty dependency array - listener only attached once
 
-  const navItems = [
+  // Show different nav items based on authentication
+  const navItems = user ? [
     {
       icon: Home,
       label: "Home",
@@ -57,6 +60,31 @@ export function MobileBottomNav() {
       path: "/customer/profile",
       testId: "nav-profile"
     }
+  ] : [
+    {
+      icon: Home,
+      label: "Home",
+      path: "/",
+      testId: "nav-home"
+    },
+    {
+      icon: Search,
+      label: "Browse",
+      path: "/customer/operators",
+      testId: "nav-browse"
+    },
+    {
+      icon: LogIn,
+      label: "Sign In",
+      path: "/signin",
+      testId: "nav-signin"
+    },
+    {
+      icon: UserPlus,
+      label: "Sign Up",
+      path: "/signup",
+      testId: "nav-signup"
+    }
   ];
 
   return (
@@ -66,7 +94,7 @@ export function MobileBottomNav() {
         isVisible ? "translate-y-0" : "translate-y-full"
       )}
     >
-      <div className="grid grid-cols-5 h-16">
+      <div className={cn("grid h-16", user ? "grid-cols-5" : "grid-cols-4")}>
         {navItems.map((item) => {
           const isActive = location === item.path || 
             (item.path !== "/" && location.startsWith(item.path));
