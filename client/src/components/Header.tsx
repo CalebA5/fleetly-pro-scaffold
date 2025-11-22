@@ -2,6 +2,7 @@ import { Link, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { ProfileDropdown } from "@/components/ProfileDropdown";
 import { TierSwitcher } from "@/components/TierSwitcher";
 import { ThemeSelector } from "@/components/ThemeSelector";
@@ -56,39 +57,51 @@ export const Header = ({ onSignIn, onSignUp, onDriveAndEarn }: HeaderProps) => {
             </div>
           </Link>
           <nav className="flex items-center gap-2 md:gap-4">
-            {/* Notifications - Show on all devices */}
-            <Link href="/notifications">
-              <Button 
-                variant="ghost" 
-                size="sm"
-                className="text-gray-700 dark:text-gray-300 relative" 
-                data-testid="button-notifications"
-              >
-                <Bell className="w-4 h-4 md:mr-2" />
-                {activeAlertsCount > 0 && (
-                  <Badge 
-                    variant="destructive" 
-                    className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs"
+            {/* Notifications - Icon only with tooltip on hover */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Link href="/notifications">
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    className="text-gray-700 dark:text-gray-300 relative" 
+                    data-testid="button-notifications"
                   >
-                    {activeAlertsCount > 9 ? '9+' : activeAlertsCount}
-                  </Badge>
-                )}
-                <span className="hidden md:inline">Alerts</span>
-              </Button>
-            </Link>
+                    <Bell className="w-4 h-4" />
+                    {activeAlertsCount > 0 && (
+                      <Badge 
+                        variant="destructive" 
+                        className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs"
+                      >
+                        {activeAlertsCount > 9 ? '9+' : activeAlertsCount}
+                      </Badge>
+                    )}
+                  </Button>
+                </Link>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Alerts {activeAlertsCount > 0 && `(${activeAlertsCount})`}</p>
+              </TooltipContent>
+            </Tooltip>
 
-            {/* AI Assist - Show on all devices */}
-            <Link href="/customer/ai-assist">
-              <Button 
-                variant="ghost" 
-                size="sm"
-                className="text-purple-700 dark:text-purple-400 hover:text-purple-900 dark:hover:text-purple-300" 
-                data-testid="link-ai-assist"
-              >
-                <Sparkles className="w-4 h-4 md:mr-2" />
-                <span className="hidden md:inline">AI Assist</span>
-              </Button>
-            </Link>
+            {/* AI Assist - Icon only with tooltip on hover */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Link href="/customer/ai-assist">
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    className="text-purple-700 dark:text-purple-400 hover:text-purple-900 dark:hover:text-purple-300" 
+                    data-testid="link-ai-assist"
+                  >
+                    <Sparkles className="w-4 h-4" />
+                  </Button>
+                </Link>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>AI Assist</p>
+              </TooltipContent>
+            </Tooltip>
 
             {/* Browse Operators - Hide on small mobile */}
             <Link href="/customer/operator-map" className="hidden sm:inline">

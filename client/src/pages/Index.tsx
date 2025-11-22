@@ -236,7 +236,7 @@ const Index = () => {
       {/* Hero Section with Location Search */}
       <section className="relative bg-white dark:bg-gray-900 py-12 md:py-20 overflow-hidden border-b border-gray-200 dark:border-gray-800 w-full">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-center">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-start">
             <div>
               <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-black dark:text-white leading-tight mb-4">
                 Get the service you need, when you need it
@@ -255,6 +255,7 @@ const Index = () => {
                         value={pickup}
                         onChange={setPickup}
                         onSelectLocation={handleLocationSelect}
+                        onIconClick={handleUseCurrentLocation}
                         placeholder={loadingLocation ? "Detecting your location..." : "Enter pickup location"}
                         disabled={loadingLocation}
                         testId="input-pickup-location"
@@ -262,7 +263,7 @@ const Index = () => {
                       />
                     </div>
                   </div>
-                  {/* Use Current Location Button */}
+                  {/* Use Current Location Button - Keep for visibility but icon is also clickable */}
                   <Button
                     variant="ghost"
                     size="sm"

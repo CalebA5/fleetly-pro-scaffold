@@ -10,6 +10,7 @@ interface AutocompleteLocationProps {
   disabled?: boolean;
   testId?: string;
   icon?: boolean;
+  onIconClick?: () => void;
 }
 
 export const AutocompleteLocation = ({
@@ -19,7 +20,8 @@ export const AutocompleteLocation = ({
   placeholder = "Enter location",
   disabled = false,
   testId = "input-location",
-  icon = true
+  icon = true,
+  onIconClick
 }: AutocompleteLocationProps) => {
   const [open, setOpen] = useState(false);
   const [suggestions, setSuggestions] = useState<GeocodingResult[]>([]);
@@ -159,7 +161,19 @@ export const AutocompleteLocation = ({
         <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 animate-spin text-gray-400" />
       )}
       {!isSearching && icon && (
-        <MapPin className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+        <button
+          type="button"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            onIconClick?.();
+          }}
+          className="absolute right-3 top-1/2 -translate-y-1/2 p-0.5 hover:bg-orange-100 dark:hover:bg-orange-900/20 rounded transition-colors cursor-pointer"
+          title="Use my current location"
+          data-testid="button-location-pin"
+        >
+          <MapPin className="w-4 h-4 text-gray-400 hover:text-orange-600 dark:hover:text-orange-400 transition-colors" />
+        </button>
       )}
       
       {/* Dropdown suggestions */}
