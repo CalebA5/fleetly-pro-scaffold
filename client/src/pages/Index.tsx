@@ -47,6 +47,29 @@ const Index = () => {
   // Track if user has manually cleared the location field
   const [userHasCleared, setUserHasCleared] = useState(false);
   
+  // On initial mount, populate with stored location from localStorage
+  useEffect(() => {
+    const storedAddress = localStorage.getItem("userFormattedAddress");
+    const storedLocation = localStorage.getItem("userLocation");
+    
+    if (storedAddress && !pickup && !userHasCleared) {
+      setPickup(storedAddress);
+      
+      // Also restore coordinates if available
+      if (storedLocation) {
+        try {
+          const locationData = JSON.parse(storedLocation);
+          if (locationData.latitude && locationData.longitude) {
+            setCurrentLat(locationData.latitude);
+            setCurrentLon(locationData.longitude);
+          }
+        } catch (e) {
+          console.error("Failed to parse stored location:", e);
+        }
+      }
+    }
+  }, []); // Only run once on mount
+  
   // Auto-fill pickup with user's location address when available
   // But ONLY if user hasn't manually cleared the field
   useEffect(() => {

@@ -172,11 +172,11 @@ export const AutocompleteLocation = ({
               e.stopPropagation();
               handleClear();
             }}
-            className="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-600 rounded transition-colors cursor-pointer"
+            className="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-600 rounded cursor-pointer"
             title="Clear location"
             data-testid={`${testId}-clear`}
           >
-            <X className="w-4 h-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors" />
+            <X className="w-4 h-4 text-gray-500 dark:text-gray-400" />
           </button>
         )}
         {isSearching && (
