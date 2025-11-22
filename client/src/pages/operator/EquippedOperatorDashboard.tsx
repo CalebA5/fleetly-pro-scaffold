@@ -104,6 +104,17 @@ export default function EquippedOperatorDashboard() {
     enabled: !!operatorId,
   });
 
+  // Fetch customer groups unlock status (tracks total jobs completed per tier)
+  const { data: unlockStatus } = useQuery<{ 
+    isUnlocked: boolean; 
+    jobsCompleted: number; 
+    minimumJobsRequired: number; 
+    progress: number 
+  }>({
+    queryKey: [`/api/operators/${operatorId}/tier/equipped/unlock-status`],
+    enabled: !!operatorId,
+  });
+
   // Calculate if this tier is currently online
   const isOnline = operatorData?.isOnline === 1 && operatorData?.activeTier === "equipped";
 
@@ -397,8 +408,8 @@ export default function EquippedOperatorDashboard() {
                 onAcceptGroup={handleAcceptGroup}
                 onAcceptCustomers={handleAcceptCustomers}
                 acceptedGroupIds={acceptedGroupIds}
-                operatorJobCount={7}
-                minimumJobsRequired={5}
+                operatorJobCount={unlockStatus?.jobsCompleted || 0}
+                minimumJobsRequired={unlockStatus?.minimumJobsRequired || 5}
               />
             </CardContent>
           </Card>

@@ -15,7 +15,12 @@ The frontend is built with React 18, TypeScript, and Vite, using Wouter for rout
 The backend is an Express.js server utilizing a PostgreSQL database with Drizzle ORM for data persistence. Zod is used for schema validation. API endpoints are RESTful under the `/api` prefix, with centralized error handling.
 
 ### Data Model
-The service request schema includes normalized fields like `serviceType`, `isEmergency`, `description`, and `location`, with a JSONB `details` field for service-specific payloads. Operator profiles store `operatorTier`, `isCertified`, `businessLicense`, `homeLatitude`, `homeLongitude`, and `operatingRadius`. Emergency system tables include `emergencyRequests` for SOS requests and `dispatchQueue` for operator notification management.
+The service request schema includes normalized fields like `serviceType`, `isEmergency`, `description`, `location`, and `status` (pending/completed/cancelled), with a JSONB `details` field for service-specific payloads. Operator profiles store `operatorTier`, `isCertified`, `businessLicense`, `homeLatitude`, `homeLongitude`, and `operatingRadius`. Emergency system tables include `emergencyRequests` for SOS requests and `dispatchQueue` for operator notification management.
+
+**Earnings Tracking Tables:**
+- `operatorDailyEarnings`: Tracks daily earnings per operator per tier with unique constraint on (operatorId, tier, date)
+- `operatorMonthlyEarnings`: Tracks monthly earnings per operator per tier with unique constraint on (operatorId, tier, month)
+- `operatorTierStats`: Tracks total lifetime stats per operator per tier (jobsCompleted, totalEarnings, rating) with unique constraint on (operatorId, tier) - used for customer groups unlock system
 
 ### UI/UX Decisions
 The design is inspired by Uber's clean, modern aesthetic, emphasizing simplicity with a black-and-white color scheme and orange accents for CTAs. It features minimal design, bold typography, custom "enhanced-button" components, gradients for premium UI elements, and supports dark mode. An intelligent adaptive theming system switches between 4 seasonal color palettes (Winter, Spring, Summer, Autumn) and time-of-day awareness for light/dark mode, with user override options and localStorage persistence.
@@ -34,7 +39,9 @@ The design is inspired by Uber's clean, modern aesthetic, emphasizing simplicity
 - **Multi-Vehicle Management System**: Allows professional operators to manage unlimited vehicles and equipped operators to manage multiple vehicles.
 - **Proactive Weather Alert System**: Integrates with the National Weather Service API for real-time severe weather alerts.
 - **Emergency SOS Mode**: A no-login emergency assistance system with a prominent homepage button, three-tile service selection, contact form, auto-location detection, and proximity-based operator notification.
-- **Persistent Job Tracking System**: Database-backed job persistence that survives page refreshes, logout/login, and browser restarts. Operators can accept jobs offline (stored in database), but must be online on the correct tier to view details and work. Includes comprehensive Job Details page with Start/Cancel/Complete functionality and progress tracking (0-100%). Prevents operators from working on multiple tiers simultaneously through cross-tier active job checking.
+- **Persistent Job Tracking System**: Database-backed job persistence that survives page refreshes, logout/login, and browser restarts. Operators can accept jobs offline (stored in database), but must be online on the correct tier to view details and work. Includes comprehensive Job Details page with Start/Cancel/Complete functionality and progress tracking (0-100%). Prevents operators from working on multiple tiers simultaneously through cross-tier active job checking. Completed jobs are marked as "completed" in the database and immediately removed from operator feeds.
+- **Database Persistence for Earnings**: Daily and monthly earnings are now stored in the database using atomic upserts with unique constraints, ensuring job counts and earnings persist across logout/refresh/page reload. All earnings data is read from the database, not in-memory storage.
+- **Customer Groups Unlock System**: Gamification feature where operators must complete 5 jobs on a specific tier to unlock access to the "Nearby Customer Groups" feature. Real-time progress tracking via `/api/operators/:operatorId/tier/:tier/unlock-status` endpoint. Implemented across all three operator dashboards (Manual, Equipped, Professional) with visual progress indicators.
 
 ## External Dependencies
 

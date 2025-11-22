@@ -149,6 +149,17 @@ export default function ManualOperatorDashboard() {
     enabled: !!operatorId,
   });
 
+  // Fetch customer groups unlock status (tracks total jobs completed per tier)
+  const { data: unlockStatus } = useQuery<{ 
+    isUnlocked: boolean; 
+    jobsCompleted: number; 
+    minimumJobsRequired: number; 
+    progress: number 
+  }>({
+    queryKey: [`/api/operators/${operatorId}/tier/manual/unlock-status`],
+    enabled: !!operatorId,
+  });
+
   // Calculate accurate statistics
   const acceptedJobIds = acceptedJobsData.map(j => (j.jobData as any).id || j.jobSourceId);
   const availableRequestsCount = allRequests.filter(r => !acceptedJobIds.includes(r.id)).length;
@@ -604,8 +615,8 @@ export default function ManualOperatorDashboard() {
                     onAcceptGroup={handleAcceptGroup}
                     onAcceptCustomers={handleAcceptCustomers}
                     acceptedGroupIds={acceptedGroupIds}
-                    operatorJobCount={3}
-                    minimumJobsRequired={5}
+                    operatorJobCount={unlockStatus?.jobsCompleted || 0}
+                    minimumJobsRequired={unlockStatus?.minimumJobsRequired || 5}
                   />
                 </CardContent>
               </CollapsibleContent>

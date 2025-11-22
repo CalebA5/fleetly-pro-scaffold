@@ -1,4 +1,4 @@
-import { pgTable, serial, text, timestamp, integer, decimal, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, serial, text, timestamp, integer, decimal, jsonb, unique } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -161,7 +161,10 @@ export const operatorTierStats = pgTable("operator_tier_stats", {
   totalRatings: integer("total_ratings").notNull().default(0),
   lastActiveAt: timestamp("last_active_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+}, (table) => ({
+  // CRITICAL: Unique constraint needed for onConflictDoUpdate to work
+  uniqueOperatorTier: unique().on(table.operatorId, table.tier)
+}));
 
 export const insertOperatorTierStatsSchema = createInsertSchema(operatorTierStats).omit({
   id: true,
@@ -177,10 +180,17 @@ export const operatorDailyEarnings = pgTable("operator_daily_earnings", {
   tier: text("tier").notNull(),
   date: text("date").notNull(), // Format: YYYY-MM-DD
   jobsCompleted: integer("jobs_completed").notNull().default(0),
-  earnings: decimal("earnings", { precision: 10, scale: 2 }).notNull().default("0"),
+  // Uber-style earnings tracking
+  earningsPending: decimal("earnings_pending", { precision: 10, scale: 2 }).notNull().default("0"), // Subject to customer review
+  earningsAvailable: decimal("earnings_available", { precision: 10, scale: 2 }).notNull().default("0"), // Ready for payout
+  earningsPaidOut: decimal("earnings_paid_out", { precision: 10, scale: 2 }).notNull().default("0"), // Already transferred
+  earnings: decimal("earnings", { precision: 10, scale: 2 }).notNull().default("0"), // Legacy total field
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
+}, (table) => ({
+  // CRITICAL: Unique constraint needed for onConflictDoUpdate to work
+  uniqueOperatorTierDate: unique().on(table.operatorId, table.tier, table.date)
+}));
 
 export const insertOperatorDailyEarningsSchema = createInsertSchema(operatorDailyEarnings).omit({
   id: true,
@@ -197,10 +207,17 @@ export const operatorMonthlyEarnings = pgTable("operator_monthly_earnings", {
   tier: text("tier").notNull(),
   month: text("month").notNull(), // Format: YYYY-MM
   jobsCompleted: integer("jobs_completed").notNull().default(0),
+  // Uber-style earnings tracking
+  earningsPending: decimal("earnings_pending", { precision: 10, scale: 2 }).notNull().default("0"),
+  earningsAvailable: decimal("earnings_available", { precision: 10, scale: 2 }).notNull().default("0"),
+  earningsPaidOut: decimal("earnings_paid_out", { precision: 10, scale: 2 }).notNull().default("0"),
   earnings: decimal("earnings", { precision: 10, scale: 2 }).notNull().default("0"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
+}, (table) => ({
+  // CRITICAL: Unique constraint needed for onConflictDoUpdate to work
+  uniqueOperatorTierMonth: unique().on(table.operatorId, table.tier, table.month)
+}));
 
 export const insertOperatorMonthlyEarningsSchema = createInsertSchema(operatorMonthlyEarnings).omit({
   id: true,
@@ -241,7 +258,7 @@ export const serviceRequests = pgTable("service_requests", {
   isEmergency: integer("is_emergency").notNull().default(0),
   urgencyLevel: text("urgency_level"), // Added urgency level column
   description: text("description").notNull(),
-  status: text("status").notNull().default("pending"),
+  status: text("status").notNull().default("pending"), // pending, assigned, in_progress, completed, cancelled, disputed
   location: text("location").notNull(),
   latitude: decimal("latitude", { precision: 10, scale: 7 }),
   longitude: decimal("longitude", { precision: 10, scale: 7 }),
@@ -254,6 +271,15 @@ export const serviceRequests = pgTable("service_requests", {
   estimatedCost: decimal("estimated_cost", { precision: 10, scale: 2 }),
   requestedAt: timestamp("requested_at").defaultNow().notNull(),
   respondedAt: timestamp("responded_at"),
+  // Uber-style payment and completion tracking
+  completedAt: timestamp("completed_at"),
+  paymentStatus: text("payment_status"), // pending, captured, available, paid_out, refunded
+  paymentCapturedAt: timestamp("payment_captured_at"), // When customer was charged
+  paymentAvailableAt: timestamp("payment_available_at"), // When earnings became available (after review window)
+  paymentPaidOutAt: timestamp("payment_paid_out_at"), // When money was transferred to operator
+  customerRating: integer("customer_rating"), // 1-5 stars
+  customerReview: text("customer_review"),
+  customerRatedAt: timestamp("customer_rated_at"),
 });
 
 const baseServiceRequestSchema = z.object({

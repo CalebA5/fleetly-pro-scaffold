@@ -1,7 +1,7 @@
 import { Router } from "express";
 import type { IStorage } from "./storage";
 import { db } from "./db";
-import { operators, customers, users, favorites, operatorTierStats, weatherAlerts, insertWeatherAlertSchema, emergencyRequests, dispatchQueue, insertEmergencyRequestSchema, insertDispatchQueueSchema, businesses, serviceRequests } from "@shared/schema";
+import { operators, customers, users, favorites, operatorTierStats, weatherAlerts, insertWeatherAlertSchema, emergencyRequests, dispatchQueue, insertEmergencyRequestSchema, insertDispatchQueueSchema, businesses, serviceRequests, operatorDailyEarnings, operatorMonthlyEarnings } from "@shared/schema";
 import { eq, sql, and, gte, or } from "drizzle-orm";
 import { insertJobSchema, insertServiceRequestSchema, insertCustomerSchema, insertOperatorSchema, insertRatingSchema, insertFavoriteSchema, insertOperatorLocationSchema, insertCustomerServiceHistorySchema, OPERATOR_TIER_INFO } from "@shared/schema";
 import { isWithinRadius } from "./utils/distance";
@@ -704,9 +704,11 @@ export function registerRoutes(storage: IStorage) {
         return res.status(400).json({ message: "Invalid operator tier" });
       }
       
-      // Get all pending service requests
-      const allRequests = await storage.getServiceRequests();
-      const pendingRequests = allRequests.filter(req => req.status === "pending");
+      // CRITICAL FIX: Get pending service requests from DATABASE (not MemStorage)
+      // This ensures completed jobs don't reappear after being marked "completed"
+      const pendingRequests = await db.query.serviceRequests.findMany({
+        where: eq(serviceRequests.status, "pending")
+      });
       
       // Filter by service type based on tier
       let filteredRequests = pendingRequests;
@@ -2055,14 +2057,79 @@ export function registerRoutes(storage: IStorage) {
 
       const job = await storage.completeAcceptedJob(acceptedJobId, actualEarnings);
       
-      // Update earnings tracking (today & month)
+      // CRITICAL FIX: Mark the source serviceRequest as "completed" so it doesn't reappear
+      if (existingJob.jobSourceId) {
+        await db.update(serviceRequests)
+          .set({ 
+            status: "completed",
+            completedAt: new Date(),
+            paymentStatus: "pending", // Uber-style: earnings pending until review window
+            paymentCapturedAt: new Date() // Customer charged immediately
+          })
+          .where(eq(serviceRequests.requestId, existingJob.jobSourceId));
+      }
+      
+      // DATABASE PERSISTENCE FIX: Write earnings directly to database (not MemStorage)
       const today = new Date().toISOString().split('T')[0];
       const month = new Date().toISOString().substring(0, 7);
-      await storage.upsertDailyEarnings(operatorId, existingJob.tier, today, actualEarnings, 1);
-      await storage.upsertMonthlyEarnings(operatorId, existingJob.tier, month, actualEarnings, 1);
       
-      // Update tier stats
-      await storage.incrementTierJobCount(operatorId, existingJob.tier, actualEarnings);
+      // Upsert daily earnings to DATABASE (persists across logout/refresh)
+      await db.insert(operatorDailyEarnings)
+        .values({
+          operatorId,
+          tier: existingJob.tier,
+          date: today,
+          jobsCompleted: 1,
+          earningsPending: actualEarnings, // Store as number, not string
+          earnings: actualEarnings
+        })
+        .onConflictDoUpdate({
+          target: [operatorDailyEarnings.operatorId, operatorDailyEarnings.tier, operatorDailyEarnings.date],
+          set: {
+            jobsCompleted: sql`${operatorDailyEarnings.jobsCompleted} + 1`,
+            earningsPending: sql`${operatorDailyEarnings.earningsPending} + ${actualEarnings}`,
+            earnings: sql`${operatorDailyEarnings.earnings} + ${actualEarnings}`,
+            updatedAt: new Date()
+          }
+        });
+      
+      // Upsert monthly earnings to DATABASE (persists across logout/refresh)
+      await db.insert(operatorMonthlyEarnings)
+        .values({
+          operatorId,
+          tier: existingJob.tier,
+          month,
+          jobsCompleted: 1,
+          earningsPending: actualEarnings, // Store as number, not string
+          earnings: actualEarnings
+        })
+        .onConflictDoUpdate({
+          target: [operatorMonthlyEarnings.operatorId, operatorMonthlyEarnings.tier, operatorMonthlyEarnings.month],
+          set: {
+            jobsCompleted: sql`${operatorMonthlyEarnings.jobsCompleted} + 1`,
+            earningsPending: sql`${operatorMonthlyEarnings.earningsPending} + ${actualEarnings}`,
+            earnings: sql`${operatorMonthlyEarnings.earnings} + ${actualEarnings}`,
+            updatedAt: new Date()
+          }
+        });
+      
+      // CUSTOMER GROUPS UNLOCK: Update total tier stats for unlock tracking
+      await db.insert(operatorTierStats)
+        .values({
+          operatorId,
+          tier: existingJob.tier,
+          jobsCompleted: 1,
+          totalEarnings: actualEarnings, // Store as number, not string
+          lastActiveAt: new Date()
+        })
+        .onConflictDoUpdate({
+          target: [operatorTierStats.operatorId, operatorTierStats.tier],
+          set: {
+            jobsCompleted: sql`${operatorTierStats.jobsCompleted} + 1`,
+            totalEarnings: sql`${operatorTierStats.totalEarnings} + ${actualEarnings}`,
+            lastActiveAt: new Date()
+          }
+        });
       
       res.json(job);
     } catch (error) {
@@ -2095,6 +2162,16 @@ export function registerRoutes(storage: IStorage) {
       }
 
       const result = await storage.cancelAcceptedJob(acceptedJobId, reason, cancelledByOperator);
+      
+      // CRITICAL FIX: Mark the source serviceRequest as "cancelled" so it doesn't reappear
+      if (existingJob.jobSourceId) {
+        await db.update(serviceRequests)
+          .set({ 
+            status: "cancelled",
+            paymentStatus: "refunded"
+          })
+          .where(eq(serviceRequests.requestId, existingJob.jobSourceId));
+      }
       
       // If there's a penalty (cancelled by operator before 50% completion), record it
       if (result.penalty && result.penalty > 0) {
@@ -2135,31 +2212,90 @@ export function registerRoutes(storage: IStorage) {
     }
   });
 
-  // Get today's earnings for operator (by tier)
+  // Get today's earnings for operator (by tier) - DATABASE PERSISTENCE FIX
   router.get("/api/earnings/today/:operatorId", async (req, res) => {
     try {
       const { operatorId } = req.params;
       const tier = req.query.tier as string || "manual";
+      const today = new Date().toISOString().split('T')[0];
       
-      const earnings = await storage.getTodayEarnings(operatorId, tier);
-      res.json(earnings);
+      // Read from DATABASE (persists across logout/refresh)
+      const result = await db.query.operatorDailyEarnings.findFirst({
+        where: and(
+          eq(operatorDailyEarnings.operatorId, operatorId),
+          eq(operatorDailyEarnings.tier, tier),
+          eq(operatorDailyEarnings.date, today)
+        )
+      });
+      
+      res.json({
+        earnings: result ? parseFloat(result.earnings) : 0,
+        earningsPending: result ? parseFloat(result.earningsPending) : 0,
+        earningsAvailable: result ? parseFloat(result.earningsAvailable) : 0,
+        jobsCompleted: result ? result.jobsCompleted : 0
+      });
     } catch (error) {
       console.error("Error fetching today's earnings:", error);
       res.status(500).json({ message: "Failed to fetch today's earnings" });
     }
   });
 
-  // Get this month's earnings for operator (by tier)
+  // Get this month's earnings for operator (by tier) - DATABASE PERSISTENCE FIX
   router.get("/api/earnings/month/:operatorId", async (req, res) => {
     try {
       const { operatorId } = req.params;
       const tier = req.query.tier as string || "manual";
+      const month = new Date().toISOString().substring(0, 7);
       
-      const earnings = await storage.getMonthEarnings(operatorId, tier);
-      res.json(earnings);
+      // Read from DATABASE (persists across logout/refresh)
+      const result = await db.query.operatorMonthlyEarnings.findFirst({
+        where: and(
+          eq(operatorMonthlyEarnings.operatorId, operatorId),
+          eq(operatorMonthlyEarnings.tier, tier),
+          eq(operatorMonthlyEarnings.month, month)
+        )
+      });
+      
+      res.json({
+        earnings: result ? parseFloat(result.earnings) : 0,
+        earningsPending: result ? parseFloat(result.earningsPending) : 0,
+        earningsAvailable: result ? parseFloat(result.earningsAvailable) : 0,
+        jobsCompleted: result ? result.jobsCompleted : 0
+      });
     } catch (error) {
       console.error("Error fetching month's earnings:", error);
       res.status(500).json({ message: "Failed to fetch month's earnings" });
+    }
+  });
+
+  // CUSTOMER GROUPS UNLOCK: Check if operator has unlocked customer groups for their tier
+  router.get("/api/operators/:operatorId/tier/:tier/unlock-status", async (req, res) => {
+    try {
+      const { operatorId, tier } = req.params;
+      const minimumJobsRequired = 5; // Jobs needed to unlock customer groups per tier
+      
+      // Get operator's tier stats from database (or default to 0 if not exists)
+      const tierStats = await db.query.operatorTierStats.findFirst({
+        where: and(
+          eq(operatorTierStats.operatorId, operatorId),
+          eq(operatorTierStats.tier, tier)
+        )
+      });
+      
+      const jobsCompleted = tierStats ? tierStats.jobsCompleted : 0;
+      const isUnlocked = jobsCompleted >= minimumJobsRequired;
+      const progress = Math.min(100, (jobsCompleted / minimumJobsRequired) * 100);
+      
+      // Always return valid response (even for new operators with 0 jobs)
+      res.json({
+        isUnlocked,
+        jobsCompleted,
+        minimumJobsRequired,
+        progress
+      });
+    } catch (error) {
+      console.error("Error checking unlock status:", error);
+      res.status(500).json({ message: "Failed to check unlock status" });
     }
   });
 

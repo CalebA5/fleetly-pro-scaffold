@@ -99,6 +99,17 @@ export const BusinessDashboard = () => {
     enabled: !!user?.operatorId,
   });
 
+  // Fetch customer groups unlock status (tracks total jobs completed per tier)
+  const { data: unlockStatus } = useQuery<{ 
+    isUnlocked: boolean; 
+    jobsCompleted: number; 
+    minimumJobsRequired: number; 
+    progress: number 
+  }>({
+    queryKey: [`/api/operators/${user?.operatorId}/tier/professional/unlock-status`],
+    enabled: !!user?.operatorId,
+  });
+
   // Calculate if this tier is currently online
   const isOnline = operatorData?.isOnline === 1 && operatorData?.activeTier === "professional";
 
@@ -584,8 +595,8 @@ export const BusinessDashboard = () => {
                 onAcceptGroup={handleAcceptGroup}
                 onAcceptCustomers={handleAcceptCustomers}
                 acceptedGroupIds={acceptedGroupIds}
-                operatorJobCount={12}
-                minimumJobsRequired={5}
+                operatorJobCount={unlockStatus?.jobsCompleted || 0}
+                minimumJobsRequired={unlockStatus?.minimumJobsRequired || 5}
               />
             </CardContent>
           </Card>
