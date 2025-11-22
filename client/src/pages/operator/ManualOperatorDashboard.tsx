@@ -11,7 +11,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import type { Operator } from "@shared/schema";
+import type { Operator, AcceptedJob } from "@shared/schema";
 import { TierOnlineConfirmDialog } from "@/components/TierOnlineConfirmDialog";
 import { CustomerGrouping, type CustomerGroup } from "@/components/operator/CustomerGrouping";
 import { InfoTooltip } from "@/components/ui/info-tooltip";
@@ -33,7 +33,6 @@ interface ServiceRequest {
 export default function ManualOperatorDashboard() {
   const { user } = useAuth();
   const [, setLocation] = useLocation();
-  const [acceptedJobs, setAcceptedJobs] = useState<Array<number | string>>([]);
   const [acceptedGroupIds, setAcceptedGroupIds] = useState<string[]>([]);
   const { toast } = useToast();
   const [showTierSwitchDialog, setShowTierSwitchDialog] = useState(false);
@@ -128,9 +127,21 @@ export default function ManualOperatorDashboard() {
     enabled: !!operatorId,
   });
 
+  // Fetch accepted jobs from database (persistent across sessions)
+  const { data: acceptedJobsData = [], isLoading: isLoadingJobs } = useQuery<AcceptedJob[]>({
+    queryKey: ["/api/accepted-jobs", { operatorId, tier: "manual" }],
+    queryFn: async () => {
+      const response = await fetch(`/api/accepted-jobs?operatorId=${operatorId}&tier=manual`);
+      if (!response.ok) throw new Error("Failed to fetch accepted jobs");
+      return response.json();
+    },
+    enabled: !!operatorId,
+  });
+
   // Calculate accurate statistics
-  const availableRequestsCount = allRequests.filter(r => !acceptedJobs.includes(r.id)).length;
-  const acceptedJobsCount = acceptedJobs.length;
+  const acceptedJobIds = acceptedJobsData.map(j => (j.jobData as any).id || j.jobSourceId);
+  const availableRequestsCount = allRequests.filter(r => !acceptedJobIds.includes(r.id)).length;
+  const acceptedJobsCount = acceptedJobsData.length;
   const totalJobsNearby = availableRequestsCount + acceptedJobsCount;
   
   // Calculate if this tier is currently online
@@ -140,7 +151,7 @@ export default function ManualOperatorDashboard() {
   const toggleOnlineMutation = useMutation({
     mutationFn: async ({ goOnline, confirmed = false }: { goOnline: boolean; confirmed?: boolean }) => {
       // Prevent going online if there are active jobs
-      if (goOnline && acceptedJobs.length > 0) {
+      if (goOnline && acceptedJobsData.length > 0) {
         throw new Error("ACTIVE_JOBS_EXIST");
       }
       
@@ -177,7 +188,7 @@ export default function ManualOperatorDashboard() {
       if (error?.message === "ACTIVE_JOBS_EXIST") {
         toast({
           title: "Cannot Go Online",
-          description: `You have ${acceptedJobs.length} active job${acceptedJobs.length > 1 ? 's' : ''}. Please complete or abandon them before going online.`,
+          description: `You have ${acceptedJobsData.length} active job${acceptedJobsData.length > 1 ? 's' : ''}. Please complete or abandon them before going online.`,
           variant: "destructive",
         });
         return;
@@ -212,20 +223,7 @@ export default function ManualOperatorDashboard() {
     setTierSwitchInfo(null);
   };
 
-  const handleAcceptJob = (requestId: number) => {
-    // Check if operator is online before accepting
-    if (!isOnline) {
-      toast({
-        title: "Cannot Accept Job",
-        description: "You must be online to accept jobs. Toggle your status above to go online.",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    setAcceptedJobs([...acceptedJobs, requestId]);
-    // In production, send accept request to backend
-  };
+  // Old handler removed - now using acceptRequestMutation
 
   const handleAcceptGroup = (groupId: string) => {
     const group = mockCustomerGroups.find(g => g.id === groupId);
@@ -258,6 +256,40 @@ export default function ManualOperatorDashboard() {
   };
 
   // Request handlers - for both urgent and regular requests
+  const acceptRequestMutation = useMutation({
+    mutationFn: async (requestId: string) => {
+      const request = allRequests.find(r => r.id === requestId);
+      if (!request) throw new Error("Request not found");
+
+      return await apiRequest("/api/accepted-jobs", {
+        method: "POST",
+        body: JSON.stringify({
+          operatorId,
+          jobSourceId: requestId,
+          jobSourceType: "request",
+          tier: "manual",
+          jobData: request,
+        }),
+        headers: { "Content-Type": "application/json" },
+      });
+    },
+    onSuccess: (data, requestId) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/accepted-jobs"] });
+      const request = allRequests.find(r => r.id === requestId);
+      toast({
+        title: request?.isEmergency ? "Emergency Request Accepted!" : "Request Accepted!",
+        description: "Job added to your Jobs list. Click to view details.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error Accepting Job",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleAcceptRequest = (requestId: string) => {
     // Check if operator is online before accepting
     if (!isOnline) {
@@ -269,13 +301,7 @@ export default function ManualOperatorDashboard() {
       return;
     }
     
-    setAcceptedJobs(prev => [...prev, requestId]);
-    // Keep request in list (moved to Jobs section visually via filtering)
-    const request = allRequests.find(r => r.id === requestId);
-    toast({
-      title: request?.isEmergency ? "Emergency Request Accepted!" : "Request Accepted!",
-      description: "Job added to your Jobs list.",
-    });
+    acceptRequestMutation.mutate(requestId);
   };
 
   const handleDeclineRequest = (requestId: string) => {
@@ -304,10 +330,10 @@ export default function ManualOperatorDashboard() {
           variant="mobile"
           label="Manual Operator"
         />
-        {!isOnline && acceptedJobs.length > 0 && (
+        {!isOnline && acceptedJobsData.length > 0 && (
           <div className="bg-yellow-50 dark:bg-yellow-900/20 border-b border-yellow-200 dark:border-yellow-800 px-4 py-2">
             <p className="text-xs text-yellow-800 dark:text-yellow-200 text-center">
-              ⚠️ You have {acceptedJobs.length} active job{acceptedJobs.length > 1 ? 's' : ''}. Complete or abandon them to go online.
+              ⚠️ You have {acceptedJobsData.length} active job{acceptedJobsData.length > 1 ? 's' : ''}. Complete or abandon them to go online.
             </p>
           </div>
         )}
@@ -491,9 +517,9 @@ export default function ManualOperatorDashboard() {
               </CardHeader>
               <CollapsibleContent>
                 <CardContent>
-                  {allRequests.filter(r => !acceptedJobs.includes(r.id)).length > 0 ? (
+                  {allRequests.filter(r => !acceptedJobIds.includes(r.id)).length > 0 ? (
                     <div className="space-y-3">
-                      {allRequests.filter(r => !acceptedJobs.includes(r.id)).map((request) => (
+                      {allRequests.filter(r => !acceptedJobIds.includes(r.id)).map((request) => (
                         <div
                           key={request.id}
                           className={`border-2 rounded-lg p-4 ${
@@ -610,59 +636,56 @@ export default function ManualOperatorDashboard() {
             </CardHeader>
             <CollapsibleContent>
               <CardContent>
-                {acceptedJobs.length > 0 ? (
+                {acceptedJobsData.length > 0 ? (
                   <div className="space-y-3">
-                    {acceptedJobs.map((jobId) => {
-                      const regularJob = typeof jobId === 'number' ? nearbySnowRequests.find(r => r.id === jobId) : undefined;
-                      const requestJob = typeof jobId === 'string' ? allRequests.find(r => r.id === jobId) : undefined;
-                      const job = requestJob || regularJob;
-                      
-                      if (!job) return null;
+                    {acceptedJobsData.map((acceptedJob) => {
+                      const jobData = acceptedJob.jobData as any;
+                      const isEmergency = jobData.isEmergency === true || jobData.isEmergency === 1;
                       
                       return (
                         <div
-                          key={jobId}
+                          key={acceptedJob.acceptedJobId}
                           className="border-2 border-blue-200 dark:border-blue-700 rounded-lg p-4 bg-blue-50 dark:bg-blue-950"
-                          data-testid={`job-${jobId}`}
+                          data-testid={`job-${acceptedJob.acceptedJobId}`}
                         >
                           <div className="flex items-start justify-between mb-2">
                             <div className="flex-1">
                               <div className="flex items-center gap-2 mb-1">
                                 <h3 className="font-semibold text-black dark:text-white">
-                                  {'customerName' in job ? job.customerName : 'Customer'}
+                                  {jobData.customerName || 'Customer'}
                                 </h3>
-                                {((requestJob && requestJob.isEmergency) || (regularJob && regularJob.isEmergency === 1)) && (
+                                {isEmergency && (
                                   <Badge className="bg-red-600 text-white text-xs">
                                     EMERGENCY
                                   </Badge>
                                 )}
+                                <Badge className={
+                                  acceptedJob.status === "in_progress"
+                                    ? "bg-blue-500 text-white text-xs"
+                                    : "bg-gray-500 text-white text-xs"
+                                }>
+                                  {acceptedJob.status === "in_progress" ? `${acceptedJob.progress}%` : "ACCEPTED"}
+                                </Badge>
                               </div>
                               <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-                                {requestJob && 'description' in requestJob ? requestJob.description : regularJob && 'serviceType' in regularJob ? regularJob.serviceType : ''}
+                                {jobData.description || jobData.serviceType || 'Service Request'}
                               </p>
                               <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400">
                                 <span className="flex items-center gap-1">
                                   <MapPin className="w-4 h-4" />
-                                  {job.location}
-                                  {job.distance && ` (${job.distance}km)`}
+                                  {jobData.location}
+                                  {jobData.distance && ` (${jobData.distance}km)`}
                                 </span>
                               </div>
                             </div>
                           </div>
                           <div className="flex gap-2">
                             <Button
-                              onClick={() => setLocation(`/operator/jobs/${jobId}`)}
+                              onClick={() => setLocation(`/operator/jobs/${acceptedJob.acceptedJobId}`)}
                               className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
-                              data-testid={`button-view-job-${jobId}`}
+                              data-testid={`button-view-job-${acceptedJob.acceptedJobId}`}
                             >
                               View Details
-                            </Button>
-                            <Button
-                              variant="outline"
-                              className="border-green-500 text-green-600 hover:bg-green-50"
-                              data-testid={`button-complete-job-${jobId}`}
-                            >
-                              Mark Complete
                             </Button>
                           </div>
                         </div>

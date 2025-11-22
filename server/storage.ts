@@ -11,7 +11,8 @@ import type {
   Vehicle, InsertVehicle,
   User, InsertUser,
   Session, InsertSession,
-  OperatorTierStats, InsertOperatorTierStats
+  OperatorTierStats, InsertOperatorTierStats,
+  AcceptedJob, InsertAcceptedJob
 } from "@shared/schema";
 
 export interface IStorage {
@@ -93,6 +94,17 @@ export interface IStorage {
   updateOperatorTierStat(operatorId: string, tier: string, updates: Partial<InsertOperatorTierStats>): Promise<OperatorTierStats | undefined>;
   incrementTierJobCount(operatorId: string, tier: string, earnings: number): Promise<void>;
   updateTierRating(operatorId: string, tier: string, newRating: number): Promise<void>;
+
+  // Accepted Jobs (persistent operator job tracking)
+  getAcceptedJobs(operatorId: string, tier?: string): Promise<AcceptedJob[]>;
+  getAcceptedJob(acceptedJobId: string): Promise<AcceptedJob | undefined>;
+  createAcceptedJob(job: InsertAcceptedJob): Promise<AcceptedJob>;
+  updateAcceptedJobStatus(acceptedJobId: string, status: string): Promise<AcceptedJob | undefined>;
+  updateAcceptedJobProgress(acceptedJobId: string, progress: number): Promise<AcceptedJob | undefined>;
+  startAcceptedJob(acceptedJobId: string): Promise<AcceptedJob | undefined>;
+  completeAcceptedJob(acceptedJobId: string): Promise<AcceptedJob | undefined>;
+  cancelAcceptedJob(acceptedJobId: string, reason: string): Promise<AcceptedJob | undefined>;
+  getOperatorActiveJobs(operatorId: string, excludeTier?: string): Promise<AcceptedJob[]>;
 }
 
 export class MemStorage implements IStorage {
@@ -108,6 +120,7 @@ export class MemStorage implements IStorage {
   private users: User[] = [];
   private sessions: Session[] = [];
   private vehicles: Vehicle[] = [];
+  private acceptedJobs: AcceptedJob[] = [];
   private nextJobId = 1;
   private nextOperatorId = 1;
   private nextServiceRequestId = 1;
@@ -120,6 +133,7 @@ export class MemStorage implements IStorage {
   private nextUserId = 1;
   private nextSessionId = 1;
   private nextVehicleId = 1;
+  private nextAcceptedJobId = 1;
 
   constructor() {
     // No demo data - clean slate for all operators
@@ -747,5 +761,83 @@ export class MemStorage implements IStorage {
     
     targetVehicle.isActive = 1;
     return true;
+  }
+
+  // Accepted Jobs - Persistent job tracking
+  async getAcceptedJobs(operatorId: string, tier?: string): Promise<AcceptedJob[]> {
+    let jobs = this.acceptedJobs.filter((j) => j.operatorId === operatorId);
+    if (tier) {
+      jobs = jobs.filter((j) => j.tier === tier);
+    }
+    // Only return active jobs (not completed or cancelled)
+    return jobs.filter((j) => j.status === "accepted" || j.status === "in_progress");
+  }
+
+  async getAcceptedJob(acceptedJobId: string): Promise<AcceptedJob | undefined> {
+    return this.acceptedJobs.find((j) => j.acceptedJobId === acceptedJobId);
+  }
+
+  async createAcceptedJob(job: InsertAcceptedJob): Promise<AcceptedJob> {
+    const newJob: AcceptedJob = {
+      id: this.nextAcceptedJobId++,
+      ...job,
+      acceptedAt: new Date(),
+      startedAt: null,
+      completedAt: null,
+      cancelledAt: null,
+    };
+    this.acceptedJobs.push(newJob);
+    return newJob;
+  }
+
+  async updateAcceptedJobStatus(acceptedJobId: string, status: string): Promise<AcceptedJob | undefined> {
+    const job = this.acceptedJobs.find((j) => j.acceptedJobId === acceptedJobId);
+    if (!job) return undefined;
+    job.status = status;
+    return job;
+  }
+
+  async updateAcceptedJobProgress(acceptedJobId: string, progress: number): Promise<AcceptedJob | undefined> {
+    const job = this.acceptedJobs.find((j) => j.acceptedJobId === acceptedJobId);
+    if (!job) return undefined;
+    job.progress = progress;
+    return job;
+  }
+
+  async startAcceptedJob(acceptedJobId: string): Promise<AcceptedJob | undefined> {
+    const job = this.acceptedJobs.find((j) => j.acceptedJobId === acceptedJobId);
+    if (!job) return undefined;
+    job.status = "in_progress";
+    job.startedAt = new Date();
+    job.progress = 0;
+    return job;
+  }
+
+  async completeAcceptedJob(acceptedJobId: string): Promise<AcceptedJob | undefined> {
+    const job = this.acceptedJobs.find((j) => j.acceptedJobId === acceptedJobId);
+    if (!job) return undefined;
+    job.status = "completed";
+    job.completedAt = new Date();
+    job.progress = 100;
+    return job;
+  }
+
+  async cancelAcceptedJob(acceptedJobId: string, reason: string): Promise<AcceptedJob | undefined> {
+    const job = this.acceptedJobs.find((j) => j.acceptedJobId === acceptedJobId);
+    if (!job) return undefined;
+    job.status = "cancelled";
+    job.cancelledAt = new Date();
+    job.cancellationReason = reason;
+    return job;
+  }
+
+  async getOperatorActiveJobs(operatorId: string, excludeTier?: string): Promise<AcceptedJob[]> {
+    let jobs = this.acceptedJobs.filter(
+      (j) => j.operatorId === operatorId && (j.status === "accepted" || j.status === "in_progress")
+    );
+    if (excludeTier) {
+      jobs = jobs.filter((j) => j.tier !== excludeTier);
+    }
+    return jobs;
   }
 }

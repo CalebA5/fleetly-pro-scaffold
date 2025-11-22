@@ -34,6 +34,7 @@ The design is inspired by Uber's clean, modern aesthetic, emphasizing simplicity
 - **Multi-Vehicle Management System**: Allows professional operators to manage unlimited vehicles and equipped operators to manage multiple vehicles.
 - **Proactive Weather Alert System**: Integrates with the National Weather Service API for real-time severe weather alerts.
 - **Emergency SOS Mode**: A no-login emergency assistance system with a prominent homepage button, three-tile service selection, contact form, auto-location detection, and proximity-based operator notification.
+- **Persistent Job Tracking System**: Database-backed job persistence that survives page refreshes, logout/login, and browser restarts. Operators can accept jobs offline (stored in database), but must be online on the correct tier to view details and work. Includes comprehensive Job Details page with Start/Cancel/Complete functionality and progress tracking (0-100%). Prevents operators from working on multiple tiers simultaneously through cross-tier active job checking.
 
 ## External Dependencies
 

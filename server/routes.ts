@@ -1851,5 +1851,226 @@ export function registerRoutes(storage: IStorage) {
     }
   });
 
+  // ========== ACCEPTED JOBS ENDPOINTS (Persistent Job Tracking) ==========
+  
+  // Get all accepted jobs for an operator (optionally filtered by tier)
+  router.get("/api/accepted-jobs", async (req, res) => {
+    try {
+      const operatorId = req.query.operatorId as string;
+      const tier = req.query.tier as string | undefined;
+      
+      if (!operatorId) {
+        return res.status(400).json({ message: "operatorId is required" });
+      }
+
+      const jobs = await storage.getAcceptedJobs(operatorId, tier);
+      res.json(jobs);
+    } catch (error) {
+      console.error("Error fetching accepted jobs:", error);
+      res.status(500).json({ message: "Failed to fetch accepted jobs" });
+    }
+  });
+
+  // Get a specific accepted job by ID (with operator authorization)
+  router.get("/api/accepted-jobs/:acceptedJobId", async (req, res) => {
+    try {
+      const { acceptedJobId } = req.params;
+      const operatorId = req.query.operatorId as string;
+      
+      if (!operatorId) {
+        return res.status(400).json({ message: "operatorId is required" });
+      }
+      
+      const job = await storage.getAcceptedJob(acceptedJobId);
+      
+      if (!job) {
+        return res.status(404).json({ message: "Job not found" });
+      }
+      
+      // SECURITY: Verify operator owns this job
+      if (job.operatorId !== operatorId) {
+        return res.status(403).json({ message: "Unauthorized - you don't own this job" });
+      }
+      
+      res.json(job);
+    } catch (error) {
+      console.error("Error fetching accepted job:", error);
+      res.status(500).json({ message: "Failed to fetch accepted job" });
+    }
+  });
+
+  // Create a new accepted job (when operator accepts a request)
+  router.post("/api/accepted-jobs", async (req, res) => {
+    try {
+      const { operatorId, jobSourceId, jobSourceType, tier, jobData } = req.body;
+      
+      if (!operatorId || !jobSourceId || !jobSourceType || !tier || !jobData) {
+        return res.status(400).json({ message: "Missing required fields" });
+      }
+
+      // Check if operator has active jobs on other tiers
+      const activeJobs = await storage.getOperatorActiveJobs(operatorId, tier);
+      if (activeJobs.length > 0) {
+        return res.status(400).json({ 
+          message: "Cannot accept job - you have active jobs on another tier. Complete those first.",
+          activeJobs: activeJobs.map(j => ({ tier: j.tier, id: j.acceptedJobId }))
+        });
+      }
+
+      // Generate unique ID for this accepted job
+      const acceptedJobId = `job_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+      const newJob = await storage.createAcceptedJob({
+        acceptedJobId,
+        operatorId,
+        jobSourceId,
+        jobSourceType,
+        tier,
+        status: "accepted",
+        progress: 0,
+        jobData,
+        startedAt: null,
+        completedAt: null,
+        cancelledAt: null,
+        cancellationReason: null,
+      });
+
+      res.status(201).json(newJob);
+    } catch (error) {
+      console.error("Error creating accepted job:", error);
+      res.status(500).json({ message: "Failed to create accepted job" });
+    }
+  });
+
+  // Start a job (move from "accepted" to "in_progress")
+  router.post("/api/accepted-jobs/:acceptedJobId/start", async (req, res) => {
+    try {
+      const { acceptedJobId } = req.params;
+      const operatorId = req.body?.operatorId || req.query.operatorId as string;
+      
+      if (!operatorId) {
+        return res.status(400).json({ message: "operatorId is required" });
+      }
+      
+      // SECURITY: Verify operator owns this job before allowing modifications
+      const existingJob = await storage.getAcceptedJob(acceptedJobId);
+      if (!existingJob) {
+        return res.status(404).json({ message: "Job not found" });
+      }
+      if (existingJob.operatorId !== operatorId) {
+        return res.status(403).json({ message: "Unauthorized - you don't own this job" });
+      }
+      
+      const job = await storage.startAcceptedJob(acceptedJobId);
+      res.json(job);
+    } catch (error) {
+      console.error("Error starting job:", error);
+      res.status(500).json({ message: "Failed to start job" });
+    }
+  });
+
+  // Update job progress
+  router.patch("/api/accepted-jobs/:acceptedJobId/progress", async (req, res) => {
+    try {
+      const { acceptedJobId } = req.params;
+      const { progress, operatorId } = req.body;
+      
+      if (!operatorId) {
+        return res.status(400).json({ message: "operatorId is required" });
+      }
+      
+      if (typeof progress !== "number" || progress < 0 || progress > 100) {
+        return res.status(400).json({ message: "Progress must be a number between 0 and 100" });
+      }
+
+      // SECURITY: Verify operator owns this job
+      const existingJob = await storage.getAcceptedJob(acceptedJobId);
+      if (!existingJob) {
+        return res.status(404).json({ message: "Job not found" });
+      }
+      if (existingJob.operatorId !== operatorId) {
+        return res.status(403).json({ message: "Unauthorized - you don't own this job" });
+      }
+
+      const job = await storage.updateAcceptedJobProgress(acceptedJobId, progress);
+      res.json(job);
+    } catch (error) {
+      console.error("Error updating job progress:", error);
+      res.status(500).json({ message: "Failed to update job progress" });
+    }
+  });
+
+  // Complete a job
+  router.post("/api/accepted-jobs/:acceptedJobId/complete", async (req, res) => {
+    try {
+      const { acceptedJobId } = req.params;
+      const operatorId = req.body?.operatorId || req.query.operatorId as string;
+      
+      if (!operatorId) {
+        return res.status(400).json({ message: "operatorId is required" });
+      }
+      
+      // SECURITY: Verify operator owns this job
+      const existingJob = await storage.getAcceptedJob(acceptedJobId);
+      if (!existingJob) {
+        return res.status(404).json({ message: "Job not found" });
+      }
+      if (existingJob.operatorId !== operatorId) {
+        return res.status(403).json({ message: "Unauthorized - you don't own this job" });
+      }
+
+      const job = await storage.completeAcceptedJob(acceptedJobId);
+      res.json(job);
+    } catch (error) {
+      console.error("Error completing job:", error);
+      res.status(500).json({ message: "Failed to complete job" });
+    }
+  });
+
+  // Cancel a job
+  router.post("/api/accepted-jobs/:acceptedJobId/cancel", async (req, res) => {
+    try {
+      const { acceptedJobId } = req.params;
+      const { reason, operatorId } = req.body;
+      
+      if (!operatorId) {
+        return res.status(400).json({ message: "operatorId is required" });
+      }
+      
+      if (!reason || typeof reason !== "string") {
+        return res.status(400).json({ message: "Cancellation reason is required" });
+      }
+
+      // SECURITY: Verify operator owns this job
+      const existingJob = await storage.getAcceptedJob(acceptedJobId);
+      if (!existingJob) {
+        return res.status(404).json({ message: "Job not found" });
+      }
+      if (existingJob.operatorId !== operatorId) {
+        return res.status(403).json({ message: "Unauthorized - you don't own this job" });
+      }
+
+      const job = await storage.cancelAcceptedJob(acceptedJobId, reason);
+      res.json(job);
+    } catch (error) {
+      console.error("Error cancelling job:", error);
+      res.status(500).json({ message: "Failed to cancel job" });
+    }
+  });
+
+  // Get operator's active jobs (for cross-tier checking)
+  router.get("/api/accepted-jobs/operator/:operatorId/active", async (req, res) => {
+    try {
+      const { operatorId } = req.params;
+      const excludeTier = req.query.excludeTier as string | undefined;
+      
+      const activeJobs = await storage.getOperatorActiveJobs(operatorId, excludeTier);
+      res.json(activeJobs);
+    } catch (error) {
+      console.error("Error fetching operator active jobs:", error);
+      res.status(500).json({ message: "Failed to fetch operator active jobs" });
+    }
+  });
+
   return router;
 }

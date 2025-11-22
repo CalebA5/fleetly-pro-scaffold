@@ -610,3 +610,30 @@ export const insertJobAssignmentSchema = createInsertSchema(jobAssignments).omit
 export type InsertJobAssignment = z.infer<typeof insertJobAssignmentSchema>;
 export type JobAssignment = typeof jobAssignments.$inferSelect;
 export type JobAssignmentStatus = "pending" | "accepted" | "declined" | "completed" | "cancelled";
+
+// Accepted Jobs - Persistent storage for operator-accepted jobs across sessions
+export const acceptedJobs = pgTable("accepted_jobs", {
+  id: serial("id").primaryKey(),
+  acceptedJobId: text("accepted_job_id").notNull().unique(), // Unique ID for this acceptance
+  operatorId: text("operator_id").notNull(), // Which operator accepted it
+  jobSourceId: text("job_source_id").notNull(), // Original job/request ID (could be string or number converted to string)
+  jobSourceType: text("job_source_type").notNull(), // "request" | "emergency" | "service_request" | "group"
+  tier: text("tier").notNull(), // "manual" | "equipped" | "professional"
+  status: text("status").notNull().default("accepted"), // "accepted" | "in_progress" | "completed" | "cancelled"
+  progress: integer("progress").notNull().default(0), // 0-100 percentage
+  jobData: jsonb("job_data").notNull(), // Full job/request details stored as JSON
+  acceptedAt: timestamp("accepted_at").defaultNow().notNull(),
+  startedAt: timestamp("started_at"),
+  completedAt: timestamp("completed_at"),
+  cancelledAt: timestamp("cancelled_at"),
+  cancellationReason: text("cancellation_reason"),
+});
+
+export const insertAcceptedJobSchema = createInsertSchema(acceptedJobs).omit({
+  id: true,
+  acceptedAt: true,
+});
+
+export type InsertAcceptedJob = z.infer<typeof insertAcceptedJobSchema>;
+export type AcceptedJob = typeof acceptedJobs.$inferSelect;
+export type AcceptedJobStatus = "accepted" | "in_progress" | "completed" | "cancelled";
