@@ -19,6 +19,7 @@ import { TierOnlineConfirmDialog } from "@/components/TierOnlineConfirmDialog";
 import { CustomerGrouping, type CustomerGroup } from "@/components/operator/CustomerGrouping";
 import { InfoTooltip } from "@/components/ui/info-tooltip";
 import { OperatorStatusToggle } from "@/components/operator/OperatorStatusToggle";
+import { QuoteModal } from "@/components/operator/QuoteModal";
 import { UrgentRequestNotification, type UrgentRequest } from "@/components/operator/UrgentRequestNotification";
 import { VehicleSelectionModal } from "@/components/operator/VehicleSelectionModal";
 
@@ -39,6 +40,8 @@ export default function EquippedOperatorDashboard() {
   const [, setLocation] = useLocation();
   const [acceptedJobs, setAcceptedJobs] = useState<number[]>([]);
   const [acceptedGroupIds, setAcceptedGroupIds] = useState<string[]>([]);
+  const [quoteModalOpen, setQuoteModalOpen] = useState(false);
+  const [selectedRequest, setSelectedRequest] = useState<any>(null);
   const [serviceFilter, setServiceFilter] = useState<string>("all");
   const { toast } = useToast();
   const [showTierSwitchDialog, setShowTierSwitchDialog] = useState(false);
@@ -822,12 +825,15 @@ export default function EquippedOperatorDashboard() {
                       </div>
                       <div className="flex gap-2">
                         <Button
-                          onClick={() => handleAcceptUrgent(request.id)}
+                          onClick={() => {
+                            setSelectedRequest(request);
+                            setQuoteModalOpen(true);
+                          }}
                           className="flex-1 bg-red-600 hover:bg-red-700 text-white"
-                          data-testid={`button-accept-urgent-${request.id}`}
+                          data-testid={`button-quote-urgent-${request.id}`}
                         >
-                          <CheckCircle className="w-4 h-4 mr-2" />
-                          Accept Urgent
+                          <DollarSign className="w-4 h-4 mr-2" />
+                          Quote Urgent
                         </Button>
                         <Button
                           onClick={() => handleDeclineUrgent(request.id)}
@@ -1037,23 +1043,26 @@ export default function EquippedOperatorDashboard() {
                         </div>
                       ) : (
                         <Button
-                          onClick={() => handleAcceptJob(request.id)}
+                          onClick={() => {
+                            setSelectedRequest(request);
+                            setQuoteModalOpen(true);
+                          }}
                           className={`w-full ${
                             isEmergency
                               ? "bg-red-600 hover:bg-red-700 text-white text-base font-bold shadow-lg shadow-red-500/50"
                               : "bg-blue-600 hover:bg-blue-700 text-white"
                           }`}
-                          data-testid={`button-accept-${request.id}`}
+                          data-testid={`button-quote-${request.id}`}
                         >
                           {isEmergency ? (
                             <>
-                              <AlertCircle className="w-5 h-5 mr-2" />
-                              Accept Emergency
+                              <DollarSign className="w-5 h-5 mr-2" />
+                              Quote Emergency
                             </>
                           ) : (
                             <>
-                              <CheckCircle className="w-5 h-5 mr-2" />
-                              Accept Job
+                              <DollarSign className="w-5 h-5 mr-2" />
+                              Quote this Job
                             </>
                           )}
                         </Button>
@@ -1114,6 +1123,17 @@ export default function EquippedOperatorDashboard() {
             : undefined
         }
       />
+      
+      {selectedRequest && (
+        <QuoteModal
+          open={quoteModalOpen}
+          onOpenChange={setQuoteModalOpen}
+          serviceRequest={selectedRequest}
+          operatorId={operatorId}
+          operatorName={operatorData?.name || user?.name || ""}
+          tier="equipped"
+        />
+      )}
 
       <MobileBottomNav />
     </div>

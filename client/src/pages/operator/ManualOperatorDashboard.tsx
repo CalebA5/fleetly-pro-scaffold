@@ -17,6 +17,7 @@ import { CustomerGrouping, type CustomerGroup } from "@/components/operator/Cust
 import { InfoTooltip } from "@/components/ui/info-tooltip";
 import { OperatorStatusToggle } from "@/components/operator/OperatorStatusToggle";
 import type { UrgentRequest } from "@/components/operator/UrgentRequestNotification";
+import { QuoteModal } from "@/components/operator/QuoteModal";
 
 interface ServiceRequest {
   id: number;
@@ -40,6 +41,8 @@ export default function ManualOperatorDashboard() {
   const [customerGroupsOpen, setCustomerGroupsOpen] = useState(true);
   const [requestsOpen, setRequestsOpen] = useState(true);
   const [jobsOpen, setJobsOpen] = useState(true);
+  const [quoteModalOpen, setQuoteModalOpen] = useState(false);
+  const [selectedRequest, setSelectedRequest] = useState<any>(null);
   
   // ALL MOCK DATA REMOVED - Dashboard is now 100% dynamic
   // Requests come from database via /api/service-requests/for-operator endpoint
@@ -649,18 +652,19 @@ export default function ManualOperatorDashboard() {
                           </div>
                           <div className="flex gap-2">
                             <Button
-                              onClick={() => handleAcceptRequest(request.id)}
-                              disabled={!isOnline}
+                              onClick={() => {
+                                setSelectedRequest(request);
+                                setQuoteModalOpen(true);
+                              }}
                               className={`flex-1 ${
                                 request.isEmergency
                                   ? 'bg-red-600 hover:bg-red-700'
                                   : 'bg-purple-600 hover:bg-purple-700'
-                              } text-white disabled:opacity-50 disabled:cursor-not-allowed`}
-                              data-testid={`button-accept-request-${request.id}`}
-                              title={!isOnline ? "You must be online to accept jobs" : ""}
+                              } text-white`}
+                              data-testid={`button-quote-request-${request.id}`}
                             >
-                              <CheckCircle className="w-4 h-4 mr-2" />
-                              {request.isEmergency ? 'Accept Emergency' : 'Accept Request'}
+                              <DollarSign className="w-4 h-4 mr-2" />
+                              {request.isEmergency ? 'Quote Emergency' : 'Quote this Job'}
                             </Button>
                             <Button
                               onClick={() => handleDeclineRequest(request.id)}
@@ -804,6 +808,18 @@ export default function ManualOperatorDashboard() {
         newTier={tierSwitchInfo?.newTier || ""}
         onConfirm={handleConfirmTierSwitch}
       />
+      
+      {selectedRequest && (
+        <QuoteModal
+          open={quoteModalOpen}
+          onOpenChange={setQuoteModalOpen}
+          serviceRequest={selectedRequest}
+          operatorId={operatorId}
+          operatorName={operatorData?.name || user?.name || ""}
+          tier="manual"
+        />
+      )}
+      
       <MobileBottomNav />
     </div>
   );
