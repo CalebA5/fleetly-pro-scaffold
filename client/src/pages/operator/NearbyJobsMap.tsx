@@ -4,10 +4,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/enhanced-button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Header } from "@/components/Header";
 import { MobileBottomNav } from "@/components/MobileBottomNav";
 import { useAuth } from "@/contexts/AuthContext";
-import { ArrowLeft, MapPin, DollarSign, Clock, AlertTriangle } from "lucide-react";
+import { ArrowLeft, MapPin, DollarSign, Clock, AlertTriangle, Maximize2, Minimize2, List } from "lucide-react";
 import { useLocation } from "wouter";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
@@ -33,6 +34,9 @@ export default function NearbyJobsMap() {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
   const [selectedJob, setSelectedJob] = useState<ServiceRequest | null>(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [showJobSheet, setShowJobSheet] = useState(false);
+  const [viewMode, setViewMode] = useState<'map' | 'list'>('map');
 
   const operatorId = user?.operatorId;
   const currentTier = user?.viewTier || user?.activeTier || "manual";

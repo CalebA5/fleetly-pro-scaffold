@@ -107,7 +107,11 @@ export const ProfileDropdown = ({ onDriveAndEarn }: ProfileDropdownProps) => {
             <Palette className="mr-2 h-4 w-4" />
             <span>Theme {currentSeasonEmoji} {currentModeLabel}</span>
           </DropdownMenuSubTrigger>
-          <DropdownMenuSubContent>
+          <DropdownMenuSubContent 
+            className="w-56"
+            sideOffset={8}
+            alignOffset={-4}
+          >
             <DropdownMenuLabel className="text-xs text-muted-foreground">
               Theme Settings
             </DropdownMenuLabel>
