@@ -432,7 +432,7 @@ export default function EquippedOperatorDashboard() {
             <Button 
               variant="outline" 
               className="w-full mt-4 border-blue-600 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950"
-              onClick={() => {/* Navigate to fleet details */}}
+              onClick={() => setLocation("/operator/fleet-analytics")}
               data-testid="button-view-fleet-analytics"
             >
               View Detailed Fleet Analytics

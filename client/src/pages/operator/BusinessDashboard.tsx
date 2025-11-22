@@ -653,7 +653,7 @@ export const BusinessDashboard = () => {
             <Button 
               variant="outline" 
               className="w-full mt-4 border-purple-600 text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-950"
-              onClick={() => {/* Navigate to full team analytics */}}
+              onClick={() => setLocation("/operator/team-analytics")}
               data-testid="button-view-team-analytics"
             >
               View Full Team Analytics

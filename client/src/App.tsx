@@ -23,6 +23,8 @@ import EarningsDetails from "./pages/operator/EarningsDetails";
 import NearbyJobsMap from "./pages/operator/NearbyJobsMap";
 import JobDetailsPage from "./pages/operator/JobDetailsPage";
 import { JobHistory as OperatorJobHistory } from "./pages/operator/JobHistory";
+import FleetAnalytics from "./pages/operator/FleetAnalytics";
+import TeamAnalytics from "./pages/operator/TeamAnalytics";
 import { DriveEarn } from "./pages/DriveEarn";
 import { HelpSupport } from "./pages/HelpSupport";
 import { UserGuide } from "./pages/UserGuide";
@@ -120,6 +122,16 @@ const App = () => (
               <Route path="/operator/job-history">
                 <ProtectedRoute requireOperator>
                   <OperatorJobHistory />
+                </ProtectedRoute>
+              </Route>
+              <Route path="/operator/fleet-analytics">
+                <ProtectedRoute requireOperator>
+                  <FleetAnalytics />
+                </ProtectedRoute>
+              </Route>
+              <Route path="/operator/team-analytics">
+                <ProtectedRoute requireOperator>
+                  <TeamAnalytics />
                 </ProtectedRoute>
               </Route>
               <Route path="/operator">
