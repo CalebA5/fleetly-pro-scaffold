@@ -20,6 +20,8 @@ import type { Operator, Business } from "@shared/schema";
 import { TierOnlineConfirmDialog } from "@/components/TierOnlineConfirmDialog";
 import { CustomerGrouping, type CustomerGroup } from "@/components/operator/CustomerGrouping";
 import { InfoTooltip } from "@/components/ui/info-tooltip";
+import { OperatorStatusToggle } from "@/components/operator/OperatorStatusToggle";
+import { UrgentRequestNotification, type UrgentRequest } from "@/components/operator/UrgentRequestNotification";
 
 export const BusinessDashboard = () => {
   const { user, updateUser } = useAuth();
@@ -30,6 +32,22 @@ export const BusinessDashboard = () => {
   const [tierSwitchInfo, setTierSwitchInfo] = useState<{ currentTier: string; newTier: string } | null>(null);
   const [acceptedGroupIds, setAcceptedGroupIds] = useState<string[]>([]);
   const setupAttemptedRef = useRef(false);
+  
+  // Mock urgent requests for demonstration
+  const [urgentRequests, setUrgentRequests] = useState<UrgentRequest[]>([
+    {
+      id: "URG-BUS-001",
+      type: "new_job",
+      customerName: "Industrial Park Group",
+      serviceType: "Fleet Services",
+      location: "Industrial Park Zone",
+      distance: 2.1,
+      estimatedValue: "$800-1200",
+      description: "5 businesses need fleet services - high value opportunity",
+      expiresIn: 6,
+      isEmergency: false,
+    },
+  ]);
 
   // Mock customer groups data - in production, comes from backend
   const mockCustomerGroups: CustomerGroup[] = [
@@ -321,6 +339,28 @@ export const BusinessDashboard = () => {
     });
   };
 
+  // Urgent request handlers
+  const handleAcceptUrgent = (requestId: string) => {
+    setUrgentRequests(prev => prev.filter(r => r.id !== requestId));
+    toast({
+      title: "Customer Group Accepted!",
+      description: "Jobs added to your active list!",
+    });
+  };
+
+  const handleDeclineUrgent = (requestId: string) => {
+    setUrgentRequests(prev => prev.filter(r => r.id !== requestId));
+    toast({
+      title: "Request Declined",
+      description: "The jobs have been offered to other operators.",
+      variant: "destructive",
+    });
+  };
+
+  const handleDismissUrgent = (requestId: string) => {
+    setUrgentRequests(prev => prev.filter(r => r.id !== requestId));
+  };
+
   // Show loading state while setting up business or loading data
   if (setupBusinessMutation.isPending || businessLoading || driversLoading) {
     return (
@@ -392,42 +432,43 @@ export const BusinessDashboard = () => {
 
   return (
     <div className="min-h-screen bg-white dark:bg-black">
+      {/* Urgent Request Notifications */}
+      <UrgentRequestNotification
+        requests={urgentRequests}
+        onAccept={handleAcceptUrgent}
+        onDecline={handleDeclineUrgent}
+        onDismiss={handleDismissUrgent}
+      />
+      
       <Header onDriveAndEarn={() => setLocation("/drive-earn")} />
+      
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Operator Status Toggle - Mobile Optimized */}
+        <OperatorStatusToggle
+          isOnline={isOnline}
+          onToggle={(goOnline) => toggleOnlineMutation.mutate({ goOnline })}
+          isPending={toggleOnlineMutation.isPending}
+          activeTier="Professional Business"
+          variant="mobile"
+          className="mb-6"
+        />
+
         {/* Header Section */}
         <div className="mb-8">
-          <div className="flex items-center justify-between flex-wrap gap-4">
-            <div className="flex items-center gap-3">
-              <div style={{ width: 'clamp(2.5rem, 8vw, 3rem)', height: 'clamp(2.5rem, 8vw, 3rem)' }} className="bg-orange-100 dark:bg-orange-900 rounded-full flex items-center justify-center">
-                <Award style={{ width: 'clamp(1.25rem, 4vw, 1.5rem)', height: 'clamp(1.25rem, 4vw, 1.5rem)' }} className="text-orange-600 dark:text-orange-400" />
-              </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <h1 className="text-2xl font-bold text-black dark:text-white">Professional Business Dashboard</h1>
-                  <InfoTooltip 
-                    content="Professional business operators have unlimited operating radius. You can accept jobs from any location and manage multiple drivers to serve a wider area." 
-                    testId="button-info-operating-radius-business"
-                    ariaLabel="Operating radius information for business operators"
-                  />
-                </div>
+          <div className="flex items-center gap-3">
+            <div style={{ width: 'clamp(2.5rem, 8vw, 3rem)', height: 'clamp(2.5rem, 8vw, 3rem)' }} className="bg-orange-100 dark:bg-orange-900 rounded-full flex items-center justify-center">
+              <Award style={{ width: 'clamp(1.25rem, 4vw, 1.5rem)', height: 'clamp(1.25rem, 4vw, 1.5rem)' }} className="text-orange-600 dark:text-orange-400" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h1 className="text-2xl font-bold text-black dark:text-white">Professional Business Dashboard</h1>
+                <InfoTooltip 
+                  content="Professional business operators have unlimited operating radius. You can accept jobs from any location and manage multiple drivers to serve a wider area." 
+                  testId="button-info-operating-radius-business"
+                  ariaLabel="Operating radius information for business operators"
+                />
               </div>
             </div>
-            
-            {/* Online Toggle Button */}
-            <Button
-              variant={isOnline ? "default" : "outline"}
-              size="lg"
-              onClick={() => toggleOnlineMutation.mutate({ goOnline: !isOnline })}
-              disabled={toggleOnlineMutation.isPending}
-              className={`px-8 py-6 rounded-lg font-semibold transition-all ${
-                isOnline 
-                  ? "bg-green-600 hover:bg-green-700 text-white" 
-                  : "border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
-              }`}
-              data-testid="button-toggle-online"
-            >
-              {toggleOnlineMutation.isPending ? "Updating..." : isOnline ? "Online" : "Offline"}
-            </Button>
           </div>
         </div>
 
