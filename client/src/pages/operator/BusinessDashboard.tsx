@@ -3,12 +3,13 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
 import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/enhanced-button";
-import { Card } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Users, DollarSign, Star, TrendingUp, Plus, Trash2, Award, ChevronRight, MapPin } from "lucide-react";
@@ -17,6 +18,7 @@ import { MobileBottomNav } from "@/components/MobileBottomNav";
 import { useLocation } from "wouter";
 import type { Operator, Business } from "@shared/schema";
 import { TierOnlineConfirmDialog } from "@/components/TierOnlineConfirmDialog";
+import { CustomerGrouping, type CustomerGroup } from "@/components/operator/CustomerGrouping";
 
 export const BusinessDashboard = () => {
   const { user, updateUser } = useAuth();
@@ -26,6 +28,38 @@ export const BusinessDashboard = () => {
   const [showTierSwitchDialog, setShowTierSwitchDialog] = useState(false);
   const [tierSwitchInfo, setTierSwitchInfo] = useState<{ currentTier: string; newTier: string } | null>(null);
   const setupAttemptedRef = useRef(false);
+
+  // Mock customer groups data - in production, comes from backend
+  const mockCustomerGroups: CustomerGroup[] = [
+    {
+      id: "CG-BUS-001",
+      location: "Commercial District",
+      customerCount: 5,
+      totalValue: "$450-650",
+      customers: [
+        { name: "Metro Logistics", address: "200 Commerce St", service: "Long Haul Transport" },
+        { name: "City Wide Moving", address: "202 Commerce St", service: "Freight Delivery" },
+        { name: "Express Shipping Co", address: "204 Commerce St", service: "Package Pickup" },
+        { name: "Industrial Supply", address: "206 Commerce St", service: "Equipment Transport" },
+        { name: "Warehouse Direct", address: "208 Commerce St", service: "Bulk Hauling" },
+      ],
+      distance: 5.2,
+      expiresIn: 35,
+    },
+    {
+      id: "CG-BUS-002",
+      location: "Airport Zone",
+      customerCount: 3,
+      totalValue: "$320-480",
+      customers: [
+        { name: "Cargo Air Freight", address: "Airport Terminal 2", service: "Airport Shuttle" },
+        { name: "Overnight Delivery", address: "Airport Access Rd", service: "Express Courier" },
+        { name: "Import/Export Inc", address: "Cargo Way", service: "Customs Transport" },
+      ],
+      distance: 12.8,
+      expiresIn: 45,
+    },
+  ];
 
   // Fetch business data
   const { data: business, isLoading: businessLoading, error: businessError } = useQuery<Business>({
@@ -257,6 +291,16 @@ export const BusinessDashboard = () => {
     }
   };
 
+  const handleAcceptGroup = (groupId: string) => {
+    const group = mockCustomerGroups.find(g => g.id === groupId);
+    if (!group) return;
+    // In production, send bulk accept request to backend
+    toast({
+      title: "Group Accepted",
+      description: `Accepted ${group.customerCount} jobs near ${group.location}`,
+    });
+  };
+
   // Show loading state while setting up business or loading data
   if (setupBusinessMutation.isPending || businessLoading || driversLoading) {
     return (
@@ -438,6 +482,38 @@ export const BusinessDashboard = () => {
               </div>
               <Star className="w-8 h-8 text-orange-500 fill-orange-500" />
             </div>
+          </Card>
+        </div>
+
+        {/* Customer Grouping Section - Mobile-First with Bottom Sheets */}
+        <div className="mb-8">
+          <Card className="border-2 border-orange-200 dark:border-orange-800">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-orange-100 dark:bg-orange-900 rounded-full flex items-center justify-center">
+                    <Users className="w-5 h-5 text-orange-600 dark:text-orange-400" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-black dark:text-white">
+                      Nearby Customer Groups
+                    </CardTitle>
+                    <CardDescription className="text-gray-600 dark:text-gray-400">
+                      Accept multiple customers in the same area for maximum efficiency
+                    </CardDescription>
+                  </div>
+                </div>
+                <Badge className="bg-orange-500 text-white">
+                  BOOST EARNINGS
+                </Badge>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <CustomerGrouping 
+                groups={mockCustomerGroups}
+                onAcceptGroup={handleAcceptGroup}
+              />
+            </CardContent>
           </Card>
         </div>
 
