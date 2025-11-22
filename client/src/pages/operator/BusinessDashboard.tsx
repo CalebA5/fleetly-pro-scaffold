@@ -19,6 +19,7 @@ import { useLocation } from "wouter";
 import type { Operator, Business } from "@shared/schema";
 import { TierOnlineConfirmDialog } from "@/components/TierOnlineConfirmDialog";
 import { CustomerGrouping, type CustomerGroup } from "@/components/operator/CustomerGrouping";
+import { InfoTooltip } from "@/components/ui/info-tooltip";
 
 export const BusinessDashboard = () => {
   const { user, updateUser } = useAuth();
@@ -387,10 +388,14 @@ export const BusinessDashboard = () => {
                 <Award style={{ width: 'clamp(1.25rem, 4vw, 1.5rem)', height: 'clamp(1.25rem, 4vw, 1.5rem)' }} className="text-orange-600 dark:text-orange-400" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-black dark:text-white">Professional Business Dashboard</h1>
-                <p className="text-sm text-gray-600 dark:text-gray-400">
-                  Unlimited Operating Radius
-                </p>
+                <div className="flex items-center gap-2">
+                  <h1 className="text-2xl font-bold text-black dark:text-white">Professional Business Dashboard</h1>
+                  <InfoTooltip 
+                    content="Professional business operators have unlimited operating radius. You can accept jobs from any location and manage multiple drivers to serve a wider area." 
+                    testId="button-info-operating-radius-business"
+                    ariaLabel="Operating radius information for business operators"
+                  />
+                </div>
               </div>
             </div>
             

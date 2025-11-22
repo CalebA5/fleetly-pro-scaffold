@@ -7,9 +7,16 @@ import { Button } from "@/components/ui/button";
 interface InfoTooltipProps {
   content: string;
   side?: "top" | "right" | "bottom" | "left";
+  testId?: string;
+  ariaLabel?: string;
 }
 
-export function InfoTooltip({ content, side = "top" }: InfoTooltipProps) {
+export function InfoTooltip({ 
+  content, 
+  side = "top", 
+  testId = "button-info",
+  ariaLabel = "More information"
+}: InfoTooltipProps) {
   const isMobile = useMediaQuery("(max-width: 768px)");
 
   if (isMobile) {
@@ -21,7 +28,8 @@ export function InfoTooltip({ content, side = "top" }: InfoTooltipProps) {
             variant="ghost"
             size="sm"
             className="h-5 w-5 p-0 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800"
-            data-testid="button-info-tooltip"
+            data-testid={testId}
+            aria-label={ariaLabel}
           >
             <Info className="h-4 w-4 text-gray-500 dark:text-gray-400" />
           </Button>
@@ -40,7 +48,8 @@ export function InfoTooltip({ content, side = "top" }: InfoTooltipProps) {
         <TooltipTrigger asChild>
           <button
             className="inline-flex items-center justify-center h-5 w-5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-            data-testid="button-info-tooltip"
+            data-testid={testId}
+            aria-label={ariaLabel}
           >
             <Info className="h-4 w-4 text-gray-500 dark:text-gray-400" />
           </button>

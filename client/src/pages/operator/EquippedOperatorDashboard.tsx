@@ -16,6 +16,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { Operator } from "@shared/schema";
 import { TierOnlineConfirmDialog } from "@/components/TierOnlineConfirmDialog";
 import { CustomerGrouping, type CustomerGroup } from "@/components/operator/CustomerGrouping";
+import { InfoTooltip } from "@/components/ui/info-tooltip";
 
 interface ServiceRequest {
   id: number;
@@ -192,10 +193,14 @@ export default function EquippedOperatorDashboard() {
                 <Truck style={{ width: 'clamp(1.25rem, 4vw, 1.5rem)', height: 'clamp(1.25rem, 4vw, 1.5rem)' }} className="text-blue-600 dark:text-blue-400" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-black dark:text-white">Skilled & Equipped Dashboard</h1>
-                <p className="text-sm text-gray-600 dark:text-gray-400">
-                  15km Operating Radius
-                </p>
+                <div className="flex items-center gap-2">
+                  <h1 className="text-2xl font-bold text-black dark:text-white">Skilled & Equipped Dashboard</h1>
+                  <InfoTooltip 
+                    content="As an equipped operator with mobile vehicles, you can accept jobs within 15 kilometers from your current location. This provides flexibility while maintaining service quality." 
+                    testId="button-info-operating-radius-equipped"
+                    ariaLabel="Operating radius information for equipped operators"
+                  />
+                </div>
               </div>
             </div>
             
@@ -518,25 +523,6 @@ export default function EquippedOperatorDashboard() {
             )}
           </CardContent>
         </Card>
-
-        {/* Operating Radius Info */}
-        <div className="mt-6">
-          <Card className="bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800">
-            <CardContent className="p-4">
-              <div className="flex items-start gap-3">
-                <AlertCircle className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
-                <div>
-                  <h4 className="font-semibold text-black dark:text-white mb-1">
-                    Operating Radius: 15km
-                  </h4>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
-                    As an equipped operator with mobile vehicles, you can accept jobs within 15 kilometers from your current location. This provides flexibility while maintaining service quality.
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
           </TabsContent>
 
           <TabsContent value="vehicles">

@@ -185,7 +185,11 @@ export default function ManualOperatorDashboard() {
               <div>
                 <div className="flex items-center gap-2">
                   <h1 className="text-2xl font-bold text-black dark:text-white">Manual Operator Dashboard</h1>
-                  <InfoTooltip content="Manual operators can only accept jobs within 5 kilometers of their registered home address. This ensures efficient service delivery and prevents operator clashing in neighborhoods." />
+                  <InfoTooltip 
+                    content="Manual operators can only accept jobs within 5 kilometers of their registered home address. This ensures efficient service delivery and prevents operator clashing in neighborhoods." 
+                    testId="button-info-operating-radius"
+                    ariaLabel="Operating radius information"
+                  />
                 </div>
               </div>
             </div>
@@ -299,7 +303,11 @@ export default function ManualOperatorDashboard() {
                       <CardTitle className="text-black dark:text-white">
                         Nearby Customer Groups
                       </CardTitle>
-                      <InfoTooltip content="Accept multiple customers in the same area for maximum efficiency. Customer groups expire when slots fill or after the time limit." />
+                      <InfoTooltip 
+                        content="Accept multiple customers in the same area for maximum efficiency. Customer groups expire when slots fill or after the time limit." 
+                        testId="button-info-customer-groups"
+                        ariaLabel="Customer grouping information"
+                      />
                     </div>
                   </div>
                 </div>
@@ -321,12 +329,16 @@ export default function ManualOperatorDashboard() {
         {/* Individual Jobs Section */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-black dark:text-white">
-              Individual Jobs Nearby
-            </CardTitle>
-            <CardDescription className="text-gray-600 dark:text-gray-400">
-              Snow plowing requests within 5km of your home
-            </CardDescription>
+            <div className="flex items-center gap-2">
+              <CardTitle className="text-black dark:text-white">
+                Individual Jobs Nearby
+              </CardTitle>
+              <InfoTooltip 
+                content="Snow plowing requests within 5km of your registered home address. These jobs are automatically filtered based on your operating radius." 
+                testId="button-info-individual-jobs"
+                ariaLabel="Individual jobs information"
+              />
+            </div>
           </CardHeader>
           <CardContent>
             {isLoading ? (
@@ -402,25 +414,6 @@ export default function ManualOperatorDashboard() {
             )}
           </CardContent>
         </Card>
-
-        {/* Operating Radius Info */}
-        <div className="mt-6">
-          <Card className="bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800">
-            <CardContent className="p-4">
-              <div className="flex items-start gap-3">
-                <AlertCircle className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
-                <div>
-                  <h4 className="font-semibold text-black dark:text-white mb-1">
-                    Operating Radius: 5km
-                  </h4>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
-                    As a manual operator, you can only accept jobs within 5 kilometers of your registered home address. This ensures efficient service delivery and prevents operator clashing in neighborhoods.
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
       </div>
 
       <TierOnlineConfirmDialog
