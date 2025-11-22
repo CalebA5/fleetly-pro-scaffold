@@ -1,4 +1,4 @@
-import { pgTable, serial, text, timestamp, integer, decimal, jsonb, unique } from "drizzle-orm/pg-core";
+import { pgTable, serial, text, timestamp, integer, decimal, jsonb, unique, index } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -247,6 +247,68 @@ export const insertOperatorPenaltySchema = createInsertSchema(operatorPenalties)
 export type InsertOperatorPenalty = z.infer<typeof insertOperatorPenaltySchema>;
 export type OperatorPenalty = typeof operatorPenalties.$inferSelect;
 
+// Operator Pricing Configuration - tier-specific pricing factors
+export const operatorPricingConfigs = pgTable("operator_pricing_configs", {
+  id: serial("id").primaryKey(),
+  operatorId: text("operator_id").notNull(),
+  tier: text("tier").notNull(), // "manual" | "equipped" | "professional"
+  serviceType: text("service_type").notNull(), // "Snow Plowing" | "Towing" | "Hauling" | "Courier"
+  baseRate: decimal("base_rate", { precision: 10, scale: 2 }).notNull().default('0'), // Base price for service
+  perKmRate: decimal("per_km_rate", { precision: 10, scale: 2 }).notNull().default('0'), // Additional charge per kilometer
+  urgencyMultipliers: jsonb("urgency_multipliers").notNull().default('{}'), // { "emergency": 1.5, "scheduled": 1.0 }
+  minimumFee: decimal("minimum_fee", { precision: 10, scale: 2 }).notNull().default('0'), // Minimum charge regardless of distance
+  autoCalcMeta: jsonb("auto_calc_meta"), // Metadata for auto-calculation logic
+  isActive: integer("is_active").notNull().default(1), // 1 = active, 0 = disabled
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => ({
+  // Unique constraint: one pricing config per operator/tier/service combination
+  uniqueOperatorTierService: unique().on(table.operatorId, table.tier, table.serviceType),
+}));
+
+export const insertOperatorPricingConfigSchema = createInsertSchema(operatorPricingConfigs).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertOperatorPricingConfig = z.infer<typeof insertOperatorPricingConfigSchema>;
+export type OperatorPricingConfig = typeof operatorPricingConfigs.$inferSelect;
+
+// Operator Quotes - quotes submitted by operators for service requests
+export const operatorQuotes = pgTable("operator_quotes", {
+  id: serial("id").primaryKey(),
+  quoteId: text("quote_id").notNull().unique(), // Unique ID like "quote_123456789"
+  serviceRequestId: text("service_request_id").notNull(), // FK to service_requests.requestId
+  operatorId: text("operator_id").notNull(),
+  operatorName: text("operator_name").notNull(),
+  tier: text("tier").notNull(), // Which tier the operator is quoting as
+  amount: decimal("amount", { precision: 10, scale: 2 }).notNull(), // Final quote amount
+  breakdown: jsonb("breakdown"), // { "baseRate": 50, "distanceCost": 20, "urgencyMultiplier": 1.5, "total": 105 }
+  status: text("status").notNull().default("sent"), // "draft" | "sent" | "customer_accepted" | "customer_declined" | "operator_withdrawn" | "expired" | "counter_pending" | "counter_sent"
+  customerResponseNotes: text("customer_response_notes"), // Customer feedback on quote
+  counterAmount: decimal("counter_amount", { precision: 10, scale: 2 }), // If customer counters
+  autoCalcSnapshot: jsonb("auto_calc_snapshot"), // Snapshot of pricing factors used
+  notes: text("notes"), // Operator's notes on the quote
+  expiresAt: timestamp("expires_at"), // Auto-decline after expiry (default 12 hours)
+  submittedAt: timestamp("submitted_at").defaultNow().notNull(),
+  respondedAt: timestamp("responded_at"), // When customer responded
+  history: jsonb("history").default('[]'), // Audit trail: [{ action: "created", timestamp, actor }]
+}, (table) => ({
+  // Index for fast lookups
+  serviceRequestIdx: index("idx_quotes_service_request").on(table.serviceRequestId),
+  operatorIdx: index("idx_quotes_operator").on(table.operatorId),
+  statusIdx: index("idx_quotes_status").on(table.status),
+}));
+
+export const insertOperatorQuoteSchema = createInsertSchema(operatorQuotes).omit({
+  id: true,
+  submittedAt: true,
+});
+
+export type InsertOperatorQuote = z.infer<typeof insertOperatorQuoteSchema>;
+export type OperatorQuote = typeof operatorQuotes.$inferSelect;
+
 export const serviceRequests = pgTable("service_requests", {
   id: serial("id").primaryKey(),
   requestId: text("request_id").notNull().unique(),
@@ -280,6 +342,12 @@ export const serviceRequests = pgTable("service_requests", {
   customerRating: integer("customer_rating"), // 1-5 stars
   customerReview: text("customer_review"),
   customerRatedAt: timestamp("customer_rated_at"),
+  // Quote workflow fields
+  quoteWindowExpiresAt: timestamp("quote_window_expires_at"), // When quote submissions close
+  selectedQuoteId: text("selected_quote_id"), // FK to operatorQuotes.quoteId when customer accepts
+  quoteStatus: text("quote_status").default("open"), // "open" | "decided" | "expired"
+  quoteCount: integer("quote_count").default(0), // Denormalized count for fast filtering
+  lastQuoteAt: timestamp("last_quote_at"), // Last time a quote was submitted
 });
 
 const baseServiceRequestSchema = z.object({
