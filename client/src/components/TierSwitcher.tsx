@@ -50,7 +50,10 @@ export function TierSwitcher() {
   const [selectedTier, setSelectedTier] = useState<"professional" | "equipped" | "manual" | null>(null);
 
   const subscribedTiers = user?.subscribedTiers || [user?.activeTier || "professional"];
-  const activeTier = user?.activeTier || user?.operatorTier || "professional";
+  
+  // viewTier = which dashboard is being viewed (for dropdown button display)
+  // activeTier = which tier is online (for online badge only)
+  const viewTier = user?.viewTier || user?.activeTier || user?.operatorTier || "professional";
   
   // Fetch operator data to get which tier is actually online
   const { data: operatorData } = useQuery<Operator>({
@@ -90,7 +93,7 @@ export function TierSwitcher() {
       });
     },
     onSuccess: async (_, newTier) => {
-      updateUser({ activeTier: newTier });
+      updateUser({ viewTier: newTier });
       
       // Invalidate operator query so Online badge updates immediately
       queryClient.invalidateQueries({ queryKey: [`/api/operators/by-id/${user?.operatorId}`] });
@@ -103,6 +106,7 @@ export function TierSwitcher() {
           const userData = await response.json();
           updateUser({
             activeTier: userData.activeTier,
+            viewTier: userData.viewTier,
             businessId: userData.businessId,
             subscribedTiers: userData.subscribedTiers,
           });
@@ -147,7 +151,7 @@ export function TierSwitcher() {
       const newSubscribedTiers = [...subscribedTiers, variables.tier] as ("professional" | "equipped" | "manual")[];
       updateUser({ 
         subscribedTiers: newSubscribedTiers,
-        activeTier: variables.tier as "professional" | "equipped" | "manual"
+        viewTier: variables.tier as "professional" | "equipped" | "manual"
       });
       
       // Invalidate operator query so Online badge updates immediately
@@ -161,6 +165,7 @@ export function TierSwitcher() {
           const userData = await response.json();
           updateUser({
             activeTier: userData.activeTier,
+            viewTier: userData.viewTier,
             businessId: userData.businessId,
             subscribedTiers: userData.subscribedTiers,
           });
@@ -221,11 +226,11 @@ export function TierSwitcher() {
             className="flex items-center gap-2"
             data-testid="button-tier-switcher"
           >
-            <span className={TIER_INFO[activeTier as keyof typeof TIER_INFO].color}>
-              {TIER_INFO[activeTier as keyof typeof TIER_INFO].badge}
+            <span className={TIER_INFO[viewTier as keyof typeof TIER_INFO].color}>
+              {TIER_INFO[viewTier as keyof typeof TIER_INFO].badge}
             </span>
             <span className="hidden md:inline">
-              {TIER_INFO[activeTier as keyof typeof TIER_INFO].label}
+              {TIER_INFO[viewTier as keyof typeof TIER_INFO].label}
             </span>
             <ChevronDown className="w-4 h-4" />
           </Button>

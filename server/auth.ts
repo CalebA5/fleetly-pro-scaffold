@@ -105,6 +105,7 @@ router.post('/signup', async (req, res) => {
         operatorTier: 'manual',
         subscribedTiers: ['manual'],
         activeTier: 'manual',
+        viewTier: 'manual',
         isCertified: 0,
         businessLicense: null,
         homeLatitude: null,

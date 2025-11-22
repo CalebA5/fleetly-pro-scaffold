@@ -34,7 +34,7 @@ type OperatorWithStats = Operator & {
 };
 
 export const DriveEarn = () => {
-  const { user, isAuthenticated, isLoading: isAuthLoading } = useAuth();
+  const { user, isAuthenticated, isLoading: isAuthLoading, updateUser } = useAuth();
   const [, setLocation] = useLocation();
   const [showAuthDialog, setShowAuthDialog] = useState(false);
 
@@ -285,7 +285,10 @@ export const DriveEarn = () => {
                     <Button
                       variant={isActive ? "hero" : "outline"}
                       className="w-full"
-                      onClick={() => setLocation(getTierDashboardPath(tier))}
+                      onClick={() => {
+                        updateUser({ viewTier: tier as "professional" | "equipped" | "manual" });
+                        setLocation(getTierDashboardPath(tier));
+                      }}
                       data-testid={`button-dashboard-${tier}`}
                     >
                       <TierIcon className="w-4 h-4 mr-2" />
