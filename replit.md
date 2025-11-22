@@ -1,124 +1,39 @@
 # Fleetly - On-Demand Trucks & Snow Services Platform
 
 ## Overview
-Fleetly is a professional on-demand service platform connecting customers with verified operators for trucking, snow plowing, towing, hauling, and courier services. It operates as a two-sided marketplace with distinct dashboards for customers and operators, focusing on real-time booking, job tracking, and professional service delivery. The platform aims to provide a seamless, efficient booking experience, inspired by Uber's clean and modern interface. It supports a multi-driver business management system, a three-tier operator system with proximity-based job filtering, and an emergency SOS mode for urgent no-login assistance, catering to both individual customers and businesses.
+Fleetly is a professional on-demand service platform connecting customers with verified operators for trucking, snow plowing, towing, hauling, and courier services. It functions as a two-sided marketplace with distinct dashboards for customers and operators, focusing on real-time booking, job tracking, and professional service delivery. The platform aims to provide a seamless, efficient booking experience, supporting a multi-driver business management system, a three-tier operator system with proximity-based job filtering, and an emergency SOS mode for urgent no-login assistance.
 
 ## User Preferences
 Preferred communication style: Simple, everyday language.
 
-## Recent Changes
-
-### November 22, 2025 - Final Bug Fixes: Autocomplete Scrolling, Weather Alert Persistence, UX Polish
-- **Address Autocomplete Scroll Fix**: Resolved dropdown closing when scrolling inside suggestions
-  - Dropdown now distinguishes between scrolling INSIDE the dropdown vs scrolling outside
-  - Event handler checks `event.target` to only close when scrolling outside the dropdown
-  - Users can now scroll through long suggestion lists without dropdown closing
-  - Implemented using simple absolute positioning instead of Popover for better stability
-- **Weather Alert Persistence System**: Implemented localStorage tracking with 24-hour TTL to prevent duplicate alerts
-  - Alerts tracked in localStorage with timestamp and auto-expire after 24 hours
-  - Fixed race condition by batching localStorage writes (collect all new IDs, write once)
-  - seenAlerts refreshed from localStorage before processing to apply TTL cleanup
-  - Toast notifications show only once per 24 hours per unique alert
-  - Location-filtered alerts shown to users in their city/state area
-- **First-Time Customer UX**: Removed intrusive location prompts, made onboarding smoother
-  - Removed automatic location detection on homepage mount
-  - Removed LocationPermissionPrompt component entirely (too intrusive)
-  - Added manual "Use my current location" button with toast feedback
-  - Homepage is now clean, value-focused, and less demanding
-  - Users opt-in to location sharing instead of being prompted automatically
-
-### November 22, 2025 - Help Pages Created, Address Autocomplete Redesigned, Location Prompts Enhanced
-- **Help Pages Created**: Added four comprehensive help pages with working navigation
-  - **User Guide** (/user-guide): Step-by-step customer instructions covering service booking, payments, ratings, and communication
-  - **Operator Guide** (/operator-guide): Getting started guide for operators with tier system explanation and business growth tips
-  - **Community Forum** (/community-forum): Discussion hub with active topics, member stats, and popular threads
-  - **Blog & Updates** (/blog): News feed with product updates, success stories, tips, and safety information
-  - All pages follow consistent black/white theme with orange accents
-  - Links from Help page now properly route to all new pages
-- **Address Autocomplete Redesigned**: Enhanced user interface with modern styling
-  - Added orange accent border on focus states (ring-2 ring-orange-500)
-  - Improved dropdown with shadow-lg, better spacing, and rounded corners
-  - Higher z-index (z-50) prevents overlap with location permission prompts
-  - Orange-colored icons and hover states (hover:bg-orange-50)
-  - Smooth transitions and better visual feedback
-- **Location Permission on Alerts Page**: Added location prompt to Weather Alerts page
-  - Displays when user hasn't granted location permission
-  - Explains dual purpose: accurate weather alerts AND better operator matching
-  - One-click "Allow Location" button triggers browser permission dialog
-  - Orange-themed card with MapPinOff icon for visual consistency
-- **Technical Fix**: Resolved import conflict in Notifications page
-  - Changed from incorrect `useLocation` import to proper `useUserLocation` hook
-  - Fixed "Importing binding name 'useLocation' is not found" error
-  - App now loads correctly without console errors
-
-### November 21, 2025 - Tier Persistence Fixed, Routing & Location UX Improvements
-- **Drive & Earn Detection**: Fixed issue where registered operators weren't detected because session wasn't updated after onboarding
-  - Added `/api/operators/by-user/:email` endpoint to fetch operator profiles by email
-  - Updated Header component to fetch operator data from backend instead of relying on stale session
-  - Now correctly routes to appropriate dashboard based on active tier (professional → /business, equipped → /equipped-operator, manual → /manual-operator)
-- **View Profile Page**: Fixed 404 error by restructuring routing architecture
-  - Moved all customer routes from CustomerDashboard wrapper directly to App.tsx
-  - Eliminated nested routing complexity that was preventing route matching
-  - Added proper type guards for `equipmentInventory` and `services` arrays in OperatorProfile
-  - Route `/customer/operator-profile/:operatorId` now works correctly, displaying operator profiles with ratings, services, equipment, and contact information
-- **Address Autocomplete**: Implemented real-time address search with dropdown suggestions on homepage
-  - Created reusable `AutocompleteLocation` component with shadcn Command + Popover
-  - Real geocoding data from OpenStreetMap Nominatim API shows up to 5 suggestions
-  - Debounced search (300ms) with proper abort handling to prevent stale results
-  - Shows city/state metadata for each suggestion
-  - Automatically geocodes and stores selected location coordinates
-  - Works seamlessly with "See Available Operators" and "Browse Operators" buttons
-  - Mobile-friendly dropdown with keyboard navigation
-- **Location Pinning on Map**: Enhanced OperatorMap to show user location marker reliably across all navigation paths
-  - OperatorMap now falls back to LocationContext when URL parameters are absent
-  - Blue user location marker (24px circle with white border) appears whether user arrives via homepage search or direct navigation
-  - Marker popup displays address from either URL params or persisted LocationContext
-  - Ensures consistent user experience regardless of how users reach the map page
-- **Routing Fix**: Restored Switch wrapper in App.tsx to prevent multiple route rendering
-  - Fixed issue where Drive & Earn page wasn't loading (showed homepage instead)
-  - All routes now properly match first occurrence and render correctly
-  - Added 404 NotFound component as catch-all route
-- **Location Permission Prompt**: Changed from localStorage to sessionStorage for prompt dismissal
-  - Location prompt now shows in new browser tabs/windows even if dismissed in another tab
-  - Prompt still respects browser permission states (granted/denied/unavailable)
-  - Improves first-time user experience when opening app in new contexts
-- **Tier Persistence Fixed**: Session and signin endpoints now properly fetch latest tier data from database
-  - When users register for a new tier (e.g., "Canada"), the data is persisted in the database
-  - Page refresh, sign-out, and sign-in all restore registered tiers correctly
-  - `/api/auth/session` and `/api/auth/signin` endpoints fetch operator data with current `subscribedTiers` and `activeTier`
-  - Tier information now persists reliably across browser sessions
-- **Mobile Location Auto-Sync**: Pickup field now automatically fills when location permission is granted
-  - LocationContext changes are watched and synced to the pickup input field
-  - Mobile experience now matches desktop version for location auto-detection
-
 ## System Architecture
 
 ### Frontend Architecture
-The frontend is built with React 18, TypeScript, and Vite, using Wouter for routing. UI components are built with Radix UI primitives and shadcn/ui, styled with Tailwind CSS, following an Uber-inspired black-and-white theme with orange accents. State management uses TanStack Query for server state and React Hook Form with Zod for form validation. It features distinct customer and operator dashboards, an AI-powered service assistant, enhanced service request creation, a unified landing page, and dynamic authentication for multiple user roles. Mobile-first optimizations, including a fixed bottom navigation and responsive design, are implemented.
+The frontend is built with React 18, TypeScript, and Vite, using Wouter for routing. UI components are built with Radix UI primitives and shadcn/ui, styled with Tailwind CSS. State management uses TanStack Query for server state and React Hook Form with Zod for form validation. It features distinct customer and operator dashboards, an AI-powered service assistant, enhanced service request creation, a unified landing page, and dynamic authentication for multiple user roles. Mobile-first optimizations, including a fixed bottom navigation and responsive design, are implemented.
 
 ### Backend Architecture
 The backend is an Express.js server utilizing a PostgreSQL database with Drizzle ORM for data persistence. Zod is used for schema validation. API endpoints are RESTful under the `/api` prefix, with centralized error handling.
 
 ### Data Model
-The service request schema includes normalized fields like `serviceType`, `isEmergency`, `description`, and `location`, with a JSONB `details` field for service-specific payloads. `operatorId` and `operatorName` are nullable. Operator profiles store `operatorTier`, `isCertified`, `businessLicense`, `homeLatitude`, `homeLongitude`, and `operatingRadius`. Emergency system tables include `emergencyRequests` for SOS requests and `dispatchQueue` for operator notification management.
+The service request schema includes normalized fields like `serviceType`, `isEmergency`, `description`, and `location`, with a JSONB `details` field for service-specific payloads. Operator profiles store `operatorTier`, `isCertified`, `businessLicense`, `homeLatitude`, `homeLongitude`, and `operatingRadius`. Emergency system tables include `emergencyRequests` for SOS requests and `dispatchQueue` for operator notification management.
 
 ### UI/UX Decisions
 The design is inspired by Uber's clean, modern aesthetic, emphasizing simplicity with a black-and-white color scheme and orange accents for CTAs. It features minimal design, bold typography, custom "enhanced-button" components, gradients for premium UI elements, and supports dark mode. An intelligent adaptive theming system switches between 4 seasonal color palettes (Winter, Spring, Summer, Autumn) and time-of-day awareness for light/dark mode, with user override options and localStorage persistence.
 
 ### Feature Specifications
 - **Multi-Driver Business Management System**: Enables businesses to manage drivers, track performance, and assign services.
-- **Three-Tier Operator System**: Includes Professional, Skilled & Equipped, and Manual Operators with tier-specific onboarding, dashboards, and proximity-based job filtering. Operators can switch between multiple subscribed tiers. Consolidated operator profiles eliminate duplicate records and unify multi-tier operator data.
+- **Three-Tier Operator System**: Includes Professional, Skilled & Equipped, and Manual Operators with tier-specific onboarding, dashboards, and proximity-based job filtering. Operators can switch between multiple subscribed tiers.
 - **AI Assist Feature**: Recommends services and operators based on job descriptions, providing estimated pricing and confidence scores.
-- **Enhanced Service Request Creation**: Dynamic forms adapt to service type, supporting emergency/scheduled toggles, time selection, and photo uploads. Features an icon-based service type selector, 4-level urgency selector, and "Schedule for Later" toggle.
+- **Enhanced Service Request Creation**: Dynamic forms adapt to service type, supporting emergency/scheduled toggles, time selection, and photo uploads.
 - **Operator Dashboard**: Displays comprehensive service request details, with options to accept, decline, or view details.
-- **Unified Landing Page**: Customer-focused homepage with interactive service discovery, real-time availability previews, and location inputs. Auto-location detection using browser geolocation and reverse geocoding populates pickup fields.
+- **Unified Landing Page**: Customer-focused homepage with interactive service discovery, real-time availability previews, and location inputs.
 - **Dynamic Authentication System**: Unified user accounts support customer, operator, or both roles, with multi-step operator onboarding including public tier selection.
-- **Unified Map Implementation**: Uses Mapbox GL JS for performance, service filters, map/satellite toggle, and interactive operator selection, displaying color-coded tier badges and pricing multipliers. Includes location-aware operator filtering and map centering.
-- **Customer Features**: Includes a "Favorite Drivers" system, a post-service rating system, and an optimized customer profile page with a personalized dashboard and editable contact/location details.
-- **Real-Time Tracking**: Interactive map with live operator location updates and animated markers, and real-time tracking for emergency requests.
+- **Unified Map Implementation**: Uses Mapbox GL JS for performance, service filters, map/satellite toggle, and interactive operator selection, displaying color-coded tier badges and pricing multipliers.
+- **Customer Features**: Includes a "Favorite Drivers" system, a post-service rating system, and an optimized customer profile page.
+- **Real-Time Tracking**: Interactive map with live operator location updates and real-time tracking for emergency requests.
 - **Multi-Vehicle Management System**: Allows professional operators to manage unlimited vehicles and equipped operators to manage multiple vehicles.
-- **Proactive Weather Alert System**: Integrates with the National Weather Service API for real-time severe weather alerts, displayed via a header notification button, dedicated notifications page, and dismissible toast popups.
-- **Emergency SOS Mode**: A no-login emergency assistance system with a prominent homepage button, three-tile service selection, contact form, auto-location detection, and proximity-based operator notification using a first-accept-wins dispatch queue.
+- **Proactive Weather Alert System**: Integrates with the National Weather Service API for real-time severe weather alerts.
+- **Emergency SOS Mode**: A no-login emergency assistance system with a prominent homepage button, three-tile service selection, contact form, auto-location detection, and proximity-based operator notification.
 
 ## External Dependencies
 
