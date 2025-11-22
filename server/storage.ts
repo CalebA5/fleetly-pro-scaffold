@@ -12,10 +12,12 @@ import type {
   User, InsertUser,
   Session, InsertSession,
   OperatorTierStats, InsertOperatorTierStats,
-  AcceptedJob, InsertAcceptedJob
+  AcceptedJob, InsertAcceptedJob,
+  OperatorPricingConfig, InsertOperatorPricingConfig,
+  OperatorQuote, InsertOperatorQuote
 } from "@shared/schema";
 import { db } from "./db";
-import { operatorDailyEarnings, operatorMonthlyEarnings, operatorPenalties, acceptedJobs } from "@shared/schema";
+import { operatorDailyEarnings, operatorMonthlyEarnings, operatorPenalties, acceptedJobs, operatorPricingConfigs, operatorQuotes, serviceRequests } from "@shared/schema";
 import { eq, and } from "drizzle-orm";
 
 export interface IStorage {
@@ -117,6 +119,20 @@ export interface IStorage {
   getTodayEarnings(operatorId: string, tier: string): Promise<{ earnings: number; jobsCompleted: number }>;
   getMonthEarnings(operatorId: string, tier: string): Promise<{ earnings: number; jobsCompleted: number }>;
   createPenalty(operatorId: string, tier: string, acceptedJobId: string, amount: number, reason: string, progress: number): Promise<void>;
+
+  // Pricing Configuration
+  getOperatorPricingConfigs(operatorId: string, tier?: string): Promise<OperatorPricingConfig[]>;
+  getPricingConfig(operatorId: string, tier: string, serviceType: string): Promise<OperatorPricingConfig | undefined>;
+  createPricingConfig(config: InsertOperatorPricingConfig): Promise<OperatorPricingConfig>;
+  updatePricingConfig(operatorId: string, tier: string, serviceType: string, updates: Partial<InsertOperatorPricingConfig>): Promise<OperatorPricingConfig | undefined>;
+  
+  // Quote Management
+  createQuote(quote: InsertOperatorQuote): Promise<OperatorQuote>;
+  getQuote(quoteId: string): Promise<OperatorQuote | undefined>;
+  getQuotesByRequest(serviceRequestId: string): Promise<OperatorQuote[]>;
+  getQuotesByOperator(operatorId: string): Promise<OperatorQuote[]>;
+  updateQuote(quoteId: string, updates: Partial<InsertOperatorQuote>): Promise<OperatorQuote | undefined>;
+  getOperatorQuoteForRequest(operatorId: string, serviceRequestId: string): Promise<OperatorQuote | undefined>;
 }
 
 export class MemStorage implements IStorage {
@@ -941,5 +957,102 @@ export class MemStorage implements IStorage {
   async updateTierRating(operatorId: string, tier: string, newRating: number): Promise<void> {
     // This method is a no-op for in-memory storage
     // In database implementation, this would update operatorTierStats table
+  }
+
+  // Pricing Configuration methods
+  private pricingConfigs: OperatorPricingConfig[] = [];
+
+  async getOperatorPricingConfigs(operatorId: string, tier?: string): Promise<OperatorPricingConfig[]> {
+    return this.pricingConfigs.filter(
+      (config) => config.operatorId === operatorId && (!tier || config.tier === tier)
+    );
+  }
+
+  async getPricingConfig(operatorId: string, tier: string, serviceType: string): Promise<OperatorPricingConfig | undefined> {
+    return this.pricingConfigs.find(
+      (config) => 
+        config.operatorId === operatorId && 
+        config.tier === tier && 
+        config.serviceType === serviceType
+    );
+  }
+
+  async createPricingConfig(config: InsertOperatorPricingConfig): Promise<OperatorPricingConfig> {
+    const newConfig: OperatorPricingConfig = {
+      id: this.pricingConfigs.length + 1,
+      ...config,
+      isActive: config.isActive ?? 1,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    } as OperatorPricingConfig;
+    this.pricingConfigs.push(newConfig);
+    return newConfig;
+  }
+
+  async updatePricingConfig(
+    operatorId: string, 
+    tier: string, 
+    serviceType: string, 
+    updates: Partial<InsertOperatorPricingConfig>
+  ): Promise<OperatorPricingConfig | undefined> {
+    const index = this.pricingConfigs.findIndex(
+      (config) => 
+        config.operatorId === operatorId && 
+        config.tier === tier && 
+        config.serviceType === serviceType
+    );
+    
+    if (index === -1) return undefined;
+    
+    this.pricingConfigs[index] = {
+      ...this.pricingConfigs[index],
+      ...updates,
+      updatedAt: new Date()
+    } as OperatorPricingConfig;
+    
+    return this.pricingConfigs[index];
+  }
+
+  // Quote Management methods
+  private quotes: OperatorQuote[] = [];
+
+  async createQuote(quote: InsertOperatorQuote): Promise<OperatorQuote> {
+    const newQuote: OperatorQuote = {
+      id: this.quotes.length + 1,
+      ...quote,
+      submittedAt: new Date()
+    } as OperatorQuote;
+    this.quotes.push(newQuote);
+    return newQuote;
+  }
+
+  async getQuote(quoteId: string): Promise<OperatorQuote | undefined> {
+    return this.quotes.find((q) => q.quoteId === quoteId);
+  }
+
+  async getQuotesByRequest(serviceRequestId: string): Promise<OperatorQuote[]> {
+    return this.quotes.filter((q) => q.serviceRequestId === serviceRequestId);
+  }
+
+  async getQuotesByOperator(operatorId: string): Promise<OperatorQuote[]> {
+    return this.quotes.filter((q) => q.operatorId === operatorId);
+  }
+
+  async updateQuote(quoteId: string, updates: Partial<InsertOperatorQuote>): Promise<OperatorQuote | undefined> {
+    const index = this.quotes.findIndex((q) => q.quoteId === quoteId);
+    if (index === -1) return undefined;
+    
+    this.quotes[index] = {
+      ...this.quotes[index],
+      ...updates
+    } as OperatorQuote;
+    
+    return this.quotes[index];
+  }
+
+  async getOperatorQuoteForRequest(operatorId: string, serviceRequestId: string): Promise<OperatorQuote | undefined> {
+    return this.quotes.find(
+      (q) => q.operatorId === operatorId && q.serviceRequestId === serviceRequestId
+    );
   }
 }
