@@ -150,7 +150,7 @@ router.post('/signup', async (req, res) => {
         photo: null,
         operatorTier: 'manual',
         subscribedTiers: ['manual'],
-        activeTier: 'manual',
+        activeTier: null, // Null by default - only set when operator goes online
         viewTier: 'manual',
         isCertified: 0,
         businessLicense: null,

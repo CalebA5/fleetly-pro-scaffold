@@ -241,7 +241,8 @@ export function TierSwitcher() {
           
           {(["professional", "equipped", "manual"] as const).map((tier) => {
             const isSubscribed = subscribedTiers.includes(tier);
-            const isOnline = tier === onlineTier; // Only show "Active" on the tier that is online
+            const isOnline = tier === onlineTier; // Only show "Online" badge on the tier that is online
+            const isCurrentView = tier === viewTier; // Check mark shows which dashboard is currently being viewed
             
             return (
               <DropdownMenuItem
@@ -265,8 +266,8 @@ export function TierSwitcher() {
                   )}
                 </div>
                 <div className="flex items-center gap-1">
-                  {isSubscribed && (
-                    <Check className="w-4 h-4 text-green-600" data-testid={`icon-subscribed-${tier}`} />
+                  {isCurrentView && isSubscribed && (
+                    <Check className="w-4 h-4 text-blue-600" data-testid={`icon-current-view-${tier}`} />
                   )}
                   {isOnline && (
                     <span className="text-xs px-2 py-0.5 bg-green-600 text-white rounded font-semibold">
