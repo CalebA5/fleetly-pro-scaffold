@@ -764,6 +764,33 @@ export function registerRoutes(storage: IStorage) {
     if (!result.success) {
       return res.status(400).json({ errors: result.error.issues });
     }
+    
+    // SELF-EXCLUSION: Prevent customers from requesting services from themselves
+    const customerId = result.data.customerId;
+    const targetOperatorId = result.data.operatorId; // Field used in service requests
+    
+    if (customerId && targetOperatorId) {
+      // Get the customer record to find their userId
+      const customer = await db.query.customers.findFirst({
+        where: eq(customers.customerId, customerId)
+      });
+      
+      if (customer) {
+        // Get the user record to check if they're also an operator
+        const user = await db.query.users.findFirst({
+          where: eq(users.userId, customer.userId)
+        });
+        
+        // Block if customer's operatorId matches the target operatorId
+        if (user?.operatorId && user.operatorId === targetOperatorId) {
+          return res.status(400).json({ 
+            error: "Self-service not allowed",
+            message: "You cannot request a service from yourself. Please select a different operator."
+          });
+        }
+      }
+    }
+    
     const request = await storage.createServiceRequest(result.data);
     res.status(201).json(request);
   });
