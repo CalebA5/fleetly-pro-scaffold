@@ -9,6 +9,7 @@ export interface User {
   operatorTier?: "professional" | "equipped" | "manual";
   subscribedTiers?: ("professional" | "equipped" | "manual")[];
   activeTier?: "professional" | "equipped" | "manual";
+  viewTier?: "professional" | "equipped" | "manual";
   operatorId?: string;
   businessId?: string;
 }
@@ -49,6 +50,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             operatorTier: userData.operatorTier,
             subscribedTiers: userData.subscribedTiers,
             activeTier: userData.activeTier,
+            viewTier: userData.viewTier,
             operatorId: userData.operatorId,
             businessId: userData.businessId,
           });
@@ -87,6 +89,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         operatorTier: userData.operatorTier,
         subscribedTiers: userData.subscribedTiers,
         activeTier: userData.activeTier,
+        viewTier: userData.viewTier,
         operatorId: userData.operatorId,
         businessId: userData.businessId,
       });
@@ -120,6 +123,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         operatorTier: userData.operatorTier,
         subscribedTiers: userData.subscribedTiers,
         activeTier: userData.activeTier,
+        viewTier: userData.viewTier,
         operatorId: userData.operatorId,
         businessId: userData.businessId,
       });
@@ -178,6 +182,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           operatorTier: userData.operatorTier,
           subscribedTiers: userData.subscribedTiers,
           activeTier: userData.activeTier,
+          viewTier: userData.viewTier,
           operatorId: userData.operatorId,
           businessId: userData.businessId,
         });

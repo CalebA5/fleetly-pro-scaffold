@@ -1244,9 +1244,9 @@ export function registerRoutes(storage: IStorage) {
         .set({ viewTier: newTier })
         .where(eq(operators.operatorId, operatorId));
       
-      // Update session for frontend routing
+      // Update session viewTier for immediate frontend routing update (without refetch)
       if ((req as any).session?.user) {
-        (req as any).session.user.activeTier = newTier;
+        (req as any).session.user.viewTier = newTier;
       }
       
       res.json({ message: "Tier switched successfully" });
@@ -1311,7 +1311,7 @@ export function registerRoutes(storage: IStorage) {
       
       // Update session for frontend routing
       if ((req as any).session?.user) {
-        (req as any).session.user.activeTier = tier;
+        (req as any).session.user.viewTier = tier;
         (req as any).session.user.subscribedTiers = updatedTiers;
       }
       
@@ -1395,21 +1395,29 @@ export function registerRoutes(storage: IStorage) {
       // CRITICAL: Enforce mutual exclusivity - only one tier can be online at a time
       // When going online for a tier, ensure we're offline for all other tiers
       // When going offline, set everything to offline
+      // Also update viewTier to match the tier being activated (UX: show dashboard for online tier)
       
       const updates = {
         isOnline,
-        activeTier: isOnline === 1 ? activeTier : null
+        activeTier: isOnline === 1 ? activeTier : null,
+        viewTier: isOnline === 1 ? activeTier : operator.viewTier // Set viewTier when going online, preserve when going offline
       };
       
-      // Update online status and active tier atomically
+      // Update online status, active tier, and view tier atomically
       await db.update(operators)
         .set(updates)
         .where(eq(operators.operatorId, operatorId));
       
+      // Update session viewTier for immediate frontend routing update
+      if ((req as any).session?.user && isOnline === 1) {
+        (req as any).session.user.viewTier = activeTier;
+      }
+      
       res.json({ 
         message: isOnline === 1 ? `You are now online as ${activeTier}` : "You are now offline",
         isOnline,
-        activeTier: isOnline === 1 ? activeTier : null
+        activeTier: isOnline === 1 ? activeTier : null,
+        viewTier: isOnline === 1 ? activeTier : operator.viewTier
       });
     } catch (error) {
       console.error("Error toggling online status:", error);

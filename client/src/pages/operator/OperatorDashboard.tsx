@@ -19,12 +19,14 @@ const OperatorHomeRouter = () => {
     }
   }, [user, setLocation]);
 
-  // Route to appropriate dashboard based on active tier
-  const activeTier = user?.activeTier || user?.operatorTier || "professional";
+  // Route to appropriate dashboard based on viewing tier (not online tier)
+  // viewTier = which dashboard to show (persists across reloads)
+  // activeTier = which tier is online (for online badge only)
+  const viewTier = user?.viewTier || user?.activeTier || user?.operatorTier || "professional";
   
-  if (activeTier === "manual") {
+  if (viewTier === "manual") {
     return <ManualOperatorDashboard />;
-  } else if (activeTier === "equipped") {
+  } else if (viewTier === "equipped") {
     return <EquippedOperatorDashboard />;
   } else {
     // Default to professional (OperatorHome)

@@ -160,6 +160,8 @@ router.post('/signup', async (req, res) => {
       operatorTier: operatorData?.operatorTier,
       subscribedTiers: operatorData?.subscribedTiers,
       activeTier: operatorData?.activeTier,
+      viewTier: operatorData?.viewTier,
+      operatorTierProfiles: operatorData?.operatorTierProfiles,
     });
   } catch (error) {
     console.error('Signup error:', error);
@@ -255,6 +257,7 @@ router.post('/signin', async (req, res) => {
       operatorTier: operatorData?.operatorTier,
       subscribedTiers: operatorData?.subscribedTiers,
       activeTier: operatorData?.activeTier,
+      viewTier: operatorData?.viewTier,
       operatorTierProfiles: operatorData?.operatorTierProfiles,
     });
   } catch (error) {
@@ -340,6 +343,7 @@ router.get('/session', async (req, res) => {
       operatorTier: operatorData?.operatorTier,
       subscribedTiers: operatorData?.subscribedTiers,
       activeTier: operatorData?.activeTier,
+      viewTier: operatorData?.viewTier,
       operatorTierProfiles: operatorData?.operatorTierProfiles,
     });
   } catch (error) {
