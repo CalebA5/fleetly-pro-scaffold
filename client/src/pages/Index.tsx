@@ -12,6 +12,7 @@ import { AutocompleteLocation } from "@/components/AutocompleteLocation";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserLocation } from "@/contexts/LocationContext";
 import { MapPin, ArrowRight, Truck, Clock, Shield, Star, Search, Loader2 } from "lucide-react";
+import heroBackground from "@assets/generated_images/hero_illustration_for_fleetly_platform.png";
 import { useToast } from "@/hooks/use-toast";
 import type { GeocodingResult } from "@/lib/geocoding";
 
@@ -249,8 +250,17 @@ const Index = () => {
       </section>
 
       {/* Hero Section with Location Search */}
-      <section className="relative bg-white dark:bg-gray-900 py-12 md:py-20 overflow-hidden border-b border-gray-200 dark:border-gray-800 w-full">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
+      <section className="relative bg-gradient-to-br from-slate-50 via-blue-50 to-orange-50 dark:from-gray-900 dark:via-blue-950 dark:to-orange-950 py-12 md:py-20 overflow-hidden border-b border-gray-200 dark:border-gray-800 w-full">
+        {/* AI-Generated Background Image */}
+        <div className="absolute inset-0 opacity-10 dark:opacity-5">
+          <img 
+            src={heroBackground} 
+            alt="Fleetly transportation services" 
+            className="w-full h-full object-cover object-center"
+          />
+          <div className="absolute inset-0 bg-gradient-to-br from-white/60 via-blue-50/40 to-orange-50/40 dark:from-black/70 dark:via-blue-950/50 dark:to-orange-950/50"></div>
+        </div>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full relative z-10">
           {/* Heading - Above the grid */}
           <div className="mb-8 lg:mb-12">
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-black dark:text-white leading-tight mb-4">
@@ -264,8 +274,8 @@ const Index = () => {
           {/* Two-column grid - Location search and Services aligned */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-start">
             <div className="space-y-4">
-              {/* Interactive Location Search - Uber Style */}
-              <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700">
+              {/* Interactive Location Search - Uber Style with Glassmorphism */}
+              <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl p-6 rounded-2xl shadow-2xl border border-gray-200/50 dark:border-gray-700/50">
                 <div className="space-y-3">
                   <div className="flex items-center gap-3">
                     <div className="w-3 h-3 rounded-full bg-black dark:bg-white flex-shrink-0"></div>

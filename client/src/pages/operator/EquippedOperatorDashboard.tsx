@@ -386,6 +386,61 @@ export default function EquippedOperatorDashboard() {
           </Card>
         </div>
 
+        {/* EQUIPPED-SPECIFIC: Fleet Performance Overview */}
+        <Card className="mb-8 bg-gradient-to-r from-slate-50 to-blue-50 dark:from-slate-900 dark:to-blue-950 border-2 border-blue-200 dark:border-blue-800">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center">
+                  <Truck className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                </div>
+                <div>
+                  <CardTitle className="text-black dark:text-white">Fleet Performance</CardTitle>
+                  <CardDescription>Monitor your vehicle utilization and earnings</CardDescription>
+                </div>
+              </div>
+              <Badge className="bg-blue-600 text-white">15KM RADIUS</Badge>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Active Vehicles */}
+              <div className="bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm p-4 rounded-lg border border-blue-200/50 dark:border-blue-700/50">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm text-gray-600 dark:text-gray-400">Active Vehicles</span>
+                  <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+                </div>
+                <p className="text-2xl font-bold text-black dark:text-white">2 of 3</p>
+                <p className="text-xs text-green-600 dark:text-green-400 mt-1">67% utilization</p>
+              </div>
+
+              {/* Top Earning Vehicle */}
+              <div className="bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm p-4 rounded-lg border border-blue-200/50 dark:border-blue-700/50">
+                <span className="text-sm text-gray-600 dark:text-gray-400 mb-2 block">Top Earner Today</span>
+                <p className="text-xl font-bold text-black dark:text-white">Truck #2</p>
+                <p className="text-sm text-blue-600 dark:text-blue-400 mt-1 font-semibold">$180 earned</p>
+              </div>
+
+              {/* Maintenance Due */}
+              <div className="bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm p-4 rounded-lg border border-orange-200/50 dark:border-orange-700/50">
+                <span className="text-sm text-gray-600 dark:text-gray-400 mb-2 block">Maintenance Alert</span>
+                <p className="text-xl font-bold text-orange-600 dark:text-orange-400">Truck #1</p>
+                <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">Oil change in 200km</p>
+              </div>
+            </div>
+            
+            <Button 
+              variant="outline" 
+              className="w-full mt-4 border-blue-600 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950"
+              onClick={() => {/* Navigate to fleet details */}}
+              data-testid="button-view-fleet-analytics"
+            >
+              View Detailed Fleet Analytics
+              <ChevronRight className="w-4 h-4 ml-2" />
+            </Button>
+          </CardContent>
+        </Card>
+
         {/* Responsive Grid: Customer Groups + Urgent Requests */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
           {/* Customer Grouping Section */}

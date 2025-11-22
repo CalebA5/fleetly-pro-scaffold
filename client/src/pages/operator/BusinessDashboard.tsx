@@ -573,6 +573,95 @@ export const BusinessDashboard = () => {
           </Card>
         </div>
 
+        {/* PROFESSIONAL-SPECIFIC: Driver Performance Leaderboard */}
+        <Card className="mb-8 bg-gradient-to-r from-slate-50 to-purple-50 dark:from-slate-900 dark:to-purple-950 border-2 border-purple-200 dark:border-purple-800">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-purple-100 dark:bg-purple-900 rounded-full flex items-center justify-center">
+                  <Award className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                </div>
+                <div>
+                  <CardTitle className="text-black dark:text-white">Team Performance</CardTitle>
+                  <CardDescription>Your top-performing drivers this week</CardDescription>
+                </div>
+              </div>
+              <Badge className="bg-purple-600 text-white">UNLIMITED RADIUS</Badge>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {/* Top Driver */}
+              <div className="bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-950 dark:to-orange-950 p-4 rounded-lg border-2 border-yellow-400 dark:border-yellow-600">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-yellow-400 rounded-full flex items-center justify-center text-black font-bold text-lg">
+                      1
+                    </div>
+                    <div>
+                      <p className="font-bold text-black dark:text-white">Sarah Martinez</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">12 jobs • $1,240 earned</p>
+                    </div>
+                  </div>
+                  <Star className="w-6 h-6 text-yellow-500 fill-yellow-500" />
+                </div>
+              </div>
+
+              {/* 2nd & 3rd Place */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm p-4 rounded-lg border border-gray-200 dark:border-gray-700">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 bg-gray-300 dark:bg-gray-600 rounded-full flex items-center justify-center text-black dark:text-white font-bold">
+                      2
+                    </div>
+                    <div>
+                      <p className="font-semibold text-black dark:text-white">James Wilson</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">9 jobs • $890</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm p-4 rounded-lg border border-gray-200 dark:border-gray-700">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 bg-orange-300 dark:bg-orange-700 rounded-full flex items-center justify-center text-black dark:text-white font-bold">
+                      3
+                    </div>
+                    <div>
+                      <p className="font-semibold text-black dark:text-white">Mike Chen</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">8 jobs • $760</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Team Stats */}
+              <div className="grid grid-cols-3 gap-2 mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                <div className="text-center">
+                  <p className="text-sm text-gray-600 dark:text-gray-400">Avg Rating</p>
+                  <p className="text-lg font-bold text-black dark:text-white">4.8⭐</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-sm text-gray-600 dark:text-gray-400">Team Efficiency</p>
+                  <p className="text-lg font-bold text-green-600 dark:text-green-400">92%</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-sm text-gray-600 dark:text-gray-400">Active Drivers</p>
+                  <p className="text-lg font-bold text-black dark:text-white">3/5</p>
+                </div>
+              </div>
+            </div>
+            
+            <Button 
+              variant="outline" 
+              className="w-full mt-4 border-purple-600 text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-950"
+              onClick={() => {/* Navigate to full team analytics */}}
+              data-testid="button-view-team-analytics"
+            >
+              View Full Team Analytics
+              <ChevronRight className="w-4 h-4 ml-2" />
+            </Button>
+          </CardContent>
+        </Card>
+
         {/* Responsive Grid: Customer Groups + Urgent Requests */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
           {/* Customer Grouping Section */}
