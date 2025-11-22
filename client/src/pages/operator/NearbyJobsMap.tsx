@@ -158,104 +158,201 @@ export default function NearbyJobsMap() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col pb-20 md:pb-0">
-      <Header />
+    <div className={`${isFullscreen ? 'fixed inset-0 z-50' : 'min-h-screen'} bg-gray-50 dark:bg-gray-900 flex flex-col ${!isFullscreen ? 'pb-20 md:pb-0' : ''}`}>
+      {!isFullscreen && <Header />}
       
-      <div className="container mx-auto px-4 py-6 flex-1 max-w-7xl">
-        {/* Back Button */}
-        <Button
-          variant="ghost"
-          onClick={() => window.history.back()}
-          className="mb-6"
-          data-testid="button-back"
-        >
-          <ArrowLeft className="w-4 h-4 mr-2" />
-          Back to Dashboard
-        </Button>
+      {/* Floating Controls - Always Visible on Mobile */}
+      {!isFullscreen && (
+        <div className="md:hidden absolute top-20 left-4 right-4 z-20 flex items-center justify-between gap-2">
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => window.history.back()}
+            className="bg-white/95 dark:bg-gray-900/95 backdrop-blur shadow-lg"
+            data-testid="button-back"
+          >
+            <ArrowLeft style={{ width: 'clamp(0.875rem, 3vw, 1rem)', height: 'clamp(0.875rem, 3vw, 1rem)' }} className="mr-1" />
+            Back
+          </Button>
+          
+          <div className="flex gap-2">
+            {/* View Mode Toggle - Mobile Only */}
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => {
+                const newMode = viewMode === 'map' ? 'list' : 'map';
+                setViewMode(newMode);
+                if (newMode === 'map') {
+                  setTimeout(() => map.current?.resize(), 100);
+                }
+              }}
+              className="bg-white/95 dark:bg-gray-900/95 backdrop-blur shadow-lg"
+              data-testid="button-toggle-view"
+            >
+              {viewMode === 'map' ? (
+                <><List style={{ width: 'clamp(0.875rem, 3vw, 1rem)', height: 'clamp(0.875rem, 3vw, 1rem)' }} className="mr-1" /> List</>
+              ) : (
+                <><MapPin style={{ width: 'clamp(0.875rem, 3vw, 1rem)', height: 'clamp(0.875rem, 3vw, 1rem)' }} className="mr-1" /> Map</>
+              )}
+            </Button>
+            
+            {/* Fullscreen Toggle - Map view only */}
+            {viewMode === 'map' && (
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => {
+                  setIsFullscreen(!isFullscreen);
+                  setTimeout(() => map.current?.resize(), 100);
+                }}
+                className="bg-white/95 dark:bg-gray-900/95 backdrop-blur shadow-lg"
+                data-testid="button-fullscreen"
+              >
+                <Maximize2 style={{ width: 'clamp(0.875rem, 3vw, 1rem)', height: 'clamp(0.875rem, 3vw, 1rem)' }} />
+              </Button>
+            )}
+          </div>
+        </div>
+      )}
 
-        {/* Header */}
-        <div className="mb-6">
-          <h1 className="text-2xl md:text-3xl font-bold text-black dark:text-white mb-2">
-            Nearby Job Requests
-          </h1>
-          <p className="text-muted-foreground">
-            {getTierLabel(currentTier)} - {nearbyJobs.length} jobs available
-          </p>
+      {/* Mobile: Map-First Layout | Desktop: Side-by-side */}
+      <div className="flex-1 flex flex-col md:flex-row relative">
+        {/* MOBILE: Full-screen map with floating controls */}
+        <div className={`${isFullscreen ? 'w-full h-full' : viewMode === 'list' ? 'hidden md:block md:w-2/3 md:h-[calc(100vh-80px)]' : 'w-full md:w-2/3 h-[calc(100vh-200px)] md:h-[calc(100vh-80px)]'} relative`}>
+          {/* Desktop Back Button + Fullscreen Controls */}
+          {!isFullscreen && (
+            <div className="hidden md:flex absolute top-4 left-4 right-4 z-10 items-center justify-between gap-2">
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => window.history.back()}
+                className="bg-white/95 dark:bg-gray-900/95 backdrop-blur shadow-lg"
+                data-testid="button-back-desktop"
+              >
+                <ArrowLeft style={{ width: 'clamp(0.875rem, 3vw, 1rem)', height: 'clamp(0.875rem, 3vw, 1rem)' }} className="mr-1" />
+                Back
+              </Button>
+              
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => {
+                  setIsFullscreen(true);
+                  setTimeout(() => map.current?.resize(), 100);
+                }}
+                className="bg-white/95 dark:bg-gray-900/95 backdrop-blur shadow-lg"
+                data-testid="button-fullscreen-desktop"
+              >
+                <Maximize2 style={{ width: 'clamp(0.875rem, 3vw, 1rem)', height: 'clamp(0.875rem, 3vw, 1rem)' }} />
+              </Button>
+            </div>
+          )}
+
+          {/* Fullscreen Exit Button */}
+          {isFullscreen && (
+            <div className="absolute top-4 left-4 z-10">
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => {
+                  setIsFullscreen(false);
+                  setTimeout(() => map.current?.resize(), 100);
+                }}
+                className="bg-white/95 dark:bg-gray-900/95 backdrop-blur shadow-lg"
+                data-testid="button-exit-fullscreen"
+              >
+                <Minimize2 style={{ width: 'clamp(0.875rem, 3vw, 1rem)', height: 'clamp(0.875rem, 3vw, 1rem)' }} className="mr-1" />
+                Exit
+              </Button>
+            </div>
+          )}
+
+          {/* Map Legend - Bottom Left */}
+          {!isFullscreen && (
+            <div className="absolute bottom-4 left-4 z-10 bg-white/95 dark:bg-gray-900/95 backdrop-blur rounded-lg p-2 shadow-lg">
+              <div className="flex flex-col gap-1.5 text-xs">
+                <div className="flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-orange-500"></span>
+                  <span className="text-gray-700 dark:text-gray-300">You</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+                  <span className="text-gray-700 dark:text-gray-300">Jobs</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-red-600"></span>
+                  <span className="text-gray-700 dark:text-gray-300">SOS</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Map Container */}
+          <div 
+            ref={mapContainer} 
+            className="w-full h-full"
+            data-testid="map-container"
+          />
+
+          {/* Mobile: Floating Job Count Badge (Map view only) */}
+          {viewMode === 'map' && (
+            <Button
+              onClick={() => setShowJobSheet(true)}
+              className="md:hidden absolute bottom-4 right-4 bg-orange-500 hover:bg-orange-600 text-white shadow-lg rounded-full h-14 px-6"
+              data-testid="button-show-jobs"
+            >
+              <MapPin style={{ width: 'clamp(1rem, 4vw, 1.25rem)', height: 'clamp(1rem, 4vw, 1.25rem)' }} className="mr-2" />
+              <span className="font-semibold">{nearbyJobs.length} Jobs</span>
+            </Button>
+          )}
         </div>
 
-        {/* Map and Jobs Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Map */}
-          <Card className="lg:col-span-2">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <MapPin className="w-5 h-5" />
-                Job Locations
-              </CardTitle>
-              <CardDescription>
-                <span className="flex items-center gap-4 flex-wrap mt-2">
-                  <span className="flex items-center gap-2">
-                    <span className="w-3 h-3 rounded-full bg-orange-500"></span>
-                    Your Location
-                  </span>
-                  <span className="flex items-center gap-2">
-                    <span className="w-3 h-3 rounded-full bg-blue-500"></span>
-                    Regular Jobs
-                  </span>
-                  <span className="flex items-center gap-2">
-                    <span className="w-3 h-3 rounded-full bg-red-600"></span>
-                    Emergency Jobs
-                  </span>
-                </span>
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div 
-                ref={mapContainer} 
-                className="w-full h-[400px] md:h-[600px] rounded-lg overflow-hidden"
-                data-testid="map-container"
-              />
-            </CardContent>
-          </Card>
-
-          {/* Jobs List */}
-          <div className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Available Jobs</CardTitle>
-                <CardDescription>
-                  {getTierServices(currentTier).join(", ")}
-                </CardDescription>
-              </CardHeader>
-            </Card>
-
-            {nearbyJobs.length === 0 ? (
-              <Card>
-                <CardContent className="py-12 text-center">
+        {/* MOBILE: List View (when toggled) */}
+        {viewMode === 'list' && (
+          <div className="md:hidden w-full h-[calc(100vh-200px)] bg-white dark:bg-gray-900 overflow-y-auto">
+            <div className="p-4 sticky top-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 z-10">
+              <h2 className="text-xl font-bold text-black dark:text-white mb-1">
+                Available Jobs
+              </h2>
+              <p className="text-sm text-muted-foreground">
+                {getTierLabel(currentTier)} • {nearbyJobs.length} nearby
+              </p>
+            </div>
+            
+            <div className="p-4 space-y-3">
+              {nearbyJobs.length === 0 ? (
+                <div className="py-12 text-center">
                   <MapPin className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
                   <p className="text-muted-foreground mb-2">No jobs available</p>
                   <p className="text-sm text-muted-foreground">
                     Check back later for new opportunities
                   </p>
-                </CardContent>
-              </Card>
-            ) : (
-              <div className="space-y-3 max-h-[600px] overflow-y-auto pr-2">
-                {nearbyJobs.map((job) => (
+                </div>
+              ) : (
+                nearbyJobs.map((job) => (
                   <Card 
                     key={job.id}
-                    className={`cursor-pointer transition-all hover:shadow-md ${
-                      selectedJob?.id === job.id ? "ring-2 ring-orange-500" : ""
-                    }`}
-                    onClick={() => setSelectedJob(job)}
-                    data-testid={`card-job-${job.id}`}
+                    className="cursor-pointer transition-all active:scale-98"
+                    onClick={() => {
+                      setSelectedJob(job);
+                      setViewMode('map');
+                      // Resize map after switching from list mode
+                      setTimeout(() => {
+                        map.current?.resize();
+                        if (job.latitude && job.longitude && map.current) {
+                          map.current.flyTo({ center: [job.longitude, job.latitude], zoom: 15 });
+                        }
+                      }, 100);
+                    }}
+                    data-testid={`card-job-list-${job.id}`}
                   >
                     <CardHeader className="pb-3">
                       <div className="flex items-start justify-between gap-2">
                         <CardTitle className="text-base">{job.serviceType}</CardTitle>
                         {job.isEmergency === 1 && (
                           <Badge variant="destructive" className="flex items-center gap-1">
-                            <AlertTriangle className="w-3 h-3" />
+                            <AlertTriangle style={{ width: 'clamp(0.75rem, 2.5vw, 0.875rem)', height: 'clamp(0.75rem, 2.5vw, 0.875rem)' }} />
                             Emergency
                           </Badge>
                         )}
@@ -266,17 +363,17 @@ export default function NearbyJobsMap() {
                     </CardHeader>
                     <CardContent className="space-y-2">
                       <div className="flex items-start gap-2 text-sm">
-                        <MapPin className="w-4 h-4 mt-0.5 text-muted-foreground flex-shrink-0" />
+                        <MapPin style={{ width: 'clamp(0.875rem, 3vw, 1rem)', height: 'clamp(0.875rem, 3vw, 1rem)' }} className="mt-0.5 text-muted-foreground flex-shrink-0" />
                         <span className="text-muted-foreground line-clamp-2">{job.location}</span>
                       </div>
                       <div className="flex items-center justify-between text-sm">
                         <span className="flex items-center gap-1 text-green-600 dark:text-green-400 font-semibold">
-                          <DollarSign className="w-4 h-4" />
+                          <DollarSign style={{ width: 'clamp(0.875rem, 3vw, 1rem)', height: 'clamp(0.875rem, 3vw, 1rem)' }} />
                           {job.budgetRange}
                         </span>
                         {job.distance && (
                           <span className="flex items-center gap-1 text-muted-foreground">
-                            <Clock className="w-4 h-4" />
+                            <Clock style={{ width: 'clamp(0.875rem, 3vw, 1rem)', height: 'clamp(0.875rem, 3vw, 1rem)' }} />
                             {job.distance.toFixed(1)} km
                           </span>
                         )}
@@ -288,14 +385,161 @@ export default function NearbyJobsMap() {
                       )}
                     </CardContent>
                   </Card>
-                ))}
+                ))
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* DESKTOP: Side Panel | MOBILE: Bottom Sheet */}
+        <div className="hidden md:block md:w-1/3 bg-white dark:bg-gray-900 border-l border-gray-200 dark:border-gray-800 overflow-y-auto">
+          <div className="p-4 sticky top-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 z-10">
+            <h2 className="text-xl font-bold text-black dark:text-white mb-1">
+              Available Jobs
+            </h2>
+            <p className="text-sm text-muted-foreground">
+              {getTierLabel(currentTier)} • {nearbyJobs.length} nearby
+            </p>
+          </div>
+          
+          <div className="p-4 space-y-3">
+            {nearbyJobs.length === 0 ? (
+              <div className="py-12 text-center">
+                <MapPin className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+                <p className="text-muted-foreground mb-2">No jobs available</p>
+                <p className="text-sm text-muted-foreground">
+                  Check back later for new opportunities
+                </p>
               </div>
+            ) : (
+              nearbyJobs.map((job) => (
+                <Card 
+                  key={job.id}
+                  className={`cursor-pointer transition-all hover:shadow-md ${
+                    selectedJob?.id === job.id ? "ring-2 ring-orange-500" : ""
+                  }`}
+                  onClick={() => {
+                    setSelectedJob(job);
+                    if (job.latitude && job.longitude && map.current) {
+                      map.current.flyTo({ center: [job.longitude, job.latitude], zoom: 14 });
+                    }
+                  }}
+                  data-testid={`card-job-${job.id}`}
+                >
+                  <CardHeader className="pb-2">
+                    <div className="flex items-start justify-between gap-2">
+                      <CardTitle className="text-sm">{job.serviceType}</CardTitle>
+                      {job.isEmergency === 1 && (
+                        <Badge variant="destructive" className="text-xs px-1.5 py-0">
+                          <AlertTriangle style={{ width: 'clamp(0.625rem, 2vw, 0.75rem)', height: 'clamp(0.625rem, 2vw, 0.75rem)' }} className="mr-0.5" />
+                          SOS
+                        </Badge>
+                      )}
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-2 text-xs">
+                    <div className="flex items-start gap-1.5">
+                      <MapPin style={{ width: 'clamp(0.75rem, 2.5vw, 0.875rem)', height: 'clamp(0.75rem, 2.5vw, 0.875rem)' }} className="mt-0.5 text-muted-foreground flex-shrink-0" />
+                      <span className="text-muted-foreground line-clamp-2">{job.location}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="flex items-center gap-1 text-green-600 dark:text-green-400 font-semibold">
+                        <DollarSign style={{ width: 'clamp(0.75rem, 2.5vw, 0.875rem)', height: 'clamp(0.75rem, 2.5vw, 0.875rem)' }} />
+                        {job.budgetRange}
+                      </span>
+                      {job.distance && (
+                        <span className="flex items-center gap-1 text-muted-foreground">
+                          {job.distance.toFixed(1)} km
+                        </span>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
             )}
           </div>
         </div>
+
+        {/* MOBILE: Bottom Sheet for Jobs */}
+        <Sheet open={showJobSheet} onOpenChange={setShowJobSheet}>
+          <SheetContent side="bottom" className="h-[85vh] p-0">
+            <div className="h-full flex flex-col">
+              <SheetHeader className="p-4 border-b border-gray-200 dark:border-gray-800">
+                <div className="w-12 h-1 bg-gray-300 dark:bg-gray-700 rounded-full mx-auto mb-3"></div>
+                <SheetTitle>{nearbyJobs.length} Jobs Nearby</SheetTitle>
+                <SheetDescription>{getTierLabel(currentTier)}</SheetDescription>
+              </SheetHeader>
+              
+              <div className="flex-1 overflow-y-auto p-4 space-y-3">
+                {nearbyJobs.length === 0 ? (
+                  <div className="py-12 text-center">
+                    <MapPin className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+                    <p className="text-muted-foreground mb-2">No jobs available</p>
+                    <p className="text-sm text-muted-foreground">
+                      Check back later for new opportunities
+                    </p>
+                  </div>
+                ) : (
+                  nearbyJobs.map((job) => (
+                    <Card 
+                      key={job.id}
+                      className="cursor-pointer transition-all active:scale-98"
+                      onClick={() => {
+                        setSelectedJob(job);
+                        setShowJobSheet(false);
+                        if (job.latitude && job.longitude && map.current) {
+                          map.current.flyTo({ center: [job.longitude, job.latitude], zoom: 15 });
+                        }
+                      }}
+                      data-testid={`card-job-mobile-${job.id}`}
+                    >
+                      <CardHeader className="pb-3">
+                        <div className="flex items-start justify-between gap-2">
+                          <CardTitle className="text-base">{job.serviceType}</CardTitle>
+                          {job.isEmergency === 1 && (
+                            <Badge variant="destructive" className="flex items-center gap-1">
+                              <AlertTriangle style={{ width: 'clamp(0.75rem, 2.5vw, 0.875rem)', height: 'clamp(0.75rem, 2.5vw, 0.875rem)' }} />
+                              Emergency
+                            </Badge>
+                          )}
+                        </div>
+                        <CardDescription className="text-xs">
+                          {job.requestId}
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent className="space-y-2">
+                        <div className="flex items-start gap-2 text-sm">
+                          <MapPin style={{ width: 'clamp(0.875rem, 3vw, 1rem)', height: 'clamp(0.875rem, 3vw, 1rem)' }} className="mt-0.5 text-muted-foreground flex-shrink-0" />
+                          <span className="text-muted-foreground line-clamp-2">{job.location}</span>
+                        </div>
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="flex items-center gap-1 text-green-600 dark:text-green-400 font-semibold">
+                            <DollarSign style={{ width: 'clamp(0.875rem, 3vw, 1rem)', height: 'clamp(0.875rem, 3vw, 1rem)' }} />
+                            {job.budgetRange}
+                          </span>
+                          {job.distance && (
+                            <span className="flex items-center gap-1 text-muted-foreground">
+                              <Clock style={{ width: 'clamp(0.875rem, 3vw, 1rem)', height: 'clamp(0.875rem, 3vw, 1rem)' }} />
+                              {job.distance.toFixed(1)} km
+                            </span>
+                          )}
+                        </div>
+                        {job.description && (
+                          <p className="text-xs text-muted-foreground line-clamp-2 mt-2">
+                            {job.description}
+                          </p>
+                        )}
+                      </CardContent>
+                    </Card>
+                  ))
+                )}
+              </div>
+            </div>
+          </SheetContent>
+        </Sheet>
       </div>
 
-      <MobileBottomNav />
+      {!isFullscreen && <MobileBottomNav />}
     </div>
   );
 }
