@@ -54,6 +54,17 @@ export const OperatorOnboarding = () => {
   const [currentStep, setCurrentStep] = useState(0); // 0 = tier selection
   const [showAuthDialog, setShowAuthDialog] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Read tier from URL parameter and auto-select it
+  React.useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const tierParam = params.get('tier') as OperatorTier | null;
+    
+    if (tierParam && ['professional', 'equipped', 'manual'].includes(tierParam)) {
+      setSelectedTier(tierParam);
+      setCurrentStep(1); // Skip tier selection, go straight to form
+    }
+  }, []);
   
   // Fetch operator data if user has operatorId
   // Type for operator with tier stats
@@ -291,6 +302,9 @@ export const OperatorOnboarding = () => {
           operatorProfileComplete: true,
           operatorTier: selectedTier 
         });
+        
+        // Invalidate operator queries to ensure fresh data
+        queryClient.invalidateQueries({ queryKey: [`/api/operators/by-id/${operator.operatorId}`] });
         
         toast({
           title: "Profile Complete!",
