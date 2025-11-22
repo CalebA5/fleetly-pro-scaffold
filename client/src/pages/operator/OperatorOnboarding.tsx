@@ -215,14 +215,8 @@ export const OperatorOnboarding = () => {
           throw new Error(errorData.message || "Failed to add tier");
         }
 
-        // Refetch user from server first to get authoritative state
+        // Refetch user from server to get authoritative state with all tier data
         await refetchUser();
-        
-        // Then update local state if needed
-        updateUser({ 
-          activeTier: selectedTier,
-          operatorTier: selectedTier 
-        });
         
         // Invalidate operator query to refetch with updated tiers
         queryClient.invalidateQueries({ queryKey: [`/api/operators/by-id/${user.operatorId}`] });
@@ -259,11 +253,12 @@ export const OperatorOnboarding = () => {
           latitude: "0",
           longitude: "0",
           address: formData.address || formData.homeAddress || "",
-          isOnline: 1,
+          isOnline: 0, // FIXED: Operators start offline by default - must manually go online
           availability: "available",
           operatorTier: selectedTier || "professional",
           subscribedTiers: [selectedTier || "professional"],
-          activeTier: selectedTier || "professional",
+          activeTier: null, // FIXED: Null until operator goes online
+          viewTier: selectedTier || "professional",
           isCertified: selectedTier === "professional" ? 1 : 0,
           businessLicense: formData.licenseNumber || null,
           businessName: formData.businessName || null,
