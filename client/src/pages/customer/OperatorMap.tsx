@@ -307,7 +307,7 @@ export const OperatorMap = () => {
   // State for favorites filter
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
 
-  // Filter operators by selected service AND favorites
+  // Filter operators by selected service AND favorites AND self-exclusion
   const operators = allOperators?.filter(op => {
     // Filter by service if selected
     const matchesService = !selectedService || op.services?.includes(selectedService);
@@ -315,7 +315,10 @@ export const OperatorMap = () => {
     // Filter by favorites if enabled
     const matchesFavorites = !showFavoritesOnly || isFavorite(op.operatorId);
     
-    return matchesService && matchesFavorites;
+    // Self-exclusion: if user is also an operator, hide their own profile
+    const isNotSelf = !user?.operatorId || op.operatorId !== user.operatorId;
+    
+    return matchesService && matchesFavorites && isNotSelf;
   });
 
   // Get map style URL based on selection
