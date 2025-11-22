@@ -1,115 +1,125 @@
-import { useState } from "react";
-import { Switch } from "@/components/ui/switch";
-import { Badge } from "@/components/ui/badge";
-import { useToast } from "@/hooks/use-toast";
-import { useMediaQuery } from "@/hooks/useMediaQuery";
-import { InfoTooltip } from "@/components/ui/info-tooltip";
+import { Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface OperatorStatusToggleProps {
   isOnline: boolean;
   onToggle: (goOnline: boolean) => void;
   isPending?: boolean;
-  activeTier?: string;
-  variant?: "mobile" | "desktop" | "compact";
+  size?: "sm" | "md" | "lg";
+  variant?: "mobile" | "compact" | "inline";
+  label?: string;
   className?: string;
 }
 
+// Core pill-shaped toggle switch component
+function PillToggle({
+  isOnline,
+  onToggle,
+  isPending,
+  size = "md",
+  className,
+}: Omit<OperatorStatusToggleProps, "variant" | "label">) {
+  const sizeClasses = {
+    sm: {
+      track: "w-12 h-6",
+      knob: "w-5 h-5",
+      translate: "translate-x-6",
+    },
+    md: {
+      track: "w-16 h-8",
+      knob: "w-7 h-7",
+      translate: "translate-x-8",
+    },
+    lg: {
+      track: "w-20 h-10",
+      knob: "w-9 h-9",
+      translate: "translate-x-10",
+    },
+  };
+
+  const sizes = sizeClasses[size];
+
+  return (
+    <button
+      onClick={() => !isPending && onToggle(!isOnline)}
+      disabled={isPending}
+      className={cn(
+        "relative inline-flex items-center rounded-full transition-all duration-300 ease-in-out",
+        "focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500",
+        sizes.track,
+        isOnline
+          ? "bg-emerald-500 hover:bg-emerald-600"
+          : "bg-gray-300 dark:bg-gray-600 hover:bg-gray-400 dark:hover:bg-gray-500",
+        isPending && "opacity-50 cursor-not-allowed",
+        className
+      )}
+      data-testid="button-toggle-online"
+      aria-label={isOnline ? "Go offline" : "Go online"}
+      aria-checked={isOnline}
+      role="switch"
+    >
+      <span
+        className={cn(
+          "inline-block transform rounded-full bg-white shadow-lg transition-transform duration-300 ease-in-out",
+          "flex items-center justify-center",
+          sizes.knob,
+          isOnline ? sizes.translate : "translate-x-0.5"
+        )}
+      >
+        {isPending && <Loader2 className="w-3 h-3 text-gray-600 animate-spin" />}
+      </span>
+    </button>
+  );
+}
+
+// Main component with variants
 export function OperatorStatusToggle({
   isOnline,
   onToggle,
   isPending = false,
-  activeTier = "",
-  variant = "desktop",
+  size = "md",
+  variant = "inline",
+  label,
   className,
 }: OperatorStatusToggleProps) {
-  const { toast } = useToast();
-  const isMobile = useMediaQuery("(max-width: 768px)");
-
-  const handleToggle = (checked: boolean) => {
-    onToggle(checked);
-  };
-
-  // Mobile variant: Large touch-friendly toggle, sticky positioned
-  if (variant === "mobile" || (isMobile && variant !== "compact")) {
+  // Mobile variant: Sticky full-width bar for always-visible access
+  if (variant === "mobile") {
     return (
       <div
         className={cn(
-          "bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 shadow-lg",
-          "sticky top-0 z-40 px-4 py-3",
+          "sticky top-0 z-40 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 shadow-md",
+          "px-4 py-3",
           className
         )}
         data-testid="container-status-toggle-mobile"
       >
         <div className="flex items-center justify-between max-w-7xl mx-auto">
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2">
-              <div
-                className={cn(
-                  "w-3 h-3 rounded-full animate-pulse",
-                  isOnline
-                    ? "bg-green-500 dark:bg-green-400"
-                    : "bg-gray-400 dark:bg-gray-600"
-                )}
-              />
-              <span className="font-semibold text-base text-black dark:text-white">
-                {isOnline ? "Online" : "Offline"}
-              </span>
-            </div>
-            <InfoTooltip
-              content={
-                isOnline
-                  ? "You're online and receiving job requests. Toggle off to stop receiving new jobs."
-                  : "You're offline. Toggle on to start receiving job requests and earning."
-              }
-              testId="button-info-status-toggle"
-              ariaLabel="Online status information"
-            />
+          <div>
+            {label && <h2 className="text-base font-semibold text-black dark:text-white mb-0.5">{label}</h2>}
+            <p className="text-xs text-gray-600 dark:text-gray-400">
+              {isOnline ? "You're receiving job requests" : "Toggle to start receiving jobs"}
+            </p>
           </div>
-
-          <div className="flex items-center gap-3">
-            {activeTier && (
-              <Badge
-                variant="outline"
-                className="hidden sm:inline-flex text-xs border-orange-500 text-orange-600 dark:text-orange-400"
-              >
-                {activeTier}
-              </Badge>
-            )}
-            <Switch
-              checked={isOnline}
-              onCheckedChange={handleToggle}
-              disabled={isPending}
-              className="data-[state=checked]:bg-green-500 scale-125"
-              data-testid="switch-online-status"
-            />
-          </div>
+          <PillToggle
+            isOnline={isOnline}
+            onToggle={onToggle}
+            isPending={isPending}
+            size="lg"
+          />
         </div>
       </div>
     );
   }
 
-  // Compact variant: Minimal inline toggle
+  // Compact variant: Minimal inline for tight spaces
   if (variant === "compact") {
     return (
-      <div
-        className={cn("flex items-center gap-2", className)}
-        data-testid="container-status-toggle-compact"
-      >
-        <div
-          className={cn(
-            "w-2 h-2 rounded-full",
-            isOnline
-              ? "bg-green-500 dark:bg-green-400 animate-pulse"
-              : "bg-gray-400 dark:bg-gray-600"
-          )}
-        />
-        <Switch
-          checked={isOnline}
-          onCheckedChange={handleToggle}
-          disabled={isPending}
-          className="data-[state=checked]:bg-green-500"
-          data-testid="switch-online-status"
+      <div className={cn("flex items-center gap-2", className)} data-testid="container-status-toggle-compact">
+        <PillToggle
+          isOnline={isOnline}
+          onToggle={onToggle}
+          isPending={isPending}
+          size="sm"
         />
         <span className="text-sm font-medium text-black dark:text-white">
           {isOnline ? "Online" : "Offline"}
@@ -118,53 +128,22 @@ export function OperatorStatusToggle({
     );
   }
 
-  // Desktop variant: Full-featured with badge and info
+  // Inline variant: Simple toggle with optional label
   return (
-    <div
-      className={cn(
-        "flex items-center gap-4 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg px-4 py-3 shadow-sm",
-        className
+    <div className={cn("flex items-center gap-3", className)} data-testid="container-status-toggle-inline">
+      {label && (
+        <div>
+          <h3 className="text-base font-semibold text-black dark:text-white">{label}</h3>
+          <p className="text-xs text-gray-600 dark:text-gray-400">
+            {isOnline ? "You're receiving job requests" : "Toggle to start receiving jobs"}
+          </p>
+        </div>
       )}
-      data-testid="container-status-toggle-desktop"
-    >
-      <div className="flex items-center gap-2">
-        <div
-          className={cn(
-            "w-3 h-3 rounded-full",
-            isOnline
-              ? "bg-green-500 dark:bg-green-400 animate-pulse"
-              : "bg-gray-400 dark:bg-gray-600"
-          )}
-        />
-        <span className="font-semibold text-black dark:text-white">
-          {isOnline ? "Online" : "Offline"}
-        </span>
-        <InfoTooltip
-          content={
-            isOnline
-              ? "You're online and receiving job requests. Toggle off to stop receiving new jobs."
-              : "You're offline. Toggle on to start receiving job requests and earning."
-          }
-          testId="button-info-status-toggle"
-          ariaLabel="Online status information"
-        />
-      </div>
-
-      {activeTier && (
-        <Badge
-          variant="outline"
-          className="border-orange-500 text-orange-600 dark:text-orange-400"
-        >
-          {activeTier}
-        </Badge>
-      )}
-
-      <Switch
-        checked={isOnline}
-        onCheckedChange={handleToggle}
-        disabled={isPending}
-        className="data-[state=checked]:bg-green-500 ml-auto"
-        data-testid="switch-online-status"
+      <PillToggle
+        isOnline={isOnline}
+        onToggle={onToggle}
+        isPending={isPending}
+        size={size}
       />
     </div>
   );

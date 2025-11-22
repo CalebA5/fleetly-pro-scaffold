@@ -442,16 +442,16 @@ export const BusinessDashboard = () => {
       
       <Header onDriveAndEarn={() => setLocation("/drive-earn")} />
       
+      {/* Mobile-First Sticky Toggle */}
+      <OperatorStatusToggle
+        isOnline={isOnline}
+        onToggle={(goOnline) => toggleOnlineMutation.mutate({ goOnline })}
+        isPending={toggleOnlineMutation.isPending}
+        variant="mobile"
+        label="Professional Business"
+      />
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Operator Status Toggle - Mobile Optimized */}
-        <OperatorStatusToggle
-          isOnline={isOnline}
-          onToggle={(goOnline) => toggleOnlineMutation.mutate({ goOnline })}
-          isPending={toggleOnlineMutation.isPending}
-          activeTier="Professional Business"
-          variant="mobile"
-          className="mb-6"
-        />
 
         {/* Header Section */}
         <div className="mb-8">
