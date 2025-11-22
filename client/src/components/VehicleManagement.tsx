@@ -15,6 +15,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Truck, Plus, Edit, Trash2, Check } from "lucide-react";
+import { InfoTooltip } from "@/components/ui/info-tooltip";
 
 const serviceTypes = [
   "Snow Plowing",
@@ -175,13 +176,17 @@ export function VehicleManagement({ tierType }: VehicleManagementProps) {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <div>
+        <div className="flex items-center gap-2">
           <h2 className="text-2xl font-bold text-black dark:text-white">Vehicle Fleet</h2>
-          <p className="text-gray-600 dark:text-gray-400">
-            {tierType === "equipped" 
-              ? "Manage your vehicles. Only one can be active at a time."
-              : "Manage your fleet. All vehicles can be used simultaneously."}
-          </p>
+          <InfoTooltip
+            content={
+              tierType === "equipped"
+                ? "For equipped operators, only one vehicle can be active at a time. Set your active vehicle to go online and accept jobs."
+                : "Professional operators can manage unlimited vehicles. All vehicles in your fleet can be used simultaneously for job assignments."
+            }
+            testId="button-info-vehicle-fleet"
+            ariaLabel="Vehicle fleet management information"
+          />
         </div>
         <Button
           onClick={() => {
