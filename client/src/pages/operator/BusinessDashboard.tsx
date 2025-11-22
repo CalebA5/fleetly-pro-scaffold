@@ -12,7 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Users, DollarSign, Star, TrendingUp, Plus, Trash2, Award, ChevronRight, MapPin } from "lucide-react";
+import { Users, DollarSign, Star, TrendingUp, Plus, Trash2, Award, ChevronRight, MapPin, AlertTriangle, CheckCircle } from "lucide-react";
 import { VehicleManagement } from "@/components/VehicleManagement";
 import { MobileBottomNav } from "@/components/MobileBottomNav";
 import { useLocation } from "wouter";
@@ -550,8 +550,9 @@ export const BusinessDashboard = () => {
           </Card>
         </div>
 
-        {/* Customer Grouping Section - Mobile-First with Bottom Sheets */}
-        <div className="mb-8">
+        {/* Responsive Grid: Customer Groups + Urgent Requests */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+          {/* Customer Grouping Section */}
           <Card className="border-2 border-orange-200 dark:border-orange-800">
             <CardHeader>
               <div className="flex items-center justify-between">
@@ -560,12 +561,16 @@ export const BusinessDashboard = () => {
                     <Users className="w-5 h-5 text-orange-600 dark:text-orange-400" />
                   </div>
                   <div>
-                    <CardTitle className="text-black dark:text-white">
-                      Nearby Customer Groups
-                    </CardTitle>
-                    <CardDescription className="text-gray-600 dark:text-gray-400">
-                      Accept multiple customers in the same area for maximum efficiency
-                    </CardDescription>
+                    <div className="flex items-center gap-2">
+                      <CardTitle className="text-black dark:text-white">
+                        Nearby Customer Groups
+                      </CardTitle>
+                      <InfoTooltip 
+                        content="Accept multiple customers in the same area for maximum efficiency. Customer groups expire when slots fill or after the time limit." 
+                        testId="button-info-customer-groups"
+                        ariaLabel="Customer grouping information"
+                      />
+                    </div>
                   </div>
                 </div>
                 <Badge className="bg-orange-500 text-white">
@@ -579,9 +584,106 @@ export const BusinessDashboard = () => {
                 onAcceptGroup={handleAcceptGroup}
                 onAcceptCustomers={handleAcceptCustomers}
                 acceptedGroupIds={acceptedGroupIds}
-                operatorJobCount={12} // TODO: Fetch from operator profile API  
+                operatorJobCount={12}
                 minimumJobsRequired={5}
               />
+            </CardContent>
+          </Card>
+
+          {/* Urgent Requests Panel */}
+          <Card className="border-2 border-red-200 dark:border-red-800">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-red-100 dark:bg-red-900 rounded-full flex items-center justify-center">
+                    <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <CardTitle className="text-black dark:text-white">
+                        Urgent Requests
+                      </CardTitle>
+                      <InfoTooltip 
+                        content="Emergency and high-priority jobs that need immediate response. These jobs pay premium rates." 
+                        testId="button-info-urgent-requests"
+                        ariaLabel="Urgent requests information"
+                      />
+                    </div>
+                  </div>
+                </div>
+                <Badge className="bg-red-500 text-white">
+                  PRIORITY
+                </Badge>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {urgentRequests.length > 0 ? (
+                <div className="space-y-3">
+                  {urgentRequests.map((request) => (
+                    <div
+                      key={request.id}
+                      className="border-2 border-red-300 dark:border-red-700 rounded-lg p-4 bg-red-50 dark:bg-red-950"
+                      data-testid={`urgent-request-${request.id}`}
+                    >
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-2">
+                            <h3 className="font-semibold text-black dark:text-white">
+                              {request.customerName}
+                            </h3>
+                            {request.isEmergency && (
+                              <Badge className="bg-red-600 text-white text-xs">
+                                EMERGENCY
+                              </Badge>
+                            )}
+                          </div>
+                          <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                            {request.description}
+                          </p>
+                          <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400">
+                            <span className="flex items-center gap-1">
+                              <MapPin className="w-4 h-4" />
+                              {request.location}
+                              {request.distance && ` (${request.distance}km)`}
+                            </span>
+                            {request.estimatedValue && (
+                              <span className="flex items-center gap-1">
+                                <DollarSign className="w-4 h-4" />
+                                {request.estimatedValue}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          onClick={() => handleAcceptUrgent(request.id)}
+                          className="flex-1 bg-red-600 hover:bg-red-700 text-white"
+                          data-testid={`button-accept-urgent-${request.id}`}
+                        >
+                          <CheckCircle className="w-4 h-4 mr-2" />
+                          Accept Urgent
+                        </Button>
+                        <Button
+                          onClick={() => handleDeclineUrgent(request.id)}
+                          variant="outline"
+                          className="border-gray-300 dark:border-gray-600"
+                          data-testid={`button-decline-urgent-${request.id}`}
+                        >
+                          Decline
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <AlertTriangle className="w-12 h-12 text-gray-300 dark:text-gray-700 mx-auto mb-3" />
+                  <p className="text-gray-500 dark:text-gray-500">
+                    No urgent requests right now
+                  </p>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>

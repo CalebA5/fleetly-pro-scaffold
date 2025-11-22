@@ -3,7 +3,8 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/enhanced-button";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, Clock, DollarSign, Users, Snowflake, AlertCircle, CheckCircle, ChevronRight, TrendingUp } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { MapPin, Clock, DollarSign, Users, Snowflake, AlertCircle, AlertTriangle, CheckCircle, ChevronRight, ChevronDown, ChevronUp, TrendingUp } from "lucide-react";
 import { Header } from "@/components/Header";
 import { MobileBottomNav } from "@/components/MobileBottomNav";
 import { useAuth } from "@/contexts/AuthContext";
@@ -37,6 +38,8 @@ export default function ManualOperatorDashboard() {
   const { toast } = useToast();
   const [showTierSwitchDialog, setShowTierSwitchDialog] = useState(false);
   const [tierSwitchInfo, setTierSwitchInfo] = useState<{ currentTier: string; newTier: string } | null>(null);
+  const [customerGroupsOpen, setCustomerGroupsOpen] = useState(true);
+  const [urgentRequestsOpen, setUrgentRequestsOpen] = useState(true);
   
   // Mock urgent requests for demonstration (in production, would come from WebSocket or polling)
   const [urgentRequests, setUrgentRequests] = useState<UrgentRequest[]>([
@@ -343,44 +346,164 @@ export default function ManualOperatorDashboard() {
           </Card>
         </div>
 
-        {/* Customer Grouping Section - Mobile-First with Bottom Sheets */}
-        <div className="mb-8">
-          <Card className="border-2 border-orange-200 dark:border-orange-800">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div style={{ width: 'clamp(2rem, 6vw, 2.5rem)', height: 'clamp(2rem, 6vw, 2.5rem)' }} className="bg-orange-100 dark:bg-orange-900 rounded-full flex items-center justify-center">
-                    <Users style={{ width: 'clamp(1rem, 3vw, 1.25rem)', height: 'clamp(1rem, 3vw, 1.25rem)' }} className="text-orange-600 dark:text-orange-400" />
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <CardTitle className="text-black dark:text-white">
-                        Nearby Customer Groups
-                      </CardTitle>
-                      <InfoTooltip 
-                        content="Accept multiple customers in the same area for maximum efficiency. Customer groups expire when slots fill or after the time limit." 
-                        testId="button-info-customer-groups"
-                        ariaLabel="Customer grouping information"
-                      />
+        {/* Responsive Grid: Customer Groups + Urgent Requests */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+          {/* Customer Grouping Section */}
+          <Collapsible open={customerGroupsOpen} onOpenChange={setCustomerGroupsOpen}>
+            <Card className="border-2 border-orange-200 dark:border-orange-800">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div style={{ width: 'clamp(2rem, 6vw, 2.5rem)', height: 'clamp(2rem, 6vw, 2.5rem)' }} className="bg-orange-100 dark:bg-orange-900 rounded-full flex items-center justify-center">
+                      <Users style={{ width: 'clamp(1rem, 3vw, 1.25rem)', height: 'clamp(1rem, 3vw, 1.25rem)' }} className="text-orange-600 dark:text-orange-400" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <CardTitle className="text-black dark:text-white">
+                          Nearby Customer Groups
+                        </CardTitle>
+                        <InfoTooltip 
+                          content="Accept multiple customers in the same area for maximum efficiency. Customer groups expire when slots fill or after the time limit." 
+                          testId="button-info-customer-groups"
+                          ariaLabel="Customer grouping information"
+                        />
+                      </div>
                     </div>
                   </div>
+                  <div className="flex items-center gap-2">
+                    <Badge className="bg-orange-500 text-white">
+                      BOOST EARNINGS
+                    </Badge>
+                    <CollapsibleTrigger asChild>
+                      <Button variant="ghost" size="sm" data-testid="button-toggle-customer-groups">
+                        {customerGroupsOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                      </Button>
+                    </CollapsibleTrigger>
+                  </div>
                 </div>
-                <Badge className="bg-orange-500 text-white">
-                  BOOST EARNINGS
-                </Badge>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <CustomerGrouping 
-                groups={mockCustomerGroups}
-                onAcceptGroup={handleAcceptGroup}
-                onAcceptCustomers={handleAcceptCustomers}
-                acceptedGroupIds={acceptedGroupIds}
-                operatorJobCount={3} // TODO: Fetch from operator profile API
-                minimumJobsRequired={5}
-              />
-            </CardContent>
-          </Card>
+              </CardHeader>
+              <CollapsibleContent>
+                <CardContent>
+                  <CustomerGrouping 
+                    groups={mockCustomerGroups}
+                    onAcceptGroup={handleAcceptGroup}
+                    onAcceptCustomers={handleAcceptCustomers}
+                    acceptedGroupIds={acceptedGroupIds}
+                    operatorJobCount={3}
+                    minimumJobsRequired={5}
+                  />
+                </CardContent>
+              </CollapsibleContent>
+            </Card>
+          </Collapsible>
+
+          {/* Urgent Requests Panel */}
+          <Collapsible open={urgentRequestsOpen} onOpenChange={setUrgentRequestsOpen}>
+            <Card className="border-2 border-red-200 dark:border-red-800">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div style={{ width: 'clamp(2rem, 6vw, 2.5rem)', height: 'clamp(2rem, 6vw, 2.5rem)' }} className="bg-red-100 dark:bg-red-900 rounded-full flex items-center justify-center">
+                      <AlertTriangle style={{ width: 'clamp(1rem, 3vw, 1.25rem)', height: 'clamp(1rem, 3vw, 1.25rem)' }} className="text-red-600 dark:text-red-400" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <CardTitle className="text-black dark:text-white">
+                          Urgent Requests
+                        </CardTitle>
+                        <InfoTooltip 
+                          content="Emergency and high-priority jobs that need immediate response. These jobs pay premium rates." 
+                          testId="button-info-urgent-requests"
+                          ariaLabel="Urgent requests information"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Badge className="bg-red-500 text-white">
+                      PRIORITY
+                    </Badge>
+                    <CollapsibleTrigger asChild>
+                      <Button variant="ghost" size="sm" data-testid="button-toggle-urgent-requests">
+                        {urgentRequestsOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                      </Button>
+                    </CollapsibleTrigger>
+                  </div>
+                </div>
+              </CardHeader>
+              <CollapsibleContent>
+                <CardContent>
+                  {urgentRequests.length > 0 ? (
+                    <div className="space-y-3">
+                      {urgentRequests.map((request) => (
+                        <div
+                          key={request.id}
+                          className="border-2 border-red-300 dark:border-red-700 rounded-lg p-4 bg-red-50 dark:bg-red-950"
+                          data-testid={`urgent-request-${request.id}`}
+                        >
+                          <div className="flex items-start justify-between mb-3">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-2">
+                                <h3 className="font-semibold text-black dark:text-white">
+                                  {request.customerName}
+                                </h3>
+                                {request.isEmergency && (
+                                  <Badge className="bg-red-600 text-white text-xs">
+                                    EMERGENCY
+                                  </Badge>
+                                )}
+                              </div>
+                              <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                                {request.description}
+                              </p>
+                              <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400">
+                                <span className="flex items-center gap-1">
+                                  <MapPin className="w-4 h-4" />
+                                  {request.location}
+                                  {request.distance && ` (${request.distance}km)`}
+                                </span>
+                                {request.estimatedValue && (
+                                  <span className="flex items-center gap-1">
+                                    <DollarSign className="w-4 h-4" />
+                                    {request.estimatedValue}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex gap-2">
+                            <Button
+                              onClick={() => handleAcceptUrgent(request.id)}
+                              className="flex-1 bg-red-600 hover:bg-red-700 text-white"
+                              data-testid={`button-accept-urgent-${request.id}`}
+                            >
+                              <CheckCircle className="w-4 h-4 mr-2" />
+                              Accept Urgent
+                            </Button>
+                            <Button
+                              onClick={() => handleDeclineUrgent(request.id)}
+                              variant="outline"
+                              className="border-gray-300 dark:border-gray-600"
+                              data-testid={`button-decline-urgent-${request.id}`}
+                            >
+                              Decline
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8">
+                      <AlertTriangle className="w-12 h-12 text-gray-300 dark:text-gray-700 mx-auto mb-3" />
+                      <p className="text-gray-500 dark:text-gray-500">
+                        No urgent requests right now
+                      </p>
+                    </div>
+                  )}
+                </CardContent>
+              </CollapsibleContent>
+            </Card>
+          </Collapsible>
         </div>
 
         {/* Individual Jobs Section */}
