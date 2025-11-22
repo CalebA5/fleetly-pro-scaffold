@@ -121,7 +121,7 @@ export default function TeamAnalytics() {
         <div className="mb-8">
           <Button
             variant="ghost"
-            onClick={() => setLocation("/operator")}
+            onClick={() => setLocation("/business")}
             className="mb-4"
             data-testid="button-back-to-dashboard"
           >

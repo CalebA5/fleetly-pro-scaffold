@@ -20,6 +20,7 @@ import { CustomerGrouping, type CustomerGroup } from "@/components/operator/Cust
 import { InfoTooltip } from "@/components/ui/info-tooltip";
 import { OperatorStatusToggle } from "@/components/operator/OperatorStatusToggle";
 import { UrgentRequestNotification, type UrgentRequest } from "@/components/operator/UrgentRequestNotification";
+import { VehicleSelectionModal } from "@/components/operator/VehicleSelectionModal";
 
 interface ServiceRequest {
   id: number;
@@ -44,6 +45,15 @@ export default function EquippedOperatorDashboard() {
   const [tierSwitchInfo, setTierSwitchInfo] = useState<{ currentTier: string; newTier: string } | null>(null);
   const [customerGroupsOpen, setCustomerGroupsOpen] = useState(true);
   const [urgentRequestsOpen, setUrgentRequestsOpen] = useState(true);
+  const [showVehicleModal, setShowVehicleModal] = useState(false);
+  const [pendingRequestId, setPendingRequestId] = useState<string | null>(null);
+  
+  // Mock vehicle data - in production would come from database
+  const mockVehicles = [
+    { id: "VH-001", name: "Tow Truck Alpha", type: "Heavy-duty Tow Truck", status: "available" as const, currentJobs: 0, maxCapacity: 2 },
+    { id: "VH-002", name: "Flatbed Beta", type: "Flatbed Trailer", status: "busy" as const, currentJobs: 1, maxCapacity: 2 },
+    { id: "VH-003", name: "Hauler Gamma", type: "Cargo Hauler", status: "available" as const, currentJobs: 0, maxCapacity: 3 },
+  ];
   
   // Mock urgent requests for demonstration
   const [urgentRequests, setUrgentRequests] = useState<UrgentRequest[]>([
@@ -187,9 +197,67 @@ export default function EquippedOperatorDashboard() {
 
   const emergencyRequests = nearbyRequests.filter(req => req.isEmergency === 1);
 
+  // Request acceptance mutation with vehicle assignment
+  const acceptRequestMutation = useMutation({
+    mutationFn: async ({ requestId, vehicleId }: { requestId: string; vehicleId: string }) => {
+      const request = requests.find(r => r.requestId === requestId);
+      if (!request) throw new Error("Request not found");
+
+      return await apiRequest("/api/accepted-jobs", {
+        method: "POST",
+        body: JSON.stringify({
+          operatorId,
+          jobSourceId: requestId,
+          jobSourceType: "request",
+          tier: "equipped",
+          jobData: { ...request, assignedVehicleId: vehicleId },
+        }),
+        headers: { "Content-Type": "application/json" },
+      });
+    },
+    onSuccess: (data, { requestId, vehicleId }) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/accepted-jobs"] });
+      queryClient.invalidateQueries({ queryKey: [`/api/service-requests/for-operator/${operatorId}`] });
+      const request = requests.find(r => r.requestId === requestId);
+      const vehicle = mockVehicles.find(v => v.id === vehicleId);
+      toast({
+        title: request?.isEmergency ? "Emergency Request Accepted!" : "Request Accepted!",
+        description: `Job assigned to ${vehicle?.name}. Check your Jobs list for details.`,
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error Accepting Job",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleAcceptRequest = (requestId: string) => {
+    // Check if operator is online before accepting
+    if (!isOnline) {
+      toast({
+        title: "Cannot Accept Job",
+        description: "You must be online to accept jobs. Toggle your status above to go online.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Open vehicle selection modal
+    setPendingRequestId(requestId);
+    setShowVehicleModal(true);
+  };
+
+  const handleVehicleSelected = (vehicleId: string) => {
+    if (!pendingRequestId) return;
+    acceptRequestMutation.mutate({ requestId: pendingRequestId, vehicleId });
+    setPendingRequestId(null);
+  };
+
   const handleAcceptJob = (requestId: number) => {
-    setAcceptedJobs([...acceptedJobs, requestId]);
-    // In production, send accept request to backend
+    handleAcceptRequest(requestId.toString());
   };
 
   const handleAcceptGroup = (groupId: string) => {
@@ -778,6 +846,31 @@ export default function EquippedOperatorDashboard() {
         currentTier={tierSwitchInfo?.currentTier || ""}
         newTier={tierSwitchInfo?.newTier || ""}
       />
+
+      <VehicleSelectionModal
+        isOpen={showVehicleModal}
+        onClose={() => {
+          setShowVehicleModal(false);
+          setPendingRequestId(null);
+        }}
+        onSelectVehicle={handleVehicleSelected}
+        vehicles={mockVehicles}
+        requestDetails={
+          pendingRequestId
+            ? (() => {
+                const request = requests.find(r => r.requestId === pendingRequestId);
+                return request
+                  ? {
+                      customerName: request.customerName,
+                      serviceType: request.serviceType,
+                      location: request.location,
+                    }
+                  : undefined;
+              })()
+            : undefined
+        }
+      />
+
       <MobileBottomNav />
     </div>
   );

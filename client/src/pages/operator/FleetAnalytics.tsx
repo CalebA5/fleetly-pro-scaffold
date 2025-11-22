@@ -72,7 +72,7 @@ export default function FleetAnalytics() {
         <div className="mb-8">
           <Button
             variant="ghost"
-            onClick={() => setLocation("/operator")}
+            onClick={() => setLocation("/equipped-operator")}
             className="mb-4"
             data-testid="button-back-to-dashboard"
           >

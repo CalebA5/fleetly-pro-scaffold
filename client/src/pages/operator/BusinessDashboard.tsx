@@ -22,6 +22,7 @@ import { CustomerGrouping, type CustomerGroup } from "@/components/operator/Cust
 import { InfoTooltip } from "@/components/ui/info-tooltip";
 import { OperatorStatusToggle } from "@/components/operator/OperatorStatusToggle";
 import { UrgentRequestNotification, type UrgentRequest } from "@/components/operator/UrgentRequestNotification";
+import { DriverAssignmentModal } from "@/components/operator/DriverAssignmentModal";
 
 export const BusinessDashboard = () => {
   const { user, updateUser } = useAuth();
@@ -32,6 +33,15 @@ export const BusinessDashboard = () => {
   const [tierSwitchInfo, setTierSwitchInfo] = useState<{ currentTier: string; newTier: string } | null>(null);
   const [acceptedGroupIds, setAcceptedGroupIds] = useState<string[]>([]);
   const setupAttemptedRef = useRef(false);
+  const [showDriverModal, setShowDriverModal] = useState(false);
+  const [pendingRequestId, setPendingRequestId] = useState<string | null>(null);
+  
+  // Mock driver data - in production would come from database
+  const mockDrivers = [
+    { id: "DRV-001", name: "Alex Thompson", status: "online" as const, currentJobs: 0, maxCapacity: 3, rating: 4.9, preferredServices: ["Towing", "Hauling"] },
+    { id: "DRV-002", name: "Sarah Mitchell", status: "busy" as const, currentJobs: 2, maxCapacity: 3, rating: 4.8, preferredServices: ["Courier", "Express Delivery"] },
+    { id: "DRV-003", name: "Marcus Chen", status: "online" as const, currentJobs: 1, maxCapacity: 4, rating: 4.95, preferredServices: ["Equipment Transport", "Heavy Hauling"] },
+  ];
   
   // Mock urgent requests for demonstration
   const [urgentRequests, setUrgentRequests] = useState<UrgentRequest[]>([

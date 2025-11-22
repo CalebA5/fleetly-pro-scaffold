@@ -14,7 +14,6 @@ import { OperatorProfile } from "./pages/customer/OperatorProfile";
 import { AIAssist } from "./pages/customer/AIAssist";
 import { Favorites } from "./pages/customer/Favorites";
 import { Requests } from "./pages/customer/Requests";
-import { OperatorDashboard } from "./pages/operator/OperatorDashboard";
 import { OperatorOnboarding } from "./pages/operator/OperatorOnboarding";
 import { BusinessDashboard } from "./pages/operator/BusinessDashboard";
 import ManualOperatorDashboard from "./pages/operator/ManualOperatorDashboard";
@@ -132,16 +131,6 @@ const App = () => (
               <Route path="/operator/team-analytics">
                 <ProtectedRoute requireOperator>
                   <TeamAnalytics />
-                </ProtectedRoute>
-              </Route>
-              <Route path="/operator">
-                <ProtectedRoute requireOperator>
-                  <OperatorDashboard />
-                </ProtectedRoute>
-              </Route>
-              <Route path="/operator/:rest+">
-                <ProtectedRoute requireOperator>
-                  <OperatorDashboard />
                 </ProtectedRoute>
               </Route>
               
