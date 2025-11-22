@@ -224,14 +224,13 @@ export default function EquippedOperatorDashboard() {
         headers: { "Content-Type": "application/json" },
       });
     },
-    onSuccess: (data, { requestId, vehicleId }) => {
+    onSuccess: (data, { requestId }) => {
       queryClient.invalidateQueries({ queryKey: ["/api/accepted-jobs"] });
       queryClient.invalidateQueries({ queryKey: [`/api/service-requests/for-operator/${operatorId}`] });
       const request = requests.find(r => r.requestId === requestId);
-      const vehicle = mockVehicles.find(v => v.id === vehicleId);
       toast({
         title: request?.isEmergency ? "Emergency Request Accepted!" : "Request Accepted!",
-        description: `Job assigned to ${vehicle?.name}. Check your Jobs list for details.`,
+        description: "Job added to your Jobs list. Check your Jobs list for details.",
       });
     },
     onError: (error: Error) => {
@@ -318,8 +317,9 @@ export default function EquippedOperatorDashboard() {
   const handleDismissUrgent = (requestId: string) => {
     setUrgentRequests(prev => prev.filter(r => r.id !== requestId));
   };
-
-  const availableServices = ["Towing", "Hauling", "Courier", "Roadside Assistance"];
+  
+  // Get available services from requests
+  const availableServices = Array.from(new Set(requests.map(r => r.serviceType)));
 
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900 pb-16 md:pb-0">
