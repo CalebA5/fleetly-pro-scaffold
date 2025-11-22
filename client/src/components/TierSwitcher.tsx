@@ -54,11 +54,13 @@ export function TierSwitcher() {
   
   // Fetch operator data to get which tier is actually online
   const { data: operatorData } = useQuery<Operator>({
-    queryKey: ['/api/operators/by-id', user?.operatorId],
+    queryKey: [`/api/operators/by-id/${user?.operatorId}`],
     enabled: !!user?.operatorId,
   });
   
-  // Tier is online if operator is online (isOnline === 1) and this is the active tier
+  // Online badge shows which tier the operator is actively online with
+  // Note: Switching tiers does NOT automatically make you online on the new tier
+  // Operators must explicitly click "Go Online" on each tier's dashboard to go online
   const onlineTier = operatorData?.isOnline === 1 ? operatorData?.activeTier : null;
 
   const equippedForm = useForm({
@@ -91,7 +93,7 @@ export function TierSwitcher() {
       updateUser({ activeTier: newTier });
       
       // Invalidate operator query so Online badge updates immediately
-      queryClient.invalidateQueries({ queryKey: ['/api/operators/by-id', user?.operatorId] });
+      queryClient.invalidateQueries({ queryKey: [`/api/operators/by-id/${user?.operatorId}`] });
       
       // Refetch session once to ensure frontend is in sync with backend
       let freshBusinessId = user?.businessId;
@@ -115,18 +117,19 @@ export function TierSwitcher() {
         description: `You are now operating as ${TIER_INFO[newTier].label}`,
       });
       
-      // Navigate to the appropriate dashboard using fresh session data
-      if (freshBusinessId) {
-        // Business owners always go to business dashboard
-        setLocation('/business');
+      // Navigate to the tier-specific dashboard (not business dashboard)
+      // Business dashboard is only accessed via Drive & Earn menu
+      if (newTier === 'manual') {
+        setLocation('/manual-operator');
+      } else if (newTier === 'equipped') {
+        setLocation('/equipped-operator');
       } else {
-        // Individual operators route based on tier
-        if (newTier === 'manual') {
-          setLocation('/manual-operator');
-        } else if (newTier === 'equipped') {
-          setLocation('/equipped-operator');
+        // Professional tier
+        if (freshBusinessId) {
+          // Business owners go to business dashboard for professional tier
+          setLocation('/business');
         } else {
-          // Professional individual operators go to /operator
+          // Individual professional operators go to /operator
           setLocation('/operator');
         }
       }
@@ -148,7 +151,7 @@ export function TierSwitcher() {
       });
       
       // Invalidate operator query so Online badge updates immediately
-      queryClient.invalidateQueries({ queryKey: ['/api/operators/by-id', user?.operatorId] });
+      queryClient.invalidateQueries({ queryKey: [`/api/operators/by-id/${user?.operatorId}`] });
       
       // Refetch session once to ensure frontend is in sync with backend
       let freshBusinessId = user?.businessId;
@@ -174,18 +177,19 @@ export function TierSwitcher() {
       setShowUpgradeDialog(false);
       setSelectedTier(null);
       
-      // Navigate to the appropriate dashboard using fresh session data
-      if (freshBusinessId) {
-        // Business owners always go to business dashboard
-        setLocation('/business');
+      // Navigate to the tier-specific dashboard (not business dashboard)
+      // Business dashboard is only accessed via Drive & Earn menu
+      if (variables.tier === 'manual') {
+        setLocation('/manual-operator');
+      } else if (variables.tier === 'equipped') {
+        setLocation('/equipped-operator');
       } else {
-        // Individual operators route based on tier
-        if (variables.tier === 'manual') {
-          setLocation('/manual-operator');
-        } else if (variables.tier === 'equipped') {
-          setLocation('/equipped-operator');
+        // Professional tier
+        if (freshBusinessId) {
+          // Business owners go to business dashboard for professional tier
+          setLocation('/business');
         } else {
-          // Professional individual operators go to /operator
+          // Individual professional operators go to /operator
           setLocation('/operator');
         }
       }
