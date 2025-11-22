@@ -1,7 +1,7 @@
 import { Router } from "express";
 import type { IStorage } from "./storage";
 import { db } from "./db";
-import { operators, customers, users, favorites, operatorTierStats, weatherAlerts, insertWeatherAlertSchema, emergencyRequests, dispatchQueue, insertEmergencyRequestSchema, insertDispatchQueueSchema, businesses, serviceRequests, operatorDailyEarnings, operatorMonthlyEarnings, acceptedJobs } from "@shared/schema";
+import { operators, customers, users, favorites, operatorTierStats, weatherAlerts, insertWeatherAlertSchema, emergencyRequests, dispatchQueue, insertEmergencyRequestSchema, insertDispatchQueueSchema, businesses, serviceRequests, operatorDailyEarnings, operatorMonthlyEarnings, acceptedJobs, operatorPricingConfigs, operatorQuotes, insertOperatorPricingConfigSchema, insertOperatorQuoteSchema } from "@shared/schema";
 import { eq, sql, and, gte, or } from "drizzle-orm";
 import { insertJobSchema, insertServiceRequestSchema, insertCustomerSchema, insertOperatorSchema, insertRatingSchema, insertFavoriteSchema, insertOperatorLocationSchema, insertCustomerServiceHistorySchema, OPERATOR_TIER_INFO } from "@shared/schema";
 import { isWithinRadius } from "./utils/distance";
@@ -2427,6 +2427,392 @@ export function registerRoutes(storage: IStorage) {
     } catch (error) {
       console.error("Error checking unlock status:", error);
       res.status(500).json({ message: "Failed to check unlock status" });
+    }
+  });
+
+  // ========== QUOTE SYSTEM ENDPOINTS ==========
+
+  // Get operator's pricing configs (all tiers or specific tier)
+  router.get("/api/operators/:operatorId/pricing-config", async (req, res) => {
+    try {
+      const { operatorId } = req.params;
+      const tier = req.query.tier as string | undefined;
+      
+      const configs = await db.select()
+        .from(operatorPricingConfigs)
+        .where(
+          tier 
+            ? and(eq(operatorPricingConfigs.operatorId, operatorId), eq(operatorPricingConfigs.tier, tier))
+            : eq(operatorPricingConfigs.operatorId, operatorId)
+        );
+      
+      res.json(configs);
+    } catch (error) {
+      console.error("Error fetching pricing configs:", error);
+      res.status(500).json({ message: "Failed to fetch pricing configs" });
+    }
+  });
+
+  // Create or update pricing config for operator
+  router.post("/api/operators/:operatorId/pricing-config", async (req, res) => {
+    try {
+      const { operatorId } = req.params;
+      const configData = req.body;
+      
+      // Validate the pricing config data
+      const validation = insertOperatorPricingConfigSchema.safeParse({
+        ...configData,
+        operatorId
+      });
+      
+      if (!validation.success) {
+        return res.status(400).json({ errors: validation.error.issues });
+      }
+      
+      const { tier, serviceType, baseRate, perKmRate, urgencyMultipliers, minimumFee } = validation.data;
+      
+      // Check if config already exists
+      const existing = await db.select()
+        .from(operatorPricingConfigs)
+        .where(
+          and(
+            eq(operatorPricingConfigs.operatorId, operatorId),
+            eq(operatorPricingConfigs.tier, tier),
+            eq(operatorPricingConfigs.serviceType, serviceType)
+          )
+        )
+        .limit(1);
+      
+      if (existing.length > 0) {
+        // Update existing config
+        const updated = await db.update(operatorPricingConfigs)
+          .set({
+            baseRate,
+            perKmRate,
+            urgencyMultipliers,
+            minimumFee,
+            updatedAt: new Date()
+          })
+          .where(
+            and(
+              eq(operatorPricingConfigs.operatorId, operatorId),
+              eq(operatorPricingConfigs.tier, tier),
+              eq(operatorPricingConfigs.serviceType, serviceType)
+            )
+          )
+          .returning();
+        
+        return res.json(updated[0]);
+      } else {
+        // Create new config
+        const created = await db.insert(operatorPricingConfigs)
+          .values(validation.data)
+          .returning();
+        
+        return res.status(201).json(created[0]);
+      }
+    } catch (error) {
+      console.error("Error creating/updating pricing config:", error);
+      res.status(500).json({ message: "Failed to save pricing config" });
+    }
+  });
+
+  // Submit a quote for a service request
+  router.post("/api/service-requests/:requestId/quotes", async (req, res) => {
+    try {
+      const { requestId } = req.params;
+      const quoteData = req.body;
+      
+      // Verify service request exists
+      const request = await db.select()
+        .from(serviceRequests)
+        .where(eq(serviceRequests.requestId, requestId))
+        .limit(1);
+      
+      if (request.length === 0) {
+        return res.status(404).json({ message: "Service request not found" });
+      }
+      
+      // Check if operator already has a quote for this request
+      const existingQuote = await db.select()
+        .from(operatorQuotes)
+        .where(
+          and(
+            eq(operatorQuotes.serviceRequestId, requestId),
+            eq(operatorQuotes.operatorId, quoteData.operatorId)
+          )
+        )
+        .limit(1);
+      
+      if (existingQuote.length > 0 && existingQuote[0].status !== "operator_withdrawn") {
+        return res.status(409).json({ message: "You already have an active quote for this request" });
+      }
+      
+      // Generate unique quote ID
+      const quoteId = `quote_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      
+      // Set quote expiry (default 12 hours from now)
+      const expiresAt = new Date();
+      expiresAt.setHours(expiresAt.getHours() + 12);
+      
+      // Create quote
+      const validation = insertOperatorQuoteSchema.safeParse({
+        ...quoteData,
+        quoteId,
+        serviceRequestId: requestId,
+        status: "sent",
+        expiresAt,
+        history: [{
+          action: "created",
+          timestamp: new Date().toISOString(),
+          actor: quoteData.operatorId
+        }]
+      });
+      
+      if (!validation.success) {
+        return res.status(400).json({ errors: validation.error.issues });
+      }
+      
+      const quote = await db.insert(operatorQuotes)
+        .values(validation.data)
+        .returning();
+      
+      // Update service request quote count and last quote time
+      await db.update(serviceRequests)
+        .set({
+          quoteCount: sql`${serviceRequests.quoteCount} + 1`,
+          lastQuoteAt: new Date()
+        })
+        .where(eq(serviceRequests.requestId, requestId));
+      
+      res.status(201).json(quote[0]);
+    } catch (error) {
+      console.error("Error creating quote:", error);
+      res.status(500).json({ message: "Failed to create quote" });
+    }
+  });
+
+  // Get all quotes for a service request
+  router.get("/api/service-requests/:requestId/quotes", async (req, res) => {
+    try {
+      const { requestId } = req.params;
+      
+      const quotes = await db.select()
+        .from(operatorQuotes)
+        .where(eq(operatorQuotes.serviceRequestId, requestId))
+        .orderBy(sql`${operatorQuotes.submittedAt} DESC`);
+      
+      res.json(quotes);
+    } catch (error) {
+      console.error("Error fetching quotes:", error);
+      res.status(500).json({ message: "Failed to fetch quotes" });
+    }
+  });
+
+  // Get quotes by operator
+  router.get("/api/operators/:operatorId/quotes", async (req, res) => {
+    try {
+      const { operatorId } = req.params;
+      const status = req.query.status as string | undefined;
+      
+      const quotes = await db.select()
+        .from(operatorQuotes)
+        .where(
+          status
+            ? and(eq(operatorQuotes.operatorId, operatorId), eq(operatorQuotes.status, status))
+            : eq(operatorQuotes.operatorId, operatorId)
+        )
+        .orderBy(sql`${operatorQuotes.submittedAt} DESC`);
+      
+      res.json(quotes);
+    } catch (error) {
+      console.error("Error fetching operator quotes:", error);
+      res.status(500).json({ message: "Failed to fetch operator quotes" });
+    }
+  });
+
+  // Update quote (withdraw, edit amount while draft)
+  router.patch("/api/quotes/:quoteId", async (req, res) => {
+    try {
+      const { quoteId } = req.params;
+      const updates = req.body;
+      
+      // Get existing quote
+      const existing = await db.select()
+        .from(operatorQuotes)
+        .where(eq(operatorQuotes.quoteId, quoteId))
+        .limit(1);
+      
+      if (existing.length === 0) {
+        return res.status(404).json({ message: "Quote not found" });
+      }
+      
+      const quote = existing[0];
+      
+      // Only allow certain updates based on status
+      if (updates.status === "operator_withdrawn") {
+        // Operator is withdrawing the quote
+        const updated = await db.update(operatorQuotes)
+          .set({
+            status: "operator_withdrawn",
+            history: sql`${operatorQuotes.history} || ${JSON.stringify([{
+              action: "withdrawn",
+              timestamp: new Date().toISOString(),
+              actor: quote.operatorId
+            }])}`
+          })
+          .where(eq(operatorQuotes.quoteId, quoteId))
+          .returning();
+        
+        return res.json(updated[0]);
+      }
+      
+      // For other updates, apply them
+      const updated = await db.update(operatorQuotes)
+        .set(updates)
+        .where(eq(operatorQuotes.quoteId, quoteId))
+        .returning();
+      
+      res.json(updated[0]);
+    } catch (error) {
+      console.error("Error updating quote:", error);
+      res.status(500).json({ message: "Failed to update quote" });
+    }
+  });
+
+  // Customer responds to quote (accept/decline/counter)
+  router.post("/api/quotes/:quoteId/respond", async (req, res) => {
+    try {
+      const { quoteId } = req.params;
+      const { action, customerId, counterAmount, notes } = req.body;
+      
+      if (!action || !["accept", "decline", "counter"].includes(action)) {
+        return res.status(400).json({ message: "Invalid action. Must be 'accept', 'decline', or 'counter'" });
+      }
+      
+      // Get the quote
+      const existing = await db.select()
+        .from(operatorQuotes)
+        .where(eq(operatorQuotes.quoteId, quoteId))
+        .limit(1);
+      
+      if (existing.length === 0) {
+        return res.status(404).json({ message: "Quote not found" });
+      }
+      
+      const quote = existing[0];
+      
+      // Get the service request
+      const request = await db.select()
+        .from(serviceRequests)
+        .where(eq(serviceRequests.requestId, quote.serviceRequestId))
+        .limit(1);
+      
+      if (request.length === 0) {
+        return res.status(404).json({ message: "Service request not found" });
+      }
+      
+      if (action === "accept") {
+        // Customer accepts the quote - create accepted job
+        const acceptedJobId = `job_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        
+        // Create accepted job with the quoted amount
+        await db.insert(acceptedJobs).values({
+          acceptedJobId,
+          serviceRequestId: quote.serviceRequestId,
+          operatorId: quote.operatorId,
+          operatorName: quote.operatorName,
+          tier: quote.tier,
+          status: "accepted",
+          jobData: request[0],
+          jobSourceId: quote.serviceRequestId,
+          progress: 0,
+          agreedPrice: quote.amount // Store the quoted amount
+        });
+        
+        // Update quote status
+        await db.update(operatorQuotes)
+          .set({
+            status: "customer_accepted",
+            respondedAt: new Date(),
+            history: sql`${operatorQuotes.history} || ${JSON.stringify([{
+              action: "customer_accepted",
+              timestamp: new Date().toISOString(),
+              actor: customerId
+            }])}`
+          })
+          .where(eq(operatorQuotes.quoteId, quoteId));
+        
+        // Update service request to mark quote as decided
+        await db.update(serviceRequests)
+          .set({
+            quoteStatus: "decided",
+            selectedQuoteId: quoteId,
+            operatorId: quote.operatorId,
+            operatorName: quote.operatorName,
+            status: "assigned"
+          })
+          .where(eq(serviceRequests.requestId, quote.serviceRequestId));
+        
+        // Decline all other quotes for this request
+        await db.update(operatorQuotes)
+          .set({
+            status: "customer_declined",
+            customerResponseNotes: "Customer selected another operator"
+          })
+          .where(
+            and(
+              eq(operatorQuotes.serviceRequestId, quote.serviceRequestId),
+              sql`${operatorQuotes.quoteId} != ${quoteId}`,
+              eq(operatorQuotes.status, "sent")
+            )
+          );
+        
+        return res.json({ message: "Quote accepted, job created", acceptedJobId });
+      } else if (action === "decline") {
+        // Customer declines the quote
+        await db.update(operatorQuotes)
+          .set({
+            status: "customer_declined",
+            respondedAt: new Date(),
+            customerResponseNotes: notes,
+            history: sql`${operatorQuotes.history} || ${JSON.stringify([{
+              action: "customer_declined",
+              timestamp: new Date().toISOString(),
+              actor: customerId,
+              notes
+            }])}`
+          })
+          .where(eq(operatorQuotes.quoteId, quoteId));
+        
+        return res.json({ message: "Quote declined" });
+      } else if (action === "counter") {
+        // Customer counter-offers
+        if (!counterAmount) {
+          return res.status(400).json({ message: "Counter amount is required" });
+        }
+        
+        await db.update(operatorQuotes)
+          .set({
+            status: "counter_pending",
+            counterAmount,
+            customerResponseNotes: notes,
+            respondedAt: new Date(),
+            history: sql`${operatorQuotes.history} || ${JSON.stringify([{
+              action: "customer_counter",
+              timestamp: new Date().toISOString(),
+              actor: customerId,
+              counterAmount,
+              notes
+            }])}`
+          })
+          .where(eq(operatorQuotes.quoteId, quoteId));
+        
+        return res.json({ message: "Counter offer sent" });
+      }
+    } catch (error) {
+      console.error("Error responding to quote:", error);
+      res.status(500).json({ message: "Failed to respond to quote" });
     }
   });
 
