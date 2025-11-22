@@ -463,9 +463,27 @@ export function registerRoutes(storage: IStorage) {
 
   router.post("/api/operators", async (req, res) => {
     try {
+      // CRITICAL SECURITY FIX: Verify authenticated user FIRST
+      const sessionUser = (req as any).session?.user;
+      if (!sessionUser || !sessionUser.userId) {
+        return res.status(401).json({ message: "Authentication required to create operator profile" });
+      }
+      
       const result = insertOperatorSchema.safeParse(req.body);
       if (!result.success) {
         return res.status(400).json({ errors: result.error.issues });
+      }
+      
+      // SECURITY: Reject if form email doesn't match session email
+      // This prevents users from creating operator profiles for other accounts
+      if (result.data.email && result.data.email.toLowerCase() !== sessionUser.email.toLowerCase()) {
+        return res.status(403).json({ 
+          message: "Email mismatch. You can only create operator profiles for your own account.",
+          debug: {
+            formEmail: result.data.email,
+            sessionEmail: sessionUser.email
+          }
+        });
       }
       
       // Check for duplicate operatorId
@@ -479,14 +497,10 @@ export function registerRoutes(storage: IStorage) {
       // Set up tier defaults
       const tier = result.data.operatorTier || "manual";
       const subscribedTiers: string[] = result.data.subscribedTiers || [tier];
-      const activeTier = result.data.activeTier || tier;
-      
-      // Ensure activeTier is in subscribedTiers
-      if (!subscribedTiers.includes(activeTier)) {
-        subscribedTiers.push(activeTier);
-      }
+      const activeTier = result.data.activeTier || null; // Start as null - operator must go online manually
       
       // Create operator in database with proper defaults
+      // ALWAYS use session email, not form email
       const operatorData = {
         operatorId: result.data.operatorId,
         name: result.data.name,
@@ -497,17 +511,17 @@ export function registerRoutes(storage: IStorage) {
         vehicle: result.data.vehicle || "Not specified",
         licensePlate: result.data.licensePlate || "N/A",
         phone: result.data.phone || "",
-        email: result.data.email || null,
+        email: sessionUser.email, // SECURITY FIX: Use session email, not form
         latitude: result.data.latitude || "0",
         longitude: result.data.longitude || "0",
         address: result.data.address || "",
-        isOnline: result.data.isOnline || 0,
+        isOnline: 0, // ALWAYS start offline
         hourlyRate: result.data.hourlyRate || null,
         availability: result.data.availability || "available",
         photo: result.data.photo || null,
         operatorTier: tier,
         subscribedTiers,
-        activeTier,
+        activeTier, // null until operator goes online
         isCertified: result.data.isCertified ?? 1,
         businessLicense: result.data.businessLicense || null,
         homeLatitude: result.data.homeLatitude || null,
@@ -519,30 +533,20 @@ export function registerRoutes(storage: IStorage) {
       
       const [operator] = await db.insert(operators).values(operatorData).returning();
       
-      // CRITICAL: Link operator to authenticated user account (not form email)
-      // Use session to get the actual logged-in user
-      const sessionId = (req as any).cookies?.sessionId;
-      if (sessionId) {
-        const session = await db.query.sessions.findFirst({
-          where: eq(sessions.sessionId, sessionId)
-        });
-        
-        if (session) {
-          // Update the authenticated user with operator_id
-          await db.update(users)
-            .set({ 
-              operatorId: result.data.operatorId,
-              role: 'operator'
-            })
-            .where(eq(users.userId, session.userId));
-          
-          // Update session for immediate frontend sync
-          if ((req as any).session?.user) {
-            (req as any).session.user.operatorId = result.data.operatorId;
-            (req as any).session.user.operatorTier = tier;
-            (req as any).session.user.subscribedTiers = subscribedTiers;
-          }
-        }
+      // Link operator to authenticated user (using userId from session)
+      await db.update(users)
+        .set({ 
+          operatorId: result.data.operatorId,
+          role: 'operator'
+        })
+        .where(eq(users.userId, sessionUser.userId));
+      
+      // Update session for immediate frontend sync
+      if ((req as any).session?.user) {
+        (req as any).session.user.operatorId = result.data.operatorId;
+        (req as any).session.user.operatorTier = tier;
+        (req as any).session.user.subscribedTiers = subscribedTiers;
+        (req as any).session.user.operatorProfileComplete = true;
       }
       
       // Create initial tier stats for each subscribed tier
@@ -2387,6 +2391,109 @@ export function registerRoutes(storage: IStorage) {
     } catch (error) {
       console.error("Error fetching operator active jobs:", error);
       res.status(500).json({ message: "Failed to fetch operator active jobs" });
+    }
+  });
+
+  // ========== CUSTOMER JOB TRACKING ENDPOINTS ==========
+  
+  // Get all jobs for a customer (from their service requests that were accepted)
+  router.get("/api/customer-jobs/:customerId", async (req, res) => {
+    try {
+      const { customerId } = req.params;
+      const status = req.query.status as string | undefined;
+      
+      // FIX: Find ALL service requests for this customer that have been assigned/in_progress/completed
+      // Don't just filter for "assigned" - that makes jobs disappear when they progress!
+      const requests = await db.query.serviceRequests.findMany({
+        where: and(
+          eq(serviceRequests.customerId, customerId),
+          or(
+            eq(serviceRequests.status, "assigned"),
+            eq(serviceRequests.status, "in_progress"),
+            eq(serviceRequests.status, "completed")
+          )
+        )
+      });
+      
+      if (!requests || requests.length === 0) {
+        return res.json([]);
+      }
+      
+      // Get the request IDs
+      const requestIds = requests.map(r => r.requestId);
+      
+      // Find all accepted jobs matching these request IDs
+      const whereConditions = [
+        inArray(acceptedJobs.jobSourceId, requestIds)
+      ];
+      
+      // FIX: Actually use the status filter parameter
+      if (status) {
+        whereConditions.push(eq(acceptedJobs.status, status));
+      }
+      
+      const jobs = await db.select()
+        .from(acceptedJobs)
+        .where(and(...whereConditions))
+        .orderBy(sql`${acceptedJobs.acceptedAt} DESC`);
+      
+      // FIX: Properly enrich jobs with operator details (phone, name, vehicle, rating)
+      const enrichedJobs = await Promise.all(jobs.map(async (job) => {
+        const operator = await db.query.operators.findFirst({
+          where: eq(operators.operatorId, job.operatorId)
+        });
+        
+        return {
+          ...job,
+          // Operator contact info (only visible after quote acceptance)
+          operatorName: operator?.name || "Unknown Operator",
+          operatorPhone: operator?.phone || null,
+          operatorEmail: operator?.email || null,
+          operatorPhoto: operator?.photo || null,
+          operatorRating: operator?.rating || "0",
+          // Vehicle info for tracking
+          operatorVehicle: operator?.vehicle || null,
+          operatorLicensePlate: operator?.licensePlate || null
+        };
+      }));
+      
+      res.json(enrichedJobs);
+    } catch (error) {
+      console.error("Error fetching customer jobs:", error);
+      res.status(500).json({ message: "Failed to fetch customer jobs" });
+    }
+  });
+  
+  // Get a specific customer job by acceptedJobId
+  router.get("/api/customer-jobs/job/:acceptedJobId", async (req, res) => {
+    try {
+      const { acceptedJobId } = req.params;
+      
+      const job = await db.query.acceptedJobs.findFirst({
+        where: eq(acceptedJobs.acceptedJobId, acceptedJobId)
+      });
+      
+      if (!job) {
+        return res.status(404).json({ message: "Job not found" });
+      }
+      
+      // Get the operator details
+      const operator = await db.query.operators.findFirst({
+        where: eq(operators.operatorId, job.operatorId)
+      });
+      
+      // Combine job with operator info
+      res.json({
+        ...job,
+        operatorName: operator?.name || "Unknown",
+        operatorPhone: operator?.phone || null,
+        operatorEmail: operator?.email || null,
+        operatorPhoto: operator?.photo || null,
+        operatorRating: operator?.rating || "0"
+      });
+    } catch (error) {
+      console.error("Error fetching customer job:", error);
+      res.status(500).json({ message: "Failed to fetch customer job" });
     }
   });
 

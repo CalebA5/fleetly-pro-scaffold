@@ -4,6 +4,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useLocation } from "wouter";
 import { 
   Clock, 
   CheckCircle, 
@@ -12,7 +13,8 @@ import {
   MapPin,
   DollarSign,
   User,
-  Search
+  Search,
+  Eye
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { useState } from "react";
@@ -37,6 +39,7 @@ const STATUS_ICONS = {
 
 export default function RequestStatus() {
   const { user } = useAuth();
+  const [, setLocation] = useLocation();
   const [selectedTab, setSelectedTab] = useState("all");
 
   // CRITICAL: Fetch only THIS customer's requests using server-side filtering
@@ -71,7 +74,7 @@ export default function RequestStatus() {
       r.status === 'pending' || r.status === 'operator_pending'
     ),
     accepted: (requests || []).filter((r: any) => 
-      r.status === 'operator_accepted' || r.status === 'in_progress'
+      r.status === 'assigned' || r.status === 'in_progress'
     ),
     declined: (requests || []).filter((r: any) => r.status === 'operator_declined'),
     completed: (requests || []).filter((r: any) => r.status === 'completed')
@@ -80,6 +83,20 @@ export default function RequestStatus() {
   const RequestCard = ({ request }: { request: any }) => {
     const StatusIcon = STATUS_ICONS[request.status as keyof typeof STATUS_ICONS] || Clock;
     const isDeclined = request.status === 'operator_declined';
+    // FIX: Check if job is trackable (assigned/in_progress with OR without selectedQuoteId)
+    // Some jobs may be assigned without going through quote flow
+    const isAssigned = request.status === 'assigned' || request.status === 'in_progress' || request.status === 'completed';
+    
+    const handleViewDetails = () => {
+      // For assigned jobs, navigate to job tracking page
+      // No need to check selectedQuoteId - just use requestId
+      if (isAssigned) {
+        setLocation(`/customer/job-tracking?requestId=${request.requestId}`);
+      } else {
+        // For other statuses, just show details (could open a modal)
+        console.log("View details for", request.requestId);
+      }
+    };
 
     return (
       <Card className="p-6 hover:shadow-lg transition-shadow bg-white dark:bg-gray-800">
@@ -158,14 +175,27 @@ export default function RequestStatus() {
 
           {/* Actions */}
           <div className="flex gap-2 pt-2">
-            <Button
-              variant="outline"
-              size="sm"
-              className="flex-1"
-              data-testid={`button-view-details-${request.requestId}`}
-            >
-              View Details
-            </Button>
+            {isAssigned ? (
+              <Button
+                size="sm"
+                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
+                onClick={handleViewDetails}
+                data-testid={`button-track-job-${request.requestId}`}
+              >
+                <Eye className="w-4 h-4 mr-2" />
+                Track Job Progress
+              </Button>
+            ) : (
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex-1"
+                onClick={handleViewDetails}
+                data-testid={`button-view-details-${request.requestId}`}
+              >
+                View Details
+              </Button>
+            )}
             {isDeclined && (
               <Button
                 size="sm"
