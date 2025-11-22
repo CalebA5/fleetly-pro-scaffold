@@ -191,8 +191,8 @@ export default function EquippedOperatorDashboard() {
         <div className="mb-8">
           <div className="flex items-center justify-between flex-wrap gap-4">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center">
-                <Truck className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+              <div style={{ width: 'clamp(2.5rem, 8vw, 3rem)', height: 'clamp(2.5rem, 8vw, 3rem)' }} className="bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center">
+                <Truck style={{ width: 'clamp(1.25rem, 4vw, 1.5rem)', height: 'clamp(1.25rem, 4vw, 1.5rem)' }} className="text-blue-600 dark:text-blue-400" />
               </div>
               <div>
                 <h1 className="text-2xl font-bold text-black dark:text-white">Skilled & Equipped Dashboard</h1>
@@ -246,9 +246,9 @@ export default function EquippedOperatorDashboard() {
                     View details
                   </p>
                 </div>
-                <div className="flex flex-col items-center gap-2">
-                  <DollarSign className="w-6 h-6 md:w-8 md:h-8 text-green-600" />
-                  <ChevronRight className="w-4 h-4 text-gray-400" />
+                <div className="flex flex-col items-center gap-1">
+                  <DollarSign style={{ width: 'clamp(1.125rem, 4vw, 1.5rem)', height: 'clamp(1.125rem, 4vw, 1.5rem)' }} className="text-green-600" />
+                  <ChevronRight style={{ width: 'clamp(0.875rem, 2vw, 1rem)', height: 'clamp(0.875rem, 2vw, 1rem)' }} className="text-gray-400" />
                 </div>
               </div>
             </CardContent>
@@ -270,9 +270,9 @@ export default function EquippedOperatorDashboard() {
                     View on map
                   </p>
                 </div>
-                <div className="flex flex-col items-center gap-2">
-                  <MapPin className="w-6 h-6 md:w-8 md:h-8 text-blue-600" />
-                  <ChevronRight className="w-4 h-4 text-gray-400" />
+                <div className="flex flex-col items-center gap-1">
+                  <MapPin style={{ width: 'clamp(1.125rem, 4vw, 1.5rem)', height: 'clamp(1.125rem, 4vw, 1.5rem)' }} className="text-blue-600" />
+                  <ChevronRight style={{ width: 'clamp(0.875rem, 2vw, 1rem)', height: 'clamp(0.875rem, 2vw, 1rem)' }} className="text-gray-400" />
                 </div>
               </div>
             </CardContent>
@@ -286,7 +286,7 @@ export default function EquippedOperatorDashboard() {
                   <p className="text-xs md:text-sm text-gray-600 dark:text-gray-400 mb-1">Customer Groups</p>
                   <p className="text-xl md:text-2xl font-bold text-black dark:text-white">{mockCustomerGroups.length}</p>
                 </div>
-                <Users className="w-8 h-8 text-orange-600" />
+                <Users style={{ width: 'clamp(1.125rem, 4vw, 1.5rem)', height: 'clamp(1.125rem, 4vw, 1.5rem)' }} className="text-orange-600" />
               </div>
             </CardContent>
           </Card>
@@ -298,7 +298,7 @@ export default function EquippedOperatorDashboard() {
                   <p className="text-sm text-gray-600 dark:text-gray-400">Completed Today</p>
                   <p className="text-2xl font-bold text-black dark:text-white">0</p>
                 </div>
-                <CheckCircle className="w-8 h-8 text-green-600" />
+                <CheckCircle style={{ width: 'clamp(1.125rem, 4vw, 1.5rem)', height: 'clamp(1.125rem, 4vw, 1.5rem)' }} className="text-green-600" />
               </div>
             </CardContent>
           </Card>

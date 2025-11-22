@@ -3,7 +3,10 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/enhanced-button";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, Clock, DollarSign, Users, Snowflake, AlertCircle, CheckCircle, ChevronRight, TrendingUp } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { MapPin, Clock, DollarSign, Users, Snowflake, AlertCircle, CheckCircle, ChevronRight, TrendingUp, ChevronDown, MessageCircle, Phone } from "lucide-react";
 import { Header } from "@/components/Header";
 import { MobileBottomNav } from "@/components/MobileBottomNav";
 import { useAuth } from "@/contexts/AuthContext";
@@ -48,8 +51,35 @@ export default function ManualOperatorDashboard() {
   const [tierSwitchInfo, setTierSwitchInfo] = useState<{ currentTier: string; newTier: string } | null>(null);
 
   // Customer grouping - in production, this would come from backend
-  // Empty for now - will be populated with real data
-  const mockCustomerGroups: CustomerGroup[] = [];
+  const mockCustomerGroups: CustomerGroup[] = [
+    {
+      id: "CG-001",
+      location: "Downtown Snow District",
+      customerCount: 4,
+      totalValue: "$240-360",
+      customers: [
+        { name: "Main Street Bistro", address: "100 Main St", service: "Parking Lot" },
+        { name: "Corner Pharmacy", address: "102 Main St", service: "Sidewalk" },
+        { name: "City Bank", address: "104 Main St", service: "Parking & Entrance" },
+        { name: "Elm Apartments", address: "106 Main St", service: "Driveway" },
+      ],
+      distance: 2.3,
+      expiresIn: 18,
+    },
+    {
+      id: "CG-002",
+      location: "Riverside Homes",
+      customerCount: 3,
+      totalValue: "$180-270",
+      customers: [
+        { name: "Johnson Residence", address: "15 River Rd", service: "Driveway" },
+        { name: "Williams Home", address: "17 River Rd", service: "Driveway" },
+        { name: "Davis Family", address: "19 River Rd", service: "Driveway & Walkway" },
+      ],
+      distance: 3.8,
+      expiresIn: 32,
+    },
+  ];
 
   // Use operator-specific endpoint that filters by tier and radius
   const operatorId = user?.operatorId || "OP-MANUAL-001";
@@ -134,9 +164,54 @@ export default function ManualOperatorDashboard() {
     // In production, send accept request to backend
   };
 
+  const [expandedGroups, setExpandedGroups] = useState<string[]>([]);
+  const [acceptedGroupIds, setAcceptedGroupIds] = useState<string[]>([]);
+  const [contactDialogOpen, setContactDialogOpen] = useState(false);
+  const [selectedGroup, setSelectedGroup] = useState<CustomerGroup | null>(null);
+  const [contactMessage, setContactMessage] = useState("");
+
   const handleAcceptGroup = (groupId: string) => {
-    // In production, send bulk accept to backend
-    alert(`Accepted all ${mockCustomerGroups.find(g => g.id === groupId)?.customerCount} customers in group!`);
+    const group = mockCustomerGroups.find(g => g.id === groupId);
+    if (!group) return;
+    
+    // Add to accepted groups to remove from UI
+    setAcceptedGroupIds(prev => [...prev, groupId]);
+    
+    // In production, send bulk accept to backend and add to active jobs
+    toast({
+      title: "Jobs Accepted!",
+      description: `Successfully accepted ${group.customerCount} jobs in ${group.location}. Added to your active jobs.`,
+    });
+    
+    // In production, this would invalidate queries and refetch
+  };
+
+  const handleContactCustomers = (group: CustomerGroup) => {
+    setSelectedGroup(group);
+    setContactMessage(`Hi! I'm ready to service your area (${group.location}). I can handle all ${group.customerCount} jobs today. Looking forward to working with you!`);
+    setContactDialogOpen(true);
+  };
+
+  const handleSendMessage = () => {
+    if (!selectedGroup || !contactMessage.trim()) return;
+    
+    // In production, send notification to customers via backend
+    toast({
+      title: "Message Sent!",
+      description: `${selectedGroup.customerCount} customer${selectedGroup.customerCount > 1 ? 's' : ''} in ${selectedGroup.location} have been notified.`,
+    });
+    
+    setContactDialogOpen(false);
+    setContactMessage("");
+    setSelectedGroup(null);
+  };
+
+  const toggleGroupExpansion = (groupId: string) => {
+    setExpandedGroups(prev => 
+      prev.includes(groupId) 
+        ? prev.filter(id => id !== groupId)
+        : [...prev, groupId]
+    );
   };
 
   return (
@@ -152,8 +227,8 @@ export default function ManualOperatorDashboard() {
         <div className="mb-8">
           <div className="flex items-center justify-between flex-wrap gap-4">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center">
-                <Snowflake className="w-6 h-6 text-green-600 dark:text-green-400" />
+              <div style={{ width: 'clamp(2.5rem, 8vw, 3rem)', height: 'clamp(2.5rem, 8vw, 3rem)' }} className="bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center">
+                <Snowflake style={{ width: 'clamp(1.25rem, 4vw, 1.5rem)', height: 'clamp(1.25rem, 4vw, 1.5rem)' }} className="text-green-600 dark:text-green-400" />
               </div>
               <div>
                 <h1 className="text-2xl font-bold text-black dark:text-white">Manual Operator Dashboard</h1>
@@ -199,9 +274,9 @@ export default function ManualOperatorDashboard() {
                     View details
                   </p>
                 </div>
-                <div className="flex flex-col items-center gap-2">
-                  <DollarSign className="w-6 h-6 md:w-8 md:h-8 text-green-600" />
-                  <ChevronRight className="w-4 h-4 text-gray-400" />
+                <div className="flex flex-col items-center gap-1">
+                  <DollarSign style={{ width: 'clamp(1.125rem, 4vw, 1.5rem)', height: 'clamp(1.125rem, 4vw, 1.5rem)' }} className="text-green-600" />
+                  <ChevronRight style={{ width: 'clamp(0.875rem, 2vw, 1rem)', height: 'clamp(0.875rem, 2vw, 1rem)' }} className="text-gray-400" />
                 </div>
               </div>
             </CardContent>
@@ -223,9 +298,9 @@ export default function ManualOperatorDashboard() {
                     View on map
                   </p>
                 </div>
-                <div className="flex flex-col items-center gap-2">
-                  <MapPin className="w-6 h-6 md:w-8 md:h-8 text-blue-600" />
-                  <ChevronRight className="w-4 h-4 text-gray-400" />
+                <div className="flex flex-col items-center gap-1">
+                  <MapPin style={{ width: 'clamp(1.125rem, 4vw, 1.5rem)', height: 'clamp(1.125rem, 4vw, 1.5rem)' }} className="text-blue-600" />
+                  <ChevronRight style={{ width: 'clamp(0.875rem, 2vw, 1rem)', height: 'clamp(0.875rem, 2vw, 1rem)' }} className="text-gray-400" />
                 </div>
               </div>
             </CardContent>
@@ -239,7 +314,7 @@ export default function ManualOperatorDashboard() {
                   <p className="text-xs md:text-sm text-gray-600 dark:text-gray-400 mb-1">Customer Groups</p>
                   <p className="text-xl md:text-2xl font-bold text-black dark:text-white">{mockCustomerGroups.length}</p>
                 </div>
-                <Users className="w-6 h-6 md:w-8 md:h-8 text-orange-600" />
+                <Users style={{ width: 'clamp(1.125rem, 4vw, 1.5rem)', height: 'clamp(1.125rem, 4vw, 1.5rem)' }} className="text-orange-600" />
               </div>
             </CardContent>
           </Card>
@@ -252,7 +327,7 @@ export default function ManualOperatorDashboard() {
                   <p className="text-xs md:text-sm text-gray-600 dark:text-gray-400 mb-1">Completed Today</p>
                   <p className="text-xl md:text-2xl font-bold text-black dark:text-white">0</p>
                 </div>
-                <CheckCircle className="w-6 h-6 md:w-8 md:h-8 text-green-600" />
+                <CheckCircle style={{ width: 'clamp(1.125rem, 4vw, 1.5rem)', height: 'clamp(1.125rem, 4vw, 1.5rem)' }} className="text-green-600" />
               </div>
             </CardContent>
           </Card>
@@ -264,8 +339,8 @@ export default function ManualOperatorDashboard() {
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-orange-100 dark:bg-orange-900 rounded-full flex items-center justify-center">
-                    <Users className="w-5 h-5 text-orange-600 dark:text-orange-400" />
+                  <div style={{ width: 'clamp(2rem, 6vw, 2.5rem)', height: 'clamp(2rem, 6vw, 2.5rem)' }} className="bg-orange-100 dark:bg-orange-900 rounded-full flex items-center justify-center">
+                    <Users style={{ width: 'clamp(1rem, 3vw, 1.25rem)', height: 'clamp(1rem, 3vw, 1.25rem)' }} className="text-orange-600 dark:text-orange-400" />
                   </div>
                   <div>
                     <CardTitle className="text-black dark:text-white">
@@ -281,77 +356,118 @@ export default function ManualOperatorDashboard() {
                 </Badge>
               </div>
             </CardHeader>
-            <CardContent className="space-y-4">
-              {mockCustomerGroups.length > 0 ? (
-                mockCustomerGroups.map((group) => (
-                  <div
-                    key={group.id}
-                    className="border border-gray-200 dark:border-gray-800 rounded-lg p-4 hover:border-orange-500 dark:hover:border-orange-500 transition-colors"
-                  >
-                    <div className="flex items-start justify-between mb-4">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-2">
-                          <h3 className="font-semibold text-black dark:text-white">
-                            {group.location}
-                          </h3>
-                          <Badge variant="outline" className="text-xs">
-                            {group.customerCount} customers
-                          </Badge>
-                        </div>
-                        <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400">
-                          <span className="flex items-center gap-1">
-                            <MapPin className="w-4 h-4" />
-                            {group.distance}km away
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <DollarSign className="w-4 h-4" />
-                            {group.totalValue}
-                          </span>
-                          <span className="flex items-center gap-1 text-orange-600 dark:text-orange-400">
-                            <Clock className="w-4 h-4" />
-                            Expires in {group.expiresIn}min
-                          </span>
-                        </div>
-                      </div>
-                      <Button
-                        onClick={() => handleAcceptGroup(group.id)}
-                        className="bg-orange-500 hover:bg-orange-600 text-white"
-                        data-testid={`button-accept-group-${group.id}`}
-                      >
-                        Accept All
-                      </Button>
-                    </div>
-                    
-                    {/* Customer list */}
-                    <div className="space-y-2">
-                      {group.customers.map((customer, idx) => (
-                        <div
-                          key={idx}
-                          className="flex items-center gap-3 p-2 bg-gray-50 dark:bg-gray-800 rounded"
-                        >
-                          <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center flex-shrink-0">
-                            <span className="text-sm font-semibold text-blue-600 dark:text-blue-400">
-                              {customer.name.charAt(0)}
+            <CardContent className="space-y-3">
+              {mockCustomerGroups.filter(g => !acceptedGroupIds.includes(g.id)).length > 0 ? (
+                mockCustomerGroups.filter(g => !acceptedGroupIds.includes(g.id)).map((group) => {
+                  const isExpanded = expandedGroups.includes(group.id);
+                  return (
+                    <Collapsible
+                      key={group.id}
+                      open={isExpanded}
+                      onOpenChange={() => toggleGroupExpansion(group.id)}
+                    >
+                      <div className="border border-gray-200 dark:border-gray-800 rounded-lg overflow-hidden hover:border-orange-500 dark:hover:border-orange-500 transition-colors">
+                        {/* Compact Summary Capsule */}
+                        <div className="p-3 md:p-4 bg-gradient-to-r from-orange-50 to-transparent dark:from-orange-950/30">
+                          <div className="flex items-center justify-between gap-2 mb-2">
+                            <div className="flex items-center gap-2 flex-1 min-w-0">
+                              <MapPin style={{ width: 'clamp(0.875rem, 3vw, 1rem)', height: 'clamp(0.875rem, 3vw, 1rem)' }} className="text-orange-600 flex-shrink-0" />
+                              <h3 className="font-semibold text-black dark:text-white text-sm md:text-base truncate">
+                                {group.location}
+                              </h3>
+                            </div>
+                            <Badge className="bg-orange-500 text-white text-xs px-1.5 py-0.5 flex-shrink-0">
+                              {group.customerCount} jobs
+                            </Badge>
+                          </div>
+                          
+                          {/* Compact Info Row */}
+                          <div className="flex items-center gap-3 text-xs md:text-sm text-gray-600 dark:text-gray-400 mb-3">
+                            <span className="flex items-center gap-1">
+                              <DollarSign style={{ width: 'clamp(0.75rem, 2.5vw, 0.875rem)', height: 'clamp(0.75rem, 2.5vw, 0.875rem)' }} />
+                              {group.totalValue}
+                            </span>
+                            <span className="flex items-center gap-1">
+                              {group.distance}km
+                            </span>
+                            <span className="flex items-center gap-1 text-orange-600 dark:text-orange-400">
+                              <Clock style={{ width: 'clamp(0.75rem, 2.5vw, 0.875rem)', height: 'clamp(0.75rem, 2.5vw, 0.875rem)' }} />
+                              {group.expiresIn}min
                             </span>
                           </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-black dark:text-white truncate">
-                              {customer.name}
-                            </p>
-                            <p className="text-xs text-gray-500 dark:text-gray-500 truncate">
-                              {customer.address}
-                            </p>
-                          </div>
-                          <div className="text-right">
-                            <p className="text-xs text-gray-600 dark:text-gray-400">
-                              {customer.service}
-                            </p>
+                          
+                          {/* Action Buttons */}
+                          <div className="flex gap-2">
+                            <Button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleAcceptGroup(group.id);
+                              }}
+                              size="sm"
+                              className="flex-1 bg-orange-500 hover:bg-orange-600 text-white h-8 text-xs md:text-sm"
+                              data-testid={`button-accept-group-${group.id}`}
+                            >
+                              Accept All
+                            </Button>
+                            <Button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleContactCustomers(group);
+                              }}
+                              size="sm"
+                              variant="outline"
+                              className="flex-1 h-8 text-xs md:text-sm"
+                              data-testid={`button-contact-group-${group.id}`}
+                            >
+                              <MessageCircle style={{ width: 'clamp(0.75rem, 2.5vw, 0.875rem)', height: 'clamp(0.75rem, 2.5vw, 0.875rem)' }} className="mr-1" />
+                              Contact
+                            </Button>
+                            <CollapsibleTrigger asChild>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-8 w-8 p-0"
+                                data-testid={`button-toggle-details-${group.id}`}
+                              >
+                                <ChevronDown 
+                                  style={{ width: 'clamp(0.875rem, 3vw, 1rem)', height: 'clamp(0.875rem, 3vw, 1rem)' }}
+                                  className={`transition-transform ${isExpanded ? 'rotate-180' : ''}`}
+                                />
+                              </Button>
+                            </CollapsibleTrigger>
                           </div>
                         </div>
-                      ))}
-                    </div>
-                  </div>
-                ))
+                        
+                        {/* Expandable Customer Details */}
+                        <CollapsibleContent>
+                          <div className="p-3 md:p-4 space-y-2 bg-gray-50 dark:bg-gray-900/50 border-t border-gray-200 dark:border-gray-800">
+                            <p className="text-xs text-gray-500 dark:text-gray-500 uppercase tracking-wide mb-2">Customer Details</p>
+                            {group.customers.map((customer, idx) => (
+                              <div
+                                key={idx}
+                                className="flex items-center gap-2 p-2 bg-white dark:bg-gray-800 rounded text-xs md:text-sm"
+                              >
+                                <div style={{ width: 'clamp(1.75rem, 6vw, 2rem)', height: 'clamp(1.75rem, 6vw, 2rem)' }} className="bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center flex-shrink-0">
+                                  <span className="text-xs font-semibold text-blue-600 dark:text-blue-400">
+                                    {customer.name.charAt(0)}
+                                  </span>
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <p className="font-medium text-black dark:text-white truncate">
+                                    {customer.name}
+                                  </p>
+                                  <p className="text-xs text-gray-500 dark:text-gray-500 truncate">
+                                    {customer.service}
+                                  </p>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </CollapsibleContent>
+                      </div>
+                    </Collapsible>
+                  );
+                })
               ) : (
                 <div className="text-center py-8">
                   <Users className="w-12 h-12 text-gray-300 dark:text-gray-700 mx-auto mb-3" />
@@ -468,6 +584,53 @@ export default function ManualOperatorDashboard() {
           </Card>
         </div>
       </div>
+
+      {/* Contact Customer Dialog */}
+      <Dialog open={contactDialogOpen} onOpenChange={setContactDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Contact Customers</DialogTitle>
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              {selectedGroup && `Send a message to ${selectedGroup.customerCount} customer${selectedGroup.customerCount > 1 ? 's' : ''} in ${selectedGroup.location}`}
+            </p>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <label className="text-sm font-medium mb-2 block">Your Message</label>
+              <Textarea
+                value={contactMessage}
+                onChange={(e) => setContactMessage(e.target.value)}
+                placeholder="Write a quick message to the customers..."
+                rows={4}
+                className="resize-none"
+                data-testid="input-contact-message"
+              />
+              <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                {contactMessage.length}/200 characters
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={() => setContactDialogOpen(false)}
+                className="flex-1"
+                data-testid="button-cancel-contact"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleSendMessage}
+                disabled={!contactMessage.trim()}
+                className="flex-1 bg-orange-500 hover:bg-orange-600 text-white"
+                data-testid="button-send-message"
+              >
+                <MessageCircle className="w-4 h-4 mr-2" />
+                Send Notification
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <TierOnlineConfirmDialog
         open={showTierSwitchDialog}

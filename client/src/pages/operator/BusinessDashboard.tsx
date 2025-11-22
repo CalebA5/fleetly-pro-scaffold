@@ -334,8 +334,8 @@ export const BusinessDashboard = () => {
         <div className="mb-8">
           <div className="flex items-center justify-between flex-wrap gap-4">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-orange-100 dark:bg-orange-900 rounded-full flex items-center justify-center">
-                <Award className="w-6 h-6 text-orange-600 dark:text-orange-400" />
+              <div style={{ width: 'clamp(2.5rem, 8vw, 3rem)', height: 'clamp(2.5rem, 8vw, 3rem)' }} className="bg-orange-100 dark:bg-orange-900 rounded-full flex items-center justify-center">
+                <Award style={{ width: 'clamp(1.25rem, 4vw, 1.5rem)', height: 'clamp(1.25rem, 4vw, 1.5rem)' }} className="text-orange-600 dark:text-orange-400" />
               </div>
               <div>
                 <h1 className="text-2xl font-bold text-black dark:text-white">Professional Business Dashboard</h1>
@@ -372,7 +372,7 @@ export const BusinessDashboard = () => {
                 <p className="text-xs md:text-sm text-gray-600 dark:text-gray-400 mb-1">Total Drivers</p>
                 <p className="text-2xl md:text-3xl font-bold text-black dark:text-white">{business.totalDrivers}</p>
               </div>
-              <Users className="w-6 h-6 md:w-8 md:h-8 text-orange-500" />
+              <Users style={{ width: 'clamp(1.125rem, 4vw, 1.5rem)', height: 'clamp(1.125rem, 4vw, 1.5rem)' }} className="text-orange-500" />
             </div>
           </Card>
 
@@ -391,9 +391,9 @@ export const BusinessDashboard = () => {
                   View on map
                 </p>
               </div>
-              <div className="flex flex-col items-center gap-2">
-                <TrendingUp className="w-6 h-6 md:w-8 md:h-8 text-orange-500" />
-                <ChevronRight className="w-4 h-4 text-gray-400" />
+              <div className="flex flex-col items-center gap-1">
+                <TrendingUp style={{ width: 'clamp(1.125rem, 4vw, 1.5rem)', height: 'clamp(1.125rem, 4vw, 1.5rem)' }} className="text-orange-500" />
+                <ChevronRight style={{ width: 'clamp(0.875rem, 2vw, 1rem)', height: 'clamp(0.875rem, 2vw, 1rem)' }} className="text-gray-400" />
               </div>
             </div>
           </Card>
@@ -413,9 +413,9 @@ export const BusinessDashboard = () => {
                   View details
                 </p>
               </div>
-              <div className="flex flex-col items-center gap-2">
-                <DollarSign className="w-6 h-6 md:w-8 md:h-8 text-green-600" />
-                <ChevronRight className="w-4 h-4 text-gray-400" />
+              <div className="flex flex-col items-center gap-1">
+                <DollarSign style={{ width: 'clamp(1.125rem, 4vw, 1.5rem)', height: 'clamp(1.125rem, 4vw, 1.5rem)' }} className="text-green-600" />
+                <ChevronRight style={{ width: 'clamp(0.875rem, 2vw, 1rem)', height: 'clamp(0.875rem, 2vw, 1rem)' }} className="text-gray-400" />
               </div>
             </div>
           </Card>

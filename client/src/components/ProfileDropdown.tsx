@@ -1,15 +1,21 @@
-import { User, LogOut, HelpCircle, FileText, Truck, List } from "lucide-react";
+import { User, LogOut, HelpCircle, FileText, Truck, List, Palette, Check } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  DropdownMenuSub,
+  DropdownMenuSubTrigger,
+  DropdownMenuSubContent,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useAuth } from "@/contexts/AuthContext";
+import { useSeasonalTheme } from "@/contexts/SeasonalThemeContext";
+import { THEME_MODE_LABELS, SEASON_EMOJI } from "@/lib/seasonalThemes";
 
 interface ProfileDropdownProps {
   onDriveAndEarn?: () => void;
@@ -18,6 +24,7 @@ interface ProfileDropdownProps {
 export const ProfileDropdown = ({ onDriveAndEarn }: ProfileDropdownProps) => {
   const { user, signOut } = useAuth();
   const [, setLocation] = useLocation();
+  const { themeMode, setThemeMode, currentSeason, activeTheme } = useSeasonalTheme();
 
   const handleSignOut = async () => {
     await signOut();
@@ -32,6 +39,9 @@ export const ProfileDropdown = ({ onDriveAndEarn }: ProfileDropdownProps) => {
     .join("")
     .toUpperCase()
     .slice(0, 2);
+  
+  const currentSeasonEmoji = SEASON_EMOJI[currentSeason];
+  const currentModeLabel = activeTheme.mode === 'dark' ? '🌙' : '☀️';
 
   return (
     <DropdownMenu>
@@ -89,6 +99,55 @@ export const ProfileDropdown = ({ onDriveAndEarn }: ProfileDropdownProps) => {
             <span>Help & Support</span>
           </DropdownMenuItem>
         </Link>
+        <DropdownMenuSeparator />
+        
+        {/* Theme Selector - Mobile Only */}
+        <DropdownMenuSub>
+          <DropdownMenuSubTrigger data-testid="menu-theme">
+            <Palette className="mr-2 h-4 w-4" />
+            <span>Theme {currentSeasonEmoji} {currentModeLabel}</span>
+          </DropdownMenuSubTrigger>
+          <DropdownMenuSubContent>
+            <DropdownMenuLabel className="text-xs text-muted-foreground">
+              Theme Settings
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              onClick={() => setThemeMode('auto-seasonal')}
+              className="cursor-pointer"
+              data-testid="theme-option-auto-seasonal"
+            >
+              <span className="flex-1">{THEME_MODE_LABELS['auto-seasonal']}</span>
+              {themeMode === 'auto-seasonal' && <Check className="h-4 w-4 ml-2" />}
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => setThemeMode('time-based')}
+              className="cursor-pointer"
+              data-testid="theme-option-time-based"
+            >
+              <span className="flex-1">{THEME_MODE_LABELS['time-based']}</span>
+              {themeMode === 'time-based' && <Check className="h-4 w-4 ml-2" />}
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              onClick={() => setThemeMode('light')}
+              className="cursor-pointer"
+              data-testid="theme-option-light"
+            >
+              <span className="flex-1">{THEME_MODE_LABELS['light']}</span>
+              {themeMode === 'light' && <Check className="h-4 w-4 ml-2" />}
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => setThemeMode('dark')}
+              className="cursor-pointer"
+              data-testid="theme-option-dark"
+            >
+              <span className="flex-1">{THEME_MODE_LABELS['dark']}</span>
+              {themeMode === 'dark' && <Check className="h-4 w-4 ml-2" />}
+            </DropdownMenuItem>
+          </DropdownMenuSubContent>
+        </DropdownMenuSub>
+        
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={handleSignOut} data-testid="menu-sign-out">
           <LogOut className="mr-2 h-4 w-4" />

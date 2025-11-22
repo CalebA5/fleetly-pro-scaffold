@@ -49,14 +49,25 @@ export const Header = ({ onSignIn, onSignUp, onDriveAndEarn }: HeaderProps) => {
   return (
     <header className="border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-14 md:h-16">
+        <div className="flex justify-between items-center" style={{ height: 'clamp(3.5rem, 10vh, 4rem)' }}>
           <Link href="/">
             <div className="flex items-center cursor-pointer hover:opacity-80 transition-opacity" data-testid="link-home-logo">
-              <Truck className="w-5 h-5 md:w-8 md:h-8 text-black dark:text-white icon-warm-glow" />
-              <span className="ml-1.5 md:ml-2 text-lg md:text-2xl font-bold text-black dark:text-white">Fleetly</span>
+              <Truck 
+                className="text-black dark:text-white icon-warm-glow" 
+                style={{ width: 'clamp(1.25rem, 3vw + 0.5rem, 2rem)', height: 'clamp(1.25rem, 3vw + 0.5rem, 2rem)' }}
+              />
+              <span 
+                className="font-bold text-black dark:text-white"
+                style={{ 
+                  marginLeft: 'clamp(0.375rem, 1vw, 0.5rem)',
+                  fontSize: 'clamp(1.125rem, 2vw + 0.75rem, 1.875rem)'
+                }}
+              >
+                Fleetly
+              </span>
             </div>
           </Link>
-          <nav className="flex items-center gap-2 md:gap-4">
+          <nav className="flex items-center gap-1.5 md:gap-4">
             {/* Notifications - Icon only with tooltip on hover */}
             <Tooltip>
               <TooltipTrigger asChild>
@@ -64,14 +75,14 @@ export const Header = ({ onSignIn, onSignUp, onDriveAndEarn }: HeaderProps) => {
                   <Button 
                     variant="ghost" 
                     size="sm"
-                    className="text-gray-700 dark:text-gray-300 relative" 
+                    className="text-gray-700 dark:text-gray-300 relative p-1.5 md:p-2" 
                     data-testid="button-notifications"
                   >
-                    <Bell className="w-4 h-4" />
+                    <Bell style={{ width: 'clamp(1rem, 2vw, 1.25rem)', height: 'clamp(1rem, 2vw, 1.25rem)' }} />
                     {activeAlertsCount > 0 && (
                       <Badge 
                         variant="destructive" 
-                        className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs"
+                        className="absolute -top-0.5 -right-0.5 h-4 w-4 flex items-center justify-center p-0 text-[10px]"
                       >
                         {activeAlertsCount > 9 ? '9+' : activeAlertsCount}
                       </Badge>
@@ -91,10 +102,10 @@ export const Header = ({ onSignIn, onSignUp, onDriveAndEarn }: HeaderProps) => {
                   <Button 
                     variant="ghost" 
                     size="sm"
-                    className="text-purple-700 dark:text-purple-400 hover:text-purple-900 dark:hover:text-purple-300" 
+                    className="text-purple-700 dark:text-purple-400 hover:text-purple-900 dark:hover:text-purple-300 p-1.5 md:p-2" 
                     data-testid="link-ai-assist"
                   >
-                    <Sparkles className="w-4 h-4" />
+                    <Sparkles style={{ width: 'clamp(1rem, 2vw, 1.25rem)', height: 'clamp(1rem, 2vw, 1.25rem)' }} />
                   </Button>
                 </Link>
               </TooltipTrigger>
