@@ -60,7 +60,7 @@ export async function getWeatherAlerts(area: string = "US"): Promise<WeatherAler
 /**
  * Check if alerts contain severe winter weather
  * @param alerts - Array of weather alerts
- * @returns Array of winter weather alerts
+ * @returns Array of winter weather alerts (only Extreme or Severe severity)
  */
 export function filterWinterWeatherAlerts(alerts: WeatherAlert[]): WeatherAlert[] {
   const winterKeywords = [
@@ -75,14 +75,16 @@ export function filterWinterWeatherAlerts(alerts: WeatherAlert[]): WeatherAlert[
 
   return alerts.filter(alert => {
     const eventLower = alert.event.toLowerCase();
-    return winterKeywords.some(keyword => eventLower.includes(keyword));
+    const matchesKeyword = winterKeywords.some(keyword => eventLower.includes(keyword));
+    const isSevereEnough = alert.severity === "Extreme" || alert.severity === "Severe";
+    return matchesKeyword && isSevereEnough;
   });
 }
 
 /**
  * Check if alerts contain severe storms
  * @param alerts - Array of weather alerts
- * @returns Array of storm alerts
+ * @returns Array of storm alerts (only Extreme or Severe severity)
  */
 export function filterStormAlerts(alerts: WeatherAlert[]): WeatherAlert[] {
   const stormKeywords = [
@@ -97,7 +99,9 @@ export function filterStormAlerts(alerts: WeatherAlert[]): WeatherAlert[] {
 
   return alerts.filter(alert => {
     const eventLower = alert.event.toLowerCase();
-    return stormKeywords.some(keyword => eventLower.includes(keyword));
+    const matchesKeyword = stormKeywords.some(keyword => eventLower.includes(keyword));
+    const isSevereEnough = alert.severity === "Extreme" || alert.severity === "Severe";
+    return matchesKeyword && isSevereEnough;
   });
 }
 

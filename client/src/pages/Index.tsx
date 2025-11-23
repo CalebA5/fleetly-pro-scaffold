@@ -523,29 +523,29 @@ const Index = () => {
             </p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
-            <Card className="p-6 md:p-8 text-center bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 hover:border-black dark:hover:border-white transition-all">
-              <div className="w-14 h-14 md:w-16 md:h-16 bg-black dark:bg-white rounded-full flex items-center justify-center mx-auto mb-4">
-                <Clock className="w-7 h-7 md:w-8 md:h-8 text-white dark:text-black" />
+            <Card className="group p-6 md:p-8 text-center bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer">
+              <div className="w-14 h-14 md:w-16 md:h-16 bg-orange-500 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-md">
+                <Clock className="w-7 h-7 md:w-8 md:h-8 text-white" />
               </div>
-              <h3 className="text-xl font-bold mb-2 text-black dark:text-white">Fast Response</h3>
+              <h3 className="text-xl font-bold mb-2 text-black dark:text-white group-hover:text-orange-500 dark:group-hover:text-orange-400 transition-colors">Fast Response</h3>
               <p className="text-gray-600 dark:text-gray-400">
                 Operators arrive quickly when you need them most. Real-time tracking included.
               </p>
             </Card>
-            <Card className="p-6 md:p-8 text-center bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 hover:border-black dark:hover:border-white transition-all">
-              <div className="w-14 h-14 md:w-16 md:h-16 bg-black dark:bg-white rounded-full flex items-center justify-center mx-auto mb-4">
-                <Shield className="w-7 h-7 md:w-8 md:h-8 text-white dark:text-black" />
+            <Card className="group p-6 md:p-8 text-center bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer">
+              <div className="w-14 h-14 md:w-16 md:h-16 bg-orange-500 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-md">
+                <Shield className="w-7 h-7 md:w-8 md:h-8 text-white" />
               </div>
-              <h3 className="text-xl font-bold mb-2 text-black dark:text-white">Verified Operators</h3>
+              <h3 className="text-xl font-bold mb-2 text-black dark:text-white group-hover:text-orange-500 dark:group-hover:text-orange-400 transition-colors">Verified Operators</h3>
               <p className="text-gray-600 dark:text-gray-400">
                 All operators are background-checked and professionally licensed for your safety.
               </p>
             </Card>
-            <Card className="p-6 md:p-8 text-center bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 hover:border-black dark:hover:border-white transition-all">
-              <div className="w-14 h-14 md:w-16 md:h-16 bg-black dark:bg-white rounded-full flex items-center justify-center mx-auto mb-4">
-                <Star className="w-7 h-7 md:w-8 md:h-8 text-white dark:text-black" />
+            <Card className="group p-6 md:p-8 text-center bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer">
+              <div className="w-14 h-14 md:w-16 md:h-16 bg-orange-500 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-md">
+                <Star className="w-7 h-7 md:w-8 md:h-8 text-white" />
               </div>
-              <h3 className="text-xl font-bold mb-2 text-black dark:text-white">Top-Rated Service</h3>
+              <h3 className="text-xl font-bold mb-2 text-black dark:text-white group-hover:text-orange-500 dark:group-hover:text-orange-400 transition-colors">Top-Rated Service</h3>
               <p className="text-gray-600 dark:text-gray-400">
                 Choose from highly-rated professionals with verified customer reviews.
               </p>

@@ -342,10 +342,19 @@ export const OperatorMap = () => {
     // Filter by distance radius if specified
     let withinRadius = true;
     if (radiusFilter !== null && userLat !== null && userLon !== null) {
-      const opLat = parseFloat(op.latitude);
-      const opLon = parseFloat(op.longitude);
-      const distance = calculateDistance(userLat, userLon, opLat, opLon);
-      withinRadius = distance <= radiusFilter;
+      // Check if operator has valid coordinates
+      if (op.latitude && op.longitude) {
+        const opLat = parseFloat(op.latitude);
+        const opLon = parseFloat(op.longitude);
+        
+        // Only filter by distance if coordinates are valid numbers
+        if (!isNaN(opLat) && !isNaN(opLon)) {
+          const distance = calculateDistance(userLat, userLon, opLat, opLon);
+          withinRadius = distance <= radiusFilter;
+        }
+        // If coordinates are invalid, still show the operator (withinRadius remains true)
+      }
+      // If operator has no location set, still show them (withinRadius remains true)
     }
     
     return matchesService && matchesFavorites && isNotSelf && withinRadius;

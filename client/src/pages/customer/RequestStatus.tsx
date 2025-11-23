@@ -22,6 +22,7 @@ import { useState } from "react";
 
 const STATUS_COLORS = {
   pending: "bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200",
+  quoted: "bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200",
   operator_pending: "bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200",
   operator_accepted: "bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200",
   operator_declined: "bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200",
@@ -31,6 +32,7 @@ const STATUS_COLORS = {
 
 const STATUS_ICONS = {
   pending: Clock,
+  quoted: DollarSign,
   operator_pending: Clock,
   operator_accepted: CheckCircle,
   operator_declined: XCircle,
@@ -64,7 +66,7 @@ export default function RequestStatus() {
 
   const groupedRequests = {
     pending: (requests || []).filter((r: any) => 
-      r.status === 'pending' || r.status === 'operator_pending' || r.status === 'operator_declined'
+      r.status === 'pending' || r.status === 'quoted' || r.status === 'operator_pending' || r.status === 'operator_declined'
     ),
     active: (requests || []).filter((r: any) => 
       r.status === 'assigned' || r.status === 'in_progress'
@@ -145,6 +147,21 @@ export default function RequestStatus() {
           <div className="text-xs md:text-sm text-gray-500 dark:text-gray-400">
             Requested {formatDistanceToNow(new Date(request.requestedAt), { addSuffix: true })}
           </div>
+
+          {/* Quote Info */}
+          {request.status === 'quoted' && request.quoteCount > 0 && (
+            <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+              <p className="font-semibold text-blue-800 dark:text-blue-200 text-sm flex items-center gap-2">
+                <DollarSign className="w-4 h-4" />
+                {request.quoteCount} {request.quoteCount === 1 ? 'Quote' : 'Quotes'} Received
+              </p>
+              {request.lastQuoteAt && (
+                <p className="text-xs text-blue-700 dark:text-blue-300 mt-1">
+                  Latest quote: {formatDistanceToNow(new Date(request.lastQuoteAt), { addSuffix: true })}
+                </p>
+              )}
+            </div>
+          )}
 
           {/* Declined Info */}
           {isDeclined && (

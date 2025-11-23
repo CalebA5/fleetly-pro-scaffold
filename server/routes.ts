@@ -2753,11 +2753,12 @@ export function registerRoutes(storage: IStorage) {
         console.error("Failed to create quote notification:", err);
       });
       
-      // Update service request quote count and last quote time
+      // Update service request quote count, last quote time, and status
       await db.update(serviceRequests)
         .set({
           quoteCount: sql`${serviceRequests.quoteCount} + 1`,
-          lastQuoteAt: new Date()
+          lastQuoteAt: new Date(),
+          status: "quoted" // Update status to show quotes have been received
         })
         .where(eq(serviceRequests.requestId, requestId));
       

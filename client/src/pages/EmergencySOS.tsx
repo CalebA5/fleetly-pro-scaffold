@@ -78,6 +78,10 @@ export default function EmergencySOS() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isGettingLocation, setIsGettingLocation] = useState(false);
   
+  const handleGoHome = () => {
+    navigate("/");
+  };
+  
   // Form state
   const [contactName, setContactName] = useState("");
   const [contactPhone, setContactPhone] = useState("");
@@ -273,29 +277,39 @@ export default function EmergencySOS() {
       {/* Header */}
       <div className="bg-gradient-to-r from-red-600 to-orange-500 dark:from-red-700 dark:to-orange-600 text-white py-6 px-4 shadow-2xl">
         <div className="max-w-4xl mx-auto">
-          <div className="flex items-center gap-4">
-            {step === "details" && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setStep("select")}
-                className="text-white hover:bg-white/20"
-                data-testid="button-back"
-              >
-                <ArrowLeft className="w-5 h-5" />
-              </Button>
-            )}
-            <div className="flex items-center gap-3">
-              <AlertCircle className="w-8 h-8 md:w-10 md:h-10 animate-pulse" />
-              <div>
-                <h1 className="text-2xl md:text-3xl font-black tracking-tight">
-                  EMERGENCY HELP
-                </h1>
-                <p className="text-white/90 text-sm md:text-base">
-                  {step === "select" ? "Select your emergency type" : "Provide contact details"}
-                </p>
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              {step === "details" && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setStep("select")}
+                  className="text-white hover:bg-white/20"
+                  data-testid="button-back"
+                >
+                  <ArrowLeft className="w-5 h-5" />
+                </Button>
+              )}
+              <div className="flex items-center gap-3">
+                <AlertCircle className="w-8 h-8 md:w-10 md:h-10 animate-pulse" />
+                <div>
+                  <h1 className="text-2xl md:text-3xl font-black tracking-tight">
+                    EMERGENCY HELP
+                  </h1>
+                  <p className="text-white/90 text-sm md:text-base">
+                    {step === "select" ? "Select your emergency type" : "Provide contact details"}
+                  </p>
+                </div>
               </div>
             </div>
+            <Button
+              variant="ghost"
+              onClick={handleGoHome}
+              className="text-white hover:bg-white/20 transition-colors"
+              data-testid="button-go-home"
+            >
+              Go to Homepage
+            </Button>
           </div>
         </div>
       </div>
