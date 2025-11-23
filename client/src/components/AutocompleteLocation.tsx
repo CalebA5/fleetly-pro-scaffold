@@ -6,6 +6,7 @@ interface AutocompleteLocationProps {
   value: string;
   onChange: (value: string) => void;
   onSelectLocation: (result: GeocodingResult) => void;
+  onClear?: () => void;
   placeholder?: string;
   disabled?: boolean;
   testId?: string;
@@ -17,6 +18,7 @@ export const AutocompleteLocation = ({
   value,
   onChange,
   onSelectLocation,
+  onClear,
   placeholder = "Enter location",
   disabled = false,
   testId = "input-location",
@@ -26,6 +28,7 @@ export const AutocompleteLocation = ({
   const [open, setOpen] = useState(false);
   const [suggestions, setSuggestions] = useState<GeocodingResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
+  const [hasClicked, setHasClicked] = useState(false); // Track if user has clicked the input
   const debounceTimer = useRef<NodeJS.Timeout | null>(null);
   const abortController = useRef<AbortController | null>(null);
   const activeController = useRef<AbortController | null>(null);
@@ -37,6 +40,11 @@ export const AutocompleteLocation = ({
     // Skip search if we just selected an item
     if (justSelected.current) {
       justSelected.current = false;
+      return;
+    }
+
+    // Only search if user has clicked the input
+    if (!hasClicked) {
       return;
     }
 
@@ -139,12 +147,15 @@ export const AutocompleteLocation = ({
     onSelectLocation(result);
     setOpen(false);
     setSuggestions([]);
+    setHasClicked(false); // Reset so dropdown won't show until clicked again
   };
 
   const handleClear = () => {
     onChange("");
     setSuggestions([]);
     setOpen(false);
+    setHasClicked(false); // Reset so dropdown won't show until clicked again
+    onClear?.(); // Call parent's clear handler if provided
   };
 
   return (
@@ -158,7 +169,14 @@ export const AutocompleteLocation = ({
         autoComplete="off"
         className="flex h-10 w-full rounded-lg border-0 bg-gray-50 dark:bg-gray-700 px-3 py-2 text-base pr-16 placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-black dark:focus:ring-white disabled:cursor-not-allowed disabled:opacity-50 transition-all"
         data-testid={testId}
+        onClick={() => {
+          setHasClicked(true);
+          if (suggestions.length > 0) {
+            setOpen(true);
+          }
+        }}
         onFocus={() => {
+          setHasClicked(true);
           if (suggestions.length > 0) {
             setOpen(true);
           }

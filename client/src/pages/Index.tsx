@@ -283,21 +283,30 @@ const Index = () => {
         }
       },
       (error) => {
-        console.log("Location access denied or unavailable");
+        console.log("Location access error:", error.code, error.message);
         setLoadingLocation(false);
         
-        let errorMessage = "Please allow location access to use this feature.";
-        if (error.code === error.TIMEOUT) {
-          errorMessage = "Location request timed out. Please try again.";
+        // If permission denied, show the location permission modal
+        if (error.code === error.PERMISSION_DENIED) {
+          setShowLocationPermission(true);
+          toast({
+            title: "Location access required",
+            description: "Please allow location access to use your current location.",
+            variant: "default",
+          });
+        } else if (error.code === error.TIMEOUT) {
+          toast({
+            title: "Location timeout",
+            description: "Location request timed out. Please try again.",
+            variant: "destructive",
+          });
         } else if (error.code === error.POSITION_UNAVAILABLE) {
-          errorMessage = "Location information is unavailable.";
+          toast({
+            title: "Location unavailable",
+            description: "Your location is currently unavailable. Please try entering your address manually.",
+            variant: "destructive",
+          });
         }
-        
-        toast({
-          title: "Location access denied",
-          description: errorMessage,
-          variant: "destructive",
-        });
       },
       {
         enableHighAccuracy: true, // Always get the most accurate location
@@ -376,23 +385,13 @@ const Index = () => {
                         value={pickup}
                         onChange={setPickup}
                         onSelectLocation={handleLocationSelect}
+                        onClear={handleClearLocation}
                         onIconClick={handleUseCurrentLocation}
                         placeholder={loadingLocation ? "Detecting your location..." : "Enter pickup location"}
                         disabled={loadingLocation}
                         testId="input-pickup-location"
                         icon={!loadingLocation}
                       />
-                      {/* Clear button - only show when there's text */}
-                      {pickup && !loadingLocation && (
-                        <button
-                          onClick={handleClearLocation}
-                          className="absolute right-10 top-1/2 -translate-y-1/2 p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
-                          data-testid="button-clear-location"
-                          aria-label="Clear location"
-                        >
-                          <X className="w-4 h-4 text-gray-500 dark:text-gray-400" />
-                        </button>
-                      )}
                     </div>
                   </div>
                   <div className="h-px bg-gray-200 dark:bg-gray-700 ml-6"></div>
