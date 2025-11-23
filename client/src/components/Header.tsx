@@ -10,8 +10,6 @@ import { NotificationBell } from "@/components/NotificationBell";
 import { useAuth } from "@/contexts/AuthContext";
 import { Truck, Sparkles } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { cn } from "@/lib/utils";
-import { useState, useEffect, useRef } from "react";
 
 interface HeaderProps {
   onSignIn?: () => void;
@@ -23,27 +21,6 @@ export const Header = ({ onSignIn, onSignUp, onDriveAndEarn }: HeaderProps) => {
   const { isAuthenticated, user } = useAuth();
   const [location, setLocation] = useLocation();
   const { toast } = useToast();
-  const [isVisible, setIsVisible] = useState(true);
-  const lastScrollY = useRef(0);
-
-  // Auto-hide on mobile when scrolling
-  useEffect(() => {
-    const handleScroll = () => {
-      const currentScrollY = window.scrollY;
-      
-      // Show header when scrolling up, hide when scrolling down (mobile only)
-      if (currentScrollY < lastScrollY.current || currentScrollY < 50) {
-        setIsVisible(true);
-      } else if (currentScrollY > lastScrollY.current && currentScrollY > 100) {
-        setIsVisible(false);
-      }
-      
-      lastScrollY.current = currentScrollY;
-    };
-
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
 
   // Fetch severe weather alerts count for badge
   const { data: alerts = [] } = useQuery<Array<{ status: string }>>({
@@ -71,11 +48,7 @@ export const Header = ({ onSignIn, onSignUp, onDriveAndEarn }: HeaderProps) => {
   };
 
   return (
-    <header className={cn(
-      "border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 sticky top-0 z-50 transition-transform duration-300",
-      "lg:translate-y-0", // Always visible on desktop
-      isVisible ? "translate-y-0" : "-translate-y-full" // Auto-hide on mobile
-    )}>
+    <header className="border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center" style={{ height: 'clamp(3.5rem, 10vh, 4rem)' }}>
           <Link href="/">

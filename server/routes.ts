@@ -704,13 +704,23 @@ export function registerRoutes(storage: IStorage) {
       const customerId = req.query.customerId as string | undefined;
       
       // CRITICAL SECURITY: Enforce authentication and customer ownership
-      if (!req.session?.userId) {
+      const userId = req.sessionData?.userId || req.session?.userId;
+      if (!userId) {
         return res.status(401).json({ error: "Unauthorized - no session" });
       }
       
-      // Get the logged-in user's customer record
+      // Get the user record to find their email
+      const user = await db.query.users.findFirst({
+        where: eq(users.userId, userId)
+      });
+      
+      if (!user) {
+        return res.status(401).json({ error: "User not found" });
+      }
+      
+      // Get the logged-in user's customer record by email
       const userCustomer = await db.query.customers.findFirst({
-        where: eq(customers.userId, req.session.userId)
+        where: eq(customers.email, user.email)
       });
       
       // If customerId is provided, verify it matches the logged-in customer
