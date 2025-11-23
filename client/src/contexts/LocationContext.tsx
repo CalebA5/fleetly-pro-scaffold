@@ -1,10 +1,22 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 
+// Constants for localStorage keys
+export const LOCATION_STORAGE_KEYS = {
+  GRANTED: 'fleetly_location_granted',
+  PROMPTED: 'fleetly_location_prompted',
+  LOCATION: 'userLocation',
+  FORMATTED_ADDRESS: 'userFormattedAddress',
+  CITY_STATE: 'userCityState',
+} as const;
+
 interface LocationContextType {
   location: GeolocationPosition | null;
   locationError: string | null;
   permissionStatus: "prompt" | "granted" | "denied" | "unavailable" | null;
   requestLocation: () => Promise<void>;
+  refreshLocation: () => Promise<void>;
+  markPrompted: () => void;
+  markPermission: (granted: boolean) => void;
   cityState: string | null;
   formattedAddress: string | null;
   setFormattedAddress: (address: string, lat?: number, lon?: number) => void;
@@ -215,6 +227,85 @@ export function LocationProvider({ children }: { children: ReactNode }) {
     getCurrentLocation();
   };
 
+  // New centralized method to refresh location - called by icon and modal
+  const refreshLocation = async (): Promise<void> => {
+    if (!("geolocation" in navigator)) {
+      setLocationError("Geolocation is not supported by your browser");
+      setPermissionStatus("unavailable");
+      throw new Error("Geolocation not supported");
+    }
+
+    return new Promise((resolve, reject) => {
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          setLocation(position);
+          setLocationError(null);
+          setPermissionStatus("granted");
+          
+          // Store in localStorage
+          localStorage.setItem(LOCATION_STORAGE_KEYS.LOCATION, JSON.stringify({
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+            timestamp: position.timestamp
+          }));
+          
+          // Get formatted address via reverse geocoding
+          try {
+            const address = await reverseGeocode(position.coords.latitude, position.coords.longitude);
+            if (address) {
+              // Update formatted address in state and localStorage
+              setFormattedAddressState(address);
+              localStorage.setItem(LOCATION_STORAGE_KEYS.FORMATTED_ADDRESS, address);
+            }
+          } catch (error) {
+            console.error("Reverse geocoding error:", error);
+            // Use coordinates as fallback
+            const coordAddr = `${position.coords.latitude.toFixed(6)}, ${position.coords.longitude.toFixed(6)}`;
+            setFormattedAddressState(coordAddr);
+            localStorage.setItem(LOCATION_STORAGE_KEYS.FORMATTED_ADDRESS, coordAddr);
+          }
+          
+          resolve();
+        },
+        (error) => {
+          console.error("Location error:", error.code, error.message);
+          
+          // Only mark as denied if permission was actually denied
+          if (error.code === error.PERMISSION_DENIED) {
+            setLocationError("Location access denied");
+            setPermissionStatus("denied");
+            localStorage.setItem(LOCATION_STORAGE_KEYS.GRANTED, 'false');
+            reject(new Error("PERMISSION_DENIED"));
+          } else if (error.code === error.TIMEOUT) {
+            setLocationError("Location request timed out");
+            reject(new Error("TIMEOUT"));
+          } else if (error.code === error.POSITION_UNAVAILABLE) {
+            setLocationError("Location is currently unavailable");
+            reject(new Error("POSITION_UNAVAILABLE"));
+          } else {
+            setLocationError(error.message);
+            reject(error);
+          }
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 0
+        }
+      );
+    });
+  };
+
+  // Mark that user has been prompted
+  const markPrompted = () => {
+    localStorage.setItem(LOCATION_STORAGE_KEYS.PROMPTED, 'true');
+  };
+
+  // Mark permission status
+  const markPermission = (granted: boolean) => {
+    localStorage.setItem(LOCATION_STORAGE_KEYS.GRANTED, granted ? 'true' : 'false');
+  };
+
   return (
     <LocationContext.Provider 
       value={{ 
@@ -222,6 +313,9 @@ export function LocationProvider({ children }: { children: ReactNode }) {
         locationError, 
         permissionStatus, 
         requestLocation,
+        refreshLocation,
+        markPrompted,
+        markPermission,
         cityState,
         formattedAddress,
         setFormattedAddress
