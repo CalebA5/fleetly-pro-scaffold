@@ -50,7 +50,6 @@ export default function ManualOperatorDashboard() {
   
   // ALL MOCK DATA REMOVED - Dashboard is now 100% dynamic
   // Requests come from database via /api/service-requests/for-operator endpoint
-  const [allRequests, setAllRequests] = useState<UrgentRequest[]>([]);
 
   // Customer groups - empty by default, would come from backend when implemented
   const mockCustomerGroups: CustomerGroup[] = [];
@@ -102,9 +101,9 @@ export default function ManualOperatorDashboard() {
     enabled: !!operatorId,
   });
 
-  // Calculate accurate statistics
+  // Calculate accurate statistics using fetched data
   const acceptedJobIds = acceptedJobsData.map(j => (j.jobData as any).id || j.jobSourceId);
-  const availableRequestsCount = allRequests.filter(r => !acceptedJobIds.includes(r.id)).length;
+  const availableRequestsCount = nearbySnowRequests.filter(r => !acceptedJobIds.includes(r.id)).length;
   const acceptedJobsCount = acceptedJobsData.length;
   const totalJobsNearby = availableRequestsCount + acceptedJobsCount;
   
@@ -236,7 +235,7 @@ export default function ManualOperatorDashboard() {
   // Request handlers - for both urgent and regular requests
   const acceptRequestMutation = useMutation({
     mutationFn: async (requestId: string) => {
-      const request = allRequests.find(r => r.id === requestId);
+      const request = nearbySnowRequests.find(r => r.id === requestId);
       if (!request) throw new Error("Request not found");
 
       return await apiRequest("/api/accepted-jobs", {
@@ -253,7 +252,7 @@ export default function ManualOperatorDashboard() {
     },
     onSuccess: (data, requestId) => {
       queryClient.invalidateQueries({ queryKey: ["/api/accepted-jobs"] });
-      const request = allRequests.find(r => r.id === requestId);
+      const request = nearbySnowRequests.find(r => r.id === requestId);
       toast({
         title: request?.isEmergency ? "Emergency Request Accepted!" : "Request Accepted!",
         description: "Job added to your Jobs list. Click to view details.",
@@ -283,7 +282,8 @@ export default function ManualOperatorDashboard() {
   };
 
   const handleDeclineRequest = (requestId: string) => {
-    setAllRequests(prev => prev.filter(r => r.id !== requestId));
+    // Decline request - query will automatically refetch and remove it from the list
+    queryClient.invalidateQueries({ queryKey: [`/api/service-requests/for-operator/${operatorId}`] });
     toast({
       title: "Request Declined",
       description: "The job has been offered to another operator.",
@@ -612,9 +612,9 @@ export default function ManualOperatorDashboard() {
               </CardHeader>
               <CollapsibleContent>
                 <CardContent>
-                  {allRequests.filter(r => !acceptedJobIds.includes(r.id)).length > 0 ? (
+                  {nearbySnowRequests.filter(r => !acceptedJobIds.includes(r.id)).length > 0 ? (
                     <div className="space-y-3">
-                      {allRequests.filter(r => !acceptedJobIds.includes(r.id)).map((request) => (
+                      {nearbySnowRequests.filter(r => !acceptedJobIds.includes(r.id)).map((request) => (
                         <div
                           key={request.id}
                           className={`border-2 rounded-lg p-4 ${
