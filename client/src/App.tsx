@@ -32,10 +32,9 @@ import { OperatorGuide } from "./pages/OperatorGuide";
 import { CommunityForum } from "./pages/CommunityForum";
 import { BlogUpdates } from "./pages/BlogUpdates";
 import { Profile } from "./pages/Profile";
-import { Notifications } from "./pages/WeatherAlerts";
+import { default as Notifications } from "./pages/Notifications";
 import EmergencySOS from "./pages/EmergencySOS";
 import EmergencyTracking from "./pages/EmergencyTracking";
-import TestOperatorTiles from "./pages/TestOperatorTiles";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import { SignIn } from "./pages/SignIn";
@@ -61,7 +60,6 @@ const App = () => (
               <Route path="/signup" component={SignUp} />
               <Route path="/emergency-sos" component={EmergencySOS} />
               <Route path="/emergency-tracking/:emergencyId" component={EmergencyTracking} />
-              <Route path="/test-operator-tiles" component={TestOperatorTiles} />
               <Route path="/help" component={HelpSupport} />
               <Route path="/user-guide" component={UserGuide} />
               <Route path="/operator-guide" component={OperatorGuide} />

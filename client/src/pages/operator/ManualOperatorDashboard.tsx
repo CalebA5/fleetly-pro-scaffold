@@ -20,6 +20,7 @@ import type { UrgentRequest } from "@/components/operator/UrgentRequestNotificat
 import { QuoteModal } from "@/components/operator/QuoteModal";
 import { RequestDetailsModal } from "@/components/operator/RequestDetailsModal";
 import { DeclineReasonModal } from "@/components/operator/DeclineReasonModal";
+import { JobProgressModal } from "@/components/operator/JobProgressModal";
 
 interface ServiceRequest {
   id: number;
@@ -47,6 +48,7 @@ export default function ManualOperatorDashboard() {
   const [requestDetailsOpen, setRequestDetailsOpen] = useState(false);
   const [declineModalOpen, setDeclineModalOpen] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState<any>(null);
+  const [selectedJob, setSelectedJob] = useState<AcceptedJob | null>(null);
   
   // ALL MOCK DATA REMOVED - Dashboard is now 100% dynamic
   // Requests come from database via /api/service-requests/for-operator endpoint
@@ -199,6 +201,33 @@ export default function ManualOperatorDashboard() {
     toggleOnlineMutation.mutate({ goOnline: true, confirmed: true });
     setTierSwitchInfo(null);
   };
+
+  // Start job mutation
+  const startJobMutation = useMutation({
+    mutationFn: async (acceptedJobId: string) => {
+      return apiRequest(`/api/accepted-jobs/${acceptedJobId}/start`, {
+        method: "PATCH",
+        body: JSON.stringify({ operatorId })
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/accepted-jobs'] });
+      queryClient.invalidateQueries({ queryKey: [`/api/service-requests/for-operator/${operatorId}`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/operators/by-id/${operatorId}`] });
+      queryClient.invalidateQueries({ queryKey: ['/api/customer-jobs'] });
+      toast({
+        title: "Job Started!",
+        description: "You can now track your progress on this job"
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to start job",
+        variant: "destructive"
+      });
+    }
+  });
 
   // Old handler removed - now using acceptRequestMutation
 
@@ -788,13 +817,24 @@ export default function ManualOperatorDashboard() {
                             </div>
                           </div>
                           <div className="flex gap-2">
-                            <Button
-                              onClick={() => setLocation(`/operator/jobs/${acceptedJob.acceptedJobId}`)}
-                              className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
-                              data-testid={`button-view-job-${acceptedJob.acceptedJobId}`}
-                            >
-                              View Details
-                            </Button>
+                            {acceptedJob.status === "accepted" ? (
+                              <Button
+                                onClick={() => startJobMutation.mutate(acceptedJob.acceptedJobId)}
+                                disabled={startJobMutation.isPending}
+                                className="flex-1 bg-green-600 hover:bg-green-700 text-white"
+                                data-testid={`button-start-job-${acceptedJob.acceptedJobId}`}
+                              >
+                                {startJobMutation.isPending ? "Starting..." : "Start Job"}
+                              </Button>
+                            ) : (
+                              <Button
+                                onClick={() => setSelectedJob(acceptedJob)}
+                                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
+                                data-testid={`button-track-progress-${acceptedJob.acceptedJobId}`}
+                              >
+                                Track Progress
+                              </Button>
+                            )}
                           </div>
                         </div>
                       );
@@ -864,6 +904,13 @@ export default function ManualOperatorDashboard() {
           tier="manual"
         />
       )}
+      
+      {/* Job Progress Modal */}
+      <JobProgressModal
+        job={selectedJob}
+        operatorId={operatorId}
+        onClose={() => setSelectedJob(null)}
+      />
 
       <MobileBottomNav />
     </div>

@@ -1,4 +1,4 @@
-import { Bell } from "lucide-react";
+import { Bell, CloudSnow, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Popover,
@@ -9,11 +9,50 @@ import { useNotifications } from "@/hooks/useNotifications";
 import { formatDistanceToNow } from "date-fns";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
-import { useLocation } from "wouter";
+import { Badge } from "@/components/ui/badge";
+import { useLocation as useWouterLocation } from "wouter";
+import { useQuery } from "@tanstack/react-query";
+import { useUserLocation } from "@/contexts/LocationContext";
 
 export function NotificationBell() {
   const { unreadNotifications, unreadCount, markAsRead } = useNotifications();
-  const [, setLocation] = useLocation();
+  const [, setLocation] = useWouterLocation();
+  const { location: userLocation } = useUserLocation();
+  
+  // Fetch weather alerts for user's location
+  const { data: weatherAlerts = [] } = useQuery<any[]>({
+    queryKey: ['/api/weather/alerts/severe'],
+    refetchInterval: 5 * 60 * 1000, // Refetch every 5 minutes
+  });
+  
+  // Filter weather alerts by user's location (within 50km radius)
+  const localWeatherAlerts = weatherAlerts.filter((alert) => {
+    // Skip alerts without valid coordinates
+    if (!alert.latitude || !alert.longitude) return false;
+    
+    // If no user location, don't show any location-based alerts
+    if (!userLocation) return false;
+    
+    const userLat = userLocation.coords.latitude;
+    const userLon = userLocation.coords.longitude;
+    const alertLat = parseFloat(alert.latitude);
+    const alertLon = parseFloat(alert.longitude);
+    
+    // Haversine distance calculation
+    const R = 6371; // Earth's radius in km
+    const dLat = (alertLat - userLat) * Math.PI / 180;
+    const dLon = (alertLon - userLon) * Math.PI / 180;
+    const a = 
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(userLat * Math.PI / 180) * Math.cos(alertLat * Math.PI / 180) *
+      Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    const distance = R * c;
+    
+    return distance <= 50; // Within 50km
+  });
+  
+  const totalUnreadCount = unreadCount + localWeatherAlerts.length;
 
   const handleNotificationClick = (notification: any) => {
     // Mark as read
@@ -46,28 +85,28 @@ export function NotificationBell() {
           data-testid="button-notifications"
         >
           <Bell className="h-5 w-5" />
-          {unreadCount > 0 && (
+          {totalUnreadCount > 0 && (
             <span
               className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-orange-500 text-white text-xs flex items-center justify-center font-semibold"
               data-testid="badge-unread-count"
             >
-              {unreadCount > 9 ? "9+" : unreadCount}
+              {totalUnreadCount > 9 ? "9+" : totalUnreadCount}
             </span>
           )}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-80 p-0" align="end" data-testid="popover-notifications">
+      <PopoverContent className="w-96 p-0" align="end" data-testid="popover-notifications">
         <div className="flex items-center justify-between p-4 border-b">
-          <h3 className="font-semibold text-sm">Notifications</h3>
-          {unreadCount > 0 && (
-            <span className="text-xs text-muted-foreground">
-              {unreadCount} unread
-            </span>
+          <h3 className="font-semibold">Notifications & Alerts</h3>
+          {totalUnreadCount > 0 && (
+            <Badge variant="secondary" className="text-xs">
+              {totalUnreadCount} new
+            </Badge>
           )}
         </div>
 
-        <ScrollArea className="h-[400px]">
-          {unreadNotifications.length === 0 ? (
+        <ScrollArea className="h-[450px]">
+          {unreadNotifications.length === 0 && localWeatherAlerts.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center px-4">
               <Bell className="h-12 w-12 text-muted-foreground/50 mb-3" />
               <p className="text-sm text-muted-foreground font-medium">
@@ -79,6 +118,53 @@ export function NotificationBell() {
             </div>
           ) : (
             <div className="divide-y">
+              {/* Weather Alerts Section */}
+              {localWeatherAlerts.length > 0 && (
+                <>
+                  {localWeatherAlerts.map((alert) => (
+                    <div
+                      key={alert.id}
+                      className="p-4 bg-gradient-to-r from-red-50 to-orange-50 dark:from-red-950/20 dark:to-orange-950/20 border-l-4 border-red-500"
+                      data-testid={`weather-alert-${alert.id}`}
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className="p-2 rounded-full bg-red-100 dark:bg-red-900/50">
+                          {alert.event?.includes('Winter') || alert.event?.includes('Snow') ? (
+                            <CloudSnow className="w-4 h-4 text-red-600 dark:text-red-400" />
+                          ) : (
+                            <AlertTriangle className="w-4 h-4 text-red-600 dark:text-red-400" />
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <p className="font-semibold text-sm text-red-900 dark:text-red-100">
+                              {alert.event}
+                            </p>
+                            <Badge variant="destructive" className="text-xs">
+                              {alert.severity}
+                            </Badge>
+                          </div>
+                          <p className="text-xs text-red-700 dark:text-red-300 line-clamp-2 mb-2">
+                            {alert.headline}
+                          </p>
+                          <div className="flex items-center gap-2 text-xs text-red-600 dark:text-red-400">
+                            <span>{alert.areaDesc}</span>
+                            {alert.expires && (
+                              <>
+                                <span>•</span>
+                                <span>Expires {formatDistanceToNow(new Date(alert.expires), { addSuffix: true })}</span>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  {unreadNotifications.length > 0 && <Separator />}
+                </>
+              )}
+
+              {/* Regular Notifications */}
               {unreadNotifications.map((notification) => (
                 <button
                   key={notification.notificationId}
@@ -108,7 +194,7 @@ export function NotificationBell() {
           )}
         </ScrollArea>
 
-        {unreadNotifications.length > 0 && (
+        {totalUnreadCount > 0 && (
           <>
             <Separator />
             <div className="p-2">

@@ -17,9 +17,10 @@ export const JobTracking = () => {
   const requestId = new URLSearchParams(window.location.search).get("requestId");
   
   // Fetch accepted job for this request
+  const customerId = user?.customerId || user?.id;
   const { data: jobs, isLoading: jobsLoading } = useQuery<any[]>({
-    queryKey: ["/api/customer-jobs", user?.customerId],
-    enabled: !!user?.customerId,
+    queryKey: ["/api/customer-jobs", customerId],
+    enabled: !!customerId,
     refetchInterval: 5000, // Poll every 5 seconds for live updates
   });
   
