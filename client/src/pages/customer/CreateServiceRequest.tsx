@@ -13,7 +13,7 @@ import { Header } from "@/components/Header";
 import { AuthDialog } from "@/components/AuthDialog";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { 
   Upload, 
   X, 
@@ -98,11 +98,14 @@ export const CreateServiceRequest = () => {
       });
     },
     onSuccess: (data) => {
+      // Invalidate and refetch service requests cache
+      queryClient.invalidateQueries({ queryKey: ['/api/service-requests'] });
+      
       toast({
         title: "Request Submitted!",
         description: "Your service request has been sent to nearby operators.",
       });
-      setLocation(`/customer/service-request?requestId=${data.id}`);
+      setLocation(`/customer/request-status`);
     },
     onError: () => {
       toast({

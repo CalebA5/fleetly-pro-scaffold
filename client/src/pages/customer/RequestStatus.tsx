@@ -43,20 +43,12 @@ export default function RequestStatus() {
   const [selectedTab, setSelectedTab] = useState("all");
 
   // CRITICAL: Fetch only THIS customer's requests using server-side filtering
-  // FIX: Use user.id instead of user.customerId (which doesn't exist)
-  const { data: requests, isLoading } = useQuery({
-    queryKey: ['/api/service-requests', 'customer', user?.id],
-    queryFn: async () => {
-      if (!user?.id) {
-        throw new Error("No customer ID");
-      }
-      const response = await fetch(`/api/service-requests?customerId=${user.id}`);
-      if (!response.ok) {
-        throw new Error("Failed to fetch requests");
-      }
-      return response.json();
-    },
-    enabled: !!user?.id
+  // Use default queryFn which properly handles credentials and auth
+  const { data: requests, isLoading, error } = useQuery<any[]>({
+    queryKey: [`/api/service-requests?customerId=${user?.id || ''}`, 'customer', user?.id],
+    enabled: !!user?.id,
+    retry: 1,
+    retryDelay: 500,
   });
 
   if (!user) {
