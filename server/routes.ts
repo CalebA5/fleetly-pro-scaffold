@@ -3488,8 +3488,8 @@ export function registerRoutes(storage: IStorage) {
   // Get notifications for authenticated user
   router.get("/api/notifications", async (req, res) => {
     try {
-      // @ts-ignore - session is set by middleware
-      const userId = req.session?.userId;
+      // Check both session sources for compatibility
+      const userId = req.sessionData?.userId || req.session?.userId;
       if (!userId) {
         return res.status(401).json({ message: "Not authenticated" });
       }
@@ -3517,8 +3517,8 @@ export function registerRoutes(storage: IStorage) {
   // Mark notification as read (requires ownership)
   router.patch("/api/notifications/:notificationId/read", async (req, res) => {
     try {
-      // @ts-ignore - session is set by middleware
-      const userId = req.session?.userId;
+      // Check both session sources for compatibility
+      const userId = req.sessionData?.userId || req.session?.userId;
       if (!userId) {
         return res.status(401).json({ message: "Not authenticated" });
       }
@@ -3552,8 +3552,8 @@ export function registerRoutes(storage: IStorage) {
   // Get unread notification count for authenticated user
   router.get("/api/notifications/count", async (req, res) => {
     try {
-      // @ts-ignore - session is set by middleware
-      const userId = req.session?.userId;
+      // Check both session sources for compatibility
+      const userId = req.sessionData?.userId || req.session?.userId;
       if (!userId) {
         return res.status(401).json({ message: "Not authenticated" });
       }

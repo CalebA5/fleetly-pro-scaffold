@@ -1,4 +1,6 @@
 import express, { type Request, Response, NextFunction } from "express";
+import session from "express-session";
+import connectPgSimple from "connect-pg-simple";
 import cookieParser from "cookie-parser";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic } from "./vite";
@@ -8,13 +10,21 @@ import authRouter from "./auth";
 import { startWeatherSyncJob } from "./jobs/weatherSync";
 import { db } from "./db";
 import { sessions } from "@shared/schema";
-import { eq, gt } from "drizzle-orm";
+import { eq } from "drizzle-orm";
+import pg from "pg";
 
-// Extend Express Request to include session
+// Extend Express Session to include userId
+declare module "express-session" {
+  interface SessionData {
+    userId: string;
+  }
+}
+
+// Extend Express Request to include custom session for our auth flow
 declare global {
   namespace Express {
     interface Request {
-      session?: {
+      sessionData?: {
         userId: string;
         sessionId: string;
       };
@@ -27,23 +37,29 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 
-// Session middleware - populates req.session from database
+// Custom session middleware that reads from our custom sessions table
+// This maintains compatibility with existing auth system
 app.use(async (req, res, next) => {
   const sessionId = req.cookies.sessionId;
   
   if (sessionId) {
     try {
-      // Query session from database
       const session = await db.query.sessions.findFirst({
         where: eq(sessions.sessionId, sessionId),
       });
       
-      // Check if session exists and hasn't expired
       if (session && new Date(session.expiresAt) > new Date()) {
-        req.session = {
+        // Populate both req.session (for express-session compatibility)
+        // and req.sessionData (for our existing auth checks)
+        req.sessionData = {
           userId: session.userId,
           sessionId: session.sessionId,
         };
+        
+        // Also set on req.session for notification endpoints
+        if (req.session) {
+          req.session.userId = session.userId;
+        }
       }
     } catch (error) {
       console.error("Session lookup error:", error);
