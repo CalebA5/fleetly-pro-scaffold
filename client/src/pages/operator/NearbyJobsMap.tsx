@@ -20,15 +20,29 @@ import { useToast } from "@/hooks/use-toast";
 interface ServiceRequest {
   id: number;
   requestId: string;
+  customerId: string;
   customerName: string;
   serviceType: string;
   location: string;
   description: string;
   isEmergency: number;
-  budgetRange: string;
-  latitude?: number;
-  longitude?: number;
+  budgetRange?: string | null;
+  latitude?: string | number | null;
+  longitude?: string | number | null;
   distance?: number;
+  status?: string;
+  requestedAt: string;
+  respondedAt?: string | null;
+  preferredDate?: string | null;
+  preferredTime?: string | null;
+  timeFlexibility?: string | null;
+  urgencyLevel?: string | null;
+  imageCount?: number;
+  estimatedCost?: string | null;
+  operatorId?: string | null;
+  operatorName?: string | null;
+  details?: any;
+  quoteWindowExpiresAt?: string | null;
 }
 
 export default function NearbyJobsMap() {
@@ -412,6 +426,16 @@ export default function NearbyJobsMap() {
                           {job.description}
                         </p>
                       )}
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={(e) => handleViewDetails(job, e)}
+                        className="w-full mt-3"
+                        data-testid={`button-view-details-list-${job.id}`}
+                      >
+                        <Eye className="w-4 h-4 mr-1" />
+                        View Full Details
+                      </Button>
                     </CardContent>
                   </Card>
                 ))
@@ -482,6 +506,16 @@ export default function NearbyJobsMap() {
                         </span>
                       )}
                     </div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={(e) => handleViewDetails(job, e)}
+                      className="w-full mt-2"
+                      data-testid={`button-view-details-${job.id}`}
+                    >
+                      <Eye className="w-3 h-3 mr-1" />
+                      View Details
+                    </Button>
                   </CardContent>
                 </Card>
               ))
@@ -558,6 +592,16 @@ export default function NearbyJobsMap() {
                             {job.description}
                           </p>
                         )}
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={(e) => handleViewDetails(job, e)}
+                          className="w-full mt-3"
+                          data-testid={`button-view-details-mobile-${job.id}`}
+                        >
+                          <Eye className="w-4 h-4 mr-1" />
+                          View Full Details
+                        </Button>
                       </CardContent>
                     </Card>
                   ))
@@ -569,6 +613,29 @@ export default function NearbyJobsMap() {
       </div>
 
       {!isFullscreen && <MobileBottomNav />}
+
+      {/* Request Details Modal */}
+      {requestForDetails && (
+        <RequestDetailsModal
+          open={showDetailsModal}
+          onOpenChange={setShowDetailsModal}
+          request={requestForDetails}
+          onQuote={handleQuote}
+          onDecline={handleDecline}
+        />
+      )}
+
+      {/* Quote Modal */}
+      {requestForDetails && operatorId && (
+        <QuoteModal
+          open={showQuoteModal}
+          onOpenChange={setShowQuoteModal}
+          serviceRequest={requestForDetails}
+          operatorId={operatorId}
+          operatorName={user?.name || ""}
+          tier={currentTier}
+        />
+      )}
     </div>
   );
 }

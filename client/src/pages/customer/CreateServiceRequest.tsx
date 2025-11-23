@@ -98,8 +98,13 @@ export const CreateServiceRequest = () => {
       });
     },
     onSuccess: (data) => {
-      // Invalidate and refetch service requests cache
+      // Invalidate ALL service request queries so operators see new requests in real-time
       queryClient.invalidateQueries({ queryKey: ['/api/service-requests'] });
+      // This catches all operator-specific queries like /api/service-requests/for-operator/:operatorId
+      queryClient.invalidateQueries({ 
+        predicate: (query) => 
+          query.queryKey[0]?.toString().startsWith('/api/service-requests/for-operator') || false
+      });
       
       toast({
         title: "Request Submitted!",
