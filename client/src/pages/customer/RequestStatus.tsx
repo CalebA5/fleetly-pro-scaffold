@@ -1,9 +1,10 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Separator } from "@/components/ui/separator";
 import { useLocation } from "wouter";
 import { 
   Clock, 
@@ -15,11 +16,15 @@ import {
   User,
   Search,
   Eye,
-  Truck
+  Truck,
+  ChevronDown,
+  ChevronUp
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { useState } from "react";
 import { JobDetailModal } from "@/components/customer/JobDetailModal";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
 const STATUS_COLORS = {
   pending: "bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200",
@@ -78,11 +83,69 @@ export default function RequestStatus() {
   };
 
   const RequestCard = ({ request }: { request: any }) => {
+    const { toast } = useToast();
+    const [showQuotes, setShowQuotes] = useState(false);
     const StatusIcon = STATUS_ICONS[request.status as keyof typeof STATUS_ICONS] || Clock;
     const isDeclined = request.status === 'operator_declined';
     // FIX: Check if job is trackable (assigned/in_progress with OR without selectedQuoteId)
     // Some jobs may be assigned without going through quote flow
     const isAssigned = request.status === 'assigned' || request.status === 'in_progress' || request.status === 'completed';
+    
+    // Fetch quotes for this request
+    const { data: quotes = [], isLoading: quotesLoading } = useQuery<any[]>({
+      queryKey: [`/api/service-requests/${request.id}/quotes`],
+      enabled: request.quoteCount > 0,
+    });
+
+    // Accept quote mutation
+    const acceptQuoteMutation = useMutation({
+      mutationFn: async (quoteId: string) => {
+        return apiRequest(`/api/quotes/${quoteId}/accept`, {
+          method: "POST",
+        });
+      },
+      onSuccess: () => {
+        toast({
+          title: "Quote Accepted!",
+          description: "The operator has been notified and will start your job soon.",
+        });
+        // Invalidate with exact query key including customerId
+        queryClient.invalidateQueries({ queryKey: [`/api/service-requests?customerId=${user?.id}`, 'customer', user?.id] });
+        queryClient.invalidateQueries({ queryKey: [`/api/service-requests/${request.id}/quotes`] });
+      },
+      onError: () => {
+        toast({
+          title: "Failed to Accept Quote",
+          description: "Please try again.",
+          variant: "destructive",
+        });
+      },
+    });
+
+    // Decline quote mutation
+    const declineQuoteMutation = useMutation({
+      mutationFn: async (quoteId: string) => {
+        return apiRequest(`/api/quotes/${quoteId}/decline`, {
+          method: "POST",
+        });
+      },
+      onSuccess: () => {
+        toast({
+          title: "Quote Declined",
+          description: "The operator has been notified.",
+        });
+        // Invalidate with exact query key including customerId
+        queryClient.invalidateQueries({ queryKey: [`/api/service-requests?customerId=${user?.id}`, 'customer', user?.id] });
+        queryClient.invalidateQueries({ queryKey: [`/api/service-requests/${request.id}/quotes`] });
+      },
+      onError: () => {
+        toast({
+          title: "Failed to Decline Quote",
+          description: "Please try again.",
+          variant: "destructive",
+        });
+      },
+    });
     
     const handleViewDetails = () => {
       // For assigned jobs, navigate to job tracking page
@@ -220,6 +283,114 @@ export default function RequestStatus() {
               </Button>
             )}
           </div>
+
+          {/* Quotes Section */}
+          {request.quoteCount > 0 && (
+            <div className="mt-4">
+              <Separator className="mb-3" />
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowQuotes(!showQuotes)}
+                className="w-full justify-between hover:bg-gray-100 dark:hover:bg-gray-700"
+                data-testid={`button-toggle-quotes-${request.requestId}`}
+              >
+                <span className="flex items-center gap-2">
+                  <DollarSign className="w-4 h-4" />
+                  <span className="font-medium">
+                    {request.quoteCount} Quote{request.quoteCount !== 1 ? 's' : ''} Received
+                  </span>
+                </span>
+                {showQuotes ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+              </Button>
+
+              {showQuotes && (
+                <div className="mt-3 space-y-2">
+                  {quotesLoading ? (
+                    <div className="flex items-center justify-center py-4">
+                      <Clock className="w-4 h-4 animate-spin text-gray-400" />
+                      <span className="ml-2 text-sm text-gray-500">Loading quotes...</span>
+                    </div>
+                  ) : (
+                    quotes
+                      .filter((q: any) => q.status !== 'customer_declined' && q.status !== 'operator_withdrawn')
+                      .map((quote: any) => (
+                        <Card key={quote.quoteId} className="p-4 bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600">
+                          <div className="space-y-3">
+                            {/* Quote Header */}
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <span className="font-semibold text-gray-900 dark:text-white">
+                                    {quote.operatorName}
+                                  </span>
+                                  <Badge variant="outline" className="text-xs">
+                                    {quote.tier.toUpperCase()}
+                                  </Badge>
+                                </div>
+                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                  Submitted {formatDistanceToNow(new Date(quote.submittedAt), { addSuffix: true })}
+                                </p>
+                              </div>
+                              <div className="text-right">
+                                <div className="text-2xl font-bold text-orange-500">
+                                  ${parseFloat(quote.amount).toFixed(2)}
+                                </div>
+                                {quote.expiresAt && (
+                                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                                    Expires {formatDistanceToNow(new Date(quote.expiresAt), { addSuffix: true })}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Quote Notes */}
+                            {quote.notes && (
+                              <p className="text-sm text-gray-600 dark:text-gray-300">
+                                {quote.notes}
+                              </p>
+                            )}
+
+                            {/* Actions */}
+                            {quote.status === 'sent' && (
+                              <div className="flex gap-2 pt-2">
+                                <Button
+                                  onClick={() => acceptQuoteMutation.mutate(quote.quoteId)}
+                                  disabled={acceptQuoteMutation.isPending}
+                                  size="sm"
+                                  className="flex-1 bg-green-600 hover:bg-green-700 text-white"
+                                  data-testid={`button-accept-quote-${quote.quoteId}`}
+                                >
+                                  <CheckCircle className="w-4 h-4 mr-2" />
+                                  {acceptQuoteMutation.isPending ? 'Accepting...' : 'Accept'}
+                                </Button>
+                                <Button
+                                  onClick={() => declineQuoteMutation.mutate(quote.quoteId)}
+                                  disabled={declineQuoteMutation.isPending}
+                                  variant="outline"
+                                  size="sm"
+                                  className="flex-1 border-red-300 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
+                                  data-testid={`button-decline-quote-${quote.quoteId}`}
+                                >
+                                  <XCircle className="w-4 h-4 mr-2" />
+                                  {declineQuoteMutation.isPending ? 'Declining...' : 'Decline'}
+                                </Button>
+                              </div>
+                            )}
+                            {quote.status === 'customer_accepted' && (
+                              <Badge className="bg-green-600 text-white">
+                                <CheckCircle className="w-3 h-3 mr-1" />
+                                Accepted
+                              </Badge>
+                            )}
+                          </div>
+                        </Card>
+                      ))
+                  )}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </Card>
     );

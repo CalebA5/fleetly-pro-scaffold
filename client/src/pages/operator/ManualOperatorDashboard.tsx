@@ -117,6 +117,25 @@ export default function ManualOperatorDashboard() {
     }
   });
 
+  // Create quoted jobs from the quotes themselves (since backend filters them out of nearbyRequests)
+  // Build full request objects from quotes + service request data
+  const quotedJobs = operatorQuotes
+    .filter(quote => quote.status === 'sent')
+    .map(quote => {
+      // Find the request in nearbySnowRequests if it still exists there
+      const existingRequest = nearbySnowRequests.find(r => r.requestId === quote.serviceRequestId);
+      // If found, use it; otherwise create a minimal object from quote data
+      return existingRequest || {
+        id: quote.serviceRequestId,
+        requestId: quote.serviceRequestId,
+        customerName: quote.operatorName, // Not ideal but we don't have customer data in quote
+        serviceType: 'Service Request', // Generic since we don't have type
+        location: 'Location unavailable',
+        isEmergency: false,
+        // This will be populated if backend includes the full request
+      };
+    });
+
   // Calculate accurate statistics using fetched data
   const acceptedJobIds = acceptedJobsData.map(j => (j.jobData as any).id || j.jobSourceId);
   const availableRequestsCount = nearbySnowRequests.filter(r => !acceptedJobIds.includes(r.id)).length;
@@ -561,6 +580,88 @@ export default function ManualOperatorDashboard() {
                         Continue Working on This Job
                       </Button>
                     </div>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Waiting for Approval Section */}
+        {quotedJobs.length > 0 && (
+          <Card className="border-2 border-blue-200 dark:border-blue-800 mb-8">
+            <CardHeader>
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center">
+                  <Clock className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                </div>
+                <div>
+                  <CardTitle className="text-black dark:text-white">
+                    Waiting for Customer Approval
+                  </CardTitle>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                    {quotedJobs.length} quote{quotedJobs.length !== 1 ? 's' : ''} pending customer response
+                  </p>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {quotedJobs.map(request => {
+                  const quote = quotesMap.get(request.requestId);
+                  return (
+                    <Card key={request.requestId} className="p-4 bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-700">
+                      <div className="space-y-3">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <h3 className="font-semibold text-black dark:text-white">
+                                {request.customerName}
+                              </h3>
+                              {request.isEmergency && (
+                                <Badge className="bg-red-600 text-white text-xs">
+                                  EMERGENCY
+                                </Badge>
+                              )}
+                            </div>
+                            <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
+                              {request.serviceType}
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                              ${parseFloat(quote?.amount || '0').toFixed(2)}
+                            </div>
+                            <p className="text-xs text-gray-500 dark:text-gray-400">
+                              Your Quote
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-4 text-xs text-gray-600 dark:text-gray-400">
+                          <span className="flex items-center gap-1">
+                            <MapPin className="w-3 h-3" />
+                            {request.location}
+                          </span>
+                          {quote?.submittedAt && (
+                            <span className="flex items-center gap-1">
+                              <Clock className="w-3 h-3" />
+                              Quoted {formatDistanceToNow(new Date(quote.submittedAt), { addSuffix: true })}
+                            </span>
+                          )}
+                        </div>
+                        <div className="bg-white dark:bg-gray-800 border border-blue-200 dark:border-blue-700 rounded-md p-3">
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm text-gray-700 dark:text-gray-300">
+                              Status:
+                            </span>
+                            <Badge className="bg-blue-600 text-white">
+                              <Clock className="w-3 h-3 mr-1" />
+                              Awaiting Response
+                            </Badge>
+                          </div>
+                        </div>
+                      </div>
+                    </Card>
                   );
                 })}
               </div>
