@@ -5,13 +5,14 @@ import { Button } from "@/components/ui/enhanced-button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Slider } from "@/components/ui/slider";
 import { AuthDialog } from "@/components/AuthDialog";
 import { Header } from "@/components/Header";
 import { MobileBottomNav } from "@/components/MobileBottomNav";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, MapPin, Star, Truck, Filter, Heart, ChevronLeft, ChevronRight, List, Map as MapIcon } from "lucide-react";
+import { ArrowLeft, MapPin, Star, Truck, Filter, Heart, ChevronLeft, ChevronRight, List, Map as MapIcon, Target } from "lucide-react";
 import type { Operator, InsertServiceRequest, Favorite } from "@shared/schema";
 import { OPERATOR_TIER_INFO } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -70,7 +71,12 @@ export const OperatorMap = () => {
   const userLat = urlLat ? parseFloat(urlLat) : (contextLat !== null ? contextLat : null);
   const userLon = urlLon ? parseFloat(urlLon) : (contextLon !== null ? contextLon : null);
   const effectiveAddress = urlAddress || contextAddress;
-  const radiusFilter = urlRadius ? parseFloat(urlRadius) : null; // null means no radius filter
+  
+  // Dynamic proximity radius slider (default: 50km, range: 1-100km)
+  const [proximityRadius, setProximityRadius] = useState<number>(
+    urlRadius ? parseFloat(urlRadius) : 50
+  );
+  const radiusFilter = proximityRadius; // Use dynamic slider value
 
   // Haversine distance calculation (returns distance in km)
   const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
@@ -789,6 +795,34 @@ export const OperatorMap = () => {
                 </div>
               )}
             </div>
+            
+            {/* Proximity Radius Slider - Only show if user location is available */}
+            {userLat !== null && userLon !== null && (
+              <div className="w-full lg:w-auto lg:min-w-[280px] xl:min-w-[320px] border-t lg:border-t-0 lg:border-l border-gray-200 dark:border-gray-700 pt-3 lg:pt-0 lg:pl-4">
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <Target className="w-4 h-4 text-orange-600 dark:text-orange-400" />
+                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                      Search Radius:
+                    </span>
+                  </div>
+                  <div className="flex-1 flex items-center gap-3">
+                    <Slider
+                      value={[proximityRadius]}
+                      onValueChange={(values) => setProximityRadius(values[0])}
+                      min={1}
+                      max={100}
+                      step={1}
+                      className="flex-1"
+                      data-testid="slider-proximity-radius"
+                    />
+                    <span className="text-sm font-bold text-black dark:text-white whitespace-nowrap min-w-[50px] text-right">
+                      {proximityRadius} km
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Right: View Controls */}
             <div className="flex items-center gap-2">
