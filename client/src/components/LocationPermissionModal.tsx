@@ -45,9 +45,10 @@ export function LocationPermissionModal({ open, onOpenChange }: LocationPermissi
         onOpenChange(false);
         
         toast({
-          title: "Location access denied",
-          description: "You can enable location access later from your browser settings.",
+          title: "Location blocked by browser",
+          description: "Click the lock icon 🔒 in your browser's address bar, change Location from 'Block' to 'Allow', then refresh the page.",
           variant: "destructive",
+          duration: 8000,
         });
       } else if (error?.message === "TIMEOUT") {
         // Timeout - show error but keep modal open for retry
