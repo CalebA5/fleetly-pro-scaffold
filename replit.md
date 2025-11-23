@@ -18,7 +18,7 @@ The backend is an Express.js server utilizing a PostgreSQL database with Drizzle
 The data model includes a service request schema with fields for `serviceType`, `isEmergency`, `description`, `location`, `status`, and a JSONB `details` field. Operator profiles store `operatorTier`, `isCertified`, `businessLicense`, `homeLatitude`, `homeLongitude`, and `operatingRadius`. Emergency system tables include `emergencyRequests` and `dispatchQueue`. Earnings tracking involves `operatorDailyEarnings`, `operatorMonthlyEarnings`, and `operatorTierStats` for lifetime statistics and customer group unlocking.
 
 ### Feature Highlights
-- **Quote-Based Negotiation System**: Operators submit quotes, and customers review, accept, decline, or counter them within a 12-hour expiry window.
+- **Quote-Based Negotiation System**: Operators submit quotes (tracked by string `requestId`), and customers review, accept, decline, or counter them within a 12-hour expiry window. Backend routes support both numeric and string ID lookups for flexibility, always normalizing to string requestId for quote operations. Quote buttons disable after submission to prevent duplicates.
 - **Multi-Driver Business Management System**: Enables businesses to manage drivers and assign services.
 - **Three-Tier Operator System**: Professional, Skilled & Equipped, and Manual Operators with tier-specific onboarding and proximity-based job filtering.
 - **AI Assist Feature**: Recommends services and operators with estimated pricing.
