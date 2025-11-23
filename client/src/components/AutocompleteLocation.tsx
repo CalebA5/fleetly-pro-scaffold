@@ -155,6 +155,7 @@ export const AutocompleteLocation = ({
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
         disabled={disabled}
+        autoComplete="off"
         className="flex h-10 w-full rounded-lg border-0 bg-gray-50 dark:bg-gray-700 px-3 py-2 text-base pr-16 placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-black dark:focus:ring-white disabled:cursor-not-allowed disabled:opacity-50 transition-all"
         data-testid={testId}
         onFocus={() => {
