@@ -178,9 +178,23 @@ export function LocationProvider({ children }: { children: ReactNode }) {
         await reverseGeocode(position.coords.latitude, position.coords.longitude);
       },
       (error) => {
-        setLocationError(error.message);
-        setPermissionStatus("denied");
-        console.error("Error getting location:", error);
+        console.error("Error getting location:", error.code, error.message);
+        
+        // Only mark as denied if permission was actually denied
+        // Other errors (timeout, position unavailable) should not change permission status
+        if (error.code === error.PERMISSION_DENIED) {
+          setLocationError("Location access denied");
+          setPermissionStatus("denied");
+          localStorage.setItem('fleetly_location_granted', 'false');
+        } else if (error.code === error.TIMEOUT) {
+          setLocationError("Location request timed out");
+          // Keep existing permission status - don't change it
+        } else if (error.code === error.POSITION_UNAVAILABLE) {
+          setLocationError("Location is currently unavailable");
+          // Keep existing permission status - don't change it
+        } else {
+          setLocationError(error.message);
+        }
       },
       {
         enableHighAccuracy: false,
