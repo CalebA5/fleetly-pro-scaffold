@@ -214,7 +214,7 @@ const Index = () => {
     }
   };
 
-  // Manual location detection (triggered by button click) - ALWAYS gets fresh location
+  // Manual location detection (triggered by button click) - Gets fresh location
   const handleUseCurrentLocation = async () => {
     // Check if geolocation is supported
     if (!navigator.geolocation) {
@@ -226,9 +226,18 @@ const Index = () => {
       return;
     }
 
-    // If user already has location from LocationContext and formattedAddress, use it directly
+    // Check if user previously granted permission
+    const locationGranted = localStorage.getItem('fleetly_location_granted');
+    
+    // If permission was explicitly denied (user clicked "Skip"), show modal
+    if (locationGranted === 'false') {
+      setShowLocationPermission(true);
+      return;
+    }
+
+    // If user already has location from LocationContext, use it directly (no re-prompt)
     // This avoids re-prompting users who already granted permission
-    if (location && formattedAddress && location.coords) {
+    if (locationGranted === 'true' && location && formattedAddress && location.coords) {
       const { latitude, longitude } = location.coords;
       setCurrentLat(latitude);
       setCurrentLon(longitude);
@@ -242,6 +251,7 @@ const Index = () => {
       return;
     }
 
+    // If permission granted or first time (no stored value), request location directly
     setLoadingLocation(true);
 
     navigator.geolocation.getCurrentPosition(
@@ -282,6 +292,10 @@ const Index = () => {
             // Allow auto-fill again since we just fetched a new location
             setUserHasCleared(false);
             
+            // Mark permission as granted and prompted
+            localStorage.setItem('fleetly_location_granted', 'true');
+            localStorage.setItem('fleetly_location_prompted', 'true');
+            
             toast({
               title: "Location updated",
               description: "Your current location has been updated.",
@@ -304,6 +318,9 @@ const Index = () => {
         
         // If permission denied, show the location permission modal
         if (error.code === error.PERMISSION_DENIED) {
+          // Mark as denied and prompted so we show modal next time
+          localStorage.setItem('fleetly_location_granted', 'false');
+          localStorage.setItem('fleetly_location_prompted', 'true');
           setShowLocationPermission(true);
           toast({
             title: "Location access required",
