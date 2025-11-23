@@ -13,7 +13,42 @@ interface LocationContextType {
 const LocationContext = createContext<LocationContextType | undefined>(undefined);
 
 export function LocationProvider({ children }: { children: ReactNode }) {
-  const [location, setLocation] = useState<GeolocationPosition | null>(null);
+  // Initialize location from localStorage if available
+  const [location, setLocation] = useState<GeolocationPosition | null>(() => {
+    const stored = localStorage.getItem("userLocation");
+    if (stored) {
+      try {
+        const data = JSON.parse(stored);
+        // Check if coordinates are valid numbers (including 0)
+        if (typeof data.latitude === "number" && typeof data.longitude === "number") {
+          // Reconstruct GeolocationPosition object
+          return {
+            coords: {
+              latitude: data.latitude,
+              longitude: data.longitude,
+              accuracy: 0,
+              altitude: null,
+              altitudeAccuracy: null,
+              heading: null,
+              speed: null,
+              toJSON: function() { return { latitude: data.latitude, longitude: data.longitude }; },
+            } as GeolocationCoordinates,
+            timestamp: data.timestamp || Date.now(),
+            toJSON: function() {
+              return {
+                coords: { latitude: data.latitude, longitude: data.longitude },
+                timestamp: data.timestamp || Date.now()
+              };
+            }
+          };
+        }
+      } catch (e) {
+        console.error("Failed to parse stored location:", e);
+      }
+    }
+    return null;
+  });
+  
   const [locationError, setLocationError] = useState<string | null>(null);
   const [permissionStatus, setPermissionStatus] = useState<"prompt" | "granted" | "denied" | "unavailable" | null>(null);
   const [cityState, setCityState] = useState<string | null>(null);
@@ -112,6 +147,12 @@ export function LocationProvider({ children }: { children: ReactNode }) {
           toJSON: function() { return { latitude: lat, longitude: lon }; },
         } as GeolocationCoordinates,
         timestamp: Date.now(),
+        toJSON: function() {
+          return {
+            coords: { latitude: lat, longitude: lon },
+            timestamp: Date.now()
+          };
+        }
       };
       setLocation(mockPosition);
       localStorage.setItem("userLocation", JSON.stringify({
