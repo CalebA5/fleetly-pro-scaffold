@@ -2986,6 +2986,26 @@ export function registerRoutes(storage: IStorage) {
       }
       
       if (action === "accept") {
+        // Check if this quote is already accepted (idempotency check)
+        const existingJob = await db.select()
+          .from(acceptedJobs)
+          .where(
+            and(
+              eq(acceptedJobs.serviceRequestId, quote.serviceRequestId),
+              eq(acceptedJobs.operatorId, quote.operatorId)
+            )
+          )
+          .limit(1);
+        
+        if (existingJob.length > 0) {
+          // Already accepted - return existing job info
+          return res.json({ 
+            message: "Quote already accepted", 
+            acceptedJobId: existingJob[0].acceptedJobId,
+            alreadyAccepted: true 
+          });
+        }
+        
         // Customer accepts the quote - create accepted job
         const acceptedJobId = `job_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
         
@@ -3086,6 +3106,247 @@ export function registerRoutes(storage: IStorage) {
     } catch (error) {
       console.error("Error responding to quote:", error);
       res.status(500).json({ message: "Failed to respond to quote" });
+    }
+  });
+
+  // Customer accepts quote - simpler endpoint for frontend
+  router.post("/api/quotes/:quoteId/accept", async (req, res) => {
+    try {
+      const { quoteId } = req.params;
+      
+      // Get the quote
+      const existing = await db.select()
+        .from(operatorQuotes)
+        .where(eq(operatorQuotes.quoteId, quoteId))
+        .limit(1);
+      
+      if (existing.length === 0) {
+        return res.status(404).json({ message: "Quote not found" });
+      }
+      
+      const quote = existing[0];
+      
+      // Get the service request
+      const request = await db.select()
+        .from(serviceRequests)
+        .where(eq(serviceRequests.requestId, quote.serviceRequestId))
+        .limit(1);
+      
+      if (request.length === 0) {
+        return res.status(404).json({ message: "Service request not found" });
+      }
+      
+      const customerId = request[0].customerId;
+      
+      // Check if this quote is already accepted (idempotency check)
+      const existingJob = await db.select()
+        .from(acceptedJobs)
+        .where(
+          and(
+            eq(acceptedJobs.serviceRequestId, quote.serviceRequestId),
+            eq(acceptedJobs.operatorId, quote.operatorId)
+          )
+        )
+        .limit(1);
+      
+      if (existingJob.length > 0) {
+        // Already accepted - return existing job info
+        return res.json({ 
+          message: "Quote already accepted", 
+          acceptedJobId: existingJob[0].acceptedJobId,
+          alreadyAccepted: true 
+        });
+      }
+      
+      // Customer accepts the quote - create accepted job
+      const acceptedJobId = `job_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      
+      // Create accepted job with the quoted amount
+      await db.insert(acceptedJobs).values({
+        acceptedJobId,
+        serviceRequestId: quote.serviceRequestId,
+        operatorId: quote.operatorId,
+        operatorName: quote.operatorName,
+        tier: quote.tier,
+        status: "accepted",
+        jobData: request[0],
+        jobSourceId: quote.serviceRequestId,
+        progress: 0,
+        agreedPrice: quote.amount
+      });
+      
+      // Update quote status
+      await db.update(operatorQuotes)
+        .set({
+          status: "customer_accepted",
+          respondedAt: new Date(),
+          history: sql`${operatorQuotes.history} || ${JSON.stringify([{
+            action: "customer_accepted",
+            timestamp: new Date().toISOString(),
+            actor: customerId
+          }])}`
+        })
+        .where(eq(operatorQuotes.quoteId, quoteId));
+      
+      // Update service request to mark quote as decided
+      await db.update(serviceRequests)
+        .set({
+          quoteStatus: "decided",
+          selectedQuoteId: quoteId,
+          operatorId: quote.operatorId,
+          operatorName: quote.operatorName,
+          status: "assigned"
+        })
+        .where(eq(serviceRequests.requestId, quote.serviceRequestId));
+      
+      // Decline all other quotes for this request
+      await db.update(operatorQuotes)
+        .set({
+          status: "customer_declined",
+          customerResponseNotes: "Customer selected another operator"
+        })
+        .where(
+          and(
+            eq(operatorQuotes.serviceRequestId, quote.serviceRequestId),
+            sql`${operatorQuotes.quoteId} != ${quoteId}`,
+            eq(operatorQuotes.status, "sent")
+          )
+        );
+      
+      // Only create notifications if this is a new acceptance (not idempotent retry)
+      // Create notification for operator - their quote was ACCEPTED
+      const operatorNotificationId = `notif_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      await db.insert(notifications).values({
+        notificationId: operatorNotificationId,
+        userId: quote.operatorId,
+        audienceRole: "operator",
+        title: "Quote Accepted!",
+        body: `Your quote for $${quote.amount} has been accepted. Job is ready to start.`,
+        type: "quote_accepted",
+        requestId: quote.serviceRequestId,
+        metadata: {
+          quoteId: quoteId,
+          customerId: customerId,
+          amount: quote.amount,
+          acceptedJobId: acceptedJobId
+        },
+        deliveryState: "pending",
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // Expires in 7 days
+      });
+      
+      // Create notification for customer - confirmation
+      const customerNotificationId = `notif_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      await db.insert(notifications).values({
+        notificationId: customerNotificationId,
+        userId: customerId,
+        audienceRole: "customer",
+        title: "Quote Accepted",
+        body: `You accepted ${quote.operatorName}'s quote for $${quote.amount}. The operator will start soon.`,
+        type: "quote_accepted",
+        requestId: quote.serviceRequestId,
+        metadata: {
+          quoteId: quoteId,
+          operatorId: quote.operatorId,
+          operatorName: quote.operatorName,
+          amount: quote.amount,
+          acceptedJobId: acceptedJobId
+        },
+        deliveryState: "pending",
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+      });
+      
+      return res.json({ message: "Quote accepted, job created", acceptedJobId });
+    } catch (error) {
+      console.error("Error accepting quote:", error);
+      res.status(500).json({ message: "Failed to accept quote" });
+    }
+  });
+
+  // Customer declines quote - simpler endpoint for frontend
+  router.post("/api/quotes/:quoteId/decline", async (req, res) => {
+    try {
+      const { quoteId } = req.params;
+      
+      // Get the quote
+      const existing = await db.select()
+        .from(operatorQuotes)
+        .where(eq(operatorQuotes.quoteId, quoteId))
+        .limit(1);
+      
+      if (existing.length === 0) {
+        return res.status(404).json({ message: "Quote not found" });
+      }
+      
+      const quote = existing[0];
+      
+      // Get the service request to get customer ID
+      const request = await db.select()
+        .from(serviceRequests)
+        .where(eq(serviceRequests.requestId, quote.serviceRequestId))
+        .limit(1);
+      
+      if (request.length === 0) {
+        return res.status(404).json({ message: "Service request not found" });
+      }
+      
+      const customerId = request[0].customerId;
+      
+      // Customer declines the quote
+      await db.update(operatorQuotes)
+        .set({
+          status: "customer_declined",
+          respondedAt: new Date(),
+          history: sql`${operatorQuotes.history} || ${JSON.stringify([{
+            action: "customer_declined",
+            timestamp: new Date().toISOString(),
+            actor: customerId
+          }])}`
+        })
+        .where(eq(operatorQuotes.quoteId, quoteId));
+      
+      // Create notification for operator - their quote was DECLINED
+      const operatorNotificationId = `notif_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      await db.insert(notifications).values({
+        notificationId: operatorNotificationId,
+        userId: quote.operatorId,
+        audienceRole: "operator",
+        title: "Quote Declined",
+        body: `Your quote for $${quote.amount} was declined by the customer.`,
+        type: "quote_declined",
+        requestId: quote.serviceRequestId,
+        metadata: {
+          quoteId: quoteId,
+          customerId: customerId,
+          amount: quote.amount
+        },
+        deliveryState: "pending",
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+      });
+      
+      // Create notification for customer - confirmation
+      const customerNotificationId = `notif_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      await db.insert(notifications).values({
+        notificationId: customerNotificationId,
+        userId: customerId,
+        audienceRole: "customer",
+        title: "Quote Declined",
+        body: `You declined ${quote.operatorName}'s quote for $${quote.amount}.`,
+        type: "quote_declined",
+        requestId: quote.serviceRequestId,
+        metadata: {
+          quoteId: quoteId,
+          operatorId: quote.operatorId,
+          operatorName: quote.operatorName,
+          amount: quote.amount
+        },
+        deliveryState: "pending",
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+      });
+      
+      return res.json({ message: "Quote declined" });
+    } catch (error) {
+      console.error("Error declining quote:", error);
+      res.status(500).json({ message: "Failed to decline quote" });
     }
   });
 
