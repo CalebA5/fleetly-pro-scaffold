@@ -136,7 +136,9 @@ export function QuoteModal({
         title: "Quote Sent!",
         description: "Your quote has been sent to the customer for review."
       });
+      // Invalidate all service request queries to update both dashboard and nearby jobs
       queryClient.invalidateQueries({ queryKey: ['/api/service-requests'] });
+      queryClient.invalidateQueries({ queryKey: [`/api/service-requests/for-operator/${operatorId}`] });
       queryClient.invalidateQueries({ queryKey: [`/api/operators/${operatorId}/quotes`] });
       onOpenChange(false);
     },

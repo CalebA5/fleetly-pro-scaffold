@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/enhanced-button";
 import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { MapPin, Clock, DollarSign, Users, Snowflake, AlertCircle, AlertTriangle, CheckCircle, ChevronRight, ChevronDown, ChevronUp, TrendingUp } from "lucide-react";
+import { MapPin, Clock, DollarSign, Users, Snowflake, AlertCircle, AlertTriangle, CheckCircle, ChevronRight, ChevronDown, ChevronUp, TrendingUp, Eye } from "lucide-react";
 import { Header } from "@/components/Header";
 import { MobileBottomNav } from "@/components/MobileBottomNav";
 import { useAuth } from "@/contexts/AuthContext";
@@ -655,6 +655,18 @@ export default function ManualOperatorDashboard() {
                             </div>
                           </div>
                           <div className="flex gap-2">
+                            <Button
+                              onClick={() => {
+                                setSelectedRequest(request);
+                                setRequestDetailsOpen(true);
+                              }}
+                              variant="outline"
+                              className="flex-1 border-gray-300 dark:border-gray-600"
+                              data-testid={`button-view-details-${request.id}`}
+                            >
+                              <Eye className="w-4 h-4 mr-2" />
+                              View Details
+                            </Button>
                             <Button
                               onClick={() => {
                                 setSelectedRequest(request);
