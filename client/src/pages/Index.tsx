@@ -413,12 +413,12 @@ const Index = () => {
                   <div className="space-y-3">
                     <div 
                       onClick={() => handleRequestService("Snow Plowing")}
-                      className="flex items-center justify-between p-4 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-black dark:hover:border-white transition-all cursor-pointer" 
+                      className="group flex items-center justify-between p-4 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-black dark:hover:border-white transition-all cursor-pointer" 
                       data-testid="card-service-snow"
                     >
                       <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 bg-black dark:bg-white rounded-full flex items-center justify-center">
-                          <Truck className="w-6 h-6 text-white dark:text-black" />
+                        <div className="w-12 h-12 bg-black dark:bg-white rounded-full flex items-center justify-center transition-all duration-300 group-hover:scale-110 group-hover:rotate-6 group-hover:shadow-lg">
+                          <Truck className="w-6 h-6 text-white dark:text-black transition-transform duration-300" />
                         </div>
                         <div>
                           <p className="font-semibold text-black dark:text-white">Snow Plowing</p>
@@ -429,12 +429,12 @@ const Index = () => {
                     </div>
                     <div 
                       onClick={() => handleRequestService("Towing")}
-                      className="flex items-center justify-between p-4 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-black dark:hover:border-white transition-all cursor-pointer" 
+                      className="group flex items-center justify-between p-4 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-black dark:hover:border-white transition-all cursor-pointer" 
                       data-testid="card-service-towing"
                     >
                       <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 bg-black dark:bg-white rounded-full flex items-center justify-center">
-                          <Truck className="w-6 h-6 text-white dark:text-black" />
+                        <div className="w-12 h-12 bg-black dark:bg-white rounded-full flex items-center justify-center transition-all duration-300 group-hover:scale-110 group-hover:rotate-6 group-hover:shadow-lg">
+                          <Truck className="w-6 h-6 text-white dark:text-black transition-transform duration-300" />
                         </div>
                         <div>
                           <p className="font-semibold text-black dark:text-white">Towing</p>
@@ -445,12 +445,12 @@ const Index = () => {
                     </div>
                     <div 
                       onClick={() => handleRequestService("Hauling")}
-                      className="flex items-center justify-between p-4 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-black dark:hover:border-white transition-all cursor-pointer" 
+                      className="group flex items-center justify-between p-4 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-black dark:hover:border-white transition-all cursor-pointer" 
                       data-testid="card-service-hauling"
                     >
                       <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 bg-black dark:bg-white rounded-full flex items-center justify-center">
-                          <Truck className="w-6 h-6 text-white dark:text-black" />
+                        <div className="w-12 h-12 bg-black dark:bg-white rounded-full flex items-center justify-center transition-all duration-300 group-hover:scale-110 group-hover:rotate-6 group-hover:shadow-lg">
+                          <Truck className="w-6 h-6 text-white dark:text-black transition-transform duration-300" />
                         </div>
                         <div>
                           <p className="font-semibold text-black dark:text-white">Hauling</p>
@@ -470,10 +470,10 @@ const Index = () => {
                     Our Services
                   </h3>
                   <div className="space-y-3">
-                    <div className="flex items-center justify-between p-4 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700">
+                    <div className="group flex items-center justify-between p-4 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-gray-400 dark:hover:border-gray-500 transition-all">
                       <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 bg-black dark:bg-white rounded-full flex items-center justify-center">
-                          <Truck className="w-6 h-6 text-white dark:text-black" />
+                        <div className="w-12 h-12 bg-black dark:bg-white rounded-full flex items-center justify-center transition-all duration-300 group-hover:scale-110 group-hover:rotate-6 group-hover:shadow-lg">
+                          <Truck className="w-6 h-6 text-white dark:text-black transition-transform duration-300" />
                         </div>
                         <div>
                           <p className="font-semibold text-black dark:text-white">Snow Plowing</p>
@@ -481,10 +481,10 @@ const Index = () => {
                         </div>
                       </div>
                     </div>
-                    <div className="flex items-center justify-between p-4 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700">
+                    <div className="group flex items-center justify-between p-4 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-gray-400 dark:hover:border-gray-500 transition-all">
                       <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 bg-black dark:bg-white rounded-full flex items-center justify-center">
-                          <Truck className="w-6 h-6 text-white dark:text-black" />
+                        <div className="w-12 h-12 bg-black dark:bg-white rounded-full flex items-center justify-center transition-all duration-300 group-hover:scale-110 group-hover:rotate-6 group-hover:shadow-lg">
+                          <Truck className="w-6 h-6 text-white dark:text-black transition-transform duration-300" />
                         </div>
                         <div>
                           <p className="font-semibold text-black dark:text-white">Towing</p>
@@ -492,10 +492,10 @@ const Index = () => {
                         </div>
                       </div>
                     </div>
-                    <div className="flex items-center justify-between p-4 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700">
+                    <div className="group flex items-center justify-between p-4 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-gray-400 dark:hover:border-gray-500 transition-all">
                       <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 bg-black dark:bg-white rounded-full flex items-center justify-center">
-                          <Truck className="w-6 h-6 text-white dark:text-black" />
+                        <div className="w-12 h-12 bg-black dark:bg-white rounded-full flex items-center justify-center transition-all duration-300 group-hover:scale-110 group-hover:rotate-6 group-hover:shadow-lg">
+                          <Truck className="w-6 h-6 text-white dark:text-black transition-transform duration-300" />
                         </div>
                         <div>
                           <p className="font-semibold text-black dark:text-white">Hauling</p>
