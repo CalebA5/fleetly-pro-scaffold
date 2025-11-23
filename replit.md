@@ -36,7 +36,13 @@ The data model includes a service request schema with fields for `serviceType`, 
 - **Job History Feature**: Dedicated page for operators to view completed jobs with earnings, pagination, and filtering.
 - **Customer Job Tracking System**: Real-time job tracking for customers with live updates, operator metadata, and contact information visibility after quote acceptance.
 - **Operator-User Linkage Security**: Secure linking of operators to user accounts via authenticated sessions and email validation.
-- **Accurate Location Positioning System**: Comprehensive location handling on the homepage with smart auto-population, manual control, persistent storage, and intelligent map centering based on various location sources. Includes a real-time location hook and 50km radius filtering.
+- **Accurate Location Positioning System**: Comprehensive location handling with context-driven architecture. Features include:
+  - **LocationContext**: Centralized location state management with refreshLocation() returning fresh GPS position and formatted address, reverseGeocode() providing street-level addresses (zoom=16), and markPermission()/markPrompted() helpers for localStorage flags
+  - **Smart Permission Handling**: Only PERMISSION_DENIED errors reset permission state; transient errors (TIMEOUT, POSITION_UNAVAILABLE) show retry UI without modal dismissal
+  - **Location Icon Primary Function**: Displays/updates current location without triggering permission loops after initial grant
+  - **Auto-Population Logic**: Smart priority (1) Manual entry, (2) Shared GPS location, (3) Geocoded address, (4) Prompt for location
+  - **Persistent Storage**: Browser localStorage for location, formattedAddress, granted, and prompted flags
+  - **50km Radius Filtering**: Proximity-based operator matching for customer requests
 
 ## External Dependencies
 
