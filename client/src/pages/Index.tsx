@@ -117,21 +117,37 @@ const Index = () => {
   };
 
   const handleSearchService = async () => {
-    if (pickup) {
-      // If we don't have coordinates yet, geocode the address first
-      if (currentLat === null || currentLon === null) {
-        await geocodeAndNavigate(pickup, true); // Pass true for radius filter
-      } else {
-        // Navigate to operators map with 50km radius filter
-        setLocation(`/customer/operators?lat=${currentLat}&lon=${currentLon}&address=${encodeURIComponent(pickup)}&radius=50`);
-      }
-    } else {
-      toast({
-        title: "Location required",
-        description: "Please enter a pickup location to see available operators.",
-        variant: "destructive",
-      });
+    // Priority 1: If there's a location in the pickup field with coordinates, use that
+    if (pickup.trim() && currentLat !== null && currentLon !== null) {
+      // Navigate with 50km radius filter
+      setLocation(`/customer/operators?lat=${currentLat}&lon=${currentLon}&address=${encodeURIComponent(pickup)}&radius=50`);
+      return;
     }
+    
+    // Priority 2: If pickup has text but no coordinates, geocode it first
+    if (pickup.trim()) {
+      await geocodeAndNavigate(pickup, true); // Pass true for 50km radius filter
+      return;
+    }
+    
+    // Priority 3: Use shared GPS location if available (from LocationContext)
+    if (location && location.coords) {
+      const lat = location.coords.latitude;
+      const lon = location.coords.longitude;
+      const address = formattedAddress || "Current Location";
+      setLocation(`/customer/operators?lat=${lat}&lon=${lon}&address=${encodeURIComponent(address)}&radius=50`);
+      return;
+    }
+    
+    // Priority 4: No location data - prompt for location
+    toast({
+      title: "Location needed",
+      description: "Please share your location or enter a pickup address to see available operators.",
+      variant: "default",
+    });
+    
+    // Show location permission modal
+    setShowLocationPermission(true);
   };
 
   // Navigate to operators map with smart centering logic
