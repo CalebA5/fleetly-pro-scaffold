@@ -704,7 +704,7 @@ export function registerRoutes(storage: IStorage) {
       const customerId = req.query.customerId as string | undefined;
       
       // CRITICAL SECURITY: Enforce authentication and customer ownership
-      const userId = req.sessionData?.userId || req.session?.userId;
+      const userId = req.sessionData?.userId;
       if (!userId) {
         return res.status(401).json({ error: "Unauthorized - no session" });
       }
