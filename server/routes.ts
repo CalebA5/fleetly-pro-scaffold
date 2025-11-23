@@ -2732,14 +2732,16 @@ export function registerRoutes(storage: IStorage) {
         .values(validation.data)
         .returning();
       
-      // Create notification for customer about new quote
-      await notificationService.notifyCustomerOfQuote(
+      // Create notification for customer about new quote (non-blocking)
+      notificationService.notifyCustomerOfQuote(
         requestId,
         request[0].customerId,
         quoteData.operatorName,
         quoteData.amount,
         quoteId
-      );
+      ).catch(err => {
+        console.error("Failed to create quote notification:", err);
+      });
       
       // Update service request quote count and last quote time
       await db.update(serviceRequests)
@@ -3483,19 +3485,22 @@ export function registerRoutes(storage: IStorage) {
 
   // ===== NOTIFICATIONS API =====
   
-  // Get notifications for a user (customer or operator)
-  router.get("/api/notifications/:userId", async (req, res) => {
+  // Get notifications for authenticated user
+  router.get("/api/notifications", async (req, res) => {
     try {
-      const { userId } = req.params;
+      // @ts-ignore - session is set by middleware
+      const userId = req.session?.userId;
+      if (!userId) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      
       const { unreadOnly } = req.query;
       
-      let query = db.query.notifications.findMany({
+      const allNotifications = await db.query.notifications.findMany({
         where: eq(notifications.userId, userId),
         orderBy: (notifications, { desc }) => [desc(notifications.createdAt)],
         limit: 50,
       });
-      
-      const allNotifications = await query;
       
       // Filter unread if requested
       const result = unreadOnly === 'true' 
@@ -3509,10 +3514,29 @@ export function registerRoutes(storage: IStorage) {
     }
   });
   
-  // Mark notification as read
+  // Mark notification as read (requires ownership)
   router.patch("/api/notifications/:notificationId/read", async (req, res) => {
     try {
+      // @ts-ignore - session is set by middleware
+      const userId = req.session?.userId;
+      if (!userId) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      
       const { notificationId } = req.params;
+      
+      // Verify ownership before updating
+      const notification = await db.query.notifications.findFirst({
+        where: eq(notifications.notificationId, notificationId),
+      });
+      
+      if (!notification) {
+        return res.status(404).json({ message: "Notification not found" });
+      }
+      
+      if (notification.userId !== userId) {
+        return res.status(403).json({ message: "Unauthorized" });
+      }
       
       await db.update(notifications)
         .set({ readAt: new Date(), deliveryState: "read" })
@@ -3525,10 +3549,14 @@ export function registerRoutes(storage: IStorage) {
     }
   });
   
-  // Get unread notification count
-  router.get("/api/notifications/:userId/count", async (req, res) => {
+  // Get unread notification count for authenticated user
+  router.get("/api/notifications/count", async (req, res) => {
     try {
-      const { userId } = req.params;
+      // @ts-ignore - session is set by middleware
+      const userId = req.session?.userId;
+      if (!userId) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
       
       const allNotifications = await db.query.notifications.findMany({
         where: eq(notifications.userId, userId),

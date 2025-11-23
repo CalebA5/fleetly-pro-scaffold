@@ -45,9 +45,9 @@ export class NotificationService {
       metadata: { serviceType },
     });
 
-    // Create notification for each operator
-    for (const operatorId of operatorIds) {
-      await this.createNotification({
+    // Create notification for each operator (with error handling)
+    const notificationPromises = operatorIds.map(operatorId =>
+      this.createNotification({
         userId: operatorId,
         audienceRole: "operator",
         title: "New Service Request",
@@ -57,8 +57,13 @@ export class NotificationService {
         statusEventId: eventId,
         metadata: { serviceType },
         deliveryState: "pending",
-      });
-    }
+      }).catch(err => {
+        console.error(`Failed to notify operator ${operatorId}:`, err);
+        return null; // Continue even if one fails
+      })
+    );
+    
+    await Promise.all(notificationPromises);
   }
 
   /**
