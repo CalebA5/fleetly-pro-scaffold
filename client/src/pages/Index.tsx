@@ -226,6 +226,22 @@ const Index = () => {
       return;
     }
 
+    // If user already has location from LocationContext and formattedAddress, use it directly
+    // This avoids re-prompting users who already granted permission
+    if (location && formattedAddress && location.coords) {
+      const { latitude, longitude } = location.coords;
+      setCurrentLat(latitude);
+      setCurrentLon(longitude);
+      setPickup(formattedAddress);
+      setUserHasCleared(false);
+      
+      toast({
+        title: "Location updated",
+        description: "Using your current location.",
+      });
+      return;
+    }
+
     setLoadingLocation(true);
 
     navigator.geolocation.getCurrentPosition(
