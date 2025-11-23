@@ -6,11 +6,52 @@ import { MemStorage } from "./storage";
 import { createServer } from "http";
 import authRouter from "./auth";
 import { startWeatherSyncJob } from "./jobs/weatherSync";
+import { db } from "./db";
+import { sessions } from "@shared/schema";
+import { eq, gt } from "drizzle-orm";
+
+// Extend Express Request to include session
+declare global {
+  namespace Express {
+    interface Request {
+      session?: {
+        userId: string;
+        sessionId: string;
+      };
+    }
+  }
+}
 
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
+
+// Session middleware - populates req.session from database
+app.use(async (req, res, next) => {
+  const sessionId = req.cookies.sessionId;
+  
+  if (sessionId) {
+    try {
+      // Query session from database
+      const session = await db.query.sessions.findFirst({
+        where: eq(sessions.sessionId, sessionId),
+      });
+      
+      // Check if session exists and hasn't expired
+      if (session && new Date(session.expiresAt) > new Date()) {
+        req.session = {
+          userId: session.userId,
+          sessionId: session.sessionId,
+        };
+      }
+    } catch (error) {
+      console.error("Session lookup error:", error);
+    }
+  }
+  
+  next();
+});
 
 const storage = new MemStorage();
 

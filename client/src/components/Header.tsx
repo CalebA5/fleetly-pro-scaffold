@@ -6,8 +6,9 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { ProfileDropdown } from "@/components/ProfileDropdown";
 import { TierSwitcher } from "@/components/TierSwitcher";
 import { ThemeSelector } from "@/components/ThemeSelector";
+import { NotificationBell } from "@/components/NotificationBell";
 import { useAuth } from "@/contexts/AuthContext";
-import { Truck, Sparkles, Bell } from "lucide-react";
+import { Truck, Sparkles } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface HeaderProps {
@@ -68,32 +69,8 @@ export const Header = ({ onSignIn, onSignUp, onDriveAndEarn }: HeaderProps) => {
             </div>
           </Link>
           <nav className="flex items-center gap-1.5 md:gap-4">
-            {/* Notifications - Icon only with tooltip on hover */}
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Link href="/notifications">
-                  <Button 
-                    variant="ghost" 
-                    size="sm"
-                    className="text-gray-700 dark:text-gray-300 relative p-1.5 md:p-2" 
-                    data-testid="button-notifications"
-                  >
-                    <Bell style={{ width: 'clamp(1rem, 2vw, 1.25rem)', height: 'clamp(1rem, 2vw, 1.25rem)' }} />
-                    {activeAlertsCount > 0 && (
-                      <Badge 
-                        variant="destructive" 
-                        className="absolute -top-0.5 -right-0.5 h-4 w-4 flex items-center justify-center p-0 text-[10px]"
-                      >
-                        {activeAlertsCount > 9 ? '9+' : activeAlertsCount}
-                      </Badge>
-                    )}
-                  </Button>
-                </Link>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Alerts {activeAlertsCount > 0 && `(${activeAlertsCount})`}</p>
-              </TooltipContent>
-            </Tooltip>
+            {/* Notifications Bell with Badge */}
+            {isAuthenticated && <NotificationBell />}
 
             {/* AI Assist - Icon only with tooltip on hover */}
             <Tooltip>

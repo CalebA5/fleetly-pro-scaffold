@@ -32,7 +32,7 @@ import { OperatorGuide } from "./pages/OperatorGuide";
 import { CommunityForum } from "./pages/CommunityForum";
 import { BlogUpdates } from "./pages/BlogUpdates";
 import { Profile } from "./pages/Profile";
-import { Notifications } from "./pages/Notifications";
+import { Notifications } from "./pages/WeatherAlerts";
 import EmergencySOS from "./pages/EmergencySOS";
 import EmergencyTracking from "./pages/EmergencyTracking";
 import TestOperatorTiles from "./pages/TestOperatorTiles";
@@ -69,6 +69,7 @@ const App = () => (
               <Route path="/blog" component={BlogUpdates} />
               <Route path="/profile" component={Profile} />
               <Route path="/notifications" component={Notifications} />
+              <Route path="/weather-alerts" component={Notifications} />
               
               {/* Customer routes */}
               <Route path="/customer/services" component={ServiceSelection} />
