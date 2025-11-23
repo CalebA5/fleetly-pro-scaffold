@@ -126,7 +126,9 @@ export function QuoteModal({
 
   const createQuoteMutation = useMutation({
     mutationFn: async (data: any) => {
-      return apiRequest(`/api/service-requests/${serviceRequest.requestId}/quotes`, {
+      // Use numeric ID (id) not requestId (string)
+      const requestId = serviceRequest.id || serviceRequest.requestId;
+      return apiRequest(`/api/service-requests/${requestId}/quotes`, {
         method: "POST",
         body: JSON.stringify(data)
       });
@@ -169,7 +171,7 @@ export function QuoteModal({
 
     createQuoteMutation.mutate({
       quoteId,
-      serviceRequestId: serviceRequest.requestId,
+      serviceRequestId: serviceRequest.id || serviceRequest.requestId,  // Use numeric ID
       operatorId,
       operatorName,
       tier,

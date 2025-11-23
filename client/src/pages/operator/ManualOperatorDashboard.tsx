@@ -103,6 +103,25 @@ export default function ManualOperatorDashboard() {
     enabled: !!operatorId,
   });
 
+  // Fetch operator's quotes to show quoted amount on job cards
+  const { data: operatorQuotes = [] } = useQuery<any[]>({
+    queryKey: [`/api/quotes/operator/${operatorId}`],
+    enabled: !!operatorId,
+  });
+
+  // Create a map of request ID to quote for quick lookup
+  // Map by both requestId (string) and id (numeric) for compatibility
+  const quotesMap = new Map();
+  operatorQuotes.forEach(quote => {
+    if (quote.status !== 'operator_withdrawn') {
+      quotesMap.set(quote.serviceRequestId, quote);
+      // Also map by numeric ID if available
+      if (quote.serviceRequestNumericId) {
+        quotesMap.set(quote.serviceRequestNumericId, quote);
+      }
+    }
+  });
+
   // Calculate accurate statistics using fetched data
   const acceptedJobIds = acceptedJobsData.map(j => (j.jobData as any).id || j.jobSourceId);
   const availableRequestsCount = nearbySnowRequests.filter(r => !acceptedJobIds.includes(r.id)).length;
@@ -655,13 +674,19 @@ export default function ManualOperatorDashboard() {
                         >
                           <div className="flex items-start justify-between mb-3">
                             <div className="flex-1">
-                              <div className="flex items-center gap-2 mb-2">
+                              <div className="flex items-center gap-2 mb-2 flex-wrap">
                                 <h3 className="font-semibold text-black dark:text-white">
                                   {request.customerName}
                                 </h3>
                                 {request.isEmergency && (
                                   <Badge className="bg-red-600 text-white text-xs">
                                     EMERGENCY
+                                  </Badge>
+                                )}
+                                {(quotesMap.has(request.requestId) || quotesMap.has(request.id)) && (
+                                  <Badge className="bg-green-600 text-white text-xs">
+                                    <DollarSign className="w-3 h-3 mr-1" />
+                                    Quoted ${(quotesMap.get(request.requestId) || quotesMap.get(request.id))?.quoteAmount}
                                   </Badge>
                                 )}
                               </div>
@@ -701,15 +726,18 @@ export default function ManualOperatorDashboard() {
                                 setSelectedRequest(request);
                                 setQuoteModalOpen(true);
                               }}
+                              disabled={quotesMap.has(request.id) || quotesMap.has(request.requestId)}
                               className={`flex-1 ${
                                 request.isEmergency
                                   ? 'bg-red-600 hover:bg-red-700'
                                   : 'bg-purple-600 hover:bg-purple-700'
-                              } text-white`}
+                              } text-white disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-gray-400`}
                               data-testid={`button-quote-request-${request.id}`}
                             >
                               <DollarSign className="w-4 h-4 mr-2" />
-                              {request.isEmergency ? 'Quote Emergency' : 'Quote this Job'}
+                              {(quotesMap.has(request.id) || quotesMap.has(request.requestId))
+                                ? `Quoted $${(quotesMap.get(request.id) || quotesMap.get(request.requestId))?.quoteAmount}` 
+                                : (request.isEmergency ? 'Quote Emergency' : 'Quote this Job')}
                             </Button>
                             <Button
                               onClick={() => handleDeclineRequest(request.id)}
@@ -882,6 +910,7 @@ export default function ManualOperatorDashboard() {
           open={requestDetailsOpen}
           onOpenChange={setRequestDetailsOpen}
           request={selectedRequest}
+          operatorId={operatorId}
           onQuote={(req) => {
             setSelectedRequest(req);
             setQuoteModalOpen(true);

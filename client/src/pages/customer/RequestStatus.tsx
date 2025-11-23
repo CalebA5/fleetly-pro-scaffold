@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { useState } from "react";
+import { JobDetailModal } from "@/components/customer/JobDetailModal";
 
 const STATUS_COLORS = {
   pending: "bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200",
@@ -44,6 +45,8 @@ export default function RequestStatus() {
   const { user } = useAuth();
   const [, setLocation] = useLocation();
   const [selectedTab, setSelectedTab] = useState("pending");
+  const [selectedRequest, setSelectedRequest] = useState<any>(null);
+  const [showDetailModal, setShowDetailModal] = useState(false);
 
   // CRITICAL: Fetch only THIS customer's requests using server-side filtering
   // Use default queryFn which properly handles credentials and auth
@@ -87,8 +90,9 @@ export default function RequestStatus() {
       if (isAssigned) {
         setLocation(`/customer/job-tracking?requestId=${request.requestId}`);
       } else {
-        // For other statuses, just show details (could open a modal)
-        console.log("View details for", request.requestId);
+        // For other statuses, open detail modal
+        setSelectedRequest(request);
+        setShowDetailModal(true);
       }
     };
 
@@ -232,18 +236,24 @@ export default function RequestStatus() {
         </div>
 
         <Tabs value={selectedTab} onValueChange={setSelectedTab} className="space-y-6">
-          <TabsList className="grid grid-cols-3 w-full gap-2">
-            <TabsTrigger value="pending" data-testid="tab-pending" className="text-sm">
-              <Clock className="w-4 h-4 mr-2" />
-              Pending Requests ({groupedRequests.pending.length})
+          <TabsList className="grid grid-cols-3 w-full gap-1 md:gap-2">
+            <TabsTrigger value="pending" data-testid="tab-pending" className="text-xs md:text-sm px-2 md:px-4">
+              <Clock className="w-3 h-3 md:w-4 md:h-4 md:mr-2" />
+              <span className="hidden sm:inline">Pending</span>
+              <span className="sm:hidden">{groupedRequests.pending.length}</span>
+              <span className="hidden sm:inline ml-1">({groupedRequests.pending.length})</span>
             </TabsTrigger>
-            <TabsTrigger value="active" data-testid="tab-active" className="text-sm">
-              <Truck className="w-4 h-4 mr-2" />
-              Active Jobs ({groupedRequests.active.length})
+            <TabsTrigger value="active" data-testid="tab-active" className="text-xs md:text-sm px-2 md:px-4">
+              <Truck className="w-3 h-3 md:w-4 md:h-4 md:mr-2" />
+              <span className="hidden sm:inline">Active</span>
+              <span className="sm:hidden">{groupedRequests.active.length}</span>
+              <span className="hidden sm:inline ml-1">({groupedRequests.active.length})</span>
             </TabsTrigger>
-            <TabsTrigger value="completed" data-testid="tab-completed" className="text-sm">
-              <CheckCircle className="w-4 h-4 mr-2" />
-              Completed ({groupedRequests.completed.length})
+            <TabsTrigger value="completed" data-testid="tab-completed" className="text-xs md:text-sm px-2 md:px-4">
+              <CheckCircle className="w-3 h-3 md:w-4 md:h-4 md:mr-2" />
+              <span className="hidden sm:inline">Done</span>
+              <span className="sm:hidden">{groupedRequests.completed.length}</span>
+              <span className="hidden sm:inline ml-1">({groupedRequests.completed.length})</span>
             </TabsTrigger>
           </TabsList>
 
@@ -285,6 +295,13 @@ export default function RequestStatus() {
           )}
         </Tabs>
       </div>
+
+      {/* Job Detail Modal */}
+      <JobDetailModal
+        open={showDetailModal}
+        onOpenChange={setShowDetailModal}
+        request={selectedRequest}
+      />
     </div>
   );
 }

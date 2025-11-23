@@ -620,6 +620,7 @@ export default function NearbyJobsMap() {
           open={showDetailsModal}
           onOpenChange={setShowDetailsModal}
           request={requestForDetails}
+          operatorId={operatorId || ''}
           onQuote={handleQuote}
           onDecline={handleDecline}
         />

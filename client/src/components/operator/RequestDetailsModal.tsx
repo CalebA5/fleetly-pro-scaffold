@@ -10,14 +10,17 @@ import {
   User, 
   Calendar,
   Image as ImageIcon,
-  FileText
+  FileText,
+  CheckCircle
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
+import { useQuery } from "@tanstack/react-query";
 
 interface RequestDetailsModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   request: any;
+  operatorId: string;
   onQuote: (request: any) => void;
   onDecline: (request: any) => void;
 }
@@ -26,6 +29,7 @@ export function RequestDetailsModal({
   open,
   onOpenChange,
   request,
+  operatorId,
   onQuote,
   onDecline
 }: RequestDetailsModalProps) {
@@ -33,6 +37,17 @@ export function RequestDetailsModal({
 
   const isEmergency = request.isEmergency === 1 || request.isEmergency === true;
   const details = request.details || {};
+
+  // Fetch quotes for this service request - use requestId or fallback to id
+  const serviceRequestId = request.requestId || request.id;
+  const { data: quotes = [] } = useQuery<any[]>({
+    queryKey: [`/api/quotes/service-request/${serviceRequestId}`],
+    enabled: open && !!serviceRequestId,
+  });
+
+  // Check if current operator has already quoted
+  const existingQuote = quotes.find(q => q.operatorId === operatorId && q.status !== 'operator_withdrawn');
+  const hasQuoted = !!existingQuote;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -206,6 +221,28 @@ export function RequestDetailsModal({
             </>
           )}
 
+          {/* Quote Already Submitted Banner */}
+          {hasQuoted && (
+            <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
+              <div className="flex items-center gap-2">
+                <CheckCircle className="w-5 h-5 text-green-600 dark:text-green-400" />
+                <div>
+                  <p className="font-semibold text-green-800 dark:text-green-200 text-sm">
+                    Quote Already Submitted
+                  </p>
+                  <p className="text-xs text-green-700 dark:text-green-300 mt-1">
+                    Amount: ${existingQuote.quoteAmount} • Status: {existingQuote.status.replace(/_/g, ' ')}
+                  </p>
+                  {existingQuote.submittedAt && (
+                    <p className="text-xs text-green-700 dark:text-green-300">
+                      Submitted {formatDistanceToNow(new Date(existingQuote.submittedAt), { addSuffix: true })}
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Action Buttons */}
           <div className="flex gap-3 pt-4">
             <Button
@@ -213,18 +250,20 @@ export function RequestDetailsModal({
                 onQuote(request);
                 onOpenChange(false);
               }}
-              className="flex-1 bg-orange-600 hover:bg-orange-700 text-white"
+              disabled={hasQuoted}
+              className="flex-1 bg-orange-600 hover:bg-orange-700 text-white disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-gray-400"
               data-testid="button-quote-job"
             >
-              Quote This Job
+              {hasQuoted ? `Quoted $${existingQuote.quoteAmount}` : 'Quote This Job'}
             </Button>
             <Button
               onClick={() => {
                 onDecline(request);
                 onOpenChange(false);
               }}
+              disabled={hasQuoted}
               variant="outline"
-              className="flex-1 border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800"
+              className="flex-1 border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed"
               data-testid="button-decline-job"
             >
               Decline
