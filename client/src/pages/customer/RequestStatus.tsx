@@ -14,7 +14,8 @@ import {
   DollarSign,
   User,
   Search,
-  Eye
+  Eye,
+  Truck
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { useState } from "react";
@@ -40,7 +41,7 @@ const STATUS_ICONS = {
 export default function RequestStatus() {
   const { user } = useAuth();
   const [, setLocation] = useLocation();
-  const [selectedTab, setSelectedTab] = useState("all");
+  const [selectedTab, setSelectedTab] = useState("pending");
 
   // CRITICAL: Fetch only THIS customer's requests using server-side filtering
   // Use default queryFn which properly handles credentials and auth
@@ -62,14 +63,12 @@ export default function RequestStatus() {
   }
 
   const groupedRequests = {
-    all: requests || [],
     pending: (requests || []).filter((r: any) => 
-      r.status === 'pending' || r.status === 'operator_pending'
+      r.status === 'pending' || r.status === 'operator_pending' || r.status === 'operator_declined'
     ),
-    accepted: (requests || []).filter((r: any) => 
+    active: (requests || []).filter((r: any) => 
       r.status === 'assigned' || r.status === 'in_progress'
     ),
-    declined: (requests || []).filter((r: any) => r.status === 'operator_declined'),
     completed: (requests || []).filter((r: any) => r.status === 'completed')
   };
 
@@ -216,21 +215,18 @@ export default function RequestStatus() {
         </div>
 
         <Tabs value={selectedTab} onValueChange={setSelectedTab} className="space-y-6">
-          <TabsList className="grid grid-cols-5 w-full gap-1">
-            <TabsTrigger value="all" data-testid="tab-all" className="text-xs md:text-sm px-2 py-2">
-              <span className="hidden sm:inline">All </span>({groupedRequests.all.length})
+          <TabsList className="grid grid-cols-3 w-full gap-2">
+            <TabsTrigger value="pending" data-testid="tab-pending" className="text-sm">
+              <Clock className="w-4 h-4 mr-2" />
+              Pending Requests ({groupedRequests.pending.length})
             </TabsTrigger>
-            <TabsTrigger value="pending" data-testid="tab-pending" className="text-xs md:text-sm px-2 py-2">
-              <span className="hidden sm:inline">Pending </span>({groupedRequests.pending.length})
+            <TabsTrigger value="active" data-testid="tab-active" className="text-sm">
+              <Truck className="w-4 h-4 mr-2" />
+              Active Jobs ({groupedRequests.active.length})
             </TabsTrigger>
-            <TabsTrigger value="accepted" data-testid="tab-accepted" className="text-xs md:text-sm px-2 py-2">
-              <span className="hidden sm:inline">Accepted </span>({groupedRequests.accepted.length})
-            </TabsTrigger>
-            <TabsTrigger value="declined" data-testid="tab-declined" className="text-xs md:text-sm px-2 py-2">
-              <span className="hidden sm:inline">Declined </span>({groupedRequests.declined.length})
-            </TabsTrigger>
-            <TabsTrigger value="completed" data-testid="tab-completed" className="text-xs md:text-sm px-2 py-2">
-              <span className="hidden sm:inline">Completed </span>({groupedRequests.completed.length})
+            <TabsTrigger value="completed" data-testid="tab-completed" className="text-sm">
+              <CheckCircle className="w-4 h-4 mr-2" />
+              Completed ({groupedRequests.completed.length})
             </TabsTrigger>
           </TabsList>
 
@@ -244,9 +240,23 @@ export default function RequestStatus() {
               <TabsContent key={tab} value={tab} className="space-y-4">
                 {tabRequests.length === 0 ? (
                   <Card className="p-12 text-center bg-white dark:bg-gray-800">
-                    <p className="text-gray-500 dark:text-gray-400">
-                      No {tab !== 'all' ? tab : ''} requests found
-                    </p>
+                    <div className="flex flex-col items-center gap-3">
+                      <div className="w-16 h-16 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
+                        {tab === 'pending' && <Clock className="w-8 h-8 text-gray-400" />}
+                        {tab === 'active' && <Truck className="w-8 h-8 text-gray-400" />}
+                        {tab === 'completed' && <CheckCircle className="w-8 h-8 text-gray-400" />}
+                      </div>
+                      <div className="text-center">
+                        <h3 className="font-semibold text-black dark:text-white mb-1">
+                          No {tab === 'pending' ? 'Pending Requests' : tab === 'active' ? 'Active Jobs' : 'Completed Jobs'}
+                        </h3>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                          {tab === 'pending' && "Create a new service request to get started"}
+                          {tab === 'active' && "Accept a quote to start tracking your jobs"}
+                          {tab === 'completed' && "Completed jobs will appear here"}
+                        </p>
+                      </div>
+                    </div>
                   </Card>
                 ) : (
                   tabRequests.map((request: any) => (
