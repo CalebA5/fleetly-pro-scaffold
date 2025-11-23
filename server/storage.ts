@@ -338,22 +338,22 @@ export class MemStorage implements IStorage {
 
   async getServiceRequests(customerId?: string): Promise<ServiceRequest[]> {
     if (customerId) {
-      return this.serviceRequests.filter((sr) => sr.customerId === customerId);
+      return await db.select().from(serviceRequests).where(eq(serviceRequests.customerId, customerId));
     }
-    return this.serviceRequests;
+    return await db.select().from(serviceRequests);
   }
 
   async getServiceRequest(id: number): Promise<ServiceRequest | undefined> {
-    return this.serviceRequests.find((sr) => sr.id === id);
+    const results = await db.select().from(serviceRequests).where(eq(serviceRequests.id, id)).limit(1);
+    return results[0];
   }
 
   async getServiceRequestByRequestId(requestId: string): Promise<ServiceRequest | undefined> {
-    return this.serviceRequests.find((sr) => sr.requestId === requestId);
+    const results = await db.select().from(serviceRequests).where(eq(serviceRequests.requestId, requestId)).limit(1);
+    return results[0];
   }
 
   async createServiceRequest(request: InsertServiceRequest): Promise<ServiceRequest> {
-    const now = new Date();
-    
     // Build details object from service-specific fields
     let details: any = null;
     if (request.snowDetails) {
@@ -375,9 +375,12 @@ export class MemStorage implements IStorage {
     const latitude = request.latitude ? String(request.latitude) : String(baseLat + randomOffset());
     const longitude = request.longitude ? String(request.longitude) : String(baseLon + randomOffset());
     
-    const newRequest: ServiceRequest = {
-      id: this.nextServiceRequestId++,
-      requestId: `REQ-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`, // Generate unique requestId
+    // Calculate quote window expiry (12 hours from now)
+    const quoteWindowExpiresAt = new Date(Date.now() + 12 * 60 * 60 * 1000);
+    
+    // Insert into database using Drizzle
+    const [newRequest] = await db.insert(serviceRequests).values({
+      requestId: `REQ-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       customerId: request.customerId,
       customerName: request.customerName,
       operatorId: request.operatorId || null,
@@ -397,10 +400,11 @@ export class MemStorage implements IStorage {
       imageCount: request.imageCount || 0,
       details,
       estimatedCost: request.estimatedCost || null,
-      requestedAt: now,
-      respondedAt: null,
-    };
-    this.serviceRequests.push(newRequest);
+      quoteWindowExpiresAt,
+      quoteStatus: "open",
+      quoteCount: 0,
+    }).returning();
+    
     return newRequest;
   }
 
