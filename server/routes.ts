@@ -1,7 +1,8 @@
 import { Router } from "express";
 import type { IStorage } from "./storage";
 import { db } from "./db";
-import { operators, customers, users, favorites, operatorTierStats, weatherAlerts, insertWeatherAlertSchema, emergencyRequests, dispatchQueue, insertEmergencyRequestSchema, insertDispatchQueueSchema, businesses, serviceRequests, operatorDailyEarnings, operatorMonthlyEarnings, acceptedJobs, operatorPricingConfigs, operatorQuotes, insertOperatorPricingConfigSchema, insertOperatorQuoteSchema } from "@shared/schema";
+import { operators, customers, users, favorites, operatorTierStats, weatherAlerts, insertWeatherAlertSchema, emergencyRequests, dispatchQueue, insertEmergencyRequestSchema, insertDispatchQueueSchema, businesses, serviceRequests, operatorDailyEarnings, operatorMonthlyEarnings, acceptedJobs, operatorPricingConfigs, operatorQuotes, insertOperatorPricingConfigSchema, insertOperatorQuoteSchema, notifications } from "@shared/schema";
+import { notificationService } from "./notificationService";
 import { eq, sql, and, gte, or } from "drizzle-orm";
 import { insertJobSchema, insertServiceRequestSchema, insertCustomerSchema, insertOperatorSchema, insertRatingSchema, insertFavoriteSchema, insertOperatorLocationSchema, insertCustomerServiceHistorySchema, OPERATOR_TIER_INFO } from "@shared/schema";
 import { isWithinRadius } from "./utils/distance";
@@ -2731,6 +2732,15 @@ export function registerRoutes(storage: IStorage) {
         .values(validation.data)
         .returning();
       
+      // Create notification for customer about new quote
+      await notificationService.notifyCustomerOfQuote(
+        requestId,
+        request[0].customerId,
+        quoteData.operatorName,
+        quoteData.amount,
+        quoteId
+      );
+      
       // Update service request quote count and last quote time
       await db.update(serviceRequests)
         .set({
@@ -3468,6 +3478,68 @@ export function registerRoutes(storage: IStorage) {
     } catch (error) {
       console.error("Error finding alternative operators:", error);
       res.status(500).json({ message: "Failed to find alternative operators" });
+    }
+  });
+
+  // ===== NOTIFICATIONS API =====
+  
+  // Get notifications for a user (customer or operator)
+  router.get("/api/notifications/:userId", async (req, res) => {
+    try {
+      const { userId } = req.params;
+      const { unreadOnly } = req.query;
+      
+      let query = db.query.notifications.findMany({
+        where: eq(notifications.userId, userId),
+        orderBy: (notifications, { desc }) => [desc(notifications.createdAt)],
+        limit: 50,
+      });
+      
+      const allNotifications = await query;
+      
+      // Filter unread if requested
+      const result = unreadOnly === 'true' 
+        ? allNotifications.filter(n => !n.readAt)
+        : allNotifications;
+      
+      res.json(result);
+    } catch (error) {
+      console.error("Error fetching notifications:", error);
+      res.status(500).json({ message: "Failed to fetch notifications" });
+    }
+  });
+  
+  // Mark notification as read
+  router.patch("/api/notifications/:notificationId/read", async (req, res) => {
+    try {
+      const { notificationId } = req.params;
+      
+      await db.update(notifications)
+        .set({ readAt: new Date(), deliveryState: "read" })
+        .where(eq(notifications.notificationId, notificationId));
+      
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error marking notification as read:", error);
+      res.status(500).json({ message: "Failed to mark notification as read" });
+    }
+  });
+  
+  // Get unread notification count
+  router.get("/api/notifications/:userId/count", async (req, res) => {
+    try {
+      const { userId } = req.params;
+      
+      const allNotifications = await db.query.notifications.findMany({
+        where: eq(notifications.userId, userId),
+      });
+      
+      const unreadCount = allNotifications.filter(n => !n.readAt).length;
+      
+      res.json({ count: unreadCount });
+    } catch (error) {
+      console.error("Error fetching notification count:", error);
+      res.status(500).json({ message: "Failed to fetch notification count" });
     }
   });
 

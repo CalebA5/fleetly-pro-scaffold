@@ -367,6 +367,10 @@ export const serviceRequests = pgTable("service_requests", {
   quoteStatus: text("quote_status").default("open"), // "open" | "decided" | "expired"
   quoteCount: integer("quote_count").default(0), // Denormalized count for fast filtering
   lastQuoteAt: timestamp("last_quote_at"), // Last time a quote was submitted
+  // Dashboard routing fields - for real-time state management
+  latestQuoteId: text("latest_quote_id"), // FK to most recent quote (helps route to "Quote Received" tab)
+  assignedOperatorId: text("assigned_operator_id"), // FK to operator who accepted the job
+  activeJobId: text("active_job_id"), // FK to acceptedJobs.acceptedJobId when job is active
 }, (table) => ({
   // Composite index for status + emergency queries as recommended by architect
   statusEmergencyIdx: index("idx_service_requests_status_emergency").on(table.status, table.isEmergency),
@@ -438,6 +442,64 @@ export const insertServiceRequestSchema = baseServiceRequestSchema.extend({
 export type InsertServiceRequest = z.infer<typeof insertServiceRequestSchema>;
 export type ServiceRequest = typeof serviceRequests.$inferSelect;
 export type ServiceRequestStatus = "pending" | "confirmed" | "declined" | "cancelled";
+
+// Request Status Events - Track all status transitions for audit and real-time notifications
+export const requestStatusEvents = pgTable("request_status_events", {
+  id: serial("id").primaryKey(),
+  eventId: text("event_id").notNull().unique(),
+  requestId: text("request_id").notNull(), // FK to service_requests.requestId
+  actorRole: text("actor_role").notNull(), // "customer" | "operator" | "system"
+  actorId: text("actor_id"), // User ID of who triggered the event
+  actorName: text("actor_name"), // Name for display
+  fromStatus: text("from_status"), // Previous status (null for initial creation)
+  toStatus: text("to_status").notNull(), // New status
+  eventType: text("event_type").notNull(), // "request_created" | "quote_submitted" | "quote_accepted" | "job_started" | "job_completed" | "request_declined" | etc.
+  metadata: jsonb("metadata"), // Event-specific data: { quoteId, amount, reason, etc. }
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => ({
+  requestIdx: index("idx_status_events_request").on(table.requestId),
+  createdAtIdx: index("idx_status_events_created").on(table.createdAt),
+  requestCreatedIdx: index("idx_status_events_request_created").on(table.requestId, table.createdAt),
+}));
+
+export const insertRequestStatusEventSchema = createInsertSchema(requestStatusEvents).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertRequestStatusEvent = z.infer<typeof insertRequestStatusEventSchema>;
+export type RequestStatusEvent = typeof requestStatusEvents.$inferSelect;
+
+// Notifications - Store all notifications for users (both customers and operators)
+export const notifications = pgTable("notifications", {
+  id: serial("id").primaryKey(),
+  notificationId: text("notification_id").notNull().unique(),
+  userId: text("user_id").notNull(), // ID of user who receives the notification
+  audienceRole: text("audience_role").notNull(), // "customer" | "operator"
+  title: text("title").notNull(), // Short title: "New Quote Received"
+  body: text("body").notNull(), // Longer description: "John Doe has submitted a quote for $150"
+  type: text("type").notNull(), // "request_update" | "quote_received" | "job_started" | "job_completed" | etc.
+  requestId: text("request_id"), // FK to service_requests.requestId (optional, for request-related notifications)
+  statusEventId: text("status_event_id"), // FK to request_status_events.eventId (links to triggering event)
+  metadata: jsonb("metadata"), // Additional data: { quoteId, operatorId, amount, etc. }
+  readAt: timestamp("read_at"), // When user marked as read
+  deliveryState: text("delivery_state").notNull().default("pending"), // "pending" | "delivered" | "read"
+  expiresAt: timestamp("expires_at"), // Auto-expire notifications after certain time
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => ({
+  userIdx: index("idx_notifications_user").on(table.userId),
+  deliveryStateIdx: index("idx_notifications_delivery").on(table.deliveryState),
+  userDeliveryIdx: index("idx_notifications_user_delivery").on(table.userId, table.deliveryState),
+  createdAtIdx: index("idx_notifications_created").on(table.createdAt),
+}));
+
+export const insertNotificationSchema = createInsertSchema(notifications).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertNotification = z.infer<typeof insertNotificationSchema>;
+export type Notification = typeof notifications.$inferSelect;
 
 export const customers = pgTable("customers", {
   id: serial("id").primaryKey(),
