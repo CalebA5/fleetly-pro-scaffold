@@ -10,67 +10,33 @@ interface LocationPermissionModalProps {
 }
 
 export function LocationPermissionModal({ open, onOpenChange }: LocationPermissionModalProps) {
-  const { setFormattedAddress } = useUserLocation();
+  const { refreshLocation, markPrompted, markPermission } = useUserLocation();
   const [isRequesting, setIsRequesting] = useState(false);
 
   const handleAllowLocation = async () => {
     setIsRequesting(true);
     try {
-      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-        navigator.geolocation.getCurrentPosition(resolve, reject, {
-          enableHighAccuracy: true,
-          timeout: 10000,
-          maximumAge: 0
-        });
-      });
-
-      // Reverse geocode to get human-readable address
-      try {
-        const response = await fetch(
-          `https://nominatim.openstreetmap.org/reverse?format=json&lat=${position.coords.latitude}&lon=${position.coords.longitude}&zoom=16&addressdetails=1`,
-          {
-            headers: {
-              'User-Agent': 'Fleetly-Location-App'
-            }
-          }
-        );
-        const data = await response.json();
-        
-        if (data.address) {
-          const address = data.address;
-          const formattedAddr = [
-            address.road,
-            address.city || address.town || address.village,
-            address.state
-          ].filter(Boolean).join(", ");
-          
-          setFormattedAddress(
-            formattedAddr || data.display_name,
-            position.coords.latitude,
-            position.coords.longitude
-          );
-        } else {
-          // Fallback to coordinates if reverse geocoding fails
-          const coordAddr = `${position.coords.latitude.toFixed(6)}, ${position.coords.longitude.toFixed(6)}`;
-          setFormattedAddress(coordAddr, position.coords.latitude, position.coords.longitude);
-        }
-      } catch (geocodeError) {
-        console.error("Reverse geocoding error:", geocodeError);
-        // Fallback to coordinates
-        const coordAddr = `${position.coords.latitude.toFixed(6)}, ${position.coords.longitude.toFixed(6)}`;
-        setFormattedAddress(coordAddr, position.coords.latitude, position.coords.longitude);
-      }
-
-      // Mark that user has been prompted
-      localStorage.setItem('fleetly_location_prompted', 'true');
-      localStorage.setItem('fleetly_location_granted', 'true');
+      // Use centralized refreshLocation from context
+      await refreshLocation();
       
+      // Mark that user has been prompted and granted permission
+      markPrompted();
+      markPermission(true);
+      
+      // Close modal on success
       onOpenChange(false);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Location error:", error);
-      // Still mark as prompted even if denied
-      localStorage.setItem('fleetly_location_prompted', 'true');
-      localStorage.setItem('fleetly_location_granted', 'false');
+      
+      // Mark as prompted
+      markPrompted();
+      
+      // Only mark as denied if permission was actually denied
+      if (error?.message === "PERMISSION_DENIED") {
+        markPermission(false);
+      }
+      // For other errors (timeout, position unavailable), don't change permission status
+      
       onOpenChange(false);
     } finally {
       setIsRequesting(false);
@@ -78,8 +44,8 @@ export function LocationPermissionModal({ open, onOpenChange }: LocationPermissi
   };
 
   const handleSkip = () => {
-    localStorage.setItem('fleetly_location_prompted', 'true');
-    localStorage.setItem('fleetly_location_granted', 'false');
+    markPrompted();
+    markPermission(false);
     onOpenChange(false);
   };
 
