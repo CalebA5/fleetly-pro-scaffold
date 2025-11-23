@@ -109,16 +109,11 @@ export default function ManualOperatorDashboard() {
     enabled: !!operatorId,
   });
 
-  // Create a map of request ID to quote for quick lookup
-  // Map by both requestId (string) and id (numeric) for compatibility
+  // Create a map of requestId (string) to quote for quick lookup
   const quotesMap = new Map();
   operatorQuotes.forEach(quote => {
     if (quote.status !== 'operator_withdrawn') {
-      quotesMap.set(quote.serviceRequestId, quote);
-      // Also map by numeric ID if available
-      if (quote.serviceRequestNumericId) {
-        quotesMap.set(quote.serviceRequestNumericId, quote);
-      }
+      quotesMap.set(quote.serviceRequestId, quote);  // Use string requestId consistently
     }
   });
 
@@ -683,10 +678,10 @@ export default function ManualOperatorDashboard() {
                                     EMERGENCY
                                   </Badge>
                                 )}
-                                {(quotesMap.has(request.requestId) || quotesMap.has(request.id)) && (
+                                {quotesMap.has(request.requestId) && (
                                   <Badge className="bg-green-600 text-white text-xs">
                                     <DollarSign className="w-3 h-3 mr-1" />
-                                    Quoted ${(quotesMap.get(request.requestId) || quotesMap.get(request.id))?.quoteAmount}
+                                    Quoted ${quotesMap.get(request.requestId)?.amount}
                                   </Badge>
                                 )}
                               </div>
@@ -726,7 +721,7 @@ export default function ManualOperatorDashboard() {
                                 setSelectedRequest(request);
                                 setQuoteModalOpen(true);
                               }}
-                              disabled={quotesMap.has(request.id) || quotesMap.has(request.requestId)}
+                              disabled={quotesMap.has(request.requestId)}
                               className={`flex-1 ${
                                 request.isEmergency
                                   ? 'bg-red-600 hover:bg-red-700'
@@ -735,8 +730,8 @@ export default function ManualOperatorDashboard() {
                               data-testid={`button-quote-request-${request.id}`}
                             >
                               <DollarSign className="w-4 h-4 mr-2" />
-                              {(quotesMap.has(request.id) || quotesMap.has(request.requestId))
-                                ? `Quoted $${(quotesMap.get(request.id) || quotesMap.get(request.requestId))?.quoteAmount}` 
+                              {quotesMap.has(request.requestId)
+                                ? `Quoted $${quotesMap.get(request.requestId)?.amount}` 
                                 : (request.isEmergency ? 'Quote Emergency' : 'Quote this Job')}
                             </Button>
                             <Button

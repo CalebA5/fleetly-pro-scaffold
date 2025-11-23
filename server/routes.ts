@@ -2685,18 +2685,25 @@ export function registerRoutes(storage: IStorage) {
   // Submit a quote for a service request
   router.post("/api/service-requests/:requestId/quotes", async (req, res) => {
     try {
-      const { requestId } = req.params;
+      const requestIdParam = req.params.requestId;
       const quoteData = req.body;
       
-      // Verify service request exists
+      // Support both numeric ID and string requestId for flexibility
+      const isNumeric = !isNaN(Number(requestIdParam));
       const request = await db.select()
         .from(serviceRequests)
-        .where(eq(serviceRequests.requestId, requestId))
+        .where(isNumeric 
+          ? eq(serviceRequests.id, parseInt(requestIdParam))
+          : eq(serviceRequests.requestId, requestIdParam)
+        )
         .limit(1);
       
       if (request.length === 0) {
         return res.status(404).json({ message: "Service request not found" });
       }
+      
+      // Use the string requestId for quote tracking
+      const requestId = request[0].requestId;
       
       // Check if operator already has a quote for this request
       const existingQuote = await db.select()
@@ -2724,7 +2731,7 @@ export function registerRoutes(storage: IStorage) {
       const validation = insertOperatorQuoteSchema.safeParse({
         ...quoteData,
         quoteId,
-        serviceRequestId: requestId,
+        serviceRequestId: requestId,  // Use string requestId
         status: "sent",
         expiresAt,
         history: [{
@@ -2772,11 +2779,25 @@ export function registerRoutes(storage: IStorage) {
   // Get all quotes for a service request
   router.get("/api/service-requests/:requestId/quotes", async (req, res) => {
     try {
-      const { requestId } = req.params;
+      const requestIdParam = req.params.requestId;
+      
+      // Support both numeric ID and string requestId
+      const isNumeric = !isNaN(Number(requestIdParam));
+      const request = await db.select()
+        .from(serviceRequests)
+        .where(isNumeric 
+          ? eq(serviceRequests.id, parseInt(requestIdParam))
+          : eq(serviceRequests.requestId, requestIdParam)
+        )
+        .limit(1);
+      
+      if (request.length === 0) {
+        return res.json([]);
+      }
       
       const quotes = await db.select()
         .from(operatorQuotes)
-        .where(eq(operatorQuotes.serviceRequestId, requestId))
+        .where(eq(operatorQuotes.serviceRequestId, request[0].requestId))
         .orderBy(sql`${operatorQuotes.submittedAt} DESC`);
       
       res.json(quotes);
