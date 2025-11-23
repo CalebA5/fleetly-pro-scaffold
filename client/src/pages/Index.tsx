@@ -30,7 +30,7 @@ const Index = () => {
   const [showLocationPermission, setShowLocationPermission] = useState(false);
   const { isAuthenticated, user, isLoading: isAuthLoading } = useAuth();
   const { toast } = useToast();
-  const { setFormattedAddress, formattedAddress, location } = useUserLocation();
+  const { setFormattedAddress, formattedAddress, location, permissionStatus, refreshLocation } = useUserLocation();
 
   // Check if user should see location permission prompt
   useEffect(() => {
@@ -230,7 +230,8 @@ const Index = () => {
     }
   };
 
-  // Manual location detection (triggered by button click) - Gets fresh location
+  // Manual location detection (triggered by location icon button)
+  // PRIMARY FUNCTION: Display/update current location
   const handleUseCurrentLocation = async () => {
     // Check if geolocation is supported
     if (!navigator.geolocation) {
@@ -242,127 +243,47 @@ const Index = () => {
       return;
     }
 
-    // Check if user previously granted permission
-    const locationGranted = localStorage.getItem('fleetly_location_granted');
-    
-    // If permission was explicitly denied (user clicked "Skip"), show modal
-    if (locationGranted === 'false') {
-      setShowLocationPermission(true);
-      return;
-    }
-
-    // If user already has location from LocationContext, use it directly (no re-prompt)
-    // This avoids re-prompting users who already granted permission
-    if (locationGranted === 'true' && location && formattedAddress && location.coords) {
-      const { latitude, longitude } = location.coords;
-      setCurrentLat(latitude);
-      setCurrentLon(longitude);
-      setPickup(formattedAddress);
-      setUserHasCleared(false);
-      
-      toast({
-        title: "Location updated",
-        description: "Using your current location.",
-      });
-      return;
-    }
-
-    // If permission granted or first time (no stored value), request location directly
-    setLoadingLocation(true);
-
-    navigator.geolocation.getCurrentPosition(
-      async (position) => {
-        const { latitude, longitude } = position.coords;
+    // If permission already granted, refresh location (no modal)
+    if (permissionStatus === "granted") {
+      setLoadingLocation(true);
+      try {
+        // Get fresh location data
+        const { position, formattedAddress: freshAddress } = await refreshLocation();
         
-        // Store coordinates
-        setCurrentLat(latitude);
-        setCurrentLon(longitude);
-
-        try {
-          // Use OpenStreetMap Nominatim for reverse geocoding
-          const response = await fetch(
-            `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`,
-            {
-              headers: {
-                'User-Agent': 'Fleetly-Location-App'
-              }
-            }
-          );
-          const data = await response.json();
-
-          if (data.display_name) {
-            // Use a more concise address format
-            const address = data.address;
-            const formattedAddressStr = [
-              address.road,
-              address.city || address.town || address.village,
-              address.state
-            ].filter(Boolean).join(", ");
-
-            const finalAddress = formattedAddressStr || data.display_name;
-            setPickup(finalAddress);
-            
-            // Store in LocationContext
-            setFormattedAddress(finalAddress, latitude, longitude);
-            
-            // Allow auto-fill again since we just fetched a new location
-            setUserHasCleared(false);
-            
-            // Mark permission as granted and prompted
-            localStorage.setItem('fleetly_location_granted', 'true');
-            localStorage.setItem('fleetly_location_prompted', 'true');
-            
-            toast({
-              title: "Location updated",
-              description: "Your current location has been updated.",
-            });
-          }
-        } catch (error) {
-          console.error("Reverse geocoding failed:", error);
-          toast({
-            title: "Location failed",
-            description: "Could not get your current location. Please try again.",
-            variant: "destructive",
-          });
-        } finally {
-          setLoadingLocation(false);
-        }
-      },
-      (error) => {
-        console.log("Location access error:", error.code, error.message);
-        setLoadingLocation(false);
+        // Update pickup field with fresh location (always override)
+        setCurrentLat(position.coords.latitude);
+        setCurrentLon(position.coords.longitude);
+        setPickup(freshAddress);
+        setUserHasCleared(false);
         
-        // If permission denied, show the location permission modal
-        if (error.code === error.PERMISSION_DENIED) {
-          // Mark as denied and prompted so we show modal next time
-          localStorage.setItem('fleetly_location_granted', 'false');
-          localStorage.setItem('fleetly_location_prompted', 'true');
+        toast({
+          title: "Location updated",
+          description: "Using your current location.",
+        });
+      } catch (error: any) {
+        console.error("Location refresh error:", error);
+        
+        // Only show modal if permission was denied
+        if (error?.message === "PERMISSION_DENIED") {
           setShowLocationPermission(true);
+        } else {
+          // For other errors (timeout, unavailable), just show a toast
           toast({
-            title: "Location access required",
-            description: "Please allow location access to use your current location.",
-            variant: "default",
-          });
-        } else if (error.code === error.TIMEOUT) {
-          toast({
-            title: "Location timeout",
-            description: "Location request timed out. Please try again.",
-            variant: "destructive",
-          });
-        } else if (error.code === error.POSITION_UNAVAILABLE) {
-          toast({
-            title: "Location unavailable",
-            description: "Your location is currently unavailable. Please try entering your address manually.",
+            title: "Location error",
+            description: error?.message === "TIMEOUT" 
+              ? "Location request timed out. Please try again."
+              : "Could not get your location. Please try again.",
             variant: "destructive",
           });
         }
-      },
-      {
-        enableHighAccuracy: true, // Always get the most accurate location
-        timeout: 10000, // 10 second timeout
-        maximumAge: 0 // NO caching - always get fresh location
+      } finally {
+        setLoadingLocation(false);
       }
-    );
+      return;
+    }
+
+    // If permission not granted or status unknown, show modal
+    setShowLocationPermission(true);
   };
 
   // REMOVED: This duplicate useEffect was causing auto-refill even after manual clear

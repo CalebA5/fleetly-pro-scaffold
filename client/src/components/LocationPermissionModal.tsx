@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { MapPin, Truck, Clock, Shield } from "lucide-react";
+import { MapPin, Truck, Clock, Shield, AlertCircle } from "lucide-react";
 import { useUserLocation } from "@/contexts/LocationContext";
+import { useToast } from "@/hooks/use-toast";
 
 interface LocationPermissionModalProps {
   open: boolean;
@@ -11,10 +12,13 @@ interface LocationPermissionModalProps {
 
 export function LocationPermissionModal({ open, onOpenChange }: LocationPermissionModalProps) {
   const { refreshLocation, markPrompted, markPermission } = useUserLocation();
+  const { toast } = useToast();
   const [isRequesting, setIsRequesting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleAllowLocation = async () => {
     setIsRequesting(true);
+    setError(null);
     try {
       // Use centralized refreshLocation from context
       await refreshLocation();
@@ -25,19 +29,36 @@ export function LocationPermissionModal({ open, onOpenChange }: LocationPermissi
       
       // Close modal on success
       onOpenChange(false);
+      
+      toast({
+        title: "Location enabled",
+        description: "Your location has been saved.",
+      });
     } catch (error: any) {
       console.error("Location error:", error);
       
-      // Mark as prompted
-      markPrompted();
-      
-      // Only mark as denied if permission was actually denied
+      // Handle different error types
       if (error?.message === "PERMISSION_DENIED") {
+        // Permission denied - mark as denied and close modal
+        markPrompted();
         markPermission(false);
+        onOpenChange(false);
+        
+        toast({
+          title: "Location access denied",
+          description: "You can enable location access later from your browser settings.",
+          variant: "destructive",
+        });
+      } else if (error?.message === "TIMEOUT") {
+        // Timeout - show error but keep modal open for retry
+        setError("Location request timed out. Please try again.");
+      } else if (error?.message === "POSITION_UNAVAILABLE") {
+        // Position unavailable - show error but keep modal open for retry
+        setError("Your location is currently unavailable. Please check your device settings and try again.");
+      } else {
+        // Unknown error - show generic message and keep modal open for retry
+        setError("Could not get your location. Please try again.");
       }
-      // For other errors (timeout, position unavailable), don't change permission status
-      
-      onOpenChange(false);
     } finally {
       setIsRequesting(false);
     }
@@ -116,6 +137,14 @@ export function LocationPermissionModal({ open, onOpenChange }: LocationPermissi
           </p>
         </div>
 
+        {/* Error message */}
+        {error && (
+          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3 flex items-start gap-2">
+            <AlertCircle className="w-4 h-4 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
+            <p className="text-xs text-red-700 dark:text-red-300">{error}</p>
+          </div>
+        )}
+
         <div className="flex flex-col gap-2 pt-1">
           <Button
             onClick={handleAllowLocation}
@@ -123,7 +152,7 @@ export function LocationPermissionModal({ open, onOpenChange }: LocationPermissi
             className="w-full bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-semibold h-10"
             data-testid="button-allow-location"
           >
-            {isRequesting ? "Requesting..." : "Allow Location"}
+            {isRequesting ? "Requesting..." : error ? "Try Again" : "Allow Location"}
           </Button>
           <Button
             onClick={handleSkip}
