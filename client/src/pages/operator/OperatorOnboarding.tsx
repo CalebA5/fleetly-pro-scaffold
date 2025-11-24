@@ -15,6 +15,7 @@ import { OPERATOR_TIER_INFO, type OperatorTier, type Operator } from "@shared/sc
 import { AuthDialog } from "@/components/AuthDialog";
 import { useQuery } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
+import { InfoTooltip } from "@/components/ui/info-tooltip";
 
 const vehicleTypes = [
   "Pickup Truck",
@@ -636,217 +637,162 @@ export const OperatorOnboarding = () => {
 
   // Tier Selection Screen
   if (currentStep === 0) {
+    // If user is already authenticated and has operator profile, show dashboard instead
+    if (isAuthenticated && operatorData && operatorData.subscribedTiers && operatorData.subscribedTiers.length > 0) {
+      const dashboardRoute = getDashboardRoute(operatorData.subscribedTiers[0]);
+      setLocation(dashboardRoute);
+      return null;
+    }
+    
     return (
-      <div className="min-h-screen bg-white dark:bg-gray-900 flex flex-col">
-        <header className="border-b border-gray-200 dark:border-gray-800 px-4 sm:px-6 lg:px-8 py-4">
-          <div className="max-w-7xl mx-auto flex items-center justify-between">
-            <Link href="/">
-              <Button variant="ghost" size="sm" data-testid="button-back">
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Back
-              </Button>
-            </Link>
-            <h1 className="text-2xl font-bold text-black dark:text-white">Drive & Earn</h1>
-            <div className="w-20"></div>
-          </div>
-        </header>
-
+      <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white dark:from-gray-900 dark:to-gray-800 flex flex-col">
         <div className="flex-1 px-4 sm:px-6 lg:px-8 py-12">
-          <div className="max-w-5xl mx-auto">
+          <div className="max-w-4xl mx-auto">
+            {/* Hero Section */}
             <div className="text-center mb-12">
-              <h2 className="text-3xl font-bold text-black dark:text-white mb-4">
-                Choose Your Operator Type
-              </h2>
-              <p className="text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
-                Select the tier that best matches your credentials and equipment. Each tier has different requirements and earning potential.
+              <h1 className="text-4xl md:text-5xl font-bold text-black dark:text-white mb-4">
+                Drive & Earn with Fleetly
+              </h1>
+              <p className="text-lg text-gray-600 dark:text-gray-400 mb-8">
+                Join thousands of operators earning on their own schedule
               </p>
             </div>
 
-            {/* Tier Progress Indicator */}
-            {operatorData && (
-              <div className="flex items-center justify-center gap-2 mb-8">
-                <span className="text-sm text-gray-600 dark:text-gray-400">Tiers Unlocked:</span>
-                <div className="flex gap-2">
-                  {["professional", "equipped", "manual"].map((tier) => (
-                    <div
-                      key={tier}
-                      className={`w-3 h-3 rounded-full ${
-                        operatorData.subscribedTiers?.includes(tier)
-                          ? "bg-orange-500"
-                          : "bg-gray-300 dark:bg-gray-700"
-                      }`}
-                    />
-                  ))}
-                </div>
-                <span className="text-sm font-semibold text-black dark:text-white">
-                  {operatorData.subscribedTiers?.length || 0}/3
-                </span>
-              </div>
-            )}
+            {/* Get Started Card */}
+            <Card className="mb-12 border-2">
+              <CardHeader className="text-center">
+                <CardTitle className="text-2xl text-black dark:text-white flex items-center justify-center gap-2">
+                  Get Started as an Operator
+                  <InfoTooltip content="Sign in to access your operator dashboard and start earning" />
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="flex flex-col sm:flex-row items-center justify-center gap-4">
+                <Button
+                  variant="outline"
+                  size="lg"
+                  onClick={() => setShowAuthDialog(true)}
+                  className="w-full sm:w-auto"
+                  data-testid="button-sign-in"
+                >
+                  Sign In
+                </Button>
+                <Button
+                  size="lg"
+                  onClick={() => setShowAuthDialog(true)}
+                  className="w-full sm:w-auto bg-orange-500 hover:bg-orange-600 text-white"
+                  data-testid="button-sign-up"
+                >
+                  Sign Up
+                </Button>
+              </CardContent>
+            </Card>
 
+            {/* Tier Cards Grid */}
             <div className="grid md:grid-cols-3 gap-6">
-              {/* Professional Tier */}
-              {operatorData?.subscribedTiers?.includes("professional") ? 
-                renderSubscribedTierCard("professional")
-                : (
-                <Card 
-                  className="cursor-pointer hover:border-orange-500 dark:hover:border-orange-500 transition-all hover:shadow-lg relative"
-                  onClick={() => handleTierSelection("professional")}
-                  data-testid="card-tier-professional"
-                >
-                  {operatorData && (
-                    <div className="absolute top-4 right-4">
-                      <span className="text-xs font-semibold text-orange-600 dark:text-orange-400 bg-orange-100 dark:bg-orange-900 px-2 py-1 rounded">
-                        + Add This Tier
-                      </span>
+              {/* Professional & Certified */}
+              <Card 
+                className="hover:shadow-lg transition-all cursor-pointer"
+                onClick={() => {
+                  if (!isAuthenticated) {
+                    setShowAuthDialog(true);
+                  } else {
+                    handleTierSelection("professional");
+                  }
+                }}
+                data-testid="card-tier-professional"
+              >
+                <CardHeader className="text-center">
+                  <div className="flex justify-center mb-4">
+                    <div className="w-16 h-16 bg-amber-100 dark:bg-amber-900 rounded-full flex items-center justify-center">
+                      <span className="text-3xl">🏆</span>
                     </div>
-                  )}
-                  <CardHeader>
-                    <div className="w-12 h-12 bg-orange-100 dark:bg-orange-900 rounded-full flex items-center justify-center mb-4">
-                      <Award className="w-6 h-6 text-orange-600 dark:text-orange-400" />
-                    </div>
-                    <CardTitle className="text-black dark:text-white">
-                      {OPERATOR_TIER_INFO.professional.label}
-                    </CardTitle>
-                    <CardDescription className="text-gray-600 dark:text-gray-400">
-                      {OPERATOR_TIER_INFO.professional.description}
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="space-y-2">
-                      <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
-                        <CheckCircle className="w-4 h-4 mr-2 text-green-600" />
-                        All services available
-                      </div>
-                      <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
-                        <CheckCircle className="w-4 h-4 mr-2 text-green-600" />
-                        City-wide operation
-                      </div>
-                      <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
-                        <CheckCircle className="w-4 h-4 mr-2 text-green-600" />
-                        1.5x pricing multiplier
-                      </div>
-                      <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
-                        <CheckCircle className="w-4 h-4 mr-2 text-green-600" />
-                        Premium customer access
-                      </div>
-                    </div>
-                    <div className="pt-4 border-t border-gray-200 dark:border-gray-800">
-                      <p className="text-xs text-gray-500 dark:text-gray-500">
-                        Requires: Business license, certification
-                      </p>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
+                  </div>
+                  <CardTitle className="text-black dark:text-white flex items-center justify-center gap-2">
+                    Professional & Certified
+                    <InfoTooltip content="Licensed business with professional equipment and certification" />
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600 dark:text-gray-400">Rate Multiplier:</span>
+                    <span className="font-semibold text-black dark:text-white">1.5x</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600 dark:text-gray-400">Service Radius:</span>
+                    <span className="font-semibold text-black dark:text-white">Unlimited</span>
+                  </div>
+                </CardContent>
+              </Card>
 
-              {/* Equipped Tier */}
-              {operatorData?.subscribedTiers?.includes("equipped") ? 
-                renderSubscribedTierCard("equipped")
-                : (
-                <Card 
-                  className="cursor-pointer hover:border-blue-500 dark:hover:border-blue-500 transition-all hover:shadow-lg relative"
-                  onClick={() => handleTierSelection("equipped")}
-                  data-testid="card-tier-equipped"
-                >
-                  {operatorData && (
-                    <div className="absolute top-4 right-4">
-                      <span className="text-xs font-semibold text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-900 px-2 py-1 rounded">
-                        + Add This Tier
-                      </span>
+              {/* Skilled & Equipped */}
+              <Card 
+                className="hover:shadow-lg transition-all cursor-pointer"
+                onClick={() => {
+                  if (!isAuthenticated) {
+                    setShowAuthDialog(true);
+                  } else {
+                    handleTierSelection("equipped");
+                  }
+                }}
+                data-testid="card-tier-equipped"
+              >
+                <CardHeader className="text-center">
+                  <div className="flex justify-center mb-4">
+                    <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center">
+                      <span className="text-3xl">🚛</span>
                     </div>
-                  )}
-                  <CardHeader>
-                    <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center mb-4">
-                      <Truck className="w-6 h-6 text-blue-600 dark:text-blue-400" />
-                    </div>
-                    <CardTitle className="text-black dark:text-white">
-                      {OPERATOR_TIER_INFO.equipped.label}
-                    </CardTitle>
-                    <CardDescription className="text-gray-600 dark:text-gray-400">
-                      {OPERATOR_TIER_INFO.equipped.description}
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="space-y-2">
-                      <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
-                        <CheckCircle className="w-4 h-4 mr-2 text-green-600" />
-                        Most services available
-                      </div>
-                      <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
-                        <CheckCircle className="w-4 h-4 mr-2 text-green-600" />
-                        15km operation radius
-                      </div>
-                      <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
-                        <CheckCircle className="w-4 h-4 mr-2 text-green-600" />
-                        Standard pricing
-                      </div>
-                      <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
-                        <CheckCircle className="w-4 h-4 mr-2 text-green-600" />
-                        Flexible scheduling
-                      </div>
-                    </div>
-                    <div className="pt-4 border-t border-gray-200 dark:border-gray-800">
-                      <p className="text-xs text-gray-500 dark:text-gray-500">
-                        Requires: Vehicle/truck ownership
-                      </p>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
+                  </div>
+                  <CardTitle className="text-black dark:text-white flex items-center justify-center gap-2">
+                    Skilled & Equipped
+                    <InfoTooltip content="Have trucks/vehicles but no formal certification" />
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600 dark:text-gray-400">Rate Multiplier:</span>
+                    <span className="font-semibold text-black dark:text-white">1x</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600 dark:text-gray-400">Service Radius:</span>
+                    <span className="font-semibold text-black dark:text-white">15km</span>
+                  </div>
+                </CardContent>
+              </Card>
 
-              {/* Manual Tier */}
-              {operatorData?.subscribedTiers?.includes("manual") ? 
-                renderSubscribedTierCard("manual")
-                : (
-                <Card 
-                  className="cursor-pointer hover:border-orange-500 dark:hover:border-orange-500 transition-all hover:shadow-lg border-2 border-orange-200 dark:border-orange-800 relative"
-                  onClick={() => handleTierSelection("manual")}
-                  data-testid="card-tier-manual"
-                >
-                  <CardHeader>
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="w-12 h-12 bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center">
-                        <Users className="w-6 h-6 text-green-600 dark:text-green-400" />
-                      </div>
-                      <span className="text-xs font-semibold text-orange-600 dark:text-orange-400 bg-orange-100 dark:bg-orange-900 px-2 py-1 rounded">
-                        {operatorData ? "+ Add This Tier" : "PLOW TO EARN"}
-                      </span>
+              {/* Manual Operator */}
+              <Card 
+                className="hover:shadow-lg transition-all cursor-pointer"
+                onClick={() => {
+                  if (!isAuthenticated) {
+                    setShowAuthDialog(true);
+                  } else {
+                    handleTierSelection("manual");
+                  }
+                }}
+                data-testid="card-tier-manual"
+              >
+                <CardHeader className="text-center">
+                  <div className="flex justify-center mb-4">
+                    <div className="w-16 h-16 bg-purple-100 dark:bg-purple-900 rounded-full flex items-center justify-center">
+                      <span className="text-3xl">⛏️</span>
                     </div>
-                    <CardTitle className="text-black dark:text-white">
-                      {OPERATOR_TIER_INFO.manual.label}
-                    </CardTitle>
-                    <CardDescription className="text-gray-600 dark:text-gray-400">
-                      {OPERATOR_TIER_INFO.manual.description}
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="space-y-2">
-                      <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
-                        <CheckCircle className="w-4 h-4 mr-2 text-green-600" />
-                        Snow plowing focus
-                      </div>
-                      <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
-                        <CheckCircle className="w-4 h-4 mr-2 text-green-600" />
-                        5km radius from home
-                      </div>
-                      <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
-                        <CheckCircle className="w-4 h-4 mr-2 text-green-600" />
-                        Easy to start earning
-                      </div>
-                      <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
-                        <CheckCircle className="w-4 h-4 mr-2 text-green-600" />
-                        Perfect for side income
-                      </div>
-                    </div>
-                    <div className="pt-4 border-t border-gray-200 dark:border-gray-800">
-                      <p className="text-xs text-gray-500 dark:text-gray-500">
-                        Requires: Basic snow equipment
-                      </p>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
+                  </div>
+                  <CardTitle className="text-black dark:text-white flex items-center justify-center gap-2">
+                    Manual Operator
+                    <InfoTooltip content="On-foot with basic equipment (shovels, snow blowers)" />
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600 dark:text-gray-400">Rate Multiplier:</span>
+                    <span className="font-semibold text-black dark:text-white">0.6x</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600 dark:text-gray-400">Service Radius:</span>
+                    <span className="font-semibold text-black dark:text-white">5km</span>
+                  </div>
+                </CardContent>
+              </Card>
             </div>
           </div>
         </div>
