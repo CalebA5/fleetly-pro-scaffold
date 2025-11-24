@@ -50,8 +50,9 @@ export const Header = ({ onSignIn, onSignUp, onDriveAndEarn }: HeaderProps) => {
   return (
     <header className="border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center" style={{ height: 'clamp(3.5rem, 10vh, 4rem)' }}>
-          <Link href="/">
+        <div className="flex justify-between items-center relative" style={{ height: 'clamp(3.5rem, 10vh, 4rem)' }}>
+          {/* Logo - centered on mobile, left-aligned on desktop */}
+          <Link href="/" className="md:relative absolute left-1/2 -translate-x-1/2 md:left-0 md:translate-x-0">
             <div className="flex items-center cursor-pointer hover:opacity-80 transition-opacity" data-testid="link-home-logo">
               <Truck 
                 className="text-black dark:text-white icon-warm-glow" 
