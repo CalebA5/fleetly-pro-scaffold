@@ -118,7 +118,7 @@ export const JobHistory = () => {
           <Button
             variant="ghost"
             className="mb-4"
-            onClick={() => setLocation("/operator/onboarding")}
+            onClick={() => setLocation("/drive-earn")}
             data-testid="button-back-to-dashboard"
           >
             <ChevronLeft className="h-4 w-4 mr-2" />

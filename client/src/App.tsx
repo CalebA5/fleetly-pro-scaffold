@@ -25,6 +25,7 @@ import JobDetailsPage from "./pages/operator/JobDetailsPage";
 import { JobHistory as OperatorJobHistory } from "./pages/operator/JobHistory";
 import FleetAnalytics from "./pages/operator/FleetAnalytics";
 import TeamAnalytics from "./pages/operator/TeamAnalytics";
+import { DriveEarn } from "./pages/DriveEarn";
 import { HelpSupport } from "./pages/HelpSupport";
 import { UserGuide } from "./pages/UserGuide";
 import { OperatorGuide } from "./pages/OperatorGuide";
@@ -34,7 +35,6 @@ import { Profile } from "./pages/Profile";
 import { default as Notifications } from "./pages/Notifications";
 import EmergencySOS from "./pages/EmergencySOS";
 import EmergencyTracking from "./pages/EmergencyTracking";
-import AdminDashboard from "./pages/admin/AdminDashboard";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import { SignIn } from "./pages/SignIn";
@@ -69,13 +69,6 @@ const App = () => (
               <Route path="/notifications" component={Notifications} />
               <Route path="/weather-alerts" component={Notifications} />
               
-              {/* Admin routes - protected */}
-              <Route path="/admin/dashboard">
-                <ProtectedRoute>
-                  <AdminDashboard />
-                </ProtectedRoute>
-              </Route>
-              
               {/* Customer routes */}
               <Route path="/customer/services" component={ServiceSelection} />
               <Route path="/customer/operators" component={OperatorMap} />
@@ -93,14 +86,8 @@ const App = () => (
               <Route path="/customer/request-status" component={RequestStatus} />
               
               {/* Public tier selection/onboarding - no auth required */}
+              <Route path="/drive-earn" component={DriveEarn} />
               <Route path="/operator/onboarding" component={OperatorOnboarding} />
-              {/* Legacy redirect for old Drive & Earn page */}
-              <Route path="/drive-earn">
-                {() => {
-                  window.location.href = '/operator/onboarding';
-                  return null;
-                }}
-              </Route>
               
               {/* Protected operator dashboards - require operator auth */}
               <Route path="/business">

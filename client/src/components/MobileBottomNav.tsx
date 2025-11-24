@@ -76,7 +76,7 @@ export function MobileBottomNav() {
     {
       icon: Truck,
       label: "Drive & Earn",
-      path: "/operator/onboarding",
+      path: "/drive-earn",
       testId: "nav-drive-earn"
     },
     {

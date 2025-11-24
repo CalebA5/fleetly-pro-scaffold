@@ -39,13 +39,6 @@ export const BusinessDashboard = () => {
   const [quoteModalOpen, setQuoteModalOpen] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState<any | null>(null);
   
-  // Update viewTier when this dashboard loads
-  useEffect(() => {
-    if (user?.viewTier !== "professional") {
-      updateUser({ viewTier: "professional" });
-    }
-  }, []);
-  
   // ALL MOCK DATA REMOVED - Dashboard is now 100% dynamic based on real database data
   // Urgent requests would come from backend API when implemented
   const [urgentRequests, setUrgentRequests] = useState<UrgentRequest[]>([]);
@@ -396,7 +389,7 @@ export const BusinessDashboard = () => {
   if (setupBusinessMutation.isPending || businessLoading || driversLoading) {
     return (
       <div className="min-h-screen bg-white dark:bg-black">
-        <Header onDriveAndEarn={() => setLocation("/operator/onboarding")} />
+        <Header onDriveAndEarn={() => setLocation("/drive-earn")} />
         <div className="flex items-center justify-center min-h-[60vh]">
           <div className="text-lg text-black dark:text-white">
             {setupBusinessMutation.isPending ? "Setting up your business profile..." : "Loading business dashboard..."}
@@ -410,7 +403,7 @@ export const BusinessDashboard = () => {
   if (setupBusinessMutation.isError && !user?.businessId) {
     return (
       <div className="min-h-screen bg-white dark:bg-black">
-        <Header onDriveAndEarn={() => setLocation("/operator/onboarding")} />
+        <Header onDriveAndEarn={() => setLocation("/drive-earn")} />
         <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
           <div className="text-lg text-black dark:text-white">Failed to set up business profile</div>
           <Button 
@@ -432,7 +425,7 @@ export const BusinessDashboard = () => {
   if (businessError || (user?.businessId && !business)) {
     return (
       <div className="min-h-screen bg-white dark:bg-black">
-        <Header onDriveAndEarn={() => setLocation("/operator/onboarding")} />
+        <Header onDriveAndEarn={() => setLocation("/drive-earn")} />
         <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
           <div className="text-lg text-black dark:text-white">Failed to load business dashboard</div>
           <Button 
@@ -453,7 +446,7 @@ export const BusinessDashboard = () => {
   if (!business) {
     return (
       <div className="min-h-screen bg-white dark:bg-black">
-        <Header onDriveAndEarn={() => setLocation("/operator/onboarding")} />
+        <Header onDriveAndEarn={() => setLocation("/drive-earn")} />
         <div className="flex items-center justify-center min-h-[60vh]">
           <div className="text-lg text-black dark:text-white">Loading business dashboard...</div>
         </div>

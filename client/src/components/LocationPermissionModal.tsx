@@ -30,7 +30,10 @@ export function LocationPermissionModal({ open, onOpenChange }: LocationPermissi
       // Close modal on success
       onOpenChange(false);
       
-      // Silently enable location without showing notification (per user preference)
+      toast({
+        title: "Location enabled",
+        description: "Your location has been saved.",
+      });
     } catch (error: any) {
       console.error("Location error:", error);
       

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/enhanced-button";
@@ -35,7 +35,7 @@ interface ServiceRequest {
 }
 
 export default function ManualOperatorDashboard() {
-  const { user, updateUser } = useAuth();
+  const { user } = useAuth();
   const [, setLocation] = useLocation();
   const [acceptedGroupIds, setAcceptedGroupIds] = useState<string[]>([]);
   const { toast } = useToast();
@@ -49,13 +49,6 @@ export default function ManualOperatorDashboard() {
   const [declineModalOpen, setDeclineModalOpen] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState<any>(null);
   const [selectedJob, setSelectedJob] = useState<AcceptedJob | null>(null);
-  
-  // Update viewTier when this dashboard loads
-  useEffect(() => {
-    if (user?.viewTier !== "manual") {
-      updateUser({ viewTier: "manual" });
-    }
-  }, []);
   
   // ALL MOCK DATA REMOVED - Dashboard is now 100% dynamic
   // Requests come from database via /api/service-requests/for-operator endpoint
@@ -365,7 +358,7 @@ export default function ManualOperatorDashboard() {
       <Header
         onSignIn={() => {}}
         onSignUp={() => {}}
-        onDriveAndEarn={() => setLocation("/operator/onboarding")}
+        onDriveAndEarn={() => setLocation("/drive-earn")}
       />
 
       {/* Mobile-First Sticky Toggle */}

@@ -14,47 +14,12 @@ The frontend uses React 18, TypeScript, Vite, Wouter for routing, Radix UI primi
 ### Backend
 The backend is an Express.js server utilizing a PostgreSQL database with Drizzle ORM for data persistence. Zod is used for schema validation. API endpoints are RESTful under the `/api` prefix, with centralized error handling.
 
-**Authentication & Security:**
-- **Centralized Auth Middleware**: New operator verification and admin endpoints use `requireAuth` middleware that validates sessions and confirms user exists in database before allowing access
-- **Role-Based Access Control**: `requireRole` middleware enforces admin/business role requirements for sensitive admin endpoints
-- **Rate Limiting**: Email verification endpoints protected with rate limiting (5 send attempts / 15 minutes, 10 verify attempts / 15 minutes) to prevent brute-force attacks
-- **Session Validation**: All new auth endpoints validate `req.session` contains valid userId and cross-reference with users table
-- **Technical Debt**: Existing routes (100+ endpoints) still use legacy `req.sessionData?.userId || req.session?.userId` pattern without centralized middleware. Future work should migrate existing routes to use new auth middleware for consistent security across the application.
-
 ### Data Model
 The data model includes a service request schema with fields for `serviceType`, `isEmergency`, `description`, `location`, `status`, and a JSONB `details` field. Operator profiles store `operatorTier`, `isCertified`, `businessLicense`, `homeLatitude`, `homeLongitude`, and `operatingRadius`. Emergency system tables include `emergencyRequests` and `dispatchQueue`. Earnings tracking involves `operatorDailyEarnings`, `operatorMonthlyEarnings`, and `operatorTierStats` for lifetime statistics and customer group unlocking.
-
-**Operator Authentication Tables:**
-- `operatorApplications`: Tracks tier application submissions with fields for `applicationId`, `userId`, `tier`, `status`, `submittedAt`, `reviewedAt`, `reviewerId`, `rejectionReason`, `identityVerification` (JSONB), and `notes`
-- `applicationDocuments`: Stores uploaded verification documents with `documentId`, `applicationId`, `documentType`, `documentUrl`, `fileName`, `fileSize`, and `mimeType`
-- `verificationTokens`: Email/SMS verification tokens with `tokenId`, `userId`, `token`, `type`, `verified` status, `expiresAt`, and `verifiedAt` timestamps
-
-**Weather-Adaptive Theming:**
-- System automatically detects current weather conditions from National Weather Service API
-- Themes adapt to real-time weather: winter theme for snow alerts, summer theme for heat warnings, spring theme for rain
-- Weather data cached for 1 hour, checked every 30 minutes
-- Fallback to calendar-based seasons if weather data unavailable
-- Supports time-based light/dark mode switching (6 AM - 6 PM = light, 6 PM - 6 AM = dark)
 
 ### Feature Highlights
 - **Quote-Based Negotiation System**: Operators submit quotes (tracked by string `requestId`), and customers review, accept, decline, or counter them within a 12-hour expiry window. Backend routes support both numeric and string ID lookups for flexibility, always normalizing to string requestId for quote operations. Quote buttons disable after submission to prevent duplicates. Includes idempotent accept endpoints (`/api/quotes/:quoteId/accept` and `/api/quotes/:quoteId/respond`) that prevent duplicate job creation on retry scenarios.
 - **Comprehensive Notification System**: Real-time notifications for all customer-operator interactions. When operators submit quotes, customers receive notifications. When customers accept/decline quotes, both parties receive notifications with complete context (quote amount, operator name, job details). All notifications persist to database with 7-day expiry and include metadata for rich frontend display.
-- **Operator Authentication & Verification System**: Comprehensive tier-based verification system for all three operator tiers (Manual, Skilled & Equipped, Professional). Features include:
-  - **Email Verification**: 6-digit code verification required before accepting jobs, with 15-minute token expiry
-  - **Tier Application Tracking**: Database-backed applications for each tier with status tracking (pending, under_review, approved, rejected, additional_info_required)
-  - **Auto-Application Creation**: Applications automatically created when operators access tier dashboards
-  - **Verification Status Display**: Real-time tier status badges showing "Verified", "Pending", "Waiting for Authentication", or "Under Review"
-  - **Job Access Control**: Operators can only accept jobs after email verification and tier approval
-  - **Admin Verification Portal**: Beautiful admin dashboard (`/admin/dashboard`) for manual operator review with:
-    - **Stats Dashboard**: Real-time counts for Pending, Under Review, Approved, and Rejected applications
-    - **Tabbed Filtering**: Quick access to applications by status (All, Pending, Under Review, Approved, Rejected)
-    - **One-Click Actions**: Instant approve or reject with optional feedback notes
-    - **Document Viewer**: Clickable buttons to view uploaded documents (ID, licenses, insurance, etc.) in new tab
-    - **Operator Profiles**: Display operator name, email, tier, submission date, and verification status
-    - **Security**: Protected route requiring authentication, admin-only endpoints with role-based access control
-  - **Document Upload Support**: Application document tracking with URL-based storage
-  - **Testing Mode**: Secure test endpoint (`/api/test/create-sample-applications`) for generating demo applications - admin-only access, disabled in production
-  - **Security**: Admin-only routes with role-based access control, rate-limited verification endpoints, session validation
 - **Multi-Driver Business Management System**: Enables businesses to manage drivers and assign services.
 - **Three-Tier Operator System**: Professional, Skilled & Equipped, and Manual Operators with tier-specific onboarding and proximity-based job filtering.
 - **AI Assist Feature**: Recommends services and operators with estimated pricing.

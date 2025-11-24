@@ -48,63 +48,6 @@ export function SeasonalThemeProvider({ children }: SeasonalThemeProviderProps) 
     localStorage.setItem('fleetly-theme-mode', mode);
   };
 
-  // Check weather alerts for season override
-  useEffect(() => {
-    const checkWeatherSeason = async () => {
-      try {
-        // Fetch severe weather alerts
-        const response = await fetch('/api/weather/alerts/severe');
-        if (response.ok) {
-          const alerts = await response.json();
-          
-          // Detect snow/winter weather
-          const hasSnow = alerts.some((alert: any) => 
-            alert.event?.toLowerCase().includes('snow') ||
-            alert.event?.toLowerCase().includes('winter') ||
-            alert.event?.toLowerCase().includes('blizzard') ||
-            alert.event?.toLowerCase().includes('ice')
-          );
-          
-          // Detect rain/spring weather
-          const hasRain = alerts.some((alert: any) =>
-            alert.event?.toLowerCase().includes('rain') ||
-            alert.event?.toLowerCase().includes('flood') ||
-            alert.event?.toLowerCase().includes('thunder')
-          );
-          
-          // Detect summer/heat weather
-          const hasHeat = alerts.some((alert: any) =>
-            alert.event?.toLowerCase().includes('heat') ||
-            alert.event?.toLowerCase().includes('excessive')
-          );
-          
-          // Set season based on weather conditions
-          let weatherSeason: Season | null = null;
-          if (hasSnow) weatherSeason = 'winter';
-          else if (hasHeat) weatherSeason = 'summer';
-          else if (hasRain) weatherSeason = 'spring';
-          
-          if (weatherSeason) {
-            localStorage.setItem('fleetly_weather_season', JSON.stringify({
-              season: weatherSeason,
-              timestamp: Date.now()
-            }));
-          }
-        }
-      } catch (error) {
-        // Silently fail - will use calendar-based season
-      }
-    };
-    
-    // Check weather immediately
-    checkWeatherSeason();
-    
-    // Check every 30 minutes for weather updates
-    const weatherInterval = setInterval(checkWeatherSeason, 1800000);
-    
-    return () => clearInterval(weatherInterval);
-  }, []);
-
   // Check for season/time changes every minute
   useEffect(() => {
     const checkSeasonAndTime = () => {
