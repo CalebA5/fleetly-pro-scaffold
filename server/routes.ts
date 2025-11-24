@@ -495,6 +495,23 @@ export function registerRoutes(storage: IStorage) {
         return res.status(409).json({ message: `Operator with ID ${result.data.operatorId} already exists` });
       }
       
+      // BUSINESS LICENSE UNIQUENESS CHECK: Prevent duplicate business licenses
+      // Normalize license: trim whitespace and convert to uppercase for consistency
+      let normalizedBusinessLicense: string | null = null;
+      if (result.data.businessLicense && result.data.businessLicense.trim() !== "") {
+        normalizedBusinessLicense = result.data.businessLicense.trim().toUpperCase();
+        
+        const existingBusiness = await db.query.operators.findFirst({
+          where: eq(operators.businessLicense, normalizedBusinessLicense)
+        });
+        if (existingBusiness) {
+          return res.status(409).json({ 
+            message: `This business license is already registered to another operator. Each business license must be unique.`,
+            field: "businessLicense"
+          });
+        }
+      }
+      
       // Set up tier defaults
       const tier = result.data.operatorTier || "manual";
       const subscribedTiers: string[] = result.data.subscribedTiers || [tier];
@@ -516,7 +533,7 @@ export function registerRoutes(storage: IStorage) {
           canEarn: false, // Cannot earn until approved
           vehicle: result.data.vehicle || "Not specified",
           licensePlate: result.data.licensePlate || "N/A",
-          businessLicense: result.data.businessLicense || null,
+          businessLicense: normalizedBusinessLicense, // Use normalized value
           businessName: result.data.businessName || null,
           services: result.data.services || []
         };
@@ -546,7 +563,7 @@ export function registerRoutes(storage: IStorage) {
         subscribedTiers,
         activeTier, // null until operator goes online
         isCertified: result.data.isCertified ?? 1,
-        businessLicense: result.data.businessLicense || null,
+        businessLicense: normalizedBusinessLicense, // Use normalized value
         homeLatitude: result.data.homeLatitude || null,
         homeLongitude: result.data.homeLongitude || null,
         operatingRadius: result.data.operatingRadius || null,

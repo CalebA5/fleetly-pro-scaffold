@@ -1071,9 +1071,9 @@ export const OperatorOnboarding = () => {
                 </div>
               )}
 
-              {/* Manual - Step 2: Equipment & Area */}
+              {/* Manual - Step 2: Equipment, Services & Area */}
               {selectedTier === "manual" && currentStep === 2 && (
-                <div className="space-y-4">
+                <div className="space-y-6">
                   <div>
                     <Label>Your Equipment *</Label>
                     <p className="text-sm text-gray-500 dark:text-gray-500 mb-3">
@@ -1102,6 +1102,36 @@ export const OperatorOnboarding = () => {
                       ))}
                     </div>
                   </div>
+                  
+                  <div>
+                    <Label>Services You'll Provide *</Label>
+                    <p className="text-sm text-gray-500 dark:text-gray-500 mb-3">
+                      Select all services you can offer
+                    </p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {serviceTypes.map((service) => (
+                        <div 
+                          key={service}
+                          className="flex items-center space-x-2"
+                        >
+                          <Checkbox
+                            variant="circular"
+                            id={`manual-${service}`}
+                            checked={formData.services.includes(service)}
+                            onCheckedChange={() => handleServiceToggle(service)}
+                            data-testid={`checkbox-service-${service.toLowerCase().replace(/\s+/g, '-')}`}
+                          />
+                          <label
+                            htmlFor={`manual-${service}`}
+                            className="text-sm text-black dark:text-white cursor-pointer"
+                          >
+                            {service}
+                          </label>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  
                   <div>
                     <Label htmlFor="availableHours">Available Hours</Label>
                     <Input
@@ -1112,6 +1142,42 @@ export const OperatorOnboarding = () => {
                       data-testid="input-available-hours"
                     />
                   </div>
+                  
+                  <div>
+                    <Label>Equipment Photos (Optional)</Label>
+                    <p className="text-sm text-gray-500 dark:text-gray-500 mb-3">
+                      Upload photos of your equipment to help verify your application
+                    </p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-lg p-6 text-center">
+                        <Upload className="w-8 h-8 mx-auto mb-2 text-gray-400" />
+                        <p className="text-sm font-medium text-black dark:text-white mb-1">Equipment Photo 1</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-500 mb-3">Upload image (JPG, PNG)</p>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleFileUpload("Equipment Photo 1")}
+                          data-testid="button-upload-equipment-1"
+                        >
+                          Upload
+                        </Button>
+                      </div>
+                      <div className="border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-lg p-6 text-center">
+                        <Upload className="w-8 h-8 mx-auto mb-2 text-gray-400" />
+                        <p className="text-sm font-medium text-black dark:text-white mb-1">Equipment Photo 2</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-500 mb-3">Upload image (JPG, PNG)</p>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleFileUpload("Equipment Photo 2")}
+                          data-testid="button-upload-equipment-2"
+                        >
+                          Upload
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                  
                   <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
                     <h4 className="font-semibold text-black dark:text-white mb-2">Operating Radius</h4>
                     <p className="text-sm text-gray-600 dark:text-gray-400">

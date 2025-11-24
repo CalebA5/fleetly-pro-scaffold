@@ -205,8 +205,8 @@ export function TierSwitcher() {
     if (subscribedTiers.includes(tier)) {
       switchTierMutation.mutate(tier);
     } else {
-      setSelectedTier(tier);
-      setShowUpgradeDialog(true);
+      // Redirect to full onboarding flow instead of showing simple dialog
+      setLocation(`/operator/onboarding?tier=${tier}`);
     }
   };
 
