@@ -9,6 +9,7 @@ import { MapPin, Clock, DollarSign, Truck, AlertCircle, AlertTriangle, CheckCirc
 import { Header } from "@/components/Header";
 import { MobileBottomNav } from "@/components/MobileBottomNav";
 import { useAuth } from "@/contexts/AuthContext";
+import { useOperatorApproval } from "@/hooks/useOperatorApproval";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { VehicleManagement } from "@/components/VehicleManagement";
 import { useLocation } from "wouter";
@@ -37,6 +38,11 @@ interface ServiceRequest {
 
 export default function EquippedOperatorDashboard() {
   const { user } = useAuth();
+  
+  // PHASE 1: Check if operator is approved for equipped tier
+  // Redirects to pending verification page if not approved
+  const { isApproved, isLoading: isLoadingApproval } = useOperatorApproval("equipped");
+  
   const [, setLocation] = useLocation();
   const [acceptedJobs, setAcceptedJobs] = useState<number[]>([]);
   const [acceptedGroupIds, setAcceptedGroupIds] = useState<string[]>([]);

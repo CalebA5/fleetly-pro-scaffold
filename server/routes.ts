@@ -3895,5 +3895,153 @@ export function registerRoutes(storage: IStorage) {
     }
   });
 
+  // ========== PHASE 2: ADMIN PORTAL ENDPOINTS ==========
+  
+  // Middleware to check if user is admin
+  const requireAdmin = async (req: any, res: any, next: any) => {
+    try {
+      const sessionUser = req.session?.user;
+      if (!sessionUser || !sessionUser.userId) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+      
+      // Check if user is admin
+      const user = await db.query.users.findFirst({
+        where: eq(users.userId, sessionUser.userId)
+      });
+      
+      if (!user || user.isAdmin !== 1) {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+      
+      next();
+    } catch (error) {
+      console.error("Error checking admin status:", error);
+      res.status(500).json({ message: "Failed to verify admin status" });
+    }
+  };
+  
+  // Get all operators with pending verification (admin only)
+  router.get("/api/admin/operators/pending", requireAdmin, async (req, res) => {
+    try {
+      const allOperators = await db.query.operators.findMany();
+      
+      // Filter operators with at least one pending tier
+      const pendingOperators = allOperators.filter(operator => {
+        const tierProfiles = (operator.operatorTierProfiles as Record<string, any>) || {};
+        const tiers = Object.keys(tierProfiles);
+        
+        return tiers.some(tier => {
+          const profile = tierProfiles[tier];
+          return profile?.approvalStatus === "pending" || profile?.approvalStatus === "under_review";
+        });
+      });
+      
+      res.json(pendingOperators);
+    } catch (error) {
+      console.error("Error fetching pending operators:", error);
+      res.status(500).json({ message: "Failed to fetch pending operators" });
+    }
+  });
+  
+  // Approve operator tier (admin only)
+  router.post("/api/admin/operators/:operatorId/approve/:tier", requireAdmin, async (req, res) => {
+    try {
+      const { operatorId, tier } = req.params;
+      
+      // Get operator
+      const operator = await db.query.operators.findFirst({
+        where: eq(operators.operatorId, operatorId)
+      });
+      
+      if (!operator) {
+        return res.status(404).json({ message: "Operator not found" });
+      }
+      
+      // Update tier profile approval status
+      const tierProfiles = (operator.operatorTierProfiles as Record<string, any>) || {};
+      
+      if (!tierProfiles[tier]) {
+        return res.status(400).json({ message: `Tier ${tier} not found for this operator` });
+      }
+      
+      tierProfiles[tier] = {
+        ...tierProfiles[tier],
+        approvalStatus: "approved",
+        approvedAt: new Date().toISOString(),
+        canEarn: true,
+        rejectionReason: null
+      };
+      
+      // Update database
+      await db.update(operators)
+        .set({ operatorTierProfiles: tierProfiles })
+        .where(eq(operators.operatorId, operatorId));
+      
+      // TODO: Send approval email notification to operator
+      
+      res.json({ 
+        message: "Operator tier approved successfully",
+        tier,
+        operatorId 
+      });
+    } catch (error) {
+      console.error("Error approving operator:", error);
+      res.status(500).json({ message: "Failed to approve operator" });
+    }
+  });
+  
+  // Reject operator tier (admin only)
+  router.post("/api/admin/operators/:operatorId/reject/:tier", requireAdmin, async (req, res) => {
+    try {
+      const { operatorId, tier } = req.params;
+      const { reason } = req.body;
+      
+      if (!reason || reason.trim().length === 0) {
+        return res.status(400).json({ message: "Rejection reason is required" });
+      }
+      
+      // Get operator
+      const operator = await db.query.operators.findFirst({
+        where: eq(operators.operatorId, operatorId)
+      });
+      
+      if (!operator) {
+        return res.status(404).json({ message: "Operator not found" });
+      }
+      
+      // Update tier profile approval status
+      const tierProfiles = (operator.operatorTierProfiles as Record<string, any>) || {};
+      
+      if (!tierProfiles[tier]) {
+        return res.status(400).json({ message: `Tier ${tier} not found for this operator` });
+      }
+      
+      tierProfiles[tier] = {
+        ...tierProfiles[tier],
+        approvalStatus: "rejected",
+        rejectionReason: reason,
+        canEarn: false
+      };
+      
+      // Update database
+      await db.update(operators)
+        .set({ operatorTierProfiles: tierProfiles })
+        .where(eq(operators.operatorId, operatorId));
+      
+      // TODO: Send rejection email notification to operator
+      
+      res.json({ 
+        message: "Operator tier rejected",
+        tier,
+        operatorId,
+        reason 
+      });
+    } catch (error) {
+      console.error("Error rejecting operator:", error);
+      res.status(500).json({ message: "Failed to reject operator" });
+    }
+  });
+
   return router;
 }

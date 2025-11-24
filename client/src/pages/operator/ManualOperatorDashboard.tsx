@@ -8,6 +8,7 @@ import { MapPin, Clock, DollarSign, Users, Snowflake, AlertCircle, AlertTriangle
 import { Header } from "@/components/Header";
 import { MobileBottomNav } from "@/components/MobileBottomNav";
 import { useAuth } from "@/contexts/AuthContext";
+import { useOperatorApproval } from "@/hooks/useOperatorApproval";
 import { useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -36,6 +37,11 @@ interface ServiceRequest {
 
 export default function ManualOperatorDashboard() {
   const { user } = useAuth();
+  
+  // PHASE 1: Check if operator is approved for manual tier
+  // Redirects to pending verification page if not approved
+  const { isApproved, isLoading: isLoadingApproval } = useOperatorApproval("manual");
+  
   const [, setLocation] = useLocation();
   const [acceptedGroupIds, setAcceptedGroupIds] = useState<string[]>([]);
   const { toast } = useToast();

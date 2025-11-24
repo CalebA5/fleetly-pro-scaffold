@@ -16,6 +16,7 @@ import { Favorites } from "./pages/customer/Favorites";
 import QuoteCenter from "./pages/customer/QuoteCenter";
 import RequestStatus from "./pages/customer/RequestStatus";
 import { OperatorOnboarding } from "./pages/operator/OperatorOnboarding";
+import { PendingVerification } from "./pages/operator/PendingVerification";
 import { BusinessDashboard } from "./pages/operator/BusinessDashboard";
 import { OperatorDashboard } from "./pages/operator/OperatorDashboard";
 import ManualOperatorDashboard from "./pages/operator/ManualOperatorDashboard";
@@ -89,6 +90,13 @@ const App = () => (
               {/* Public tier selection/onboarding - no auth required */}
               <Route path="/drive-earn" component={DriveEarn} />
               <Route path="/operator/onboarding" component={OperatorOnboarding} />
+              
+              {/* Operator verification status page */}
+              <Route path="/operator/pending-verification">
+                <ProtectedRoute requireOperator>
+                  <PendingVerification />
+                </ProtectedRoute>
+              </Route>
               
               {/* Protected operator dashboards - require operator auth */}
               <Route path="/operator">

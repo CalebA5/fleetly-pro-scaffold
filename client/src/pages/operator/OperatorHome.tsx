@@ -9,6 +9,7 @@ import { Header } from "@/components/Header";
 import { AuthDialog } from "@/components/AuthDialog";
 import { ServiceRequestDetailsDialog } from "@/components/ServiceRequestDetailsDialog";
 import { useAuth } from "@/contexts/AuthContext";
+import { useOperatorApproval } from "@/hooks/useOperatorApproval";
 import type { ServiceRequest } from "@shared/schema";
 import { 
   Truck, 
@@ -61,6 +62,11 @@ const nearbyOpportunities = [
 
 export const OperatorHome = () => {
   const { user } = useAuth();
+  
+  // PHASE 1: Check if operator is approved for professional tier
+  // Redirects to pending verification page if not approved
+  const { isApproved, isLoading: isLoadingApproval } = useOperatorApproval("professional");
+  
   const [isOnline, setIsOnline] = useState(true);
   const [showNearbyPrompt, setShowNearbyPrompt] = useState(true);
   const [timeRemaining, setTimeRemaining] = useState(240); // 4 minutes in seconds

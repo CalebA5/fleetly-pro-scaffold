@@ -674,6 +674,7 @@ export const users = pgTable("users", {
   role: text("role").notNull().default("customer"), // "customer" | "operator" | "business"
   operatorId: text("operator_id"), // Links to operators table if role is operator
   businessId: text("business_id"), // Links to businesses table if role is business
+  isAdmin: integer("is_admin").notNull().default(0), // PHASE 2: Admin access flag (0 = false, 1 = true)
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
