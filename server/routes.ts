@@ -8,6 +8,7 @@ import { insertJobSchema, insertServiceRequestSchema, insertCustomerSchema, inse
 import { isWithinRadius } from "./utils/distance";
 import { getServiceRelevantAlerts } from "./services/weatherService";
 import { z } from "zod";
+import { requireAuth, requireRole, rateLimit } from "./middleware/auth";
 
 // Validation schemas for operator endpoints
 const updateActiveTierSchema = z.object({
@@ -3867,12 +3868,9 @@ export function registerRoutes(storage: IStorage) {
   // ===== OPERATOR AUTHENTICATION & VERIFICATION ROUTES =====
   
   // Auto-create application if needed (called by dashboards on load)
-  router.post("/api/operator/applications/auto-create", async (req, res) => {
+  router.post("/api/operator/applications/auto-create", requireAuth, async (req, res) => {
     try {
-      const userId = req.sessionData?.userId || req.session?.userId;
-      if (!userId) {
-        return res.status(401).json({ message: "Not authenticated" });
-      }
+      const userId = (req as any).userId;
 
       const { tier } = req.body;
 
@@ -3922,12 +3920,9 @@ export function registerRoutes(storage: IStorage) {
   });
   
   // Submit operator application for a tier
-  router.post("/api/operator/applications", async (req, res) => {
+  router.post("/api/operator/applications", requireAuth, async (req, res) => {
     try {
-      const userId = req.sessionData?.userId || req.session?.userId;
-      if (!userId) {
-        return res.status(401).json({ message: "Not authenticated" });
-      }
+      const userId = (req as any).userId;
 
       const { tier, documents, identityVerification } = req.body;
 
@@ -3975,12 +3970,9 @@ export function registerRoutes(storage: IStorage) {
   });
 
   // Get user's operator applications
-  router.get("/api/operator/applications", async (req, res) => {
+  router.get("/api/operator/applications", requireAuth, async (req, res) => {
     try {
-      const userId = req.sessionData?.userId || req.session?.userId;
-      if (!userId) {
-        return res.status(401).json({ message: "Not authenticated" });
-      }
+      const userId = (req as any).userId;
 
       const applications = await db.query.operatorApplications.findMany({
         where: eq(operatorApplications.userId, userId),
@@ -3995,12 +3987,9 @@ export function registerRoutes(storage: IStorage) {
   });
 
   // Get specific application with documents
-  router.get("/api/operator/applications/:applicationId", async (req, res) => {
+  router.get("/api/operator/applications/:applicationId", requireAuth, async (req, res) => {
     try {
-      const userId = req.sessionData?.userId || req.session?.userId;
-      if (!userId) {
-        return res.status(401).json({ message: "Not authenticated" });
-      }
+      const userId = (req as any).userId;
 
       const { applicationId } = req.params;
 
@@ -4032,12 +4021,9 @@ export function registerRoutes(storage: IStorage) {
   });
 
   // Upload document for application (simulated - no actual file upload yet)
-  router.post("/api/operator/applications/:applicationId/documents", async (req, res) => {
+  router.post("/api/operator/applications/:applicationId/documents", requireAuth, async (req, res) => {
     try {
-      const userId = req.sessionData?.userId || req.session?.userId;
-      if (!userId) {
-        return res.status(401).json({ message: "Not authenticated" });
-      }
+      const userId = (req as any).userId;
 
       const { applicationId } = req.params;
       const { documentType, documentUrl, fileName, fileSize, mimeType } = req.body;
@@ -4074,12 +4060,9 @@ export function registerRoutes(storage: IStorage) {
   });
 
   // Submit application for review (moves from pending to under_review)
-  router.post("/api/operator/applications/:applicationId/submit", async (req, res) => {
+  router.post("/api/operator/applications/:applicationId/submit", requireAuth, async (req, res) => {
     try {
-      const userId = req.sessionData?.userId || req.session?.userId;
-      if (!userId) {
-        return res.status(401).json({ message: "Not authenticated" });
-      }
+      const userId = (req as any).userId;
 
       const { applicationId } = req.params;
 
@@ -4112,21 +4095,9 @@ export function registerRoutes(storage: IStorage) {
   // ===== ADMIN ROUTES FOR APPLICATION REVIEW =====
 
   // Get all applications (admin only - simplified for now)
-  router.get("/api/admin/applications", async (req, res) => {
+  router.get("/api/admin/applications", requireAuth, requireRole("admin", "business"), async (req, res) => {
     try {
-      const userId = req.sessionData?.userId || req.session?.userId;
-      if (!userId) {
-        return res.status(401).json({ message: "Not authenticated" });
-      }
-
-      // Admin check - verify user has admin/business role
-      const user = await db.query.users.findFirst({
-        where: eq(users.userId, userId),
-      });
-
-      if (!user || !["business", "admin"].includes(user.role || "")) {
-        return res.status(403).json({ message: "Unauthorized - Admin access required" });
-      }
+      const userId = (req as any).userId;
 
       const { status } = req.query;
 
@@ -4170,21 +4141,9 @@ export function registerRoutes(storage: IStorage) {
   });
 
   // Review application (approve/reject) - admin only
-  router.post("/api/admin/applications/:applicationId/review", async (req, res) => {
+  router.post("/api/admin/applications/:applicationId/review", requireAuth, requireRole("admin", "business"), async (req, res) => {
     try {
-      const userId = req.sessionData?.userId || req.session?.userId;
-      if (!userId) {
-        return res.status(401).json({ message: "Not authenticated" });
-      }
-
-      // Admin check - verify user has admin/business role
-      const user = await db.query.users.findFirst({
-        where: eq(users.userId, userId),
-      });
-
-      if (!user || !["business", "admin"].includes(user.role || "")) {
-        return res.status(403).json({ message: "Unauthorized - Admin access required" });
-      }
+      const userId = (req as any).userId;
 
       const { applicationId } = req.params;
       const { status, rejectionReason, notes } = req.body;
@@ -4260,12 +4219,9 @@ export function registerRoutes(storage: IStorage) {
   // ===== EMAIL VERIFICATION ROUTES =====
 
   // Send email verification token
-  router.post("/api/verification/send-email", async (req, res) => {
+  router.post("/api/verification/send-email", requireAuth, rateLimit(5, 15 * 60 * 1000), async (req, res) => {
     try {
-      const userId = req.sessionData?.userId || req.session?.userId;
-      if (!userId) {
-        return res.status(401).json({ message: "Not authenticated" });
-      }
+      const userId = (req as any).userId;
 
       const user = await db.query.users.findFirst({
         where: eq(users.userId, userId),
@@ -4304,12 +4260,9 @@ export function registerRoutes(storage: IStorage) {
   });
 
   // Verify email token
-  router.post("/api/verification/verify-email", async (req, res) => {
+  router.post("/api/verification/verify-email", requireAuth, rateLimit(10, 15 * 60 * 1000), async (req, res) => {
     try {
-      const userId = req.sessionData?.userId || req.session?.userId;
-      if (!userId) {
-        return res.status(401).json({ message: "Not authenticated" });
-      }
+      const userId = (req as any).userId;
 
       const { token } = req.body;
 
@@ -4356,12 +4309,9 @@ export function registerRoutes(storage: IStorage) {
   });
 
   // Get verification status
-  router.get("/api/verification/status", async (req, res) => {
+  router.get("/api/verification/status", requireAuth, async (req, res) => {
     try {
-      const userId = req.sessionData?.userId || req.session?.userId;
-      if (!userId) {
-        return res.status(401).json({ message: "Not authenticated" });
-      }
+      const userId = (req as any).userId;
 
       const emailVerification = await db.query.verificationTokens.findFirst({
         where: and(
