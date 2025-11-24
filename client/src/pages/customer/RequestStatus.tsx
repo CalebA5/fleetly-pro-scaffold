@@ -27,6 +27,14 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Header } from "@/components/Header";
 import { MobileBottomNav } from "@/components/MobileBottomNav";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 const STATUS_COLORS = {
   pending: "bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200",
@@ -54,6 +62,8 @@ export default function RequestStatus() {
   const [selectedTab, setSelectedTab] = useState("pending");
   const [selectedRequest, setSelectedRequest] = useState<any>(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
+  const [showDeclineDialog, setShowDeclineDialog] = useState(false);
+  const [declinedRequestId, setDeclinedRequestId] = useState<string | null>(null);
 
   // CRITICAL: Fetch only THIS customer's requests using server-side filtering
   // Use default queryFn which properly handles credentials and auth
@@ -132,10 +142,16 @@ export default function RequestStatus() {
         });
       },
       onSuccess: () => {
+        // Show success message with options dialog
         toast({
           title: "Quote Declined",
-          description: "The operator has been notified.",
+          description: "The operator has been notified. We'll help you find another operator.",
         });
+        
+        // Show dialog with options to find other operators
+        setDeclinedRequestId(request.requestId);
+        setShowDeclineDialog(true);
+        
         // Invalidate with exact query key including customerId
         queryClient.invalidateQueries({ queryKey: [`/api/service-requests?customerId=${user?.id}`, 'customer', user?.id] });
         queryClient.invalidateQueries({ queryKey: [`/api/service-requests/${request.id}/quotes`] });
@@ -477,6 +493,56 @@ export default function RequestStatus() {
         onOpenChange={setShowDetailModal}
         request={selectedRequest}
       />
+
+      {/* Quote Declined - Options Dialog */}
+      <Dialog open={showDeclineDialog} onOpenChange={setShowDeclineDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Search className="w-5 h-5 text-orange-600" />
+              Find Another Operator
+            </DialogTitle>
+            <DialogDescription>
+              The quote has been declined. Would you like to find other operators for this request?
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-4">
+            <Button
+              onClick={() => {
+                setShowDeclineDialog(false);
+                setLocation('/customer/operator-map');
+              }}
+              className="w-full bg-orange-600 hover:bg-orange-700 text-white"
+              data-testid="button-search-operators"
+            >
+              <Search className="w-4 h-4 mr-2" />
+              Search Nearby Operators
+            </Button>
+            <Button
+              onClick={() => {
+                setShowDeclineDialog(false);
+                setLocation('/customer/operator-map');
+              }}
+              variant="outline"
+              className="w-full"
+              data-testid="button-browse-operators"
+            >
+              <MapPin className="w-4 h-4 mr-2" />
+              Browse All Operators
+            </Button>
+          </div>
+          <DialogFooter className="sm:justify-start">
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => setShowDeclineDialog(false)}
+              data-testid="button-close-dialog"
+            >
+              Stay on This Page
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       </div>
       <MobileBottomNav />
     </>
