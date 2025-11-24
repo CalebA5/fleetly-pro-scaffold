@@ -14,6 +14,13 @@ The frontend uses React 18, TypeScript, Vite, Wouter for routing, Radix UI primi
 ### Backend
 The backend is an Express.js server utilizing a PostgreSQL database with Drizzle ORM for data persistence. Zod is used for schema validation. API endpoints are RESTful under the `/api` prefix, with centralized error handling.
 
+**Authentication & Security:**
+- **Centralized Auth Middleware**: New operator verification and admin endpoints use `requireAuth` middleware that validates sessions and confirms user exists in database before allowing access
+- **Role-Based Access Control**: `requireRole` middleware enforces admin/business role requirements for sensitive admin endpoints
+- **Rate Limiting**: Email verification endpoints protected with rate limiting (5 send attempts / 15 minutes, 10 verify attempts / 15 minutes) to prevent brute-force attacks
+- **Session Validation**: All new auth endpoints validate `req.session` contains valid userId and cross-reference with users table
+- **Technical Debt**: Existing routes (100+ endpoints) still use legacy `req.sessionData?.userId || req.session?.userId` pattern without centralized middleware. Future work should migrate existing routes to use new auth middleware for consistent security across the application.
+
 ### Data Model
 The data model includes a service request schema with fields for `serviceType`, `isEmergency`, `description`, `location`, `status`, and a JSONB `details` field. Operator profiles store `operatorTier`, `isCertified`, `businessLicense`, `homeLatitude`, `homeLongitude`, and `operatingRadius`. Emergency system tables include `emergencyRequests` and `dispatchQueue`. Earnings tracking involves `operatorDailyEarnings`, `operatorMonthlyEarnings`, and `operatorTierStats` for lifetime statistics and customer group unlocking.
 

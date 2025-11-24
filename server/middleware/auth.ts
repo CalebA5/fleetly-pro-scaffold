@@ -14,9 +14,10 @@ import { eq } from "drizzle-orm";
  */
 
 export interface AuthenticatedRequest extends Request {
-  userId: number;
+  userId: string;
   user?: {
     id: number;
+    userId: string;
     email: string;
     name: string;
     role: string;
@@ -44,23 +45,22 @@ export async function requireAuth(
       return;
     }
 
-    // Validate user exists in database (convert userId to number if string)
-    const userIdNum = typeof userId === 'string' ? parseInt(userId, 10) : userId;
-    
-    const [user] = await db.select().from(users).where(eq(users.id, userIdNum)).limit(1);
+    // Validate user exists in database
+    const [user] = await db.select().from(users).where(eq(users.userId, userId)).limit(1);
 
     if (!user) {
       res.status(401).json({ 
         message: "Invalid session - user not found",
         code: "INVALID_USER" 
-        });
+      });
       return;
     }
 
     // Attach validated user data to request
-    (req as AuthenticatedRequest).userId = userIdNum;
+    (req as AuthenticatedRequest).userId = userId;
     (req as AuthenticatedRequest).user = {
       id: user.id,
+      userId: user.userId,
       email: user.email,
       name: user.name,
       role: user.role,
