@@ -328,7 +328,12 @@ export const OperatorMap = () => {
   // State for favorites filter
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
 
-  // Filter operators by selected service AND favorites AND self-exclusion AND radius
+  // Helper to check if operator is the current user
+  const isSelf = (operatorId: string) => {
+    return user?.operatorId && operatorId === user.operatorId;
+  };
+
+  // Filter operators by selected service AND favorites AND radius (show self but disable service requests)
   const operators = allOperators?.filter(op => {
     // Filter by service if selected
     const matchesService = !selectedService || op.services?.includes(selectedService);
@@ -336,8 +341,8 @@ export const OperatorMap = () => {
     // Filter by favorites if enabled
     const matchesFavorites = !showFavoritesOnly || isFavorite(op.operatorId);
     
-    // Self-exclusion: if user is also an operator, hide their own profile
-    const isNotSelf = !user?.operatorId || op.operatorId !== user.operatorId;
+    // NO self-exclusion: allow user's own operator to appear on map
+    // They will see themselves but cannot request services from themselves
     
     // Filter by distance radius if specified
     let withinRadius = true;
@@ -357,7 +362,7 @@ export const OperatorMap = () => {
       // If operator has no location set, still show them (withinRadius remains true)
     }
     
-    return matchesService && matchesFavorites && isNotSelf && withinRadius;
+    return matchesService && matchesFavorites && withinRadius;
   });
 
   // Get map style URL based on selection
@@ -689,6 +694,17 @@ export const OperatorMap = () => {
 
   const handleRequestService = (operatorCard: any, e: React.MouseEvent) => {
     e.stopPropagation();
+    
+    // Prevent self-service requests
+    if (isSelf(operatorCard.operatorId)) {
+      toast({
+        title: "Cannot Request Service from Yourself",
+        description: "You cannot create service requests for your own operator profile.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     // Navigate to detailed service request form
     // Pre-fill service type and operator info
     const services = operatorCard.activeTiers?.[0]?.services || operatorCard.services || [];
