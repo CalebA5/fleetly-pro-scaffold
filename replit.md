@@ -38,9 +38,16 @@ The data model includes a service request schema with fields for `serviceType`, 
   - **Auto-Application Creation**: Applications automatically created when operators access tier dashboards
   - **Verification Status Display**: Real-time tier status badges showing "Verified", "Pending", "Waiting for Authentication", or "Under Review"
   - **Job Access Control**: Operators can only accept jobs after email verification and tier approval
-  - **Admin Review Interface**: Backend endpoints for admin approval/rejection of tier applications
+  - **Admin Verification Portal**: Beautiful admin dashboard (`/admin/dashboard`) for manual operator review with:
+    - **Stats Dashboard**: Real-time counts for Pending, Under Review, Approved, and Rejected applications
+    - **Tabbed Filtering**: Quick access to applications by status (All, Pending, Under Review, Approved, Rejected)
+    - **One-Click Actions**: Instant approve or reject with optional feedback notes
+    - **Document Viewer**: Clickable buttons to view uploaded documents (ID, licenses, insurance, etc.) in new tab
+    - **Operator Profiles**: Display operator name, email, tier, submission date, and verification status
+    - **Security**: Protected route requiring authentication, admin-only endpoints with role-based access control
   - **Document Upload Support**: Application document tracking with URL-based storage
-  - **Security**: Admin-only routes with role-based access control
+  - **Testing Mode**: Secure test endpoint (`/api/test/create-sample-applications`) for generating demo applications - admin-only access, disabled in production
+  - **Security**: Admin-only routes with role-based access control, rate-limited verification endpoints, session validation
 - **Multi-Driver Business Management System**: Enables businesses to manage drivers and assign services.
 - **Three-Tier Operator System**: Professional, Skilled & Equipped, and Manual Operators with tier-specific onboarding and proximity-based job filtering.
 - **AI Assist Feature**: Recommends services and operators with estimated pricing.
