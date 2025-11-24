@@ -1,9 +1,9 @@
 import { Router } from "express";
 import type { IStorage } from "./storage";
 import { db } from "./db";
-import { operators, customers, users, favorites, operatorTierStats, weatherAlerts, insertWeatherAlertSchema, emergencyRequests, dispatchQueue, insertEmergencyRequestSchema, insertDispatchQueueSchema, businesses, serviceRequests, operatorDailyEarnings, operatorMonthlyEarnings, acceptedJobs, operatorPricingConfigs, operatorQuotes, insertOperatorPricingConfigSchema, insertOperatorQuoteSchema, notifications } from "@shared/schema";
+import { operators, customers, users, favorites, operatorTierStats, weatherAlerts, insertWeatherAlertSchema, emergencyRequests, dispatchQueue, insertEmergencyRequestSchema, insertDispatchQueueSchema, businesses, serviceRequests, operatorDailyEarnings, operatorMonthlyEarnings, acceptedJobs, operatorPricingConfigs, operatorQuotes, insertOperatorPricingConfigSchema, insertOperatorQuoteSchema, notifications, operatorApplications, applicationDocuments, verificationTokens } from "@shared/schema";
 import { notificationService } from "./notificationService";
-import { eq, sql, and, gte, or } from "drizzle-orm";
+import { eq, sql, and, gte, or, isNull, desc } from "drizzle-orm";
 import { insertJobSchema, insertServiceRequestSchema, insertCustomerSchema, insertOperatorSchema, insertRatingSchema, insertFavoriteSchema, insertOperatorLocationSchema, insertCustomerServiceHistorySchema, OPERATOR_TIER_INFO } from "@shared/schema";
 import { isWithinRadius } from "./utils/distance";
 import { getServiceRelevantAlerts } from "./services/weatherService";
@@ -3861,6 +3861,524 @@ export function registerRoutes(storage: IStorage) {
     } catch (error) {
       console.error("Error fetching notification count:", error);
       res.status(500).json({ message: "Failed to fetch notification count" });
+    }
+  });
+
+  // ===== OPERATOR AUTHENTICATION & VERIFICATION ROUTES =====
+  
+  // Auto-create application if needed (called by dashboards on load)
+  router.post("/api/operator/applications/auto-create", async (req, res) => {
+    try {
+      const userId = req.sessionData?.userId || req.session?.userId;
+      if (!userId) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+
+      const { tier } = req.body;
+
+      if (!tier || !["manual", "equipped", "professional"].includes(tier)) {
+        return res.status(400).json({ message: "Valid tier required" });
+      }
+
+      // Check if application already exists
+      const existing = await db.query.operatorApplications.findFirst({
+        where: and(
+          eq(operatorApplications.userId, userId),
+          eq(operatorApplications.tier, tier)
+        ),
+      });
+
+      if (existing) {
+        return res.json({ 
+          success: true,
+          existing: true,
+          applicationId: existing.applicationId,
+          status: existing.status
+        });
+      }
+
+      // Create new application automatically
+      const applicationId = `app-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+      await db.insert(operatorApplications).values({
+        applicationId,
+        userId,
+        tier,
+        status: "pending",
+        identityVerification: {},
+        submittedAt: new Date(),
+      });
+
+      res.json({ 
+        success: true,
+        existing: false,
+        applicationId,
+        message: "Application created automatically"
+      });
+    } catch (error) {
+      console.error("Error auto-creating application:", error);
+      res.status(500).json({ message: "Failed to create application" });
+    }
+  });
+  
+  // Submit operator application for a tier
+  router.post("/api/operator/applications", async (req, res) => {
+    try {
+      const userId = req.sessionData?.userId || req.session?.userId;
+      if (!userId) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+
+      const { tier, documents, identityVerification } = req.body;
+
+      if (!tier || !["manual", "equipped", "professional"].includes(tier)) {
+        return res.status(400).json({ message: "Valid tier required (manual, equipped, or professional)" });
+      }
+
+      // Check if application already exists for this user and tier
+      const existing = await db.query.operatorApplications.findFirst({
+        where: and(
+          eq(operatorApplications.userId, userId),
+          eq(operatorApplications.tier, tier)
+        ),
+      });
+
+      if (existing && existing.status !== "rejected") {
+        return res.status(400).json({ 
+          message: "Application already exists for this tier",
+          applicationId: existing.applicationId,
+          status: existing.status
+        });
+      }
+
+      const applicationId = `app-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+      // Create application
+      await db.insert(operatorApplications).values({
+        applicationId,
+        userId,
+        tier,
+        status: "pending",
+        identityVerification: identityVerification || {},
+        submittedAt: new Date(),
+      });
+
+      res.json({ 
+        success: true, 
+        applicationId,
+        message: "Application submitted successfully"
+      });
+    } catch (error) {
+      console.error("Error submitting operator application:", error);
+      res.status(500).json({ message: "Failed to submit application" });
+    }
+  });
+
+  // Get user's operator applications
+  router.get("/api/operator/applications", async (req, res) => {
+    try {
+      const userId = req.sessionData?.userId || req.session?.userId;
+      if (!userId) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+
+      const applications = await db.query.operatorApplications.findMany({
+        where: eq(operatorApplications.userId, userId),
+        orderBy: [desc(operatorApplications.submittedAt)],
+      });
+
+      res.json(applications);
+    } catch (error) {
+      console.error("Error fetching applications:", error);
+      res.status(500).json({ message: "Failed to fetch applications" });
+    }
+  });
+
+  // Get specific application with documents
+  router.get("/api/operator/applications/:applicationId", async (req, res) => {
+    try {
+      const userId = req.sessionData?.userId || req.session?.userId;
+      if (!userId) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+
+      const { applicationId } = req.params;
+
+      const application = await db.query.operatorApplications.findFirst({
+        where: eq(operatorApplications.applicationId, applicationId),
+      });
+
+      if (!application) {
+        return res.status(404).json({ message: "Application not found" });
+      }
+
+      if (application.userId !== userId) {
+        return res.status(403).json({ message: "Unauthorized" });
+      }
+
+      // Get associated documents
+      const docs = await db.query.applicationDocuments.findMany({
+        where: eq(applicationDocuments.applicationId, application.id),
+      });
+
+      res.json({
+        ...application,
+        documents: docs
+      });
+    } catch (error) {
+      console.error("Error fetching application:", error);
+      res.status(500).json({ message: "Failed to fetch application" });
+    }
+  });
+
+  // Upload document for application (simulated - no actual file upload yet)
+  router.post("/api/operator/applications/:applicationId/documents", async (req, res) => {
+    try {
+      const userId = req.sessionData?.userId || req.session?.userId;
+      if (!userId) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+
+      const { applicationId } = req.params;
+      const { documentType, documentUrl, fileName, fileSize, mimeType } = req.body;
+
+      const application = await db.query.operatorApplications.findFirst({
+        where: eq(operatorApplications.applicationId, applicationId),
+      });
+
+      if (!application) {
+        return res.status(404).json({ message: "Application not found" });
+      }
+
+      if (application.userId !== userId) {
+        return res.status(403).json({ message: "Unauthorized" });
+      }
+
+      const documentId = `doc-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+      await db.insert(applicationDocuments).values({
+        documentId,
+        applicationId: application.id,
+        documentType,
+        documentUrl,
+        fileName,
+        fileSize,
+        mimeType,
+      });
+
+      res.json({ success: true, documentId });
+    } catch (error) {
+      console.error("Error uploading document:", error);
+      res.status(500).json({ message: "Failed to upload document" });
+    }
+  });
+
+  // Submit application for review (moves from pending to under_review)
+  router.post("/api/operator/applications/:applicationId/submit", async (req, res) => {
+    try {
+      const userId = req.sessionData?.userId || req.session?.userId;
+      if (!userId) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+
+      const { applicationId } = req.params;
+
+      const application = await db.query.operatorApplications.findFirst({
+        where: eq(operatorApplications.applicationId, applicationId),
+      });
+
+      if (!application) {
+        return res.status(404).json({ message: "Application not found" });
+      }
+
+      if (application.userId !== userId) {
+        return res.status(403).json({ message: "Unauthorized" });
+      }
+
+      await db.update(operatorApplications)
+        .set({ 
+          status: "under_review",
+          updatedAt: new Date()
+        })
+        .where(eq(operatorApplications.applicationId, applicationId));
+
+      res.json({ success: true, message: "Application submitted for review" });
+    } catch (error) {
+      console.error("Error submitting application for review:", error);
+      res.status(500).json({ message: "Failed to submit application" });
+    }
+  });
+
+  // ===== ADMIN ROUTES FOR APPLICATION REVIEW =====
+
+  // Get all applications (admin only - simplified for now)
+  router.get("/api/admin/applications", async (req, res) => {
+    try {
+      const userId = req.sessionData?.userId || req.session?.userId;
+      if (!userId) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+
+      // Admin check - verify user has admin/business role
+      const user = await db.query.users.findFirst({
+        where: eq(users.userId, userId),
+      });
+
+      if (!user || !["business", "admin"].includes(user.role || "")) {
+        return res.status(403).json({ message: "Unauthorized - Admin access required" });
+      }
+
+      const { status } = req.query;
+
+      let applications;
+      if (status) {
+        applications = await db.query.operatorApplications.findMany({
+          where: eq(operatorApplications.status, status as string),
+          orderBy: [desc(operatorApplications.submittedAt)],
+        });
+      } else {
+        applications = await db.query.operatorApplications.findMany({
+          orderBy: [desc(operatorApplications.submittedAt)],
+        });
+      }
+
+      // Enrich with user info
+      const enriched = await Promise.all(
+        applications.map(async (app) => {
+          const user = await db.query.users.findFirst({
+            where: eq(users.userId, app.userId),
+          });
+          
+          const docs = await db.query.applicationDocuments.findMany({
+            where: eq(applicationDocuments.applicationId, app.id),
+          });
+
+          return {
+            ...app,
+            userName: user?.name,
+            userEmail: user?.email,
+            documents: docs
+          };
+        })
+      );
+
+      res.json(enriched);
+    } catch (error) {
+      console.error("Error fetching admin applications:", error);
+      res.status(500).json({ message: "Failed to fetch applications" });
+    }
+  });
+
+  // Review application (approve/reject) - admin only
+  router.post("/api/admin/applications/:applicationId/review", async (req, res) => {
+    try {
+      const userId = req.sessionData?.userId || req.session?.userId;
+      if (!userId) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+
+      // Admin check - verify user has admin/business role
+      const user = await db.query.users.findFirst({
+        where: eq(users.userId, userId),
+      });
+
+      if (!user || !["business", "admin"].includes(user.role || "")) {
+        return res.status(403).json({ message: "Unauthorized - Admin access required" });
+      }
+
+      const { applicationId } = req.params;
+      const { status, rejectionReason, notes } = req.body;
+
+      if (!["approved", "rejected", "additional_info_required"].includes(status)) {
+        return res.status(400).json({ message: "Invalid status" });
+      }
+
+      const application = await db.query.operatorApplications.findFirst({
+        where: eq(operatorApplications.applicationId, applicationId),
+      });
+
+      if (!application) {
+        return res.status(404).json({ message: "Application not found" });
+      }
+
+      // Update application status
+      await db.update(operatorApplications)
+        .set({
+          status,
+          reviewedAt: new Date(),
+          reviewerId: userId,
+          rejectionReason: status === "rejected" ? rejectionReason : null,
+          notes,
+          updatedAt: new Date()
+        })
+        .where(eq(operatorApplications.applicationId, applicationId));
+
+      // If approved, update operator tier profile
+      if (status === "approved") {
+        const operator = await db.query.operators.findFirst({
+          where: eq(operators.operatorId, application.userId),
+        });
+
+        if (operator) {
+          const tierProfiles = (operator.operatorTierProfiles as any) || {};
+          const tier = application.tier;
+          
+          tierProfiles[tier] = {
+            ...tierProfiles[tier],
+            tier,
+            subscribed: true,
+            onboardingCompleted: true,
+            approvalStatus: "approved",
+            approvedAt: new Date().toISOString(),
+            canEarn: true,
+          };
+
+          await db.update(operators)
+            .set({ 
+              operatorTierProfiles: tierProfiles,
+              subscribedTiers: sql`array_append(COALESCE(subscribed_tiers, ARRAY[]::text[]), ${tier})`
+            })
+            .where(eq(operators.operatorId, application.userId));
+        }
+
+        // Update user's operatorId if not already set
+        await db.update(users)
+          .set({ operatorId: application.userId })
+          .where(and(
+            eq(users.userId, application.userId),
+            isNull(users.operatorId)
+          ));
+      }
+
+      res.json({ success: true, message: `Application ${status}` });
+    } catch (error) {
+      console.error("Error reviewing application:", error);
+      res.status(500).json({ message: "Failed to review application" });
+    }
+  });
+
+  // ===== EMAIL VERIFICATION ROUTES =====
+
+  // Send email verification token
+  router.post("/api/verification/send-email", async (req, res) => {
+    try {
+      const userId = req.sessionData?.userId || req.session?.userId;
+      if (!userId) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+
+      const user = await db.query.users.findFirst({
+        where: eq(users.userId, userId),
+      });
+
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      // Generate 6-digit verification code
+      const token = Math.floor(100000 + Math.random() * 900000).toString();
+      const tokenId = `token-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
+
+      // Store token in database
+      await db.insert(verificationTokens).values({
+        tokenId,
+        userId,
+        token,
+        type: "email",
+        expiresAt,
+      });
+
+      // TODO: Send actual email with token
+      // Log token for development (remove in production)
+      console.log(`[DEV] Email verification code for ${user.email}: ${token}`);
+
+      res.json({ 
+        success: true, 
+        message: "Verification code sent to your email"
+      });
+    } catch (error) {
+      console.error("Error sending verification email:", error);
+      res.status(500).json({ message: "Failed to send verification email" });
+    }
+  });
+
+  // Verify email token
+  router.post("/api/verification/verify-email", async (req, res) => {
+    try {
+      const userId = req.sessionData?.userId || req.session?.userId;
+      if (!userId) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+
+      const { token } = req.body;
+
+      if (!token) {
+        return res.status(400).json({ message: "Verification code required" });
+      }
+
+      const verification = await db.query.verificationTokens.findFirst({
+        where: and(
+          eq(verificationTokens.userId, userId),
+          eq(verificationTokens.token, token),
+          eq(verificationTokens.type, "email")
+        ),
+      });
+
+      if (!verification) {
+        return res.status(400).json({ message: "Invalid verification code" });
+      }
+
+      if (verification.verified) {
+        return res.status(400).json({ message: "Code already used" });
+      }
+
+      if (new Date() > verification.expiresAt) {
+        return res.status(400).json({ message: "Verification code expired" });
+      }
+
+      // Mark token as verified
+      await db.update(verificationTokens)
+        .set({ 
+          verified: 1,
+          verifiedAt: new Date()
+        })
+        .where(eq(verificationTokens.tokenId, verification.tokenId));
+
+      res.json({ 
+        success: true, 
+        message: "Email verified successfully"
+      });
+    } catch (error) {
+      console.error("Error verifying email:", error);
+      res.status(500).json({ message: "Failed to verify email" });
+    }
+  });
+
+  // Get verification status
+  router.get("/api/verification/status", async (req, res) => {
+    try {
+      const userId = req.sessionData?.userId || req.session?.userId;
+      if (!userId) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+
+      const emailVerification = await db.query.verificationTokens.findFirst({
+        where: and(
+          eq(verificationTokens.userId, userId),
+          eq(verificationTokens.type, "email"),
+          eq(verificationTokens.verified, 1)
+        ),
+        orderBy: [desc(verificationTokens.verifiedAt)],
+      });
+
+      res.json({
+        emailVerified: !!emailVerification,
+        verifiedAt: emailVerification?.verifiedAt || null
+      });
+    } catch (error) {
+      console.error("Error fetching verification status:", error);
+      res.status(500).json({ message: "Failed to fetch verification status" });
     }
   });
 

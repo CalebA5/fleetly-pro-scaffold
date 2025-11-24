@@ -17,9 +17,23 @@ The backend is an Express.js server utilizing a PostgreSQL database with Drizzle
 ### Data Model
 The data model includes a service request schema with fields for `serviceType`, `isEmergency`, `description`, `location`, `status`, and a JSONB `details` field. Operator profiles store `operatorTier`, `isCertified`, `businessLicense`, `homeLatitude`, `homeLongitude`, and `operatingRadius`. Emergency system tables include `emergencyRequests` and `dispatchQueue`. Earnings tracking involves `operatorDailyEarnings`, `operatorMonthlyEarnings`, and `operatorTierStats` for lifetime statistics and customer group unlocking.
 
+**Operator Authentication Tables:**
+- `operatorApplications`: Tracks tier application submissions with fields for `applicationId`, `userId`, `tier`, `status`, `submittedAt`, `reviewedAt`, `reviewerId`, `rejectionReason`, `identityVerification` (JSONB), and `notes`
+- `applicationDocuments`: Stores uploaded verification documents with `documentId`, `applicationId`, `documentType`, `documentUrl`, `fileName`, `fileSize`, and `mimeType`
+- `verificationTokens`: Email/SMS verification tokens with `tokenId`, `userId`, `token`, `type`, `verified` status, `expiresAt`, and `verifiedAt` timestamps
+
 ### Feature Highlights
 - **Quote-Based Negotiation System**: Operators submit quotes (tracked by string `requestId`), and customers review, accept, decline, or counter them within a 12-hour expiry window. Backend routes support both numeric and string ID lookups for flexibility, always normalizing to string requestId for quote operations. Quote buttons disable after submission to prevent duplicates. Includes idempotent accept endpoints (`/api/quotes/:quoteId/accept` and `/api/quotes/:quoteId/respond`) that prevent duplicate job creation on retry scenarios.
 - **Comprehensive Notification System**: Real-time notifications for all customer-operator interactions. When operators submit quotes, customers receive notifications. When customers accept/decline quotes, both parties receive notifications with complete context (quote amount, operator name, job details). All notifications persist to database with 7-day expiry and include metadata for rich frontend display.
+- **Operator Authentication & Verification System**: Comprehensive tier-based verification system for all three operator tiers (Manual, Skilled & Equipped, Professional). Features include:
+  - **Email Verification**: 6-digit code verification required before accepting jobs, with 15-minute token expiry
+  - **Tier Application Tracking**: Database-backed applications for each tier with status tracking (pending, under_review, approved, rejected, additional_info_required)
+  - **Auto-Application Creation**: Applications automatically created when operators access tier dashboards
+  - **Verification Status Display**: Real-time tier status badges showing "Verified", "Pending", "Waiting for Authentication", or "Under Review"
+  - **Job Access Control**: Operators can only accept jobs after email verification and tier approval
+  - **Admin Review Interface**: Backend endpoints for admin approval/rejection of tier applications
+  - **Document Upload Support**: Application document tracking with URL-based storage
+  - **Security**: Admin-only routes with role-based access control
 - **Multi-Driver Business Management System**: Enables businesses to manage drivers and assign services.
 - **Three-Tier Operator System**: Professional, Skilled & Equipped, and Manual Operators with tier-specific onboarding and proximity-based job filtering.
 - **AI Assist Feature**: Recommends services and operators with estimated pricing.
