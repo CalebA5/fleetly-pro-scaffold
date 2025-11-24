@@ -56,6 +56,7 @@ export const OperatorOnboarding = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Read tier from URL parameter and auto-select it
+  // If no tier is provided, redirect to Drive & Earn page to select one
   React.useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const tierParam = params.get('tier') as OperatorTier | null;
@@ -63,8 +64,11 @@ export const OperatorOnboarding = () => {
     if (tierParam && ['professional', 'equipped', 'manual'].includes(tierParam)) {
       setSelectedTier(tierParam);
       setCurrentStep(1); // Skip tier selection, go straight to form
+    } else {
+      // No tier selected - redirect to Drive & Earn page
+      setLocation('/drive-earn');
     }
-  }, []);
+  }, [setLocation]);
   
   // Fetch operator data if user has operatorId
   // Type for operator with tier stats
