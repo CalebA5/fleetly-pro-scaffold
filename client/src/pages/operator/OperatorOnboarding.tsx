@@ -15,6 +15,7 @@ import { OPERATOR_TIER_INFO, type OperatorTier, type Operator } from "@shared/sc
 import { AuthDialog } from "@/components/AuthDialog";
 import { useQuery } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
+import { geocodeAddress } from "@/lib/geocoding";
 
 const vehicleTypes = [
   "Pickup Truck",
@@ -254,13 +255,66 @@ export const OperatorOnboarding = () => {
       // Check if user is adding a tier to existing operator or creating new operator
       if (user.operatorId && operatorData) {
         // User already has operator profile - add new tier
+        // Geocode address if adding manual/equipped tier
+        const requiresAddress = selectedTier === 'manual' || selectedTier === 'equipped';
+        const addressToGeocode = formData.homeAddress || formData.address || "";
+        
+        if (requiresAddress && !addressToGeocode.trim()) {
+          toast({
+            title: "Address Required",
+            description: `${selectedTier === 'manual' ? 'Manual' : 'Equipped'} operators must provide a home address for proximity-based job matching.`,
+            variant: "destructive",
+          });
+          setIsSubmitting(false);
+          return;
+        }
+        
+        let homeLatitude: number | null = null;
+        let homeLongitude: number | null = null;
+        let latitude = "0";
+        let longitude = "0";
+        
+        if (requiresAddress && addressToGeocode.trim()) {
+          try {
+            const geocoded = await geocodeAddress(addressToGeocode);
+            if (geocoded) {
+              latitude = geocoded.lat.toString();
+              longitude = geocoded.lon.toString();
+              homeLatitude = geocoded.lat;
+              homeLongitude = geocoded.lon;
+            } else {
+              toast({
+                title: "Invalid Address",
+                description: "We couldn't locate the address you provided. Please enter a valid street address, city, and state.",
+                variant: "destructive",
+              });
+              setIsSubmitting(false);
+              return;
+            }
+          } catch (error) {
+            console.error("Geocoding failed:", error);
+            toast({
+              title: "Geocoding Failed",
+              description: "We couldn't verify your address location. Please check your internet connection and try again.",
+              variant: "destructive",
+            });
+            setIsSubmitting(false);
+            return;
+          }
+        }
+        
         const response = await fetch(`/api/operators/${user.operatorId}/add-tier`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           credentials: "include",
           body: JSON.stringify({
             tier: selectedTier,
-            details: formData
+            details: formData,
+            homeLatitude,
+            homeLongitude,
+            latitude,
+            longitude,
+            operatingRadius: selectedTier === 'manual' ? 5 : selectedTier === 'equipped' ? 15 : null
           }),
         });
 
@@ -293,6 +347,65 @@ export const OperatorOnboarding = () => {
         // Ensure services array is not empty (default to Snow Plowing)
         const services = formData.services.length > 0 ? formData.services : ["Snow Plowing"];
         
+        // Validate address is provided for tiers requiring proximity filtering
+        const addressToGeocode = formData.homeAddress || formData.address || "";
+        const requiresAddress = selectedTier === 'manual' || selectedTier === 'equipped';
+        
+        if (requiresAddress && !addressToGeocode.trim()) {
+          toast({
+            title: "Address Required",
+            description: `${selectedTier === 'manual' ? 'Manual' : 'Equipped'} operators must provide a home address for proximity-based job matching.`,
+            variant: "destructive",
+          });
+          setIsSubmitting(false);
+          return;
+        }
+        
+        // Geocode operator's address to get coordinates
+        let latitude = "0";
+        let longitude = "0";
+        let homeLatitude: number | null = null;
+        let homeLongitude: number | null = null;
+        
+        if (addressToGeocode.trim()) {
+          try {
+            const geocoded = await geocodeAddress(addressToGeocode);
+            if (geocoded) {
+              latitude = geocoded.lat.toString();
+              longitude = geocoded.lon.toString();
+              homeLatitude = geocoded.lat;
+              homeLongitude = geocoded.lon;
+            } else {
+              // Geocoding returned no results
+              if (requiresAddress) {
+                toast({
+                  title: "Invalid Address",
+                  description: "We couldn't locate the address you provided. Please enter a valid street address, city, and state.",
+                  variant: "destructive",
+                });
+                setIsSubmitting(false);
+                return;
+              }
+              console.warn("Geocoding returned no results for:", addressToGeocode);
+            }
+          } catch (error) {
+            console.error("Geocoding failed:", error);
+            // Only block submission if address is required for proximity filtering
+            if (requiresAddress) {
+              toast({
+                title: "Geocoding Failed",
+                description: "We couldn't verify your address location. Please check your internet connection and try again.",
+                variant: "destructive",
+              });
+              setIsSubmitting(false);
+              return;
+            }
+          }
+        }
+        
+        // Set operating radius based on tier
+        const operatingRadius = selectedTier === 'manual' ? 5 : selectedTier === 'equipped' ? 15 : null;
+        
         // Prepare operator data based on tier
         const operatorData = {
           operatorId,
@@ -305,8 +418,8 @@ export const OperatorOnboarding = () => {
           licensePlate: formData.licensePlate || "N/A",
           phone: formData.phone || "",
           email: formData.email || user.email,
-          latitude: "0",
-          longitude: "0",
+          latitude,
+          longitude,
           address: formData.address || formData.homeAddress || "",
           isOnline: 0, // FIXED: Operators start offline by default - must manually go online
           availability: "available",
@@ -317,9 +430,9 @@ export const OperatorOnboarding = () => {
           isCertified: selectedTier === "professional" ? 1 : 0,
           businessLicense: formData.licenseNumber || null,
           businessName: formData.businessName || null,
-          homeLatitude: null,
-          homeLongitude: null,
-          operatingRadius: null,
+          homeLatitude,
+          homeLongitude,
+          operatingRadius,
         };
 
         // Create operator record in database

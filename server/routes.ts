@@ -499,6 +499,47 @@ export function registerRoutes(storage: IStorage) {
       const subscribedTiers: string[] = result.data.subscribedTiers || [tier];
       const activeTier = result.data.activeTier || null; // Start as null - operator must go online manually
       
+      // COORDINATE VALIDATION: Manual and Equipped tiers require valid coordinates for proximity filtering
+      // Check ALL subscribedTiers, not just primary tier
+      const requiresCoordinates = subscribedTiers.some(t => t === 'manual' || t === 'equipped');
+      if (requiresCoordinates) {
+        const hasValidHomeCoords = result.data.homeLatitude !== null && 
+                                   result.data.homeLongitude !== null &&
+                                   result.data.homeLatitude !== 0 &&
+                                   result.data.homeLongitude !== 0;
+        
+        const hasValidCoords = result.data.latitude && 
+                              result.data.longitude &&
+                              result.data.latitude !== "0" &&
+                              result.data.longitude !== "0";
+        
+        if (!hasValidHomeCoords || !hasValidCoords) {
+          return res.status(400).json({ 
+            message: `Operators subscribing to Manual or Equipped tiers require valid home coordinates for proximity-based job matching. Please provide a valid address that can be geocoded.`,
+            field: "address",
+            debug: {
+              subscribedTiers,
+              homeLatitude: result.data.homeLatitude,
+              homeLongitude: result.data.homeLongitude,
+              latitude: result.data.latitude,
+              longitude: result.data.longitude
+            }
+          });
+        }
+        
+        // Validate operating radius is set correctly for manual/equipped
+        const primaryTier = tier;
+        if (primaryTier === 'manual' || primaryTier === 'equipped') {
+          const expectedRadius = primaryTier === 'manual' ? 5 : 15;
+          if (result.data.operatingRadius !== expectedRadius) {
+            return res.status(400).json({ 
+              message: `${primaryTier === 'manual' ? 'Manual' : 'Equipped'} operators must have operating radius set to ${expectedRadius}km.`,
+              field: "operatingRadius"
+            });
+          }
+        }
+      }
+      
       // PHASE 1: Create operator tier profiles with PENDING approval status
       // All new operators must be verified before they can earn
       const tierProfiles: Record<string, any> = {};
@@ -1422,8 +1463,38 @@ export function registerRoutes(storage: IStorage) {
 
   router.post("/api/operators/:operatorId/add-tier", async (req, res) => {
     try {
-      const { tier, details } = req.body;
+      const { tier, details, homeLatitude, homeLongitude, latitude, longitude, operatingRadius } = req.body;
       const operatorId = req.params.operatorId;
+      
+      // COORDINATE VALIDATION: Manual and Equipped tiers require valid coordinates
+      const requiresCoordinates = tier === 'manual' || tier === 'equipped';
+      if (requiresCoordinates) {
+        const hasValidHomeCoords = homeLatitude !== null && 
+                                   homeLongitude !== null &&
+                                   homeLatitude !== 0 &&
+                                   homeLongitude !== 0;
+        
+        const hasValidCoords = latitude && 
+                              longitude &&
+                              latitude !== "0" &&
+                              longitude !== "0";
+        
+        if (!hasValidHomeCoords || !hasValidCoords) {
+          return res.status(400).json({ 
+            message: `${tier === 'manual' ? 'Manual' : 'Equipped'} operators require valid home coordinates for proximity-based job matching. Please provide a valid address that can be geocoded.`,
+            field: "address"
+          });
+        }
+        
+        // Validate operating radius is set correctly
+        const expectedRadius = tier === 'manual' ? 5 : 15;
+        if (operatingRadius !== expectedRadius) {
+          return res.status(400).json({ 
+            message: `${tier === 'manual' ? 'Manual' : 'Equipped'} operators must have operating radius set to ${expectedRadius}km.`,
+            field: "operatingRadius"
+          });
+        }
+      }
       
       // Get operator from database
       const operator = await db.query.operators.findFirst({
@@ -1471,13 +1542,26 @@ export function registerRoutes(storage: IStorage) {
       // activeTier represents which tier is ONLINE, not which tier was just added
       // viewTier tracks which dashboard to show (persists across reloads)
       // User must manually go online after adding a tier
+      
+      // Build update data - include coordinates if provided for manual/equipped tiers
+      const updateData: any = {
+        subscribedTiers: updatedTiers,
+        operatorTier: tier, // Set as primary tier for legacy compatibility
+        viewTier: tier, // Set as current viewing tier
+        operatorTierProfiles: updatedProfiles
+      };
+      
+      // Update home coordinates if this is a manual/equipped tier
+      if (requiresCoordinates && homeLatitude && homeLongitude) {
+        updateData.homeLatitude = homeLatitude.toString();
+        updateData.homeLongitude = homeLongitude.toString();
+        updateData.latitude = latitude;
+        updateData.longitude = longitude;
+        updateData.operatingRadius = operatingRadius.toString();
+      }
+      
       const [updatedOperator] = await db.update(operators)
-        .set({ 
-          subscribedTiers: updatedTiers,
-          operatorTier: tier, // Set as primary tier for legacy compatibility
-          viewTier: tier, // Set as current viewing tier
-          operatorTierProfiles: updatedProfiles
-        })
+        .set(updateData)
         .where(eq(operators.operatorId, operatorId))
         .returning();
       
