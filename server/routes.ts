@@ -782,10 +782,18 @@ export function registerRoutes(storage: IStorage) {
         return res.status(404).json({ message: "Operator not found" });
       }
       
-      // Get operator's tier info
-      const tierInfo = OPERATOR_TIER_INFO[operator.operatorTier as keyof typeof OPERATOR_TIER_INFO];
+      // SECURITY FIX: Only show requests if operator is online with an active tier
+      // This prevents offline operators or those without a tier from seeing requests
+      if (!operator.isOnline || !operator.activeTier) {
+        return res.json([]);
+      }
+      
+      // CRITICAL SECURITY FIX: Use activeTier (which tier they're currently online in)
+      // instead of operatorTier (their primary tier)
+      // This ensures Manual dashboard only shows manual requests, Equipped only shows equipped, etc.
+      const tierInfo = OPERATOR_TIER_INFO[operator.activeTier as keyof typeof OPERATOR_TIER_INFO];
       if (!tierInfo) {
-        return res.status(400).json({ message: "Invalid operator tier" });
+        return res.status(400).json({ message: "Invalid active tier" });
       }
       
       // CRITICAL FIX: Get pending service requests from DATABASE (not MemStorage)
@@ -794,11 +802,28 @@ export function registerRoutes(storage: IStorage) {
         where: eq(serviceRequests.status, "pending")
       });
       
-      // Filter by service type based on tier
-      let filteredRequests = pendingRequests;
-      if (operator.operatorTier === "manual") {
+      // SECURITY: Filter by operatorId - operators only see requests targeted at them or broadcast requests
+      // If request.operatorId is set, only that specific operator sees it
+      // If request.operatorId is null, all operators in the tier see it (broadcast)
+      let filteredRequests = pendingRequests.filter(req => 
+        !req.operatorId || req.operatorId === operatorId
+      );
+      
+      // CRITICAL SECURITY: Filter broadcast requests by operator's service capabilities
+      // Operators should only see requests for services they can actually perform
+      const operatorServices = operator.services as string[];
+      filteredRequests = filteredRequests.filter(req => {
+        // If operatorId is set (targeted request), always include it
+        if (req.operatorId) return true;
+        
+        // For broadcast requests, check if operator can handle this service type
+        return operatorServices && operatorServices.includes(req.serviceType);
+      });
+      
+      // Additional tier-specific filtering for manual operators
+      if (operator.activeTier === "manual") {
         // Manual operators only see snow plowing jobs
-        filteredRequests = pendingRequests.filter(req => req.serviceType === "Snow Plowing");
+        filteredRequests = filteredRequests.filter(req => req.serviceType === "Snow Plowing");
       }
       
       // Filter by radius if operator has location and tier has radius restriction
