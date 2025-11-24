@@ -231,8 +231,8 @@ export const OperatorOnboarding = () => {
     if (currentStep > 1) {
       setCurrentStep(currentStep - 1);
     } else if (currentStep === 1) {
-      setCurrentStep(0);
-      setSelectedTier(null);
+      // Go back to Drive & Earn page instead of step 0
+      setLocation('/drive-earn');
     }
   };
 
@@ -754,102 +754,10 @@ export const OperatorOnboarding = () => {
     );
   };
 
-  // Tier Selection Screen
-  if (currentStep === 0) {
-    return (
-      <div className="min-h-screen bg-white dark:bg-gray-900 flex flex-col">
-        <header className="border-b border-gray-200 dark:border-gray-800 px-4 sm:px-6 lg:px-8 py-4">
-          <div className="max-w-7xl mx-auto flex items-center justify-between">
-            <Link href="/drive-earn">
-              <Button variant="ghost" size="sm" data-testid="button-back">
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Back
-              </Button>
-            </Link>
-            <h1 className="text-2xl font-bold text-black dark:text-white">Drive & Earn</h1>
-            <div className="w-20"></div>
-          </div>
-        </header>
-
-        <div className="flex-1 px-4 sm:px-6 lg:px-8 py-12">
-          <div className="max-w-5xl mx-auto">
-            <div className="text-center mb-12">
-              <h2 className="text-3xl font-bold text-black dark:text-white mb-4">
-                Choose Your Operator Type
-              </h2>
-              <p className="text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
-                Select the tier that best matches your credentials and equipment. Each tier has different requirements and earning potential.
-              </p>
-            </div>
-
-            {/* Tier Progress Indicator */}
-            {operatorData && (
-              <div className="flex items-center justify-center gap-2 mb-8">
-                <span className="text-sm text-gray-600 dark:text-gray-400">Tiers Unlocked:</span>
-                <div className="flex gap-2">
-                  {["professional", "equipped", "manual"].map((tier) => (
-                    <div
-                      key={tier}
-                      className={`w-3 h-3 rounded-full ${
-                        operatorData.subscribedTiers?.includes(tier)
-                          ? "bg-orange-500"
-                          : "bg-gray-300 dark:bg-gray-700"
-                      }`}
-                    />
-                  ))}
-                </div>
-                <span className="text-sm font-semibold text-black dark:text-white">
-                  {operatorData.subscribedTiers?.length || 0}/3
-                </span>
-              </div>
-            )}
-
-            {/* Section 1: Subscribed Tiers - Show active tier cards with stats */}
-            {hasSubscribedTiers && (
-              <section data-testid="section-active-tiers" className="mb-12">
-                <div className="grid md:grid-cols-3 gap-6">
-                  {subscribedTiers.map((tier) => (
-                    <div key={tier}>
-                      {renderSubscribedTierCard(tier)}
-                    </div>
-                  ))}
-                </div>
-              </section>
-            )}
-
-            {/* Section 2: Available Tiers to Add - Show if user has subscribed tiers AND has available tiers */}
-            {hasSubscribedTiers && availableTiers.length > 0 && (
-              <section data-testid="section-available-tiers">
-                <h3 className="text-2xl font-bold text-black dark:text-white mb-6">
-                  Available Tiers to Add
-                </h3>
-                <div className="grid md:grid-cols-3 gap-6">
-                  {availableTiers.map((tier) => (
-                    <div key={tier}>
-                      {renderAvailableTierCard(tier)}
-                    </div>
-                  ))}
-                </div>
-              </section>
-            )}
-
-            {/* Section 3: All Tiers Grid - Show if user has NO subscribed tiers */}
-            {!hasSubscribedTiers && (
-              <section data-testid="section-all-tiers">
-                <div className="grid md:grid-cols-3 gap-6">
-                  {ALL_TIERS.map((tier) => (
-                    <div key={tier}>
-                      {renderAvailableTierCard(tier)}
-                    </div>
-                  ))}
-                </div>
-              </section>
-            )}
-          </div>
-        </div>
-      </div>
-    );
-  }
+  // REMOVED: Tier Selection Screen (Step 0)
+  // Tier selection is now handled by the NEW Drive & Earn page (/drive-earn)
+  // Users are redirected to /drive-earn if they try to access onboarding without a tier parameter
+  // This eliminates confusion and consolidates all tier selection in one place
 
   // Get steps based on tier
   const getSteps = () => {
