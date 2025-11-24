@@ -225,9 +225,9 @@ router.post('/signin', async (req, res) => {
       return res.status(400).json({ error: 'Missing email or password' });
     }
 
-    // Find user by email
+    // Find user by normalized email for case-insensitive login
     const user = await db.query.users.findFirst({
-      where: eq(users.email, email)
+      where: eq(users.emailNormalized, normalizeEmail(email))
     });
 
     if (!user || !user.passwordHash) {
