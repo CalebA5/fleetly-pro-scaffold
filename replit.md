@@ -44,6 +44,13 @@ The data model includes a service request schema with fields for `serviceType`, 
   - **Auto-Population Logic**: Smart priority (1) Manual entry, (2) Shared GPS location, (3) Geocoded address, (4) Prompt for location
   - **Persistent Storage**: Browser localStorage for location, formattedAddress, granted, and prompted flags
   - **50km Radius Filtering**: Proximity-based operator matching for customer requests
+- **Drive & Earn Two-Section Layout** (Nov 24, 2025): Refactored operator onboarding page to implement conditional two-section layout matching published version. Features include:
+  - **tierFeatureMap**: Hard-coded feature metadata (features array, rate multiplier, service radius, requirements) for each tier
+  - **Derived Tier Arrays**: subscribedTiers and availableTiers with null guards for safe conditional rendering
+  - **Section 1**: Subscribed tier cards showing job stats, earnings, and achievement badges for returning operators
+  - **Section 2**: "Available Tiers to Add" heading with unsubscribed tier cards showing "+ Add This Tier" badges
+  - **Section 3**: All three tiers displayed for first-time operators with feature lists and requirements
+  - **renderAvailableTierCard()**: New function rendering tier cards with features from tierFeatureMap for unregistered tiers
 
 ## External Dependencies
 
