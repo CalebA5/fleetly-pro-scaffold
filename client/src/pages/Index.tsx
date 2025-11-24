@@ -99,7 +99,7 @@ const Index = () => {
   const handleDriveAndEarn = () => {
     if (isAuthenticated) {
       // Always go to Drive & Earn page (tier selection/management)
-      setLocation("/drive-earn");
+      setLocation("/operator/onboarding");
     } else {
       // Show signup dialog for operator role
       handleAuthClick("signup", "operator");
@@ -256,10 +256,7 @@ const Index = () => {
         setPickup(freshAddress);
         setUserHasCleared(false);
         
-        toast({
-          title: "Location updated",
-          description: "Using your current location.",
-        });
+        // Silently update location without showing notification (per user preference)
       } catch (error: any) {
         console.error("Location refresh error:", error);
         

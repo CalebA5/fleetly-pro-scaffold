@@ -338,7 +338,7 @@ export default function EquippedOperatorDashboard() {
       <Header
         onSignIn={() => {}}
         onSignUp={() => {}}
-        onDriveAndEarn={() => setLocation("/drive-earn")}
+        onDriveAndEarn={() => setLocation("/operator/onboarding")}
       />
 
       {/* Mobile-First Sticky Toggle */}

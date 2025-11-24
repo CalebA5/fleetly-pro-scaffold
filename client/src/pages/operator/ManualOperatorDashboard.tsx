@@ -358,7 +358,7 @@ export default function ManualOperatorDashboard() {
       <Header
         onSignIn={() => {}}
         onSignUp={() => {}}
-        onDriveAndEarn={() => setLocation("/drive-earn")}
+        onDriveAndEarn={() => setLocation("/operator/onboarding")}
       />
 
       {/* Mobile-First Sticky Toggle */}

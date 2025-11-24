@@ -25,7 +25,6 @@ import JobDetailsPage from "./pages/operator/JobDetailsPage";
 import { JobHistory as OperatorJobHistory } from "./pages/operator/JobHistory";
 import FleetAnalytics from "./pages/operator/FleetAnalytics";
 import TeamAnalytics from "./pages/operator/TeamAnalytics";
-import { DriveEarn } from "./pages/DriveEarn";
 import { HelpSupport } from "./pages/HelpSupport";
 import { UserGuide } from "./pages/UserGuide";
 import { OperatorGuide } from "./pages/OperatorGuide";
@@ -86,8 +85,14 @@ const App = () => (
               <Route path="/customer/request-status" component={RequestStatus} />
               
               {/* Public tier selection/onboarding - no auth required */}
-              <Route path="/drive-earn" component={DriveEarn} />
               <Route path="/operator/onboarding" component={OperatorOnboarding} />
+              {/* Legacy redirect for old Drive & Earn page */}
+              <Route path="/drive-earn">
+                {() => {
+                  window.location.href = '/operator/onboarding';
+                  return null;
+                }}
+              </Route>
               
               {/* Protected operator dashboards - require operator auth */}
               <Route path="/business">

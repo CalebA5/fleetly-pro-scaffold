@@ -34,8 +34,8 @@ export const Header = ({ onSignIn, onSignUp, onDriveAndEarn }: HeaderProps) => {
   const isOnOperatorDashboard = ['/manual-operator', '/equipped-operator', '/business'].includes(location);
 
   const handleDriveAndEarnClick = () => {
-    // Always go to Drive & Earn page for smooth navigation flow
-    setLocation("/drive-earn");
+    // Always go to Operator Onboarding page for smooth navigation flow
+    setLocation("/operator/onboarding");
     
     // Call the callback if provided
     if (onDriveAndEarn) {

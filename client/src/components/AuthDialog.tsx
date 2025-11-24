@@ -176,7 +176,7 @@ export const AuthDialog = ({
         onAuthSuccess();
       } else if (signupRole === "operator") {
         // Only redirect if no callback (default behavior)
-        setLocation("/drive-earn");
+        setLocation("/operator/onboarding");
       }
     } catch (error: any) {
       // Handle detailed error messages from backend
