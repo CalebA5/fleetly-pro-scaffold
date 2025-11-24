@@ -23,6 +23,7 @@ import { OperatorStatusToggle } from "@/components/operator/OperatorStatusToggle
 import { QuoteModal } from "@/components/operator/QuoteModal";
 import { UrgentRequestNotification, type UrgentRequest } from "@/components/operator/UrgentRequestNotification";
 import { VehicleSelectionModal } from "@/components/operator/VehicleSelectionModal";
+import { LocationTracker } from "@/components/operator/LocationTracker";
 
 interface ServiceRequest {
   id: number;
@@ -360,6 +361,14 @@ export default function EquippedOperatorDashboard() {
 
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900 pb-16 md:pb-0">
+      {/* Location Tracker - automatically tracks and sends location when online */}
+      <LocationTracker
+        operatorId={operatorId}
+        isOnline={isOnline}
+        activeTier={operatorData?.activeTier || null}
+        currentJobId={acceptedJobsData[0]?.requestId || null}
+      />
+
       {/* Urgent Request Notifications */}
       <UrgentRequestNotification
         requests={urgentRequests}

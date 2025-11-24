@@ -23,6 +23,7 @@ import { QuoteModal } from "@/components/operator/QuoteModal";
 import { RequestDetailsModal } from "@/components/operator/RequestDetailsModal";
 import { DeclineReasonModal } from "@/components/operator/DeclineReasonModal";
 import { JobProgressModal } from "@/components/operator/JobProgressModal";
+import { LocationTracker } from "@/components/operator/LocationTracker";
 
 interface ServiceRequest {
   id: number;
@@ -389,6 +390,14 @@ export default function ManualOperatorDashboard() {
 
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900 pb-16 md:pb-0">
+      {/* Location Tracker - automatically tracks and sends location when online */}
+      <LocationTracker
+        operatorId={operatorId}
+        isOnline={isOnline}
+        activeTier={operatorData?.activeTier || null}
+        currentJobId={acceptedJobsData[0]?.requestId || null}
+      />
+
       <Header
         onSignIn={() => {}}
         onSignUp={() => {}}

@@ -24,6 +24,7 @@ import { OperatorStatusToggle } from "@/components/operator/OperatorStatusToggle
 import { UrgentRequestNotification, type UrgentRequest } from "@/components/operator/UrgentRequestNotification";
 import { DriverAssignmentModal } from "@/components/operator/DriverAssignmentModal";
 import { QuoteModal } from "@/components/operator/QuoteModal";
+import { LocationTracker } from "@/components/operator/LocationTracker";
 
 export const BusinessDashboard = () => {
   const { user, updateUser } = useAuth();
@@ -456,6 +457,14 @@ export const BusinessDashboard = () => {
 
   return (
     <div className="min-h-screen bg-white dark:bg-black">
+      {/* Location Tracker - automatically tracks and sends location when online */}
+      <LocationTracker
+        operatorId={user?.operatorId || ""}
+        isOnline={isOnline}
+        activeTier={operatorData?.activeTier || null}
+        currentJobId={acceptedJobsData[0]?.requestId || null}
+      />
+
       {/* Urgent Request Notifications - REMOVED: No backend support yet */}
       
       <Header onDriveAndEarn={() => setLocation("/drive-earn")} />
