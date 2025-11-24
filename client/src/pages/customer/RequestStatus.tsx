@@ -25,6 +25,8 @@ import { useState } from "react";
 import { JobDetailModal } from "@/components/customer/JobDetailModal";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { Header } from "@/components/Header";
+import { MobileBottomNav } from "@/components/MobileBottomNav";
 
 const STATUS_COLORS = {
   pending: "bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200",
@@ -397,14 +399,16 @@ export default function RequestStatus() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pb-20">
-      <div className="max-w-4xl mx-auto p-6">
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">My Requests</h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-2">
-            Track the status of all your service requests
-          </p>
-        </div>
+    <>
+      <Header />
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pb-20">
+        <div className="max-w-4xl mx-auto p-6 pt-20">
+          <div className="mb-6">
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">My Requests</h1>
+            <p className="text-gray-600 dark:text-gray-400 mt-2">
+              Track the status of all your service requests
+            </p>
+          </div>
 
         <Tabs value={selectedTab} onValueChange={setSelectedTab} className="space-y-6">
           <TabsList className="grid grid-cols-3 w-full gap-1 md:gap-2">
@@ -473,6 +477,8 @@ export default function RequestStatus() {
         onOpenChange={setShowDetailModal}
         request={selectedRequest}
       />
-    </div>
+      </div>
+      <MobileBottomNav />
+    </>
   );
 }
