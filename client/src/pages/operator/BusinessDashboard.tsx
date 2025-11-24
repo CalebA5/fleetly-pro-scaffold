@@ -39,6 +39,13 @@ export const BusinessDashboard = () => {
   const [quoteModalOpen, setQuoteModalOpen] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState<any | null>(null);
   
+  // Update viewTier when this dashboard loads
+  useEffect(() => {
+    if (user?.viewTier !== "professional") {
+      updateUser({ viewTier: "professional" });
+    }
+  }, []);
+  
   // ALL MOCK DATA REMOVED - Dashboard is now 100% dynamic based on real database data
   // Urgent requests would come from backend API when implemented
   const [urgentRequests, setUrgentRequests] = useState<UrgentRequest[]>([]);

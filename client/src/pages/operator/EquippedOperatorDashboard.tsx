@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/enhanced-button";
@@ -36,7 +36,7 @@ interface ServiceRequest {
 }
 
 export default function EquippedOperatorDashboard() {
-  const { user } = useAuth();
+  const { user, updateUser } = useAuth();
   const [, setLocation] = useLocation();
   const [acceptedJobs, setAcceptedJobs] = useState<number[]>([]);
   const [acceptedGroupIds, setAcceptedGroupIds] = useState<string[]>([]);
@@ -51,6 +51,13 @@ export default function EquippedOperatorDashboard() {
   const [jobsOpen, setJobsOpen] = useState(true);
   const [showVehicleModal, setShowVehicleModal] = useState(false);
   const [pendingRequestId, setPendingRequestId] = useState<string | null>(null);
+  
+  // Update viewTier when this dashboard loads
+  useEffect(() => {
+    if (user?.viewTier !== "equipped") {
+      updateUser({ viewTier: "equipped" });
+    }
+  }, []);
   
   // ALL MOCK DATA REMOVED - Dashboard is now 100% dynamic
   // VehicleManagement component handles real vehicle CRUD via database
