@@ -52,6 +52,104 @@ The data model includes a service request schema with fields for `serviceType`, 
   - **Section 3**: All three tiers displayed for first-time operators with feature lists and requirements
   - **renderAvailableTierCard()**: New function rendering tier cards with features from tierFeatureMap for unregistered tiers
 
+## Operator Authentication & Verification System
+
+### Overview
+New operators sign up with zero tiers and must complete onboarding for each tier they wish to join. The system supports manual approval/verification of operator credentials before they can access tier-specific dashboards and start earning.
+
+### Signup Flow
+1. **Registration**: User signs up as "operator" role with validated email and password
+   - Email is case-insensitive (normalized to lowercase)
+   - Password requirements: minimum 8 characters, must contain letters and numbers
+   - Password visibility toggle available for user convenience
+   - No tiers assigned by default (`subscribedTiers: []`)
+2. **Tier Selection**: User redirected to `/drive-earn` to choose from 3 available tiers
+3. **Onboarding**: User completes tier-specific onboarding form at `/operator/onboarding`
+4. **Verification**: Tier enters "pending" approval status awaiting admin verification
+5. **Dashboard Access**: Once approved, user can access tier-specific dashboard
+
+### Tier Verification States
+Each tier in `operatorTierProfiles` supports the following `approvalStatus` values:
+- `not_submitted`: Tier exists but onboarding not completed
+- `pending`: Onboarding submitted, awaiting verification
+- `under_review`: Admin is actively reviewing credentials
+- `approved`: Verified - operator can earn in this tier
+- `rejected`: Credentials rejected with `rejectionReason` provided
+
+### Managing Operator Verification
+
+#### Current System (Database-Based)
+Tier approval status is stored in the `operatorTierProfiles` JSONB field in the `operators` table. Each tier profile contains:
+```json
+{
+  "manual": {
+    "tier": "manual",
+    "subscribed": true,
+    "onboardingCompleted": true,
+    "onboardedAt": "2025-11-24T10:30:00Z",
+    "approvalStatus": "pending",
+    "approvalSubmittedAt": "2025-11-24T10:30:00Z",
+    "approvedAt": null,
+    "rejectionReason": null,
+    "canEarn": false
+  }
+}
+```
+
+#### Verification Workflow
+**Option 1: Direct Database Access (Recommended for MVP)**
+1. Access the production database via Replit's Database pane
+2. Query operators awaiting verification:
+   ```sql
+   SELECT operator_id, name, email, operator_tier_profiles
+   FROM operators
+   WHERE operator_tier_profiles IS NOT NULL;
+   ```
+3. Manually update approval status for specific operators:
+   ```sql
+   UPDATE operators
+   SET operator_tier_profiles = jsonb_set(
+     operator_tier_profiles,
+     '{manual,approvalStatus}',
+     '"approved"'
+   )
+   WHERE operator_id = 'op-example-123';
+   ```
+
+**Option 2: Admin Dashboard (Future Enhancement)**
+Create an admin panel at `/admin/operator-verification` that:
+- Lists all operators with pending verification
+- Shows submitted documents and credentials
+- Provides approve/reject buttons
+- Sends email notifications on status changes
+
+#### Email Notifications Setup
+For seamless onboarding, integrate an email service (Resend, SendGrid, or AWS SES via Replit integrations):
+1. **Submission Confirmation**: Send email when operator submits tier onboarding
+2. **Approval Notification**: Notify operator when tier is approved
+3. **Rejection Notice**: Explain reason if credentials are rejected
+4. **Dashboard Access**: Include direct link to tier dashboard upon approval
+
+### Security & Validation
+- **Email Normalization**: All emails stored and compared in lowercase to prevent duplicate accounts (e.g., `User@Email.com` and `user@email.com` are treated as identical)
+- **Password Security**: Passwords are case-sensitive, hashed with bcrypt (10 rounds), never stored in plaintext
+- **Duplicate Prevention**: Email and name similarity checks prevent multiple accounts per person
+- **Session Management**: 30-day sessions with httpOnly cookies
+- **Tier Isolation**: Operators cannot work on multiple tiers simultaneously (active tier tracking)
+
+### Current Limitations & Recommendations
+1. **Manual Verification Required**: No automated background checks integrated (future: integrate with verification APIs)
+2. **Email Notifications**: Currently no email system (recommendation: add Resend integration)
+3. **Document Storage**: Onboarding documents not yet uploaded to cloud storage (future: integrate Replit Object Storage)
+4. **Admin Access**: No built-in admin dashboard - use database pane or build custom `/admin` routes
+
+### Next Steps for Production
+1. Set up email notification system (use `search_integrations` to find email service)
+2. Create admin verification dashboard
+3. Implement document upload and storage for licenses/certifications
+4. Add webhook for background check integration
+5. Build operator notification system for status updates
+
 ## External Dependencies
 
 **UI & Interaction Libraries:**

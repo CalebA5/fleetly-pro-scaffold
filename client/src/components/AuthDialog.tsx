@@ -13,7 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import { CheckCircle2, XCircle, Loader2 } from "lucide-react";
+import { CheckCircle2, XCircle, Loader2, Eye, EyeOff } from "lucide-react";
 
 interface AuthDialogProps {
   open: boolean;
@@ -50,6 +50,10 @@ export const AuthDialog = ({
   const [signupEmail, setSignupEmail] = useState("");
   const [signupPassword, setSignupPassword] = useState("");
   
+  // Password visibility toggles
+  const [showSigninPassword, setShowSigninPassword] = useState(false);
+  const [showSignupPassword, setShowSignupPassword] = useState(false);
+  
   // Validation states
   const [emailValidation, setEmailValidation] = useState<{
     status: 'idle' | 'checking' | 'valid' | 'invalid';
@@ -61,12 +65,46 @@ export const AuthDialog = ({
     message?: string;
   }>({ status: 'idle' });
   
+  const [passwordValidation, setPasswordValidation] = useState<{
+    status: 'idle' | 'valid' | 'invalid';
+    message?: string;
+  }>({ status: 'idle' });
+  
   // Update signup name when prefillName changes
   useEffect(() => {
     if (prefillName) {
       setSignupName(prefillName);
     }
   }, [prefillName]);
+  
+  // Password validation: min 8 chars, at least one letter and one number
+  useEffect(() => {
+    if (!signupPassword) {
+      setPasswordValidation({ status: 'idle' });
+      return;
+    }
+    
+    const hasMinLength = signupPassword.length >= 8;
+    const hasLetter = /[a-zA-Z]/.test(signupPassword);
+    const hasNumber = /[0-9]/.test(signupPassword);
+    
+    if (!hasMinLength) {
+      setPasswordValidation({ 
+        status: 'invalid', 
+        message: 'Password must be at least 8 characters' 
+      });
+    } else if (!hasLetter || !hasNumber) {
+      setPasswordValidation({ 
+        status: 'invalid', 
+        message: 'Password must contain both letters and numbers' 
+      });
+    } else {
+      setPasswordValidation({ 
+        status: 'valid', 
+        message: 'Password is strong' 
+      });
+    }
+  }, [signupPassword]);
   
   // Debounced email verification
   useEffect(() => {
@@ -132,7 +170,8 @@ export const AuthDialog = ({
 
   const handleSignIn = async () => {
     try {
-      await signIn(signinEmail, signinPassword);
+      // Normalize email to lowercase for case-insensitive login
+      await signIn(signinEmail.toLowerCase().trim(), signinPassword);
       toast({
         title: "Welcome back!",
         description: "You've successfully signed in.",
@@ -152,7 +191,7 @@ export const AuthDialog = ({
 
   const handleSignUp = async () => {
     // Prevent signup if validation is invalid
-    if (emailValidation.status === 'invalid' || nameValidation.status === 'invalid') {
+    if (emailValidation.status === 'invalid' || nameValidation.status === 'invalid' || passwordValidation.status === 'invalid') {
       toast({
         title: "Validation Error",
         description: "Please resolve the errors before signing up.",
@@ -162,7 +201,8 @@ export const AuthDialog = ({
     }
     
     try {
-      await signUp(signupName, signupEmail, signupPassword, signupRole);
+      // Normalize email to lowercase for case-insensitive signup
+      await signUp(signupName, signupEmail.toLowerCase().trim(), signupPassword, signupRole);
       toast({
         title: "Account created!",
         description: signupRole === "operator" 
@@ -226,13 +266,24 @@ export const AuthDialog = ({
             </div>
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
-              <Input 
-                id="password" 
-                type="password"
-                value={signinPassword}
-                onChange={(e) => setSigninPassword(e.target.value)}
-                data-testid="input-signin-password"
-              />
+              <div className="relative">
+                <Input 
+                  id="password" 
+                  type={showSigninPassword ? "text" : "password"}
+                  value={signinPassword}
+                  onChange={(e) => setSigninPassword(e.target.value)}
+                  data-testid="input-signin-password"
+                  className="pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowSigninPassword(!showSigninPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                  data-testid="button-toggle-signin-password"
+                >
+                  {showSigninPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
             </div>
             <Button 
               className="w-full bg-black text-white hover:bg-gray-800"
@@ -327,13 +378,38 @@ export const AuthDialog = ({
             </div>
             <div className="space-y-2">
               <Label htmlFor="signup-password">Password</Label>
-              <Input 
-                id="signup-password" 
-                type="password"
-                value={signupPassword}
-                onChange={(e) => setSignupPassword(e.target.value)}
-                data-testid="input-signup-password"
-              />
+              <div className="relative">
+                <Input 
+                  id="signup-password" 
+                  type={showSignupPassword ? "text" : "password"}
+                  value={signupPassword}
+                  onChange={(e) => setSignupPassword(e.target.value)}
+                  data-testid="input-signup-password"
+                  className={
+                    passwordValidation.status === 'invalid' 
+                      ? 'border-red-500 pr-10' 
+                      : passwordValidation.status === 'valid'
+                      ? 'border-green-500 pr-10'
+                      : 'pr-10'
+                  }
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowSignupPassword(!showSignupPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                  data-testid="button-toggle-signup-password"
+                >
+                  {showSignupPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+              {passwordValidation.message && (
+                <p className={`text-xs ${passwordValidation.status === 'valid' ? 'text-green-600' : 'text-red-600'}`}>
+                  {passwordValidation.message}
+                </p>
+              )}
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                Must be at least 8 characters with letters and numbers
+              </p>
             </div>
             <Button 
               className="w-full bg-black text-white hover:bg-gray-800"
@@ -341,8 +417,10 @@ export const AuthDialog = ({
               disabled={
                 emailValidation.status === 'invalid' || 
                 nameValidation.status === 'invalid' ||
+                passwordValidation.status === 'invalid' ||
                 emailValidation.status === 'checking' ||
-                nameValidation.status === 'checking'
+                nameValidation.status === 'checking' ||
+                !signupPassword
               }
               data-testid="button-signup-submit"
             >
