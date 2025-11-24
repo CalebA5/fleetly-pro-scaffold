@@ -13,7 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import { CheckCircle2, XCircle, Loader2 } from "lucide-react";
+import { CheckCircle2, XCircle, Loader2, Eye, EyeOff } from "lucide-react";
 
 interface AuthDialogProps {
   open: boolean;
@@ -49,6 +49,8 @@ export const AuthDialog = ({
   const [signupName, setSignupName] = useState(prefillName);
   const [signupEmail, setSignupEmail] = useState("");
   const [signupPassword, setSignupPassword] = useState("");
+  const [showSigninPassword, setShowSigninPassword] = useState(false);
+  const [showSignupPassword, setShowSignupPassword] = useState(false);
   
   // Validation states
   const [emailValidation, setEmailValidation] = useState<{
@@ -226,13 +228,28 @@ export const AuthDialog = ({
             </div>
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
-              <Input 
-                id="password" 
-                type="password"
-                value={signinPassword}
-                onChange={(e) => setSigninPassword(e.target.value)}
-                data-testid="input-signin-password"
-              />
+              <div className="relative">
+                <Input 
+                  id="password" 
+                  type={showSigninPassword ? "text" : "password"}
+                  value={signinPassword}
+                  onChange={(e) => setSigninPassword(e.target.value)}
+                  data-testid="input-signin-password"
+                  className="pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowSigninPassword(!showSigninPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                  data-testid="button-toggle-signin-password"
+                >
+                  {showSigninPassword ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
+                </button>
+              </div>
             </div>
             <Button 
               className="w-full bg-black text-white hover:bg-gray-800"
@@ -327,13 +344,28 @@ export const AuthDialog = ({
             </div>
             <div className="space-y-2">
               <Label htmlFor="signup-password">Password</Label>
-              <Input 
-                id="signup-password" 
-                type="password"
-                value={signupPassword}
-                onChange={(e) => setSignupPassword(e.target.value)}
-                data-testid="input-signup-password"
-              />
+              <div className="relative">
+                <Input 
+                  id="signup-password" 
+                  type={showSignupPassword ? "text" : "password"}
+                  value={signupPassword}
+                  onChange={(e) => setSignupPassword(e.target.value)}
+                  data-testid="input-signup-password"
+                  className="pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowSignupPassword(!showSignupPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                  data-testid="button-toggle-signup-password"
+                >
+                  {showSignupPassword ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
+                </button>
+              </div>
             </div>
             <Button 
               className="w-full bg-black text-white hover:bg-gray-800"

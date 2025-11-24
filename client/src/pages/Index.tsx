@@ -313,15 +313,8 @@ const Index = () => {
         onDriveAndEarn={handleDriveAndEarn}
       />
 
-      {/* Emergency SOS Section - Prominent placement */}
-      <section className="relative bg-white dark:bg-gray-900 pt-8 pb-4 px-4 w-full">
-        <div className="max-w-7xl mx-auto w-full">
-          <EmergencySOSButton />
-        </div>
-      </section>
-
-      {/* Hero Section with Location Search */}
-      <section className="relative bg-gradient-to-br from-slate-50 via-blue-50 to-orange-50 dark:from-gray-900 dark:via-blue-950 dark:to-orange-950 py-12 md:py-20 overflow-hidden border-b border-gray-200 dark:border-gray-800 w-full">
+      {/* Hero Section with Location Search - Flush with header */}
+      <section className="relative bg-gradient-to-br from-slate-50 via-blue-50 to-orange-50 dark:from-gray-900 dark:via-blue-950 dark:to-orange-950 py-12 md:py-20 overflow-hidden w-full">
         {/* Modern Abstract Background Pattern */}
         <div className="absolute inset-0 opacity-10 dark:opacity-5">
           <div className="absolute top-0 left-0 w-96 h-96 bg-blue-500 rounded-full filter blur-3xl"></div>
@@ -337,6 +330,11 @@ const Index = () => {
             <p className="text-lg md:text-xl text-gray-600 dark:text-gray-400">
               Professional snow plowing, towing, hauling, and courier services. Available 24/7.
             </p>
+          </div>
+
+          {/* Emergency SOS Button - Integrated into hero */}
+          <div className="mb-8">
+            <EmergencySOSButton />
           </div>
 
           {/* Two-column grid - Location search and Services aligned */}
