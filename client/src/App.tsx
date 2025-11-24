@@ -17,6 +17,7 @@ import QuoteCenter from "./pages/customer/QuoteCenter";
 import RequestStatus from "./pages/customer/RequestStatus";
 import { OperatorOnboarding } from "./pages/operator/OperatorOnboarding";
 import { BusinessDashboard } from "./pages/operator/BusinessDashboard";
+import { OperatorDashboard } from "./pages/operator/OperatorDashboard";
 import ManualOperatorDashboard from "./pages/operator/ManualOperatorDashboard";
 import EquippedOperatorDashboard from "./pages/operator/EquippedOperatorDashboard";
 import EarningsDetails from "./pages/operator/EarningsDetails";
@@ -90,6 +91,11 @@ const App = () => (
               <Route path="/operator/onboarding" component={OperatorOnboarding} />
               
               {/* Protected operator dashboards - require operator auth */}
+              <Route path="/operator">
+                <ProtectedRoute requireOperator>
+                  <OperatorDashboard />
+                </ProtectedRoute>
+              </Route>
               <Route path="/business">
                 <ProtectedRoute requireOperator>
                   <BusinessDashboard />

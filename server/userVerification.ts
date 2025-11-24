@@ -148,7 +148,8 @@ export async function checkNameDuplicate(name: string, email: string): Promise<{
 
 /**
  * Comprehensive verification check for new user signup
- * Checks both email and name for duplicates/similarities
+ * Checks email only - names are allowed to be duplicate
+ * Business names will have their own unique validation during Professional tier onboarding
  */
 export async function verifyNewUser(name: string, email: string): Promise<{
   isValid: boolean;
@@ -159,17 +160,16 @@ export async function verifyNewUser(name: string, email: string): Promise<{
 }> {
   const errors: { email?: string; name?: string } = {};
   
-  // Check email (uses indexed lookup)
+  // Check email only (uses indexed lookup)
   const emailCheck = await checkEmailDuplicate(email);
   if (emailCheck.isDuplicate) {
     errors.email = emailCheck.message;
   }
   
-  // Check name (uses indexed lookup for exact matches)
-  const nameCheck = await checkNameDuplicate(name, email);
-  if (nameCheck.isDuplicate) {
-    errors.name = nameCheck.message;
-  }
+  // REMOVED: Name duplicate checking
+  // Multiple users can have the same name (e.g., "John Smith")
+  // Only email must be unique
+  // Business names will be validated separately during Professional tier onboarding
   
   return {
     isValid: Object.keys(errors).length === 0,
