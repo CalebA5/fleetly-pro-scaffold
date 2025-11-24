@@ -58,19 +58,19 @@ export const SEASONAL_THEMES: Record<Season, { light: SeasonalTheme; dark: Seaso
       mode: 'light',
       label: 'Winter Light',
       colors: {
-        background: '210 100% 98%',        // Icy white
-        foreground: '220 30% 15%',         // Deep navy text
-        card: '210 100% 98%',
-        cardForeground: '220 30% 15%',
-        primary: '217 91% 60%',            // Azure blue
+        background: '200 80% 96%',         // Bright icy blue-white (more noticeable)
+        foreground: '215 35% 12%',         // Deeper navy text for contrast
+        card: '200 75% 98%',               // Bright white cards with subtle blue
+        cardForeground: '215 35% 12%',
+        primary: '210 95% 55%',            // Vivid winter blue (more saturated)
         primaryForeground: '0 0% 100%',
-        secondary: '210 40% 93%',          // Light ice blue
-        secondaryForeground: '220 30% 15%',
-        muted: '210 40% 96%',
-        mutedForeground: '220 20% 45%',
-        border: '214 32% 88%',
-        input: '214 32% 88%',
-        ring: '217 91% 60%',
+        secondary: '200 60% 90%',          // Noticeable ice blue
+        secondaryForeground: '215 35% 12%',
+        muted: '200 50% 94%',              // Softer ice tone
+        mutedForeground: '215 25% 40%',
+        border: '200 45% 82%',             // More visible blue borders
+        input: '200 45% 85%',              // Distinct input fields
+        ring: '210 95% 55%',               // Bright focus rings
       }
     },
     dark: {
@@ -78,19 +78,19 @@ export const SEASONAL_THEMES: Record<Season, { light: SeasonalTheme; dark: Seaso
       mode: 'dark',
       label: 'Winter Dark',
       colors: {
-        background: '220 30% 8%',          // Deep navy
-        foreground: '210 100% 98%',        // Ice white
-        card: '220 30% 10%',
-        cardForeground: '210 100% 98%',
-        primary: '217 91% 60%',            // Azure blue
-        primaryForeground: '220 30% 8%',
-        secondary: '220 20% 15%',          // Dark blue-gray
-        secondaryForeground: '210 100% 98%',
-        muted: '220 20% 15%',
-        mutedForeground: '210 40% 70%',
-        border: '220 20% 20%',
-        input: '220 20% 20%',
-        ring: '217 91% 60%',
+        background: '215 40% 10%',         // Deep midnight blue (more blue tone)
+        foreground: '200 80% 95%',         // Bright ice white (more noticeable)
+        card: '215 35% 12%',               // Slightly lighter navy cards
+        cardForeground: '200 80% 95%',
+        primary: '205 100% 60%',           // Electric ice blue (very noticeable)
+        primaryForeground: '215 40% 10%',
+        secondary: '215 30% 18%',          // Cool dark blue-gray
+        secondaryForeground: '200 80% 95%',
+        muted: '215 25% 16%',              // Subtle blue-gray
+        mutedForeground: '200 50% 75%',    // Light ice blue text
+        border: '215 30% 22%',             // More visible dark borders
+        input: '215 30% 20%',              // Distinct input fields
+        ring: '205 100% 60%',              // Bright electric focus
       }
     }
   },

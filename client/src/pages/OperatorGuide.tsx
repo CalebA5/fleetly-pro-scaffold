@@ -82,11 +82,11 @@ export function OperatorGuide() {
           </CardHeader>
           <CardContent>
             <p className="text-gray-700 dark:text-gray-300 mb-4">
-              Join thousands of operators earning on Fleetly. Click the 'Drive & Earn' button in the header to get started.
+              Join thousands of operators earning on Fleetly. Choose your tier and start your operator journey.
             </p>
-            <Link href="/operator/onboarding">
+            <Link href="/drive-earn">
               <Button className="bg-black text-white hover:bg-gray-800 dark:bg-white dark:text-black dark:hover:bg-gray-200" data-testid="button-start-earning">
-                Start Earning
+                Drive & Earn
               </Button>
             </Link>
           </CardContent>
