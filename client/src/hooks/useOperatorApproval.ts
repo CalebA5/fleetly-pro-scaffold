@@ -27,9 +27,32 @@ export const useOperatorApproval = (requiredTier: OperatorTier) => {
     // Dashboards will gate features based on isApproved status
   }, [isLoading, operatorData, requiredTier, setLocation]);
 
-  // Extract tier profile info
-  const tierProfiles = (operatorData?.operatorTierProfiles as Record<string, any>) || {};
-  const tierProfile = tierProfiles[requiredTier];
+  // Extract tier profile info - normalize both array and object formats
+  const tierProfilesRaw = operatorData?.operatorTierProfiles as any;
+  let tierProfile;
+  
+  if (Array.isArray(tierProfilesRaw)) {
+    // Array format: [{ tier: "manual", ... }, { tier: "equipped", ... }]
+    tierProfile = tierProfilesRaw.find((p: any) => p.tier === requiredTier);
+  } else if (tierProfilesRaw && typeof tierProfilesRaw === 'object') {
+    // Object format: { "manual": { tier: "manual", ... }, "equipped": { ... } }
+    tierProfile = tierProfilesRaw[requiredTier];
+  }
+  
+  // BACKWARD COMPATIBILITY: Only auto-approve legacy operators with explicit historical signals
+  // Check for operator.activeTier or operator.operatorTier matching the required tier
+  // This prevents newly created operators (with missing profiles) from bypassing verification
+  if (!tierProfile && operatorData?.subscribedTiers?.includes(requiredTier)) {
+    // Only trust explicit historical approval signals
+    const hasLegacyApproval = (operatorData.activeTier === requiredTier) || 
+                             (operatorData.operatorTier === requiredTier);
+    
+    if (hasLegacyApproval) {
+      // Legacy operator with historical tier usage - treat as approved
+      tierProfile = { approvalStatus: "approved" };
+    }
+  }
+  
   const isApproved = tierProfile?.approvalStatus === "approved";
   const approvalStatus = tierProfile?.approvalStatus || "not_submitted";
 

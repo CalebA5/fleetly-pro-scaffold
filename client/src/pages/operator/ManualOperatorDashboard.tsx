@@ -227,10 +227,22 @@ export default function ManualOperatorDashboard() {
         return;
       }
       
-      // Check if error is from backend (active jobs blocking)
+      // Check if error is from backend
       if (error.message) {
         try {
           const errorData = JSON.parse(error.message);
+          
+          // Handle backend verification error (server-side enforcement)
+          if (errorData.error === "not_verified") {
+            toast({
+              title: "Verification Required",
+              description: errorData.message || "You cannot go online until your documents have been verified.",
+              variant: "destructive",
+            });
+            return;
+          }
+          
+          // Handle active jobs errors from backend
           if (errorData.error === "active_jobs") {
             toast({
               title: errorData.message.includes("cannot go offline") ? "Cannot Go Offline" : "Cannot Switch Tier",

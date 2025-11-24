@@ -149,28 +149,10 @@ export function registerRoutes(storage: IStorage) {
         return res.status(404).json({ message: "Operator not found" });
       }
 
-      // Ensure operatorTierProfiles is properly formatted
-      // If not exists or is empty, generate based on subscribedTiers
-      let tierProfiles = operator.operatorTierProfiles as any[];
-      
-      if (!tierProfiles || tierProfiles.length === 0) {
-        // Generate mock tier profiles based on subscribed tiers
-        tierProfiles = operator.subscribedTiers.map((tier: string) => ({
-          tier,
-          subscribed: true,
-          onboardingCompleted: true,
-          onboardedAt: new Date().toISOString(),
-          approvalStatus: "approved", // Mock: all tiers approved
-          approvalSubmittedAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-          approvedAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
-          canEarn: true,
-          vehicle: operator.vehicle,
-          licensePlate: operator.licensePlate,
-          businessName: operator.businessName || undefined,
-          businessLicense: operator.businessLicense || undefined,
-          services: operator.services as string[],
-        }));
-      }
+      // SECURITY: Only return actual tier profiles - never fabricate approvals
+      // Return operatorTierProfiles as-is (may be empty for new operators)
+      // Frontend and backend verification gates will handle empty profiles correctly
+      const tierProfiles = operator.operatorTierProfiles || [];
 
       res.json({
         ...operator,
@@ -1521,6 +1503,46 @@ export function registerRoutes(storage: IStorage) {
       // If going online, verify the tier is subscribed
       if (isOnline === 1 && activeTier && !operator.subscribedTiers.includes(activeTier)) {
         return res.status(400).json({ message: "Cannot go online for unsubscribed tier" });
+      }
+      
+      // SECURITY: Verify operator is approved for this tier before allowing them to go online
+      if (isOnline === 1 && activeTier) {
+        // Normalize operatorTierProfiles to handle both array and object formats
+        let tierProfiles = operator.operatorTierProfiles as any;
+        let tierProfile;
+        
+        if (Array.isArray(tierProfiles)) {
+          // Array format: [{ tier: "manual", ... }, { tier: "equipped", ... }]
+          tierProfile = tierProfiles.find((p: any) => p.tier === activeTier);
+        } else if (tierProfiles && typeof tierProfiles === 'object') {
+          // Object format: { "manual": { tier: "manual", ... }, "equipped": { ... } }
+          tierProfile = tierProfiles[activeTier];
+        }
+        
+        // BACKWARD COMPATIBILITY: Only auto-approve legacy operators with explicit historical signals
+        // Check for operator.activeTier or operator.operatorTier matching the active tier
+        // This prevents newly created operators (with missing profiles) from bypassing verification
+        if (!tierProfile && operator.subscribedTiers.includes(activeTier)) {
+          // Only trust explicit historical approval signals (not just missing profiles)
+          const hasLegacyApproval = operator.activeTier === activeTier || 
+                                   operator.operatorTier === activeTier;
+          
+          if (hasLegacyApproval) {
+            console.log(`[toggle-online] Legacy operator ${operatorId}: treating ${activeTier} as approved via historical tier usage`);
+            tierProfile = { approvalStatus: "approved" };
+          }
+        }
+        
+        // Reject if tier profile doesn't exist or is not approved
+        if (!tierProfile || tierProfile.approvalStatus !== "approved") {
+          const status = tierProfile?.approvalStatus || "not_submitted";
+          return res.status(403).json({ 
+            error: "not_verified",
+            message: "You cannot go online until your documents have been verified. You can still access the dashboard and view requests.",
+            approvalStatus: status,
+            tier: activeTier
+          });
+        }
       }
       
       // FIXED: Block offline toggle for any non-terminal job (accepted/in_progress/started, not completed/cancelled)
