@@ -10,6 +10,7 @@ import { Header } from "@/components/Header";
 import { AuthDialog } from "@/components/AuthDialog";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
 import {
   Accordion,
   AccordionContent,
@@ -39,9 +40,12 @@ export const HelpSupport = () => {
   const [message, setMessage] = useState("");
 
   const submitSupportMutation = useMutation({
-    mutationFn: async (data: any) => {
-      // In production, this would send to support backend
-      return new Promise((resolve) => setTimeout(resolve, 1000));
+    mutationFn: async (data: { name: string; email: string; subject: string; message: string }) => {
+      return apiRequest("/api/support/contact", {
+        method: "POST",
+        body: JSON.stringify(data),
+        headers: { "Content-Type": "application/json" },
+      });
     },
     onSuccess: () => {
       toast({

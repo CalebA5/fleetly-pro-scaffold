@@ -4104,5 +4104,47 @@ export function registerRoutes(storage: IStorage) {
     }
   });
 
+  // Support form submission endpoint
+  router.post("/api/support/contact", async (req, res) => {
+    try {
+      const contactSchema = z.object({
+        name: z.string().min(1, "Name is required"),
+        email: z.string().email("Valid email is required"),
+        subject: z.string().min(1, "Subject is required"),
+        message: z.string().min(10, "Message must be at least 10 characters"),
+      });
+
+      const result = contactSchema.safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ errors: result.error.issues });
+      }
+
+      const { name, email, subject, message } = result.data;
+
+      // Log support message (in production, this would save to database or send email)
+      console.log('='.repeat(60));
+      console.log('SUPPORT MESSAGE RECEIVED');
+      console.log('='.repeat(60));
+      console.log(`From: ${name} <${email}>`);
+      console.log(`Subject: ${subject}`);
+      console.log(`Message:\n${message}`);
+      console.log('='.repeat(60));
+
+      // In production, you would:
+      // 1. Save to a support_messages table
+      // 2. Send email notification to support team
+      // 3. Create a ticket in your support system
+      // 4. Send auto-reply email to customer
+
+      res.json({
+        success: true,
+        message: "Support message received successfully"
+      });
+    } catch (error) {
+      console.error("Error processing support message:", error);
+      res.status(500).json({ message: "Failed to process support message" });
+    }
+  });
+
   return router;
 }
