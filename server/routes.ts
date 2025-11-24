@@ -3865,6 +3865,75 @@ export function registerRoutes(storage: IStorage) {
     }
   });
 
+  // ===== TESTING ENDPOINT - FOR DEMO PURPOSES ONLY =====
+  
+  // Create test operator applications for demo/testing (ADMIN ONLY, DEV MODE ONLY)
+  router.post("/api/test/create-sample-applications", requireAuth, requireRole("admin", "business"), async (req, res) => {
+    try {
+      // Only allow in development environment
+      if (process.env.NODE_ENV === "production") {
+        return res.status(403).json({ 
+          message: "Test endpoints are disabled in production" 
+        });
+      }
+      const sampleApplications = [
+        {
+          applicationId: `app-test-${Date.now()}-1`,
+          userId: "test-user-1",
+          tier: "manual",
+          status: "pending",
+          identityVerification: { testData: true },
+          submittedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), // 2 days ago
+        },
+        {
+          applicationId: `app-test-${Date.now()}-2`,
+          userId: "test-user-2",
+          tier: "equipped",
+          status: "under_review",
+          identityVerification: { testData: true },
+          submittedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000), // 1 day ago
+        },
+        {
+          applicationId: `app-test-${Date.now()}-3`,
+          userId: "test-user-3",
+          tier: "professional",
+          status: "pending",
+          identityVerification: { testData: true },
+          submittedAt: new Date(), // Today
+        },
+      ];
+
+      // Create test users if they don't exist
+      for (let i = 1; i <= 3; i++) {
+        const userId = `test-user-${i}`;
+        const existing = await db.query.users.findFirst({
+          where: eq(users.userId, userId),
+        });
+
+        if (!existing) {
+          await db.insert(users).values({
+            userId,
+            email: `testoperator${i}@fleetly.com`,
+            name: `Test Operator ${i}`,
+            role: "operator",
+          });
+        }
+      }
+
+      // Insert applications
+      await db.insert(operatorApplications).values(sampleApplications);
+
+      res.json({ 
+        success: true, 
+        message: `Created ${sampleApplications.length} test applications`,
+        applications: sampleApplications
+      });
+    } catch (error) {
+      console.error("Error creating test applications:", error);
+      res.status(500).json({ message: "Failed to create test applications" });
+    }
+  });
+  
   // ===== OPERATOR AUTHENTICATION & VERIFICATION ROUTES =====
   
   // Auto-create application if needed (called by dashboards on load)

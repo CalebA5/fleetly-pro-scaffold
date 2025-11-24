@@ -34,6 +34,7 @@ import { Profile } from "./pages/Profile";
 import { default as Notifications } from "./pages/Notifications";
 import EmergencySOS from "./pages/EmergencySOS";
 import EmergencyTracking from "./pages/EmergencyTracking";
+import AdminDashboard from "./pages/admin/AdminDashboard";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import { SignIn } from "./pages/SignIn";
@@ -67,6 +68,13 @@ const App = () => (
               <Route path="/profile" component={Profile} />
               <Route path="/notifications" component={Notifications} />
               <Route path="/weather-alerts" component={Notifications} />
+              
+              {/* Admin routes - protected */}
+              <Route path="/admin/dashboard">
+                <ProtectedRoute>
+                  <AdminDashboard />
+                </ProtectedRoute>
+              </Route>
               
               {/* Customer routes */}
               <Route path="/customer/services" component={ServiceSelection} />
