@@ -26,8 +26,23 @@ export interface SeasonalTheme {
   };
 }
 
-// Get current season based on month
+// Get current season based on month AND weather conditions
 export function getCurrentSeason(): Season {
+  // Check localStorage for recent weather data
+  const weatherData = localStorage.getItem('fleetly_weather_season');
+  if (weatherData) {
+    try {
+      const { season, timestamp } = JSON.parse(weatherData);
+      // Use weather-based season if less than 1 hour old
+      if (Date.now() - timestamp < 3600000 && season) {
+        return season as Season;
+      }
+    } catch (e) {
+      // Ignore parse errors
+    }
+  }
+  
+  // Fallback to calendar-based season
   const month = new Date().getMonth(); // 0-11
   
   // Dec (11), Jan (0), Feb (1) = Winter

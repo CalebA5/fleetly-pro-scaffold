@@ -29,6 +29,13 @@ The data model includes a service request schema with fields for `serviceType`, 
 - `applicationDocuments`: Stores uploaded verification documents with `documentId`, `applicationId`, `documentType`, `documentUrl`, `fileName`, `fileSize`, and `mimeType`
 - `verificationTokens`: Email/SMS verification tokens with `tokenId`, `userId`, `token`, `type`, `verified` status, `expiresAt`, and `verifiedAt` timestamps
 
+**Weather-Adaptive Theming:**
+- System automatically detects current weather conditions from National Weather Service API
+- Themes adapt to real-time weather: winter theme for snow alerts, summer theme for heat warnings, spring theme for rain
+- Weather data cached for 1 hour, checked every 30 minutes
+- Fallback to calendar-based seasons if weather data unavailable
+- Supports time-based light/dark mode switching (6 AM - 6 PM = light, 6 PM - 6 AM = dark)
+
 ### Feature Highlights
 - **Quote-Based Negotiation System**: Operators submit quotes (tracked by string `requestId`), and customers review, accept, decline, or counter them within a 12-hour expiry window. Backend routes support both numeric and string ID lookups for flexibility, always normalizing to string requestId for quote operations. Quote buttons disable after submission to prevent duplicates. Includes idempotent accept endpoints (`/api/quotes/:quoteId/accept` and `/api/quotes/:quoteId/respond`) that prevent duplicate job creation on retry scenarios.
 - **Comprehensive Notification System**: Real-time notifications for all customer-operator interactions. When operators submit quotes, customers receive notifications. When customers accept/decline quotes, both parties receive notifications with complete context (quote amount, operator name, job details). All notifications persist to database with 7-day expiry and include metadata for rich frontend display.

@@ -147,10 +147,6 @@ export const ServiceRequest = () => {
                 <p className="font-semibold" data-testid="text-service-type">{request.service}</p>
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Request ID</p>
-                <p className="font-mono text-sm" data-testid="text-request-id">{request.requestId}</p>
-              </div>
-              <div>
                 <p className="text-sm text-muted-foreground">Requested At</p>
                 <p data-testid="text-requested-at">
                   {new Date(request.requestedAt).toLocaleString()}
