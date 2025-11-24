@@ -255,11 +255,6 @@ const Index = () => {
         setCurrentLon(position.coords.longitude);
         setPickup(freshAddress);
         setUserHasCleared(false);
-        
-        toast({
-          title: "Location updated",
-          description: "Using your current location.",
-        });
       } catch (error: any) {
         console.error("Location refresh error:", error);
         

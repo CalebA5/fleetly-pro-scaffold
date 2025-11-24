@@ -148,10 +148,10 @@ router.post('/signup', async (req, res) => {
         hourlyRate: '0.00',
         availability: 'available',
         photo: null,
-        operatorTier: 'manual',
-        subscribedTiers: ['manual'],
+        operatorTier: null, // No tier by default - user must select one
+        subscribedTiers: [], // Empty - user can choose which tiers to add
         activeTier: null, // Null by default - only set when operator goes online
-        viewTier: 'manual',
+        viewTier: null, // No view tier until user subscribes to a tier
         isCertified: 0,
         businessLicense: null,
         homeLatitude: null,

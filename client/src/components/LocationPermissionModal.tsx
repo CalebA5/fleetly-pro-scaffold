@@ -29,11 +29,6 @@ export function LocationPermissionModal({ open, onOpenChange }: LocationPermissi
       
       // Close modal on success
       onOpenChange(false);
-      
-      toast({
-        title: "Location enabled",
-        description: "Your location has been saved.",
-      });
     } catch (error: any) {
       console.error("Location error:", error);
       

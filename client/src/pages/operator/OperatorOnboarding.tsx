@@ -756,7 +756,7 @@ export const OperatorOnboarding = () => {
       <div className="min-h-screen bg-white dark:bg-gray-900 flex flex-col">
         <header className="border-b border-gray-200 dark:border-gray-800 px-4 sm:px-6 lg:px-8 py-4">
           <div className="max-w-7xl mx-auto flex items-center justify-between">
-            <Link href="/">
+            <Link href="/drive-earn">
               <Button variant="ghost" size="sm" data-testid="button-back">
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Back
