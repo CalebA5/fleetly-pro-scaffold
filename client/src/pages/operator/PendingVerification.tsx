@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/enhanced-button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Clock, CheckCircle, XCircle, AlertCircle, Home, Mail, Phone } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
+import { Header } from "@/components/Header";
+import { MobileBottomNav } from "@/components/MobileBottomNav";
 import type { Operator, TierApprovalStatus } from "@shared/schema";
 
 export const PendingVerification = () => {
@@ -96,11 +98,12 @@ export const PendingVerification = () => {
 
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900">
-      <header className="border-b border-gray-200 dark:border-gray-800 px-4 sm:px-6 lg:px-8 py-4">
+      <Header />
+      <div className="border-b border-gray-200 dark:border-gray-800 px-4 sm:px-6 lg:px-8 py-4">
         <div className="max-w-4xl mx-auto">
           <h1 className="text-2xl font-bold text-black dark:text-white">Account Verification</h1>
         </div>
-      </header>
+      </div>
 
       <div className="px-4 sm:px-6 lg:px-8 py-12">
         <div className="max-w-4xl mx-auto space-y-8">
@@ -227,6 +230,7 @@ export const PendingVerification = () => {
           </div>
         </div>
       </div>
+      <MobileBottomNav />
     </div>
   );
 };

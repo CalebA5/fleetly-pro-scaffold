@@ -28,6 +28,7 @@ import { JobHistory as OperatorJobHistory } from "./pages/operator/JobHistory";
 import FleetAnalytics from "./pages/operator/FleetAnalytics";
 import TeamAnalytics from "./pages/operator/TeamAnalytics";
 import { DriveEarn } from "./pages/DriveEarn";
+import { AdminPortal } from "./pages/admin/AdminPortal";
 import { HelpSupport } from "./pages/HelpSupport";
 import { UserGuide } from "./pages/UserGuide";
 import { OperatorGuide } from "./pages/OperatorGuide";
@@ -90,6 +91,9 @@ const App = () => (
               {/* Public tier selection/onboarding - no auth required */}
               <Route path="/drive-earn" component={DriveEarn} />
               <Route path="/operator/onboarding" component={OperatorOnboarding} />
+              
+              {/* Admin routes */}
+              <Route path="/admin" component={AdminPortal} />
               
               {/* Operator verification status page */}
               <Route path="/operator/pending-verification">
