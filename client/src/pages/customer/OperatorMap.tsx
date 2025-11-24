@@ -541,6 +541,14 @@ export const OperatorMap = () => {
         el.addEventListener('click', () => {
           setSelectedOperator(operator);
           
+          // Center map on clicked operator with smooth animation
+          map.flyTo({
+            center: [lng, lat],
+            zoom: Math.max(map.getZoom(), 13), // Zoom in to at least level 13
+            duration: 1000, // 1 second animation
+            essential: true // This animation is essential and won't be interrupted
+          });
+          
           // Remove existing popup
           if (popupRef.current) {
             popupRef.current.remove();

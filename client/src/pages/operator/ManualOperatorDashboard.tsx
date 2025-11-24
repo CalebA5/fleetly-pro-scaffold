@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/enhanced-button";
 import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { MapPin, Clock, DollarSign, Users, Snowflake, AlertCircle, AlertTriangle, CheckCircle, ChevronRight, ChevronDown, ChevronUp, TrendingUp, Eye } from "lucide-react";
+import { formatDistanceToNow } from "date-fns";
 import { Header } from "@/components/Header";
 import { MobileBottomNav } from "@/components/MobileBottomNav";
 import { useAuth } from "@/contexts/AuthContext";
@@ -330,7 +331,7 @@ export default function ManualOperatorDashboard() {
   // Request handlers - for both urgent and regular requests
   const acceptRequestMutation = useMutation({
     mutationFn: async (requestId: string) => {
-      const request = nearbySnowRequests.find(r => r.id === requestId);
+      const request = nearbySnowRequests.find(r => r.requestId === requestId);
       if (!request) throw new Error("Request not found");
 
       return await apiRequest("/api/accepted-jobs", {
@@ -347,7 +348,7 @@ export default function ManualOperatorDashboard() {
     },
     onSuccess: (data, requestId) => {
       queryClient.invalidateQueries({ queryKey: ["/api/accepted-jobs"] });
-      const request = nearbySnowRequests.find(r => r.id === requestId);
+      const request = nearbySnowRequests.find(r => r.requestId === requestId);
       toast({
         title: request?.isEmergency ? "Emergency Request Accepted!" : "Request Accepted!",
         description: "Job added to your Jobs list. Click to view details.",
@@ -828,10 +829,10 @@ export default function ManualOperatorDashboard() {
                                   {request.location}
                                   {request.distance && ` (${request.distance}km)`}
                                 </span>
-                                {request.estimatedValue && (
+                                {request.budgetRange && (
                                   <span className="flex items-center gap-1">
                                     <DollarSign className="w-4 h-4" />
-                                    {request.estimatedValue}
+                                    {request.budgetRange}
                                   </span>
                                 )}
                               </div>
@@ -869,7 +870,7 @@ export default function ManualOperatorDashboard() {
                                 : (request.isEmergency ? 'Quote Emergency' : 'Quote this Job')}
                             </Button>
                             <Button
-                              onClick={() => handleDeclineRequest(request.id)}
+                              onClick={() => handleDeclineRequest(request.requestId)}
                               variant="outline"
                               className="border-gray-300 dark:border-gray-600"
                               data-testid={`button-decline-request-${request.id}`}
