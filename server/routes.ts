@@ -3039,7 +3039,7 @@ export function registerRoutes(storage: IStorage) {
           .from(acceptedJobs)
           .where(
             and(
-              eq(acceptedJobs.serviceRequestId, quote.serviceRequestId),
+              eq(acceptedJobs.jobSourceId, quote.serviceRequestId),
               eq(acceptedJobs.operatorId, quote.operatorId)
             )
           )
@@ -3060,15 +3060,14 @@ export function registerRoutes(storage: IStorage) {
         // Create accepted job with the quoted amount
         await db.insert(acceptedJobs).values({
           acceptedJobId,
-          serviceRequestId: quote.serviceRequestId,
           operatorId: quote.operatorId,
-          operatorName: quote.operatorName,
+          jobSourceId: quote.serviceRequestId,
+          jobSourceType: "service_request",
           tier: quote.tier,
           status: "accepted",
           jobData: request[0],
-          jobSourceId: quote.serviceRequestId,
           progress: 0,
-          agreedPrice: quote.amount // Store the quoted amount
+          actualEarnings: quote.amount // Store the quoted amount
         });
         
         // Update quote status
@@ -3191,7 +3190,7 @@ export function registerRoutes(storage: IStorage) {
         .from(acceptedJobs)
         .where(
           and(
-            eq(acceptedJobs.serviceRequestId, quote.serviceRequestId),
+            eq(acceptedJobs.jobSourceId, quote.serviceRequestId),
             eq(acceptedJobs.operatorId, quote.operatorId)
           )
         )
@@ -3212,15 +3211,14 @@ export function registerRoutes(storage: IStorage) {
       // Create accepted job with the quoted amount
       await db.insert(acceptedJobs).values({
         acceptedJobId,
-        serviceRequestId: quote.serviceRequestId,
         operatorId: quote.operatorId,
-        operatorName: quote.operatorName,
+        jobSourceId: quote.serviceRequestId,
+        jobSourceType: "service_request",
         tier: quote.tier,
         status: "accepted",
         jobData: request[0],
-        jobSourceId: quote.serviceRequestId,
         progress: 0,
-        agreedPrice: quote.amount
+        actualEarnings: quote.amount
       });
       
       // Update quote status
@@ -3521,15 +3519,14 @@ export function registerRoutes(storage: IStorage) {
       
       await db.insert(acceptedJobs).values({
         acceptedJobId,
-        serviceRequestId: requestId,
         operatorId,
-        operatorName: operatorName || 'Unknown Operator',
+        jobSourceId: requestId,
+        jobSourceType: "service_request",
         tier,
         status: "accepted",
         jobData: request[0],
-        jobSourceId: requestId,
         progress: 0,
-        agreedPrice: amount.toString()
+        actualEarnings: amount.toString()
       });
       
       // Update service request status to operator_accepted

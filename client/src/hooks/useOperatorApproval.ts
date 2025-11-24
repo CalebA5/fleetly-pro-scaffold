@@ -6,7 +6,7 @@ import type { Operator, OperatorTier } from "@shared/schema";
 
 /**
  * Hook to check if operator is approved for a specific tier
- * Redirects to pending verification page if not approved
+ * Returns approval status WITHOUT redirecting - allows dashboard access while pending
  * @param requiredTier - The tier to check approval for
  * @returns Object with approval status and loading state
  */
@@ -20,19 +20,11 @@ export const useOperatorApproval = (requiredTier: OperatorTier) => {
     enabled: !!user?.operatorId,
   });
 
+  // NO REDIRECT - Operators can access dashboards while pending verification
+  // Individual features (like "Go Online") should check approval status
   useEffect(() => {
-    if (!isLoading && operatorData) {
-      const tierProfiles = (operatorData.operatorTierProfiles as Record<string, any>) || {};
-      const tierProfile = tierProfiles[requiredTier];
-
-      // Check if tier exists and is approved
-      const isApproved = tierProfile?.approvalStatus === "approved";
-
-      // If tier is not approved, redirect to pending verification page
-      if (!isApproved) {
-        setLocation("/operator/pending-verification");
-      }
-    }
+    // This hook now only fetches data, does not redirect
+    // Dashboards will gate features based on isApproved status
   }, [isLoading, operatorData, requiredTier, setLocation]);
 
   // Extract tier profile info

@@ -154,6 +154,11 @@ export default function ManualOperatorDashboard() {
   // Online toggle mutation
   const toggleOnlineMutation = useMutation({
     mutationFn: async ({ goOnline, confirmed = false }: { goOnline: boolean; confirmed?: boolean }) => {
+      // VERIFICATION CHECK: Prevent going online if tier is not approved
+      if (goOnline && !isApproved) {
+        throw new Error("NOT_VERIFIED");
+      }
+      
       // Block toggling for any non-terminal job (accepted/in_progress/started, not completed/cancelled)
       const activeJobs = acceptedJobsData.filter(job => 
         job.status !== 'completed' && job.status !== 'cancelled'
@@ -193,6 +198,16 @@ export default function ManualOperatorDashboard() {
       });
     },
     onError: (error: any) => {
+      // Handle verification error - operator not yet verified
+      if (error?.message === "NOT_VERIFIED") {
+        toast({
+          title: "Verification Required",
+          description: "You cannot go online until your documents have been verified. You can still access the dashboard and view requests.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
       // Handle active jobs errors (both online and offline)
       if (error?.message === "CANNOT_GO_ONLINE_WITH_JOBS") {
         toast({
