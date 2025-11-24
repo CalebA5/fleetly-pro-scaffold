@@ -500,6 +500,28 @@ export function registerRoutes(storage: IStorage) {
       const subscribedTiers: string[] = result.data.subscribedTiers || [tier];
       const activeTier = result.data.activeTier || null; // Start as null - operator must go online manually
       
+      // PHASE 1: Create operator tier profiles with PENDING approval status
+      // All new operators must be verified before they can earn
+      const tierProfiles: Record<string, any> = {};
+      subscribedTiers.forEach(tier => {
+        tierProfiles[tier] = {
+          tier,
+          subscribed: true,
+          onboardingCompleted: true,
+          onboardedAt: new Date().toISOString(),
+          approvalStatus: "pending", // PHASE 1: Require admin approval
+          approvalSubmittedAt: new Date().toISOString(),
+          approvedAt: null,
+          rejectionReason: null,
+          canEarn: false, // Cannot earn until approved
+          vehicle: result.data.vehicle || "Not specified",
+          licensePlate: result.data.licensePlate || "N/A",
+          businessLicense: result.data.businessLicense || null,
+          businessName: result.data.businessName || null,
+          services: result.data.services || []
+        };
+      });
+      
       // Create operator in database with proper defaults
       // ALWAYS use session email, not form email
       const operatorData = {
@@ -529,7 +551,8 @@ export function registerRoutes(storage: IStorage) {
         homeLongitude: result.data.homeLongitude || null,
         operatingRadius: result.data.operatingRadius || null,
         businessId: result.data.businessId || null,
-        businessName: result.data.businessName || null
+        businessName: result.data.businessName || null,
+        operatorTierProfiles: tierProfiles // PHASE 1: Add tier profiles with approval status
       };
       
       const [operator] = await db.insert(operators).values(operatorData).returning();
@@ -1395,7 +1418,8 @@ export function registerRoutes(storage: IStorage) {
       // Add tier to subscribed tiers and set as active tier
       const updatedTiers = [...operator.subscribedTiers, tier];
       
-      // Build operator tier profiles
+      // PHASE 1: Build operator tier profiles with PENDING approval status
+      // All new tiers must be verified before operators can earn in them
       const existingProfiles = (operator.operatorTierProfiles as any) || {};
       const updatedProfiles = {
         ...existingProfiles,
@@ -1404,10 +1428,17 @@ export function registerRoutes(storage: IStorage) {
           subscribed: true,
           onboardingCompleted: true,
           onboardedAt: new Date().toISOString(),
+          approvalStatus: "pending", // PHASE 1: Require admin approval
+          approvalSubmittedAt: new Date().toISOString(),
+          approvedAt: null,
+          rejectionReason: null,
+          canEarn: false, // Cannot earn until approved
           vehicle: details?.vehicle || operator.vehicle,
           licensePlate: details?.licensePlate || operator.licensePlate,
           businessLicense: details?.businessLicense || operator.businessLicense,
-          services: details?.services || operator.services
+          businessName: details?.businessName || operator.businessName,
+          services: details?.services || operator.services,
+          documents: details?.documents || {}
         }
       };
       
