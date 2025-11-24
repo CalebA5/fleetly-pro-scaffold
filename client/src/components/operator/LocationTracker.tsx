@@ -15,102 +15,99 @@ export function LocationTracker({
   activeTier,
   currentJobId = null
 }: LocationTrackerProps) {
-  const { location, startTracking, stopTracking, isTracking } = useRealtimeLocation({
+  const { location, startTracking, reset } = useRealtimeLocation({
     enableHighAccuracy: true,
     autoStart: false,
   });
 
-  const lastUpdateRef = useRef<number>(0);
   const updateIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const locationRef = useRef(location);
+  const currentJobIdRef = useRef(currentJobId);
+  const wasOnlineRef = useRef(false);
 
-  // Start/stop tracking based on online status
+  // Keep refs updated with latest values
   useEffect(() => {
-    if (isOnline && activeTier) {
+    locationRef.current = location;
+  }, [location]);
+
+  useEffect(() => {
+    currentJobIdRef.current = currentJobId;
+  }, [currentJobId]);
+
+  // Consolidated effect: Start tracking + setup update interval when online, cleanup both when offline
+  useEffect(() => {
+    // Only proceed if operator is online with active tier
+    if (!isOnline || !activeTier) {
+      console.log(`[LocationTracker] Operator offline or no active tier - skipping tracking`);
+      wasOnlineRef.current = false;
+      return;
+    }
+
+    // Guard: Only start tracking when transitioning from offline to online
+    if (!wasOnlineRef.current) {
       console.log(`[LocationTracker] Starting location tracking for operator ${operatorId} on tier ${activeTier}`);
       startTracking();
-    } else {
-      console.log(`[LocationTracker] Stopping location tracking for operator ${operatorId}`);
-      stopTracking();
+      wasOnlineRef.current = true;
     }
 
-    return () => {
-      stopTracking();
-      if (updateIntervalRef.current) {
-        clearInterval(updateIntervalRef.current);
-      }
-    };
-  }, [isOnline, activeTier, operatorId, startTracking, stopTracking]);
-
-  // Send location updates to backend every 30 seconds
-  useEffect(() => {
-    // Clear interval AND stop geolocation tracking immediately if operator goes offline
-    if (!isOnline || !isTracking) {
-      if (updateIntervalRef.current) {
-        clearInterval(updateIntervalRef.current);
-        updateIntervalRef.current = null;
-        lastUpdateRef.current = 0;
-        console.log(`[LocationTracker] Cleared update interval - operator offline or tracking stopped`);
-      }
-      // Always stop geolocation watcher when offline to prevent stale updates
-      if (!isOnline) {
-        stopTracking();
-        console.log(`[LocationTracker] Stopped geolocation watcher - operator offline`);
-      }
-      return;
-    }
-
-    if (!location) {
-      return;
-    }
-
-    const now = Date.now();
+    // Setup location update interval
     const UPDATE_INTERVAL = 30000; // 30 seconds
-
-    // Send initial update immediately
-    if (lastUpdateRef.current === 0) {
-      sendLocationUpdate();
-      lastUpdateRef.current = now;
-    }
-
-    // Set up periodic updates
-    if (!updateIntervalRef.current) {
-      updateIntervalRef.current = setInterval(() => {
-        sendLocationUpdate();
-      }, UPDATE_INTERVAL);
-    }
-
-    async function sendLocationUpdate() {
-      if (!location) return;
+    
+    const checkAndSendLocation = async () => {
+      // Read latest location from ref
+      const currentLocation = locationRef.current;
+      if (!currentLocation) {
+        console.log(`[LocationTracker] Waiting for GPS fix...`);
+        return;
+      }
 
       try {
         await apiRequest("/api/operator-location", {
           method: "POST",
           body: JSON.stringify({
             operatorId,
-            jobId: currentJobId || null,
-            latitude: location.latitude.toString(),
-            longitude: location.longitude.toString(),
-            heading: null, // Could be extracted from geolocation if available
-            speed: null,   // Could be extracted from geolocation if available
+            jobId: currentJobIdRef.current || null,
+            latitude: currentLocation.latitude.toString(),
+            longitude: currentLocation.longitude.toString(),
+            heading: null,
+            speed: null,
           }),
           headers: {
             "Content-Type": "application/json",
           },
         });
 
-        console.log(`[LocationTracker] Location updated: ${location.latitude}, ${location.longitude}${currentJobId ? ` (job: ${currentJobId})` : ' (no active job)'}`);
+        console.log(`[LocationTracker] Location updated: ${currentLocation.latitude}, ${currentLocation.longitude}${currentJobIdRef.current ? ` (job: ${currentJobIdRef.current})` : ' (no active job)'}`);
       } catch (error) {
         console.error("[LocationTracker] Failed to update location:", error);
       }
-    }
+    };
 
+    // Start interval immediately - it will wait for GPS inside callback
+    updateIntervalRef.current = setInterval(() => {
+      checkAndSendLocation();
+    }, UPDATE_INTERVAL);
+    console.log(`[LocationTracker] Update interval started (${UPDATE_INTERVAL}ms)`);
+    
+    // Send initial update immediately
+    checkAndSendLocation();
+
+    // Cleanup: Reset geolocation (clears watcher + state), clear interval
     return () => {
+      console.log(`[LocationTracker] Cleanup: resetting tracking and clearing interval`);
+      reset(); // Atomically clears watchId, location, error, isTracking
+      
       if (updateIntervalRef.current) {
         clearInterval(updateIntervalRef.current);
         updateIntervalRef.current = null;
       }
+      
+      wasOnlineRef.current = false;
     };
-  }, [location, isOnline, isTracking, operatorId, currentJobId]);
+    // NOTE: location intentionally NOT in deps to prevent restart on every GPS update
+    // Location is accessed via ref which is always up-to-date
+    // startTracking is now stable (doesn't depend on isTracking state)
+  }, [isOnline, activeTier, operatorId, startTracking, reset]);
 
   // This component doesn't render anything - it's just for side effects
   return null;

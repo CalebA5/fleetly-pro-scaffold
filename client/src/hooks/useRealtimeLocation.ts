@@ -64,7 +64,8 @@ export const useRealtimeLocation = (options: UseRealtimeLocationOptions = {}) =>
       return;
     }
 
-    if (isTracking) {
+    // Use watchIdRef as idempotence guard instead of isTracking
+    if (watchIdRef.current !== null) {
       return; // Already tracking
     }
 
@@ -115,7 +116,7 @@ export const useRealtimeLocation = (options: UseRealtimeLocationOptions = {}) =>
     );
 
     watchIdRef.current = watchId;
-  }, [enableHighAccuracy, timeout, maximumAge, isTracking, reverseGeocode]);
+  }, [enableHighAccuracy, timeout, maximumAge, reverseGeocode]);
 
   // Stop tracking
   const stopTracking = useCallback(() => {
@@ -123,6 +124,19 @@ export const useRealtimeLocation = (options: UseRealtimeLocationOptions = {}) =>
       navigator.geolocation.clearWatch(watchIdRef.current);
       watchIdRef.current = null;
     }
+    setIsTracking(false);
+  }, []);
+
+  // Reset all state (stops tracking + clears location/error)
+  const reset = useCallback(() => {
+    // Stop geolocation watcher
+    if (watchIdRef.current !== null) {
+      navigator.geolocation.clearWatch(watchIdRef.current);
+      watchIdRef.current = null;
+    }
+    // Clear all state atomically
+    setLocation(null);
+    setError(null);
     setIsTracking(false);
   }, []);
 
@@ -198,6 +212,7 @@ export const useRealtimeLocation = (options: UseRealtimeLocationOptions = {}) =>
     isTracking,
     startTracking,
     stopTracking,
+    reset,
     getCurrentLocation
   };
 };
