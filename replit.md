@@ -8,6 +8,16 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes (Nov 25, 2025)
 
+### TierSwitcher & Dashboard Fixes
+- **Fixed TierSwitcher dropdown**: Now uses operator API data (`operatorData.subscribedTiers`) instead of unreliable user context for displaying tier checkmarks
+- **Fixed viewTier synchronization**: All dashboards (Manual, Equipped, Business) now properly update viewTier with correct useEffect dependencies (`[user?.viewTier, user?.operatorId]`) to handle async user loading
+- **Standardized verification messages**: Consistent error message across all tier dashboards when unverified operators try to go online
+
+### Enhanced Profile Page
+- **Account Verification section merged into Profile**: Shows all 3 tiers (Manual, Equipped, Professional) with:
+  - Subscribed tiers: Clickable/expandable with verification status, services, vehicle info, business details, operating radius
+  - Non-subscribed tiers: Grayed out with "Add Tier" badge linking to onboarding
+
 ### Dashboard Cleanup & Modernization
 - **Removed old dashboard files**: Deleted redundant `OperatorHome.tsx` and `JobManagement.tsx` files
 - **Unified dashboard routing**: OperatorDashboard now correctly routes professional tier to `BusinessDashboard`
