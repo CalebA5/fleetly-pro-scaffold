@@ -10,7 +10,7 @@ import { Separator } from "@/components/ui/separator";
 import {
   ArrowLeft, User, Mail, Phone, Briefcase, Star, TrendingUp, Award, 
   DollarSign, CheckCircle, ChevronRight, ChevronDown, Edit, Truck, 
-  FileText, Clock, AlertCircle, Shield, Package, Wrench, MapPin
+  FileText, Clock, AlertCircle, Shield, Package, Wrench, MapPin, Plus
 } from "lucide-react";
 import type { ServiceRequest, Operator, OperatorTierStats, OperatorTierProfile, TierApprovalStatus } from "@shared/schema";
 import { OPERATOR_TIER_INFO } from "@shared/schema";
@@ -321,67 +321,100 @@ export const Profile = () => {
             </CardContent>
           </Card>
 
-          {/* Operator Performance - Only show if registered for any tier */}
-          {hasAnyTier && (
-            <Card>
-              <CardHeader className="bg-gradient-to-r from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20 pb-4">
-                <div className="flex items-center gap-2">
-                  <Briefcase style={{ width: 'clamp(1rem, 4vw, 1.25rem)', height: 'clamp(1rem, 4vw, 1.25rem)' }} />
-                  <CardTitle className="text-lg">Operator Performance</CardTitle>
-                  <InfoTooltip
-                    content="Your earnings, job statistics, and tier-specific information. Expand each tier to see detailed onboarding information, verification status, and edit options."
-                    testId="button-info-operator-performance"
-                    ariaLabel="Operator performance information"
-                  />
-                </div>
-              </CardHeader>
-              <CardContent className="pt-4 space-y-4">
-                {/* Tier-Specific Sections - Expandable */}
-                <div className="space-y-3">
-                  {operatorData.subscribedTiers.map((tier) => {
-                    const tierInfo = OPERATOR_TIER_INFO[tier as keyof typeof OPERATOR_TIER_INFO];
-                    const stats = tierStats?.find(s => s.tier === tier);
-                    const tierProfile = tierProfiles.find(p => p.tier === tier);
-                    const isExpanded = expandedTier === tier;
-                    
-                    const tierColors = {
-                      professional: "from-amber-50 to-amber-100 dark:from-amber-900/20 dark:to-amber-800/20 border-amber-200 dark:border-amber-800",
-                      equipped: "from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 border-blue-200 dark:border-blue-800",
-                      manual: "from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 border-green-200 dark:border-green-800",
-                    };
+          {/* Account Verification & Operator Tiers Section - Always show for operators or users interested in becoming operators */}
+          <Card>
+            <CardHeader className="bg-gradient-to-r from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20 pb-4">
+              <div className="flex items-center gap-2">
+                <Shield style={{ width: 'clamp(1rem, 4vw, 1.25rem)', height: 'clamp(1rem, 4vw, 1.25rem)' }} />
+                <CardTitle className="text-lg">Account Verification & Operator Tiers</CardTitle>
+                <InfoTooltip
+                  content="View your operator tier registrations, verification status, and tier-specific information. Only registered tiers can be expanded to see detailed information. Click 'Add Tier' to register for new tiers."
+                  testId="button-info-account-verification"
+                  ariaLabel="Account verification and operator tiers information"
+                />
+              </div>
+            </CardHeader>
+            <CardContent className="pt-4 space-y-4">
+              {/* All 3 Tier Cards - Show subscribed vs non-subscribed differently */}
+              <div className="space-y-3">
+                {(["professional", "equipped", "manual"] as const).map((tier) => {
+                  const tierInfo = OPERATOR_TIER_INFO[tier];
+                  const isSubscribed = hasAnyTier && operatorData?.subscribedTiers?.includes(tier);
+                  const stats = tierStats?.find(s => s.tier === tier);
+                  const tierProfile = tierProfiles.find(p => p.tier === tier);
+                  const isExpanded = expandedTier === tier && isSubscribed;
+                  
+                  const tierColors = {
+                    professional: "from-amber-50 to-amber-100 dark:from-amber-900/20 dark:to-amber-800/20 border-amber-200 dark:border-amber-800",
+                    equipped: "from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 border-blue-200 dark:border-blue-800",
+                    manual: "from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 border-green-200 dark:border-green-800",
+                  };
 
+                  // Non-subscribed tier - show as disabled with "Add Tier" option
+                  if (!isSubscribed) {
                     return (
                       <div 
                         key={tier}
-                        className={`bg-gradient-to-br ${tierColors[tier as keyof typeof tierColors]} rounded-lg border overflow-hidden`}
+                        className="bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800/40 dark:to-gray-700/40 rounded-lg border border-gray-200 dark:border-gray-700 opacity-60"
                         data-testid={`tier-section-${tier}`}
                       >
-                        {/* Tier Header - Clickable */}
-                        <button
-                          onClick={() => setExpandedTier(isExpanded ? null : tier)}
-                          className="w-full p-4 text-left transition-all active:scale-98"
-                        >
-                          <div className="flex items-center justify-between mb-3">
+                        <div className="p-4">
+                          <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
-                              <span className="text-xl md:text-2xl">{tierInfo.badge}</span>
+                              <span className="text-xl md:text-2xl grayscale">{tierInfo.badge}</span>
                               <div>
-                                <h4 className="font-semibold text-black dark:text-white text-sm md:text-base">{tierInfo.label}</h4>
-                                <p className="text-xs text-gray-600 dark:text-gray-400">{tierInfo.description}</p>
+                                <h4 className="font-semibold text-gray-500 dark:text-gray-400 text-sm md:text-base">{tierInfo.label}</h4>
+                                <p className="text-xs text-gray-400 dark:text-gray-500">{tierInfo.description}</p>
                               </div>
                             </div>
-                            {isExpanded ? (
-                              <ChevronDown style={{ width: 'clamp(1rem, 4vw, 1.25rem)', height: 'clamp(1rem, 4vw, 1.25rem)' }} />
-                            ) : (
-                              <ChevronRight style={{ width: 'clamp(1rem, 4vw, 1.25rem)', height: 'clamp(1rem, 4vw, 1.25rem)' }} />
-                            )}
+                            <Link to={`/operator/onboarding?tier=${tier}`}>
+                              <Badge 
+                                variant="outline" 
+                                className="cursor-pointer hover:bg-orange-100 dark:hover:bg-orange-900/30 transition-colors"
+                              >
+                                <Plus className="w-3 h-3 mr-1" />
+                                Add Tier
+                              </Badge>
+                            </Link>
                           </div>
+                        </div>
+                      </div>
+                    );
+                  }
 
-                          {/* Approval Status Badge */}
-                          <div className="mb-3">
-                            {getApprovalStatusBadge(tierProfile?.approvalStatus)}
+                  // Subscribed tier - show with full details and expandable content
+                  return (
+                    <div 
+                      key={tier}
+                      className={`bg-gradient-to-br ${tierColors[tier]} rounded-lg border overflow-hidden`}
+                      data-testid={`tier-section-${tier}`}
+                    >
+                      {/* Tier Header - Clickable for subscribed tiers */}
+                      <button
+                        onClick={() => setExpandedTier(isExpanded ? null : tier)}
+                        className="w-full p-4 text-left transition-all active:scale-98"
+                      >
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xl md:text-2xl">{tierInfo.badge}</span>
+                            <div>
+                              <h4 className="font-semibold text-black dark:text-white text-sm md:text-base">{tierInfo.label}</h4>
+                              <p className="text-xs text-gray-600 dark:text-gray-400">{tierInfo.description}</p>
+                            </div>
                           </div>
-                          
-                          {/* Quick Stats Grid */}
+                          {isExpanded ? (
+                            <ChevronDown style={{ width: 'clamp(1rem, 4vw, 1.25rem)', height: 'clamp(1rem, 4vw, 1.25rem)' }} />
+                          ) : (
+                            <ChevronRight style={{ width: 'clamp(1rem, 4vw, 1.25rem)', height: 'clamp(1rem, 4vw, 1.25rem)' }} />
+                          )}
+                        </div>
+
+                        {/* Approval Status Badge */}
+                        <div className="mb-3">
+                          {getApprovalStatusBadge(tierProfile?.approvalStatus)}
+                        </div>
+                        
+                        {/* Quick Stats Grid */}
                           <div className="grid grid-cols-3 gap-3">
                             <div>
                               <p className="text-xs text-gray-600 dark:text-gray-400">Jobs</p>
@@ -541,7 +574,6 @@ export const Profile = () => {
                 </div>
               </CardContent>
             </Card>
-          )}
         </div>
       </div>
     </div>

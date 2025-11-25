@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/enhanced-button";
@@ -38,13 +38,20 @@ interface ServiceRequest {
 }
 
 export default function ManualOperatorDashboard() {
-  const { user } = useAuth();
+  const { user, updateUser } = useAuth();
   
   // PHASE 1: Check if operator is approved for manual tier
   // Redirects to pending verification page if not approved
   const { isApproved, isLoading: isLoadingApproval } = useOperatorApproval("manual");
   
   const [, setLocation] = useLocation();
+  
+  // Update viewTier when this dashboard loads to keep TierSwitcher in sync
+  useEffect(() => {
+    if (user && user.viewTier !== "manual") {
+      updateUser({ viewTier: "manual" });
+    }
+  }, [user?.viewTier, user?.operatorId]);
   const [acceptedGroupIds, setAcceptedGroupIds] = useState<string[]>([]);
   const { toast } = useToast();
   const [showTierSwitchDialog, setShowTierSwitchDialog] = useState(false);
@@ -204,7 +211,7 @@ export default function ManualOperatorDashboard() {
       if (error?.message === "NOT_VERIFIED") {
         toast({
           title: "Verification Required",
-          description: "You cannot go online until your documents have been verified. You can still access the dashboard and view requests.",
+          description: "Your account is pending verification. You can access the dashboard but cannot go online until approved.",
           variant: "destructive",
         });
         return;
@@ -238,7 +245,7 @@ export default function ManualOperatorDashboard() {
           if (errorData.error === "not_verified") {
             toast({
               title: "Verification Required",
-              description: errorData.message || "You cannot go online until your documents have been verified.",
+              description: "Your account is pending verification. You can access the dashboard but cannot go online until approved.",
               variant: "destructive",
             });
             return;

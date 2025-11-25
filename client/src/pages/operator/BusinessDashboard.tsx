@@ -40,6 +40,13 @@ export const BusinessDashboard = () => {
   const [quoteModalOpen, setQuoteModalOpen] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState<any | null>(null);
   
+  // Update viewTier when this dashboard loads to keep TierSwitcher in sync
+  useEffect(() => {
+    if (user && user.viewTier !== "professional") {
+      updateUser({ viewTier: "professional" });
+    }
+  }, [user?.viewTier, user?.operatorId]);
+
   // ALL MOCK DATA REMOVED - Dashboard is now 100% dynamic based on real database data
   // Urgent requests would come from backend API when implemented
   const [urgentRequests, setUrgentRequests] = useState<UrgentRequest[]>([]);
@@ -195,9 +202,19 @@ export const BusinessDashboard = () => {
     }
   }, [user?.operatorId, user?.businessId, operatorData?.businessId, operatorData?.subscribedTiers]);
 
+  // Check if operator is approved for professional tier
+  const tierProfiles = operatorData?.operatorTierProfiles as Record<string, { approvalStatus?: string }> | null;
+  const professionalProfile = tierProfiles?.professional;
+  const isProfessionalApproved = professionalProfile?.approvalStatus === "approved";
+
   // Online toggle mutation
   const toggleOnlineMutation = useMutation({
     mutationFn: async ({ goOnline, confirmed = false }: { goOnline: boolean; confirmed?: boolean }) => {
+      // VERIFICATION CHECK: Prevent going online if tier is not approved
+      if (goOnline && !isProfessionalApproved) {
+        throw new Error("NOT_VERIFIED");
+      }
+      
       // Block toggling for any non-terminal job (accepted/in_progress/started, not completed/cancelled)
       const activeJobs = acceptedJobsData.filter(job => 
         job.status !== 'completed' && job.status !== 'cancelled'
@@ -237,6 +254,26 @@ export const BusinessDashboard = () => {
       });
     },
     onError: (error: any) => {
+      // Handle verification error - operator not yet verified
+      if (error?.message === "NOT_VERIFIED") {
+        toast({
+          title: "Verification Required",
+          description: "Your account is pending verification. You can access the dashboard but cannot go online until approved.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // Handle active jobs error
+      if (error?.message === "CANNOT_GO_ONLINE_WITH_JOBS") {
+        toast({
+          title: "Cannot Go Online",
+          description: `You have ${acceptedJobsData.length} active job${acceptedJobsData.length > 1 ? 's' : ''}. Please complete or cancel them first.`,
+          variant: "destructive",
+        });
+        return;
+      }
+      
       // Check if error is due to active jobs blocking (online or offline)
       if (error.message) {
         try {
@@ -245,6 +282,15 @@ export const BusinessDashboard = () => {
             toast({
               title: errorData.message.includes("cannot go offline") ? "Cannot Go Offline" : "Cannot Switch Tier",
               description: errorData.message,
+              variant: "destructive",
+            });
+            return;
+          }
+          // Handle backend verification error (server-side enforcement)
+          if (errorData.error === "not_verified") {
+            toast({
+              title: "Verification Required",
+              description: "Your account is pending verification. You can access the dashboard but cannot go online until approved.",
               variant: "destructive",
             });
             return;
