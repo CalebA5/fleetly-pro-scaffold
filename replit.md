@@ -8,25 +8,40 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes (Nov 25, 2025)
 
-### TierSwitcher & Dashboard Fixes
+### Unified Operator Dashboard Architecture
+Complete redesign of operator dashboards with a unified, tier-aware structure:
+
+**Core Components** (`client/src/components/operator/dashboard/`):
+- **OperatorDashboardLayout.tsx**: Main orchestrator component integrating all dashboard modules, handles tier switching, online status toggle, and session management
+- **MetricsSlider.tsx**: Horizontally scrollable metrics carousel with tier-specific visibility (earnings, jobs nearby, active jobs, rating, equipment status, drivers, fleet)
+- **TierTabs.tsx**: Horizontal tab navigation (Jobs, Equipment, Services, History, Manpower) with tier-based tab visibility
+- **DrawerNav.tsx**: Slide-out navigation drawer with operator profile, tier-specific menu items, and logout
+
+**Panel Components**:
+- **JobsPanel.tsx**: Job requests with sub-tabs (Nearby/Active/Groups), customer group unlock system, job filtering (by service type, distance)
+- **EquipmentPanel.tsx**: Equipment management (Tools/Vehicles/Heavy) with tier-locked features, status tracking
+- **ServicesPanel.tsx**: Service catalog, pricing presets, tool uploads with tier-based service visibility
+- **HistoryPanel.tsx**: Job history with date filtering and status categories
+- **ManpowerPanel.tsx**: Professional tier only - driver management, assignment, and payroll (placeholder)
+
+**Configuration** (`shared/tierCapabilities.ts`):
+- `TIER_CAPABILITIES`: Tier-specific features, radius limits, equipment limits
+- `DASHBOARD_METRICS`, `DASHBOARD_TABS`, `DRAWER_MENU_ITEMS`: Configuration arrays
+- `TIER_SERVICES`, `EQUIPMENT_TYPES`: Service and equipment catalogs by tier
+- Helper functions: `getMetricsForTier()`, `getTabsForTier()`, `getServicesForTier()`, `canAccessFeature()`
+
+**Key Features**:
+- Single unified layout replaces three separate tier dashboards
+- Configuration-driven tier capabilities for easy feature toggling
+- Lock states and tooltips for unavailable features
+- React Query with tier-scoped query keys for data fetching
+- Comprehensive `data-testid` attributes for automated testing
+
+### Previous Changes
 - **Fixed TierSwitcher dropdown**: Now uses operator API data (`operatorData.subscribedTiers`) instead of unreliable user context for displaying tier checkmarks
-- **Fixed viewTier synchronization**: All dashboards (Manual, Equipped, Business) now properly update viewTier with correct useEffect dependencies (`[user?.viewTier, user?.operatorId]`) to handle async user loading
+- **Fixed viewTier synchronization**: All dashboards now properly update viewTier with correct useEffect dependencies
 - **Standardized verification messages**: Consistent error message across all tier dashboards when unverified operators try to go online
-
-### Enhanced Profile Page
-- **Account Verification section merged into Profile**: Shows all 3 tiers (Manual, Equipped, Professional) with:
-  - Subscribed tiers: Clickable/expandable with verification status, services, vehicle info, business details, operating radius
-  - Non-subscribed tiers: Grayed out with "Add Tier" badge linking to onboarding
-
-### Dashboard Cleanup & Modernization
-- **Removed old dashboard files**: Deleted redundant `OperatorHome.tsx` and `JobManagement.tsx` files
-- **Unified dashboard routing**: OperatorDashboard now correctly routes professional tier to `BusinessDashboard`
-- **Modernized onboarding UI**: 
-  - Emergency availability now uses modern Switch toggle instead of checkbox
-  - Document uploads clearly marked as optional with info banners
-  - Users can complete profile without uploading documents, but verification required before going online
-  - Enhanced completion screen with verification reminder
-- **Navigation flow**: Back button in onboarding returns to Drive & Earn page; dashboards accessible immediately after profile completion
+- **Profile enhancements**: Merged Account Verification section showing all 3 tiers with expandable details
 
 ## System Architecture
 
