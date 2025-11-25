@@ -172,15 +172,28 @@ export const BusinessDashboard = () => {
 
   // Auto-trigger business setup for professional operators without a business
   // Use ref to ensure we only attempt once per component mount
+  // Check both user context AND operator data from API for tier info
   useEffect(() => {
+    const hasProfessionalTier = 
+      user?.subscribedTiers?.includes("professional") || 
+      user?.operatorTier === "professional" ||
+      operatorData?.subscribedTiers?.includes("professional") ||
+      operatorData?.operatorTier === "professional";
+    
     if (user?.operatorId && 
-        (user.subscribedTiers?.includes("professional") || user.operatorTier === "professional") && 
+        hasProfessionalTier && 
         !user.businessId &&
+        !operatorData?.businessId && // Also check operator data
         !setupAttemptedRef.current) {
       setupAttemptedRef.current = true;
       setupBusinessMutation.mutate();
     }
-  }, [user?.operatorId, user?.businessId]);
+    
+    // If operator data has businessId but user context doesn't, sync it
+    if (operatorData?.businessId && !user?.businessId) {
+      updateUser({ businessId: operatorData.businessId });
+    }
+  }, [user?.operatorId, user?.businessId, operatorData?.businessId, operatorData?.subscribedTiers]);
 
   // Online toggle mutation
   const toggleOnlineMutation = useMutation({
@@ -462,7 +475,7 @@ export const BusinessDashboard = () => {
         operatorId={user?.operatorId || ""}
         isOnline={isOnline}
         activeTier={operatorData?.activeTier || null}
-        currentJobId={acceptedJobsData[0]?.requestId || null}
+        currentJobId={acceptedJobsData[0]?.jobSourceId || null}
       />
 
       {/* Urgent Request Notifications - REMOVED: No backend support yet */}

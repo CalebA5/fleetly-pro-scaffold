@@ -222,8 +222,116 @@ export const OperatorOnboarding = () => {
     setCurrentStep(1);
   };
 
-  const nextStep = () => {
+  // Per-step validation - validate before moving to next step
+  const validateStep = async (): Promise<boolean> => {
+    // Step 1: Contact/Business Info validation
+    if (currentStep === 1) {
+      if (selectedTier === "professional") {
+        if (!formData.businessName?.trim()) {
+          toast({ title: "Business Name Required", description: "Please enter your business name.", variant: "destructive" });
+          return false;
+        }
+        if (!formData.licenseNumber?.trim()) {
+          toast({ title: "License Number Required", description: "Please enter your business license number.", variant: "destructive" });
+          return false;
+        }
+      }
+      if (!formData.contactName?.trim()) {
+        toast({ title: "Name Required", description: "Please enter your full name.", variant: "destructive" });
+        return false;
+      }
+      if (!formData.phone?.trim()) {
+        toast({ title: "Phone Required", description: "Please enter your phone number.", variant: "destructive" });
+        return false;
+      }
+      if (!formData.email?.trim()) {
+        toast({ title: "Email Required", description: "Please enter your email address.", variant: "destructive" });
+        return false;
+      }
+      if (!formData.address?.trim() && !formData.homeAddress?.trim()) {
+        toast({ title: "Address Required", description: "Please enter your address.", variant: "destructive" });
+        return false;
+      }
+      
+      // Validate address can be geocoded for manual/equipped tiers
+      const addressToValidate = formData.homeAddress || formData.address || "";
+      if ((selectedTier === "manual" || selectedTier === "equipped") && addressToValidate.trim()) {
+        try {
+          const geocoded = await geocodeAddress(addressToValidate);
+          if (!geocoded) {
+            toast({ 
+              title: "Invalid Address", 
+              description: "We couldn't verify this address. Please enter a valid street address, city, and state/province.",
+              variant: "destructive" 
+            });
+            return false;
+          }
+        } catch (error) {
+          toast({ 
+            title: "Address Verification Failed", 
+            description: "Unable to verify your address. Please check your connection and try again.",
+            variant: "destructive" 
+          });
+          return false;
+        }
+      }
+    }
+
+    // Step 2: Vehicle Details validation (professional/equipped) or Equipment (manual)
+    if (currentStep === 2) {
+      if (selectedTier === "professional" || selectedTier === "equipped") {
+        if (!formData.vehicleType?.trim()) {
+          toast({ title: "Vehicle Type Required", description: "Please select your vehicle type.", variant: "destructive" });
+          return false;
+        }
+        if (!formData.vehicleMake?.trim()) {
+          toast({ title: "Vehicle Make Required", description: "Please enter your vehicle make.", variant: "destructive" });
+          return false;
+        }
+        if (!formData.vehicleModel?.trim()) {
+          toast({ title: "Vehicle Model Required", description: "Please enter your vehicle model.", variant: "destructive" });
+          return false;
+        }
+        if (!formData.vehicleYear?.trim()) {
+          toast({ title: "Vehicle Year Required", description: "Please enter your vehicle year.", variant: "destructive" });
+          return false;
+        }
+        if (!formData.licensePlate?.trim()) {
+          toast({ title: "License Plate Required", description: "Please enter your license plate number.", variant: "destructive" });
+          return false;
+        }
+      }
+      
+      if (selectedTier === "manual") {
+        if (formData.equipment.length === 0) {
+          toast({ title: "Equipment Required", description: "Please select at least one piece of equipment you have.", variant: "destructive" });
+          return false;
+        }
+        if (formData.services.length === 0) {
+          toast({ title: "Services Required", description: "Please select at least one service you can provide.", variant: "destructive" });
+          return false;
+        }
+      }
+    }
+
+    // Step 3: Services validation (professional/equipped)
+    if (currentStep === 3 && (selectedTier === "professional" || selectedTier === "equipped")) {
+      if (formData.services.length === 0) {
+        toast({ title: "Services Required", description: "Please select at least one service you can offer.", variant: "destructive" });
+        return false;
+      }
+    }
+
+    return true;
+  };
+
+  const nextStep = async () => {
     const maxSteps = selectedTier === "manual" ? 3 : 4;
+    
+    // Validate current step before proceeding
+    const isValid = await validateStep();
+    if (!isValid) return;
+    
     if (currentStep < maxSteps) {
       setCurrentStep(currentStep + 1);
     }

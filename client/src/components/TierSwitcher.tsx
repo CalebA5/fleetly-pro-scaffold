@@ -49,17 +49,20 @@ export function TierSwitcher() {
   const [showUpgradeDialog, setShowUpgradeDialog] = useState(false);
   const [selectedTier, setSelectedTier] = useState<"professional" | "equipped" | "manual" | null>(null);
 
-  const subscribedTiers = user?.subscribedTiers || [user?.activeTier || "professional"];
-  
-  // viewTier = which dashboard is being viewed (for dropdown button display)
-  // activeTier = which tier is online (for online badge only)
-  const viewTier = user?.viewTier || user?.activeTier || user?.operatorTier || "professional";
-  
-  // Fetch operator data to get which tier is actually online
+  // Fetch operator data to get authoritative tier information
+  // This ensures subscribed tiers are always up-to-date from the database
   const { data: operatorData } = useQuery<Operator>({
     queryKey: [`/api/operators/by-id/${user?.operatorId}`],
     enabled: !!user?.operatorId,
   });
+
+  // Use operator data from API as the source of truth for subscribed tiers
+  // Fall back to user context only if API data isn't available yet
+  const subscribedTiers = operatorData?.subscribedTiers || user?.subscribedTiers || [user?.activeTier || user?.operatorTier];
+  
+  // viewTier = which dashboard is being viewed (for dropdown button display)
+  // activeTier = which tier is online (for online badge only)
+  const viewTier = operatorData?.viewTier || user?.viewTier || user?.activeTier || user?.operatorTier || "professional";
   
   // Online badge shows which tier the operator is actively online with
   // Note: Switching tiers does NOT automatically make you online on the new tier

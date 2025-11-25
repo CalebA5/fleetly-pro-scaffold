@@ -366,7 +366,7 @@ export default function EquippedOperatorDashboard() {
         operatorId={operatorId}
         isOnline={isOnline}
         activeTier={operatorData?.activeTier || null}
-        currentJobId={acceptedJobsData[0]?.requestId || null}
+        currentJobId={acceptedJobsData[0]?.jobSourceId || null}
       />
 
       {/* Urgent Request Notifications */}
