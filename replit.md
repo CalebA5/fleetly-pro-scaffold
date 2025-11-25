@@ -6,6 +6,18 @@ Fleetly is a professional on-demand service platform connecting customers with v
 ## User Preferences
 Preferred communication style: Simple, everyday language.
 
+## Recent Changes (Nov 25, 2025)
+
+### Dashboard Cleanup & Modernization
+- **Removed old dashboard files**: Deleted redundant `OperatorHome.tsx` and `JobManagement.tsx` files
+- **Unified dashboard routing**: OperatorDashboard now correctly routes professional tier to `BusinessDashboard`
+- **Modernized onboarding UI**: 
+  - Emergency availability now uses modern Switch toggle instead of checkbox
+  - Document uploads clearly marked as optional with info banners
+  - Users can complete profile without uploading documents, but verification required before going online
+  - Enhanced completion screen with verification reminder
+- **Navigation flow**: Back button in onboarding returns to Drive & Earn page; dashboards accessible immediately after profile completion
+
 ## System Architecture
 
 ### UI/UX Decisions
