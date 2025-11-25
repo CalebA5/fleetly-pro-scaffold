@@ -1,0 +1,465 @@
+I am building an operator dashboard system with three different operator tiers:
+Manual Operator
+
+
+Skilled & Equipped Operator
+
+
+Professional Operator (Business/Fleet Manager)
+
+
+All three tiers should share a similar dashboard structure, but each should unlock different features and UI elements.
+ Please follow the instructions below very carefully.
+
+1. OVERALL APP LAYOUT STRUCTURE
+All operator tiers must use one unified dashboard page layout, with content changing based on the operator tier.
+The dashboard must include:
+Top Metrics Slider (scrollable left/right) (we have already created something similar to this, or you can modify the ones currently on the page, and remove any that dont fit the description)
+
+
+Horizontal Tabs Section (right below the metrics)
+
+
+Content Panel (dynamic based on selected tab)
+
+
+Slide-out Navigation Drawer (left side menu)
+
+
+Top Metrics Slider (always visible)
+The system should allow showing/hiding metrics depending on operator tier.
+Metrics may include:
+Daily Earnings (all tiers)
+
+
+Jobs Nearby (all tier, we already have a clickable icon like this) 
+
+
+Active Jobs (this can be merged with the jobs near by metric) 
+
+
+Completed Today 
+
+
+Rating
+
+
+Equipment Status (this should be for the necessary tiers, manual operators might not need this metric on their dashboard)
+
+
+Drivers Active (professional only)
+
+
+Fleet Count (professional only)
+
+
+Radius Limit (manual only)
+
+
+Make this modular so new metrics can be added in the future, and also give this the best modern design
+
+2. HORIZONTAL TABS (Below Metrics Slider)
+These tabs should be similar to the driver and fleet tabs we currently have in the current professional dashboard. 
+
+ All tiers should have tabs in this order:
+Tabs:
+Jobs 
+
+
+Equipment
+
+
+Services
+
+
+History (the job history page can be a hyperlink in the jobs tab)
+
+
+Profile (profile tab for that particular operator tier can be on the left slider menu)
+
+
+Important:
+Only the Professional tier should have an additional “Manpower” tab.
+Tabs should visually match modern driver apps (Uber Driver, Lyft Driver, Doordash Merchant app).
+
+
+
+3. TIER-SPECIFIC FUNCTIONALITY
+========================
+TIER 1: MANUAL OPERATORS
+========================
+PURPOSE:
+Operators who have hand tools only and limited mobility (no vehicles). Operators may have bicycles and other means of transport. But they do micro-services with little or no risk to the customers and the operators within a small radius.
+Dashboard Must Allow:
+For the Jobs Tab
+View nearby job requests
+
+
+Accept/decline jobs
+
+
+View active jobs
+
+
+Job history
+
+
+Show distance, payout, tools needed
+
+We can keep this similar to the current dashboard design we have now, that shows customer groupings, requests and active jobs, this can be the new jobs tab. But modify it and redesign it to fit the new task. 
+Equipment Tab
+Upload photos of hand tools or equipment 
+
+
+Tools include: shovels, snow blowers, lawn tools, window cleaning tools - they will be required to submit pictures of their tools based on the kind of service they choose
+
+
+Tools must be verified by the admin.
+
+
+No vehicles allowed in this tier. ( the customer might have a vehicle, but they cant have a vehicle that has an equipment attached to it, then they will have to upgrade to the skilled and equipped tier. 
+
+
+Services Tab
+Allowed services:
+Snow shoveling
+
+
+Lawn maintenance
+
+
+Window cleaning
+
+
+Yard cleanup
+
+
+Debris removal
+
+
+Local errands - which includes assisting in moving for example, or helping with truck loading, for example. 
+
+There will be a user and operator guide, explaining what tasks fall under each service.
+
+
+
+Operators must be able to:
+Add services
+
+
+Upload tool photos
+
+
+Describe skill level
+
+
+Set pricing presets
+
+
+Operator Profile Tab (this profile page can be a clickable icon at the top of the page, above the metric section):
+
+It will include
+Personal info
+
+
+Availability ON/OFF (this will be the online toggle button that currently exists, you do not have to add this to the profile page)
+
+
+Operating radius slider (max 0–8 km)
+
+
+Gamified radius increases
+
+
+
+===============================
+TIER 2: SKILLED & EQUIPPED
+===============================
+PURPOSE:
+Operators with equipment and skills, but not a full registered business.
+ They may own vehicles (pickup trucks, vans, tow trucks). And they will require business licenses based on the kind of service they choose to offer. For example they might not require a Business licence to snow plow, but they might require a licence or a certificate to plumb or weld, and a business licence to operate as a private contractor.
+
+There will be similar metrics to what we currently have in the skilled and equipped tab, however this can be modified to fit the new design specified above. 
+
+Dashboard Must Allow:
+Jobs Tab
+Everything Manual tier has
+
+
+PLUS:
+
+
+Scheduled jobs
+
+
+Operators should be able to Filter jobs by equipment
+
+
+Operators should be able to Filter jobs by skill/services
+
+
+Equipment Tab
+User can register:
+1–3 vehicles (pickup, van, truck)
+
+
+Heavy equipment (snow plow, tow truck, aerator, trailer)
+
+
+Tool sets
+
+
+Rules:
+They can only assign 1 piece of equipment per job and use 1 equipment per time. If an operator decides to use multiple vehicles per time, they must pay a monthly fee, or upgrade to a professional tier. 
+
+
+Equipment has statuses: Active, Maintenance, Reserved
+
+
+Services Tab
+Allowed services:
+Drywall
+
+
+Framing
+
+
+Hauling
+
+
+Courier services
+
+
+Light plumbing
+
+
+Snow plowing
+Electrician services
+
+
+Towing
+
+
+Basic home repairs
+
+
+Lawn services
+carpentry 
+
+
+And anyother service that is relevant. 
+
+
+
+Uploads required:
+Tool photo
+
+
+Optional certification (for plumbing/electrical)
+
+
+
+======================================
+TIER 3: PROFESSIONAL OPERATORS (BUSINESS)
+======================================
+PURPOSE:
+Registered businesses with fleets, multiple drivers, and licensed services.
+Dashboard Must Allow:
+Jobs Tab
+View all job requests
+
+
+Grouped customer job requests
+
+
+Assign jobs to drivers
+
+
+Multi-driver scheduling
+
+
+Job performance tracking
+
+
+Job audit logs
+
+
+Equipment Tab
+Subsections:
+Vehicles (unlimited)
+
+
+Heavy equipment
+
+
+Tools
+
+
+Attachment equipment
+
+
+Fleet Manager Can:
+Assign equipment to drivers
+
+
+Switch driver-equipment pairings
+
+
+View equipment status
+
+
+Services Tab
+For each driver:
+Add different services
+
+
+Upload licenses/certificates
+
+
+Add pricing
+
+
+Upload business insurance
+
+
+Allowed services include all advanced licensed jobs:
+Roofing
+
+
+Plumbing (licensed)
+
+
+Electrical
+
+
+Welding
+
+
+Restoration
+
+
+Full construction
+
+
+Heavy hauling
+ …and more.
+Towing 
+Snow removal 
+Window cleaning
+
+
+
+
+
+Manpower Tab (Exclusive to Professional Tier)
+Add/remove drivers
+
+
+Create driver login credentials
+
+
+Assign permissions
+
+
+View driver performance
+
+
+Suspend/reactivate drivers
+
+
+Profile Tab
+Business information
+
+
+Insurance
+
+
+Availability settings
+
+
+Radius (unlimited)
+
+
+
+4. SLIDE-OUT NAVIGATION MENU (LEFT DRAWER)
+All operator tiers should have:
+Wallet
+
+
+Payments
+
+
+Notifications (we can leave this as the current notification icon at the top of the page). But each page will have its own notification when ever you are on that dash board)
+
+
+Help/Support
+
+
+Settings
+
+
+Legal/Policies
+
+
+Logout
+
+
+Professional tier should also get:
+Driver payroll (placeholder)
+
+
+Business analytics (future)
+
+
+
+5. IMPORTANT DEVELOPMENT REQUIREMENTS
+Build everything in a modular way, so:
+components can be reused across tiers
+
+
+features can be unlocked/locked by tier
+
+
+future expansion is easy
+
+
+UI Framework:
+Use a clean modern style — minimalistic, card-based, mobile-first.
+Important UX Requirements:
+Dashboard must load extremely fast
+
+
+Metrics slider must be scrollable and modular
+
+
+Tabs must switch instantly
+
+
+All lists must be paginated and lazy-loaded
+
+
+All tier differences must be controlled with a single operator-tier variable
+
+
+
+6. OPTIONAL — PLEASE CONFIRM
+If needed, feel free to generate:
+data models
+
+
+API endpoints
+
+
+reusable components
+
+
+sample UI screens
+
+
+navigation structure
+
+
+authentication logic
+
+
+Also I want the service tab to be made to perfection.
