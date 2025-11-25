@@ -7,7 +7,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ArrowLeft, Upload, Truck, FileText, Shield, CheckCircle, Award, Wrench, Users, Star, TrendingUp, UserCircle, Sparkles } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { ArrowLeft, Upload, Truck, FileText, Shield, CheckCircle, Award, Wrench, Users, Star, TrendingUp, UserCircle, Sparkles, AlertCircle } from "lucide-react";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
@@ -1360,29 +1361,46 @@ export const OperatorOnboarding = () => {
                       </p>
                     )}
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      variant="circular"
+                  <div className="flex items-center justify-between p-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
+                    <div className="flex-1">
+                      <label
+                        htmlFor="emergencyAvailable"
+                        className="text-sm font-medium text-black dark:text-white cursor-pointer"
+                      >
+                        Available for emergency calls (24/7)
+                      </label>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        Enable to receive urgent requests at any time
+                      </p>
+                    </div>
+                    <Switch
                       id="emergencyAvailable"
                       checked={formData.emergencyAvailable}
-                      onCheckedChange={(checked) => handleInputChange("emergencyAvailable", !!checked)}
-                      data-testid="checkbox-emergency"
+                      onCheckedChange={(checked) => handleInputChange("emergencyAvailable", checked)}
+                      data-testid="switch-emergency"
                     />
-                    <label
-                      htmlFor="emergencyAvailable"
-                      className="text-sm text-black dark:text-white cursor-pointer"
-                    >
-                      Available for emergency calls (24/7)
-                    </label>
                   </div>
                 </div>
               )}
 
-              {/* Professional - Step 4: Documents */}
+              {/* Professional - Step 4: Documents (Optional) */}
               {selectedTier === "professional" && currentStep === 4 && (
-                <div className="space-y-4">
+                <div className="space-y-6">
+                  {/* Info banner about optional documents */}
+                  <div className="flex items-start gap-3 p-4 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
+                    <AlertCircle className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-sm font-medium text-blue-900 dark:text-blue-100">
+                        Documents are optional for now
+                      </p>
+                      <p className="text-xs text-blue-700 dark:text-blue-300 mt-1">
+                        You can complete your profile and access your dashboard. However, you'll need to upload and verify your documents before you can go online and accept jobs.
+                      </p>
+                    </div>
+                  </div>
+                  
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-lg p-6 text-center">
+                    <div className="border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-xl p-6 text-center hover:border-orange-400 dark:hover:border-orange-500 transition-colors">
                       <Upload className="w-8 h-8 mx-auto mb-2 text-gray-400" />
                       <p className="text-sm font-medium text-black dark:text-white mb-1">Business License</p>
                       <p className="text-xs text-gray-500 dark:text-gray-500 mb-3">Upload PDF or image</p>
@@ -1395,7 +1413,7 @@ export const OperatorOnboarding = () => {
                         Upload
                       </Button>
                     </div>
-                    <div className="border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-lg p-6 text-center">
+                    <div className="border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-xl p-6 text-center hover:border-orange-400 dark:hover:border-orange-500 transition-colors">
                       <Upload className="w-8 h-8 mx-auto mb-2 text-gray-400" />
                       <p className="text-sm font-medium text-black dark:text-white mb-1">Insurance Certificate</p>
                       <p className="text-xs text-gray-500 dark:text-gray-500 mb-3">Upload PDF or image</p>
@@ -1408,7 +1426,7 @@ export const OperatorOnboarding = () => {
                         Upload
                       </Button>
                     </div>
-                    <div className="border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-lg p-6 text-center">
+                    <div className="border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-xl p-6 text-center hover:border-orange-400 dark:hover:border-orange-500 transition-colors">
                       <Upload className="w-8 h-8 mx-auto mb-2 text-gray-400" />
                       <p className="text-sm font-medium text-black dark:text-white mb-1">Vehicle Registration</p>
                       <p className="text-xs text-gray-500 dark:text-gray-500 mb-3">Upload PDF or image</p>
@@ -1421,7 +1439,7 @@ export const OperatorOnboarding = () => {
                         Upload
                       </Button>
                     </div>
-                    <div className="border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-lg p-6 text-center">
+                    <div className="border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-xl p-6 text-center hover:border-orange-400 dark:hover:border-orange-500 transition-colors">
                       <Upload className="w-8 h-8 mx-auto mb-2 text-gray-400" />
                       <p className="text-sm font-medium text-black dark:text-white mb-1">Driver's License</p>
                       <p className="text-xs text-gray-500 dark:text-gray-500 mb-3">Upload PDF or image</p>
@@ -1446,22 +1464,40 @@ export const OperatorOnboarding = () => {
                   </div>
                   <div>
                     <h3 className="text-2xl font-bold text-black dark:text-white mb-2">
-                      You're All Set!
+                      Profile Complete!
                     </h3>
                     <p className="text-gray-600 dark:text-gray-400">
-                      Your profile is complete. You can start accepting jobs right away.
+                      You now have access to your dashboard. Complete verification to start accepting jobs.
                     </p>
                   </div>
+                  
+                  {/* Verification Notice */}
+                  <div className="flex items-start gap-3 p-4 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 max-w-md mx-auto text-left">
+                    <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-sm font-medium text-amber-900 dark:text-amber-100">
+                        Document verification required
+                      </p>
+                      <p className="text-xs text-amber-700 dark:text-amber-300 mt-1">
+                        Upload your documents from the dashboard. Once verified, you can go online and accept jobs.
+                      </p>
+                    </div>
+                  </div>
+                  
                   <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-6 max-w-md mx-auto">
                     <h4 className="font-semibold text-black dark:text-white mb-3">Next Steps:</h4>
                     <ul className="space-y-2 text-sm text-left">
                       <li className="flex items-start">
                         <CheckCircle className="w-4 h-4 text-green-600 mr-2 mt-0.5 flex-shrink-0" />
-                        <span className="text-gray-600 dark:text-gray-400">Browse available service requests</span>
+                        <span className="text-gray-600 dark:text-gray-400">Access your operator dashboard</span>
                       </li>
                       <li className="flex items-start">
                         <CheckCircle className="w-4 h-4 text-green-600 mr-2 mt-0.5 flex-shrink-0" />
-                        <span className="text-gray-600 dark:text-gray-400">Set your availability status</span>
+                        <span className="text-gray-600 dark:text-gray-400">Upload required documents for verification</span>
+                      </li>
+                      <li className="flex items-start">
+                        <CheckCircle className="w-4 h-4 text-green-600 mr-2 mt-0.5 flex-shrink-0" />
+                        <span className="text-gray-600 dark:text-gray-400">Once verified, go online and start earning!</span>
                       </li>
                       {selectedTier === "manual" && (
                         <li className="flex items-start">
@@ -1469,10 +1505,6 @@ export const OperatorOnboarding = () => {
                           <span className="text-gray-600 dark:text-gray-400">Check customer grouping for nearby jobs</span>
                         </li>
                       )}
-                      <li className="flex items-start">
-                        <CheckCircle className="w-4 h-4 text-green-600 mr-2 mt-0.5 flex-shrink-0" />
-                        <span className="text-gray-600 dark:text-gray-400">Start earning with Fleetly!</span>
-                      </li>
                     </ul>
                   </div>
                 </div>
