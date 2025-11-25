@@ -31,7 +31,7 @@ export const Header = ({ onSignIn, onSignUp, onDriveAndEarn }: HeaderProps) => {
   const activeAlertsCount = alerts.filter(alert => alert.status === 'active').length;
 
   // Check if user is on an operator dashboard route
-  const isOnOperatorDashboard = ['/manual-operator', '/equipped-operator', '/business'].includes(location);
+  const isOnOperatorDashboard = location === '/operator' || location.startsWith('/operator/');
 
   const handleDriveAndEarnClick = () => {
     // Always go to Drive & Earn page for smooth navigation flow

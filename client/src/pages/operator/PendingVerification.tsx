@@ -37,20 +37,9 @@ export const PendingVerification = () => {
   // Check if any tier is approved
   const hasApprovedTier = tiers.some(tier => tierProfiles[tier]?.approvalStatus === "approved");
 
-  // If user has approved tier, redirect them to dashboard
+  // If user has approved tier, redirect them to unified dashboard
   if (hasApprovedTier && user?.viewTier) {
-    const viewTier = user.viewTier;
-    if (viewTier === "manual") {
-      setLocation("/manual-operator");
-    } else if (viewTier === "equipped") {
-      setLocation("/equipped-operator");
-    } else if (viewTier === "professional") {
-      if (user.businessId) {
-        setLocation("/business");
-      } else {
-        setLocation("/operator");
-      }
-    }
+    setLocation("/operator");
     return null;
   }
 

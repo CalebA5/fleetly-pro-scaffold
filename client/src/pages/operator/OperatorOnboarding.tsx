@@ -200,20 +200,9 @@ export const OperatorOnboarding = () => {
   };
 
   const handleTierSelection = (tier: OperatorTier) => {
-    // If user is already subscribed to this tier, redirect to dashboard
+    // If user is already subscribed to this tier, redirect to unified dashboard
     if (operatorData?.subscribedTiers?.includes(tier)) {
-      // Redirect to appropriate dashboard based on tier
-      if (tier === "manual") {
-        setLocation("/manual-operator");
-      } else if (tier === "equipped") {
-        setLocation("/equipped-operator");
-      } else if (tier === "professional") {
-        if (user?.businessId) {
-          setLocation("/business");
-        } else {
-          setLocation("/operator");
-        }
-      }
+      setLocation("/operator");
       return;
     }
     
@@ -444,10 +433,9 @@ export const OperatorOnboarding = () => {
           description: `You're now subscribed to ${OPERATOR_TIER_INFO[selectedTier!].label}. Start accepting jobs!`,
         });
         
-        // Navigate to the new tier's dashboard
-        const dashboardRoute = getDashboardRoute(selectedTier!);
+        // Navigate to the unified operator dashboard
         setTimeout(() => {
-          setLocation(dashboardRoute);
+          setLocation(getDashboardRoute());
         }, 1500);
       } else {
         // New operator - create operator profile
@@ -622,10 +610,9 @@ export const OperatorOnboarding = () => {
           description: `Welcome to Fleetly as a ${OPERATOR_TIER_INFO[selectedTier!].label}. You can now start accepting jobs.`,
         });
         
-        // Navigate to the appropriate dashboard
-        const dashboardRoute = getDashboardRoute(selectedTier!);
+        // Navigate to the unified operator dashboard
         setTimeout(() => {
-          setLocation(dashboardRoute);
+          setLocation(getDashboardRoute());
         }, 1500);
       }
     } catch (error: any) {
@@ -749,7 +736,6 @@ export const OperatorOnboarding = () => {
     iconBg: string;
     iconColor: string;
     icon: typeof Award;
-    dashboardRoute: string;
   }> = {
     professional: {
       bgGradient: "bg-gradient-to-br from-white to-orange-50 dark:from-gray-800 dark:to-orange-900/20",
@@ -759,7 +745,6 @@ export const OperatorOnboarding = () => {
       iconBg: "bg-orange-100 dark:bg-orange-900",
       iconColor: "text-orange-600 dark:text-orange-400",
       icon: Award,
-      dashboardRoute: "/operator"
     },
     equipped: {
       bgGradient: "bg-gradient-to-br from-white to-blue-50 dark:from-gray-800 dark:to-blue-900/20",
@@ -769,7 +754,6 @@ export const OperatorOnboarding = () => {
       iconBg: "bg-blue-100 dark:bg-blue-900",
       iconColor: "text-blue-600 dark:text-blue-400",
       icon: Truck,
-      dashboardRoute: "/equipped-operator"
     },
     manual: {
       bgGradient: "bg-gradient-to-br from-white to-green-50 dark:from-gray-800 dark:to-green-900/20",
@@ -779,17 +763,11 @@ export const OperatorOnboarding = () => {
       iconBg: "bg-green-100 dark:bg-green-900",
       iconColor: "text-green-600 dark:text-green-400",
       icon: Users,
-      dashboardRoute: "/manual-operator"
     }
   };
 
-  // Helper function to get dashboard route based on tier
-  const getDashboardRoute = (tier: OperatorTier) => {
-    if (tier === "professional" && user?.businessId) {
-      return "/business";
-    }
-    return tierStyles[tier].dashboardRoute;
-  };
+  // All tiers use the unified operator dashboard
+  const getDashboardRoute = () => "/operator";
 
   // Helper function to render achievement badges
   const getAchievementBadges = (totalJobs: number, rating: string) => {
@@ -900,7 +878,7 @@ export const OperatorOnboarding = () => {
             className="w-full bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white"
             onClick={(e) => {
               e.stopPropagation();
-              setLocation(getDashboardRoute(tier));
+              setLocation(getDashboardRoute());
             }}
             data-testid={`button-goto-dashboard-${tier}`}
           >

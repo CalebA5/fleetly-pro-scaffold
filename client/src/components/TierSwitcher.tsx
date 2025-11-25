@@ -124,22 +124,8 @@ export function TierSwitcher() {
         description: `You are now operating as ${TIER_INFO[newTier].label}`,
       });
       
-      // Navigate to the tier-specific dashboard (not business dashboard)
-      // Business dashboard is only accessed via Drive & Earn menu
-      if (newTier === 'manual') {
-        setLocation('/manual-operator');
-      } else if (newTier === 'equipped') {
-        setLocation('/equipped-operator');
-      } else {
-        // Professional tier
-        if (freshBusinessId) {
-          // Business owners go to business dashboard for professional tier
-          setLocation('/business');
-        } else {
-          // Individual professional operators go to /operator
-          setLocation('/operator');
-        }
-      }
+      // Navigate to the unified operator dashboard
+      setLocation('/operator');
     },
   });
 
@@ -185,22 +171,8 @@ export function TierSwitcher() {
       setShowUpgradeDialog(false);
       setSelectedTier(null);
       
-      // Navigate to the tier-specific dashboard (not business dashboard)
-      // Business dashboard is only accessed via Drive & Earn menu
-      if (variables.tier === 'manual') {
-        setLocation('/manual-operator');
-      } else if (variables.tier === 'equipped') {
-        setLocation('/equipped-operator');
-      } else {
-        // Professional tier
-        if (freshBusinessId) {
-          // Business owners go to business dashboard for professional tier
-          setLocation('/business');
-        } else {
-          // Individual professional operators go to /operator
-          setLocation('/operator');
-        }
-      }
+      // Navigate to the unified operator dashboard
+      setLocation('/operator');
     },
   });
 

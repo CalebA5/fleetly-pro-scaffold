@@ -17,10 +17,7 @@ import QuoteCenter from "./pages/customer/QuoteCenter";
 import RequestStatus from "./pages/customer/RequestStatus";
 import { OperatorOnboarding } from "./pages/operator/OperatorOnboarding";
 import { PendingVerification } from "./pages/operator/PendingVerification";
-import { BusinessDashboard } from "./pages/operator/BusinessDashboard";
 import { OperatorDashboard } from "./pages/operator/OperatorDashboard";
-import ManualOperatorDashboard from "./pages/operator/ManualOperatorDashboard";
-import EquippedOperatorDashboard from "./pages/operator/EquippedOperatorDashboard";
 import EarningsDetails from "./pages/operator/EarningsDetails";
 import NearbyJobsMap from "./pages/operator/NearbyJobsMap";
 import JobDetailsPage from "./pages/operator/JobDetailsPage";
@@ -106,21 +103,6 @@ const App = () => (
               <Route path="/operator">
                 <ProtectedRoute requireOperator>
                   <OperatorDashboard />
-                </ProtectedRoute>
-              </Route>
-              <Route path="/business">
-                <ProtectedRoute requireOperator>
-                  <BusinessDashboard />
-                </ProtectedRoute>
-              </Route>
-              <Route path="/manual-operator">
-                <ProtectedRoute requireOperator>
-                  <ManualOperatorDashboard />
-                </ProtectedRoute>
-              </Route>
-              <Route path="/equipped-operator">
-                <ProtectedRoute requireOperator>
-                  <EquippedOperatorDashboard />
                 </ProtectedRoute>
               </Route>
               <Route path="/operator/earnings">
