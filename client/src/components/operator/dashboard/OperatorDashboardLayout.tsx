@@ -197,7 +197,7 @@ export function OperatorDashboardLayout({ tier }: OperatorDashboardLayoutProps) 
                   variant="ghost"
                   size="icon"
                   className="h-8 w-8"
-                  onClick={() => setLocation("/drive-earn")}
+                  onClick={() => setLocation("/")}
                   data-testid="button-home"
                 >
                   <Home className="h-4 w-4" />
@@ -214,22 +214,22 @@ export function OperatorDashboardLayout({ tier }: OperatorDashboardLayoutProps) 
               <button
                 onClick={handleToggleOnline}
                 disabled={!canGoOnline}
-                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-orange-500 ${
+                className={`relative inline-flex h-7 w-12 items-center rounded-lg transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-orange-500 ${
                   !canGoOnline 
                     ? "bg-gray-200 dark:bg-gray-700 cursor-not-allowed opacity-50" 
                     : isOnline 
-                      ? "bg-green-500 shadow-green-500/30 shadow-md" 
+                      ? "bg-emerald-500 shadow-emerald-500/30 shadow-md" 
                       : "bg-gray-300 dark:bg-gray-600"
                 }`}
                 data-testid="online-toggle"
               >
                 <span
-                  className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition-all duration-300 ${
-                    isOnline ? "translate-x-[22px]" : "translate-x-0.5"
+                  className={`inline-block h-5 w-5 transform rounded-md bg-white shadow-md ring-0 transition-all duration-300 ${
+                    isOnline ? "translate-x-6" : "translate-x-1"
                   }`}
                 />
                 {!isOnline && (
-                  <span className="absolute right-1 text-[8px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+                  <span className="absolute right-1.5 text-[8px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
                     off
                   </span>
                 )}

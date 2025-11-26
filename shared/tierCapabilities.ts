@@ -156,7 +156,7 @@ export const TIER_CAPABILITIES: Record<OperatorTier, TierCapabilities> = {
 
 export const DASHBOARD_METRICS: MetricConfig[] = [
   { id: "dailyEarnings", label: "Today's Earnings", icon: "DollarSign", tiers: ["manual", "equipped", "professional"], format: "currency", navigateTo: "/operator/earnings" },
-  { id: "jobsNearby", label: "Jobs Nearby", icon: "MapPin", tiers: ["manual", "equipped", "professional"], format: "number", linkToTab: "jobs" },
+  { id: "jobsNearby", label: "Jobs Nearby", icon: "MapPin", tiers: ["manual", "equipped", "professional"], format: "number", navigateTo: "/operator/nearby-jobs" },
   { id: "rating", label: "Rating", icon: "Star", tiers: ["manual", "equipped", "professional"], format: "rating", navigateTo: "/operator/ratings" },
   { id: "equipmentStatus", label: "Equipment Status", icon: "Wrench", tiers: ["equipped"], format: "number", linkToTab: "equipment" },
   { id: "activeOperators", label: "Active Drivers", icon: "Users", tiers: ["professional"], format: "number", linkToTab: "manpower" },

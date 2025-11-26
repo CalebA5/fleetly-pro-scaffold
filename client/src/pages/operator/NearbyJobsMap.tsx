@@ -151,9 +151,11 @@ export default function NearbyJobsMap() {
       if (!job.latitude || !job.longitude) return;
 
       const markerColor = job.isEmergency ? "#dc2626" : "#3b82f6";
+      const lng = typeof job.longitude === 'string' ? parseFloat(job.longitude) : job.longitude;
+      const lat = typeof job.latitude === 'string' ? parseFloat(job.latitude) : job.latitude;
 
       const marker = new mapboxgl.Marker({ color: markerColor })
-        .setLngLat([job.longitude, job.latitude])
+        .setLngLat([lng, lat])
         .setPopup(
           new mapboxgl.Popup().setHTML(
             `<div class="p-2">
@@ -384,7 +386,9 @@ export default function NearbyJobsMap() {
                       setTimeout(() => {
                         map.current?.resize();
                         if (job.latitude && job.longitude && map.current) {
-                          map.current.flyTo({ center: [job.longitude, job.latitude], zoom: 15 });
+                          const lng = typeof job.longitude === 'string' ? parseFloat(job.longitude) : job.longitude;
+                          const lat = typeof job.latitude === 'string' ? parseFloat(job.latitude) : job.latitude;
+                          map.current.flyTo({ center: [lng, lat], zoom: 15 });
                         }
                       }, 100);
                     }}
@@ -474,7 +478,9 @@ export default function NearbyJobsMap() {
                   onClick={() => {
                     setSelectedJob(job);
                     if (job.latitude && job.longitude && map.current) {
-                      map.current.flyTo({ center: [job.longitude, job.latitude], zoom: 14 });
+                      const lng = typeof job.longitude === 'string' ? parseFloat(job.longitude) : job.longitude;
+                      const lat = typeof job.latitude === 'string' ? parseFloat(job.latitude) : job.latitude;
+                      map.current.flyTo({ center: [lng, lat], zoom: 14 });
                     }
                   }}
                   data-testid={`card-job-${job.id}`}
@@ -551,7 +557,9 @@ export default function NearbyJobsMap() {
                         setSelectedJob(job);
                         setShowJobSheet(false);
                         if (job.latitude && job.longitude && map.current) {
-                          map.current.flyTo({ center: [job.longitude, job.latitude], zoom: 15 });
+                          const lng = typeof job.longitude === 'string' ? parseFloat(job.longitude) : job.longitude;
+                          const lat = typeof job.latitude === 'string' ? parseFloat(job.latitude) : job.latitude;
+                          map.current.flyTo({ center: [lng, lat], zoom: 15 });
                         }
                       }}
                       data-testid={`card-job-mobile-${job.id}`}
