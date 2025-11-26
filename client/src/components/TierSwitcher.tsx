@@ -10,8 +10,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { ChevronDown, Check } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { ChevronDown, Check, AlertTriangle } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -21,7 +21,7 @@ import { z } from "zod";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import type { Operator } from "@shared/schema";
+import type { Operator, ServiceRequest } from "@shared/schema";
 
 const TIER_INFO = {
   professional: { label: "Professional & Certified", shortLabel: "Pro", badge: "🏆", color: "text-amber-600" },
@@ -48,6 +48,9 @@ export function TierSwitcher() {
   const [, setLocation] = useLocation();
   const [showUpgradeDialog, setShowUpgradeDialog] = useState(false);
   const [selectedTier, setSelectedTier] = useState<"professional" | "equipped" | "manual" | null>(null);
+  const [showOnlineWarning, setShowOnlineWarning] = useState(false);
+  const [showActiveJobWarning, setShowActiveJobWarning] = useState(false);
+  const [pendingTierSwitch, setPendingTierSwitch] = useState<"professional" | "equipped" | "manual" | null>(null);
 
   // Fetch operator data to get authoritative tier information
   // This ensures subscribed tiers are always up-to-date from the database
@@ -70,6 +73,14 @@ export function TierSwitcher() {
   // Note: Switching tiers does NOT automatically make you online on the new tier
   // Operators must explicitly click "Go Online" on each tier's dashboard to go online
   const onlineTier = operatorData?.isOnline === 1 ? operatorData?.activeTier : null;
+
+  // Check for active jobs on current tier
+  const { data: activeJobs = [] } = useQuery<ServiceRequest[]>({
+    queryKey: [`/api/operators/${user?.operatorId}/active-jobs`],
+    enabled: !!user?.operatorId,
+  });
+  
+  const hasActiveJob = activeJobs.length > 0;
 
   const equippedForm = useForm({
     resolver: zodResolver(equippedTierSchema),
@@ -179,12 +190,43 @@ export function TierSwitcher() {
   });
 
   const handleTierClick = (tier: "professional" | "equipped" | "manual") => {
+    // If already on this tier, do nothing
+    if (tier === viewTier) return;
+    
     if (subscribedTiers.includes(tier)) {
+      // Check for active jobs first - cannot switch with active jobs
+      if (hasActiveJob) {
+        setPendingTierSwitch(tier);
+        setShowActiveJobWarning(true);
+        return;
+      }
+      
+      // Check if online on another tier - warn before switching
+      if (onlineTier && onlineTier !== tier) {
+        setPendingTierSwitch(tier);
+        setShowOnlineWarning(true);
+        return;
+      }
+      
       switchTierMutation.mutate(tier);
     } else {
       // Redirect to full onboarding flow instead of showing simple dialog
       setLocation(`/operator/onboarding?tier=${tier}`);
     }
+  };
+  
+  const confirmTierSwitch = () => {
+    if (pendingTierSwitch) {
+      switchTierMutation.mutate(pendingTierSwitch);
+      setShowOnlineWarning(false);
+      setPendingTierSwitch(null);
+    }
+  };
+  
+  const cancelTierSwitch = () => {
+    setShowOnlineWarning(false);
+    setShowActiveJobWarning(false);
+    setPendingTierSwitch(null);
   };
 
   const handleUpgradeSubmit = (values: any) => {
@@ -418,6 +460,68 @@ export function TierSwitcher() {
               </form>
             </Form>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Online Status Warning Dialog */}
+      <Dialog open={showOnlineWarning} onOpenChange={setShowOnlineWarning}>
+        <DialogContent className="bg-white dark:bg-gray-900 max-w-md">
+          <DialogHeader>
+            <div className="flex items-center gap-3 mb-2">
+              <div className="p-2 rounded-full bg-amber-100 dark:bg-amber-900/30">
+                <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+              </div>
+              <DialogTitle className="text-lg">Switch Dashboard?</DialogTitle>
+            </div>
+            <DialogDescription className="text-gray-600 dark:text-gray-400">
+              You're currently online as <span className="font-semibold text-gray-900 dark:text-white">{onlineTier && TIER_INFO[onlineTier].label}</span>. 
+              Switching to <span className="font-semibold text-gray-900 dark:text-white">{pendingTierSwitch && TIER_INFO[pendingTierSwitch].label}</span> will 
+              take you offline from your current tier. You'll need to go online again on the new dashboard to receive jobs.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex gap-2 mt-4">
+            <Button
+              variant="outline"
+              onClick={cancelTierSwitch}
+              className="flex-1"
+              data-testid="button-cancel-tier-switch"
+            >
+              Stay Online
+            </Button>
+            <Button
+              onClick={confirmTierSwitch}
+              className="flex-1 bg-amber-600 hover:bg-amber-700 text-white"
+              data-testid="button-confirm-tier-switch"
+            >
+              Switch Anyway
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Active Job Warning Dialog */}
+      <Dialog open={showActiveJobWarning} onOpenChange={setShowActiveJobWarning}>
+        <DialogContent className="bg-white dark:bg-gray-900 max-w-md">
+          <DialogHeader>
+            <div className="flex items-center gap-3 mb-2">
+              <div className="p-2 rounded-full bg-red-100 dark:bg-red-900/30">
+                <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400" />
+              </div>
+              <DialogTitle className="text-lg">Active Job in Progress</DialogTitle>
+            </div>
+            <DialogDescription className="text-gray-600 dark:text-gray-400">
+              You have an active job that you're currently working on. Please complete or cancel your current job before switching to a different operator tier.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="mt-4">
+            <Button
+              onClick={cancelTierSwitch}
+              className="w-full"
+              data-testid="button-close-active-job-warning"
+            >
+              Got It
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </>

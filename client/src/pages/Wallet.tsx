@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { InfoTooltip } from "@/components/ui/info-tooltip";
+import { MobileBottomNav } from "@/components/MobileBottomNav";
 import {
   ArrowLeft, Wallet as WalletIcon, ArrowUpRight, ArrowDownLeft,
   CreditCard, DollarSign, Clock, TrendingUp, Filter, Gift, Info,
@@ -71,6 +72,12 @@ export default function Wallet() {
   
   // Store the origin path to navigate back to the correct dashboard
   const originPath = searchParams.get('from') || (user?.viewTier ? `/operator` : "/");
+  
+  // Determine if we came from operator context for navigation
+  const isFromOperator = useMemo(() => {
+    const fromParam = searchParams.get('from');
+    return fromParam?.startsWith('/operator') || urlTier !== null || user?.operatorId !== undefined;
+  }, [urlTier, user?.operatorId]);
 
   // Calculate tier-specific earnings
   const tierEarnings = {
@@ -518,6 +525,9 @@ export default function Wallet() {
           </CardContent>
         </Card>
       </div>
+      
+      {/* Mobile Bottom Nav - context based on where user came from */}
+      <MobileBottomNav context={isFromOperator ? "operator" : "customer"} />
     </div>
   );
 }

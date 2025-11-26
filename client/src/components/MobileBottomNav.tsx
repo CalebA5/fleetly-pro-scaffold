@@ -8,13 +8,52 @@ interface MobileBottomNavProps {
   context?: "customer" | "operator";
 }
 
+// Pages that should use operator navigation
+const OPERATOR_PAGES = [
+  "/operator",
+  "/wallet",
+  "/profile"
+];
+
+// Pages that should always use customer navigation (homepage-connected)
+const CUSTOMER_ONLY_PAGES = [
+  "/",
+  "/customer",
+  "/drive-earn",
+  "/signin",
+  "/signup",
+  "/browse-operators"
+];
+
 export function MobileBottomNav({ context = "customer" }: MobileBottomNavProps) {
   const [location] = useLocation();
   const { user } = useAuth();
   const [isVisible, setIsVisible] = useState(true);
   const lastScrollY = useRef(0);
-
-  const isOnOperatorDashboard = context === "operator" || location.startsWith("/operator");
+  
+  // Determine navigation context from URL and explicit context prop
+  // If on operator pages OR wallet/profile with operator context, use operator nav
+  const isOperatorContext = useMemo(() => {
+    // Explicit context takes precedence
+    if (context === "operator") return true;
+    
+    // Check URL params for operator context
+    const urlParams = new URLSearchParams(window.location.search);
+    const fromParam = urlParams.get("from");
+    if (fromParam?.startsWith("/operator")) return true;
+    
+    // Check if on operator-specific pages
+    if (location.startsWith("/operator")) return true;
+    
+    // For wallet and profile, check if user is an operator viewing their dashboard
+    if ((location === "/wallet" || location.startsWith("/wallet?") || location === "/profile") && user?.operatorId) {
+      // If URL has operator tier info or came from operator, use operator nav
+      const tierParam = urlParams.get("tier");
+      if (tierParam) return true;
+    }
+    
+    return false;
+  }, [context, location, user?.operatorId]);
   
   // Get current tier for wallet navigation
   const currentTier = user?.viewTier || user?.activeTier || user?.operatorTier;
@@ -141,7 +180,7 @@ export function MobileBottomNav({ context = "customer" }: MobileBottomNavProps) 
     }
   ];
 
-  const navItems = isOnOperatorDashboard ? operatorNavItems : customerNavItems;
+  const navItems = isOperatorContext ? operatorNavItems : customerNavItems;
 
   return (
     <nav 

@@ -2754,6 +2754,30 @@ export function registerRoutes(storage: IStorage) {
     }
   });
 
+  // ========== ACTIVE JOBS ENDPOINT ==========
+  
+  // Get active (in-progress) jobs for operator - used to block tier switching
+  router.get("/api/operators/:operatorId/active-jobs", async (req, res) => {
+    try {
+      const { operatorId } = req.params;
+      
+      // Get all active (in_progress) jobs for this operator
+      const activeJobsList = await db.select()
+        .from(acceptedJobs)
+        .where(
+          and(
+            eq(acceptedJobs.operatorId, operatorId),
+            eq(acceptedJobs.status, "in_progress")
+          )
+        );
+      
+      res.json(activeJobsList);
+    } catch (error) {
+      console.error("Error fetching active jobs:", error);
+      res.status(500).json({ message: "Failed to fetch active jobs" });
+    }
+  });
+
   // ========== JOB HISTORY ENDPOINT ==========
   
   // Get completed job history for operator with filters

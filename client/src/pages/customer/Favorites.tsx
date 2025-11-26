@@ -1,4 +1,4 @@
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Header } from "@/components/Header";
 import { MobileBottomNav } from "@/components/MobileBottomNav";
@@ -12,10 +12,35 @@ import type { Operator, Favorite } from "@shared/schema";
 import { OPERATOR_TIER_INFO } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/contexts/AuthContext";
+import { useEffect, useState } from "react";
 
 export const Favorites = () => {
   const { toast } = useToast();
   const { user } = useAuth();
+  const [, setLocation] = useLocation();
+  const [referrer, setReferrer] = useState<string>("/");
+  
+  // Track where user came from for back navigation
+  useEffect(() => {
+    const fromUrl = new URLSearchParams(window.location.search).get("from");
+    if (fromUrl) {
+      setReferrer(fromUrl);
+    } else {
+      // Use document.referrer or default to home
+      const ref = document.referrer;
+      if (ref && ref.includes(window.location.host)) {
+        const path = new URL(ref).pathname;
+        setReferrer(path);
+      } else {
+        setReferrer("/");
+      }
+    }
+  }, []);
+  
+  const handleBack = () => {
+    // Navigate back to referrer
+    setLocation(referrer);
+  };
   const customerId = user?.id || "CUST-001";
 
   // Fetch customer's favorites
@@ -66,11 +91,15 @@ export const Favorites = () => {
       <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 sm:px-6 lg:px-8 py-4">
         <div className="max-w-7xl mx-auto">
           <div className="flex items-center gap-4">
-            <Link href="/customer" data-testid="link-back">
-              <Button variant="ghost" size="sm" className="p-2">
-                <ArrowLeft className="w-5 h-5" />
-              </Button>
-            </Link>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="p-2"
+              onClick={handleBack}
+              data-testid="button-back"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </Button>
             <div className="flex-1">
               <h1 className="text-2xl font-bold text-black dark:text-white flex items-center gap-2">
                 <Heart className="w-6 h-6 fill-red-500 text-red-500" />

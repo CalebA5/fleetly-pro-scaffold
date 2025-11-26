@@ -17,14 +17,14 @@ export function IOSToggle({
 }: IOSToggleProps) {
   const sizes = {
     sm: {
-      track: "w-11 h-6",
-      knob: "w-5 h-5",
-      translate: "translate-x-5",
+      track: "w-10 h-[22px]",
+      knob: "w-[18px] h-[18px]",
+      translate: "translate-x-[18px]",
     },
     md: {
-      track: "w-14 h-7",
-      knob: "w-6 h-6",
-      translate: "translate-x-7",
+      track: "w-12 h-[26px]",
+      knob: "w-[22px] h-[22px]",
+      translate: "translate-x-[22px]",
     },
   };
 
