@@ -146,7 +146,7 @@ export const ProfileDropdown = ({
               <DropdownMenuLabel className="text-xs text-muted-foreground px-2 py-1">
                 Account
               </DropdownMenuLabel>
-              <Link href="/profile">
+              <Link href="/profile?from=/operator">
                 <DropdownMenuItem data-testid="menu-profile">
                   <User className="mr-2 h-4 w-4" />
                   <span>Profile</span>
@@ -194,7 +194,7 @@ export const ProfileDropdown = ({
         ) : (
           <>
             <DropdownMenuGroup>
-              <Link href="/customer/profile">
+              <Link href="/profile?from=/">
                 <DropdownMenuItem data-testid="menu-profile">
                   <User className="mr-2 h-4 w-4" />
                   <span>Profile</span>
@@ -238,9 +238,9 @@ export const ProfileDropdown = ({
             <span>Theme {currentSeasonEmoji} {currentModeLabel}</span>
           </DropdownMenuSubTrigger>
           <DropdownMenuSubContent 
-            className="w-56"
-            sideOffset={8}
-            alignOffset={-4}
+            className="w-56 max-md:fixed max-md:left-4 max-md:right-4 max-md:w-auto"
+            sideOffset={2}
+            alignOffset={-100}
           >
             <DropdownMenuLabel className="text-xs text-muted-foreground">
               Theme Settings

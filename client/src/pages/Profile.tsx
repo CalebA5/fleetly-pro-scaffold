@@ -33,8 +33,15 @@ export const Profile = () => {
     phone: "",
   });
 
+  // Get the 'from' URL parameter to know where to navigate back to
+  const urlParams = new URLSearchParams(window.location.search);
+  const fromRoute = urlParams.get("from");
+  
   const handleBack = () => {
-    if (window.history.length > 1) {
+    // Use the 'from' parameter if available, otherwise use history or default
+    if (fromRoute) {
+      navigate(fromRoute);
+    } else if (window.history.length > 1) {
       window.history.back();
     } else {
       navigate("/");
@@ -137,7 +144,19 @@ export const Profile = () => {
                   {user.name.charAt(0).toUpperCase()}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h2 className="text-lg font-semibold text-gray-900 dark:text-white" data-testid="text-user-name">{user.name}</h2>
+                  <div className="flex items-start justify-between">
+                    <h2 className="text-lg font-semibold text-gray-900 dark:text-white" data-testid="text-user-name">{user.name}</h2>
+                    <Link href={`/profile/edit-personal?from=/profile${fromRoute ? `?from=${encodeURIComponent(fromRoute)}` : ''}`}>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="h-8 px-2 text-gray-500 hover:text-orange-600"
+                        data-testid="button-edit-personal"
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                    </Link>
+                  </div>
                   <div className="flex flex-wrap gap-1.5 mt-2">
                     <Badge variant="secondary" className="bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300 text-xs font-medium">
                       Customer
@@ -474,17 +493,30 @@ export const Profile = () => {
                                 <p className="text-gray-500">Typically 2-3 business days</p>
                               </div>
                             ) : tierProfile?.approvalStatus === "pending" ? (
-                              <div className="text-xs space-y-1">
+                              <div className="text-xs space-y-2">
                                 <p className="text-amber-600 dark:text-amber-400 font-medium">Pending approval</p>
-                                <p className="text-gray-500">Submit documents to get verified</p>
+                                <Link href={`/operator/onboarding?tier=${tier}`} className="inline-flex items-center gap-1 text-orange-600 hover:text-orange-700 font-medium">
+                                  Complete verification
+                                  <ChevronRight className="h-3 w-3" />
+                                </Link>
                               </div>
                             ) : tierProfile?.approvalStatus === "rejected" ? (
-                              <div className="text-xs space-y-1">
+                              <div className="text-xs space-y-2">
                                 <p className="text-red-600 dark:text-red-400 font-medium">Verification rejected</p>
                                 {tierProfile.rejectionReason && <p className="text-gray-500">Reason: {tierProfile.rejectionReason}</p>}
+                                <Link href={`/operator/onboarding?tier=${tier}`} className="inline-flex items-center gap-1 text-orange-600 hover:text-orange-700 font-medium">
+                                  Resubmit verification
+                                  <ChevronRight className="h-3 w-3" />
+                                </Link>
                               </div>
                             ) : (
-                              <p className="text-xs text-gray-500">Complete onboarding to get verified</p>
+                              <div className="text-xs space-y-2">
+                                <p className="text-gray-500">Complete onboarding to get verified</p>
+                                <Link href={`/operator/onboarding?tier=${tier}`} className="inline-flex items-center gap-1 text-orange-600 hover:text-orange-700 font-medium">
+                                  Start onboarding
+                                  <ChevronRight className="h-3 w-3" />
+                                </Link>
+                              </div>
                             )}
                           </div>
 
@@ -562,18 +594,17 @@ export const Profile = () => {
                           )}
 
                           {/* Edit Button */}
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
-                            className="w-full h-9"
-                            onClick={() => {
-                              console.log('Edit tier:', tier);
-                            }}
-                            data-testid={`button-edit-${tier}`}
-                          >
-                            <Edit className="h-3.5 w-3.5 mr-2" />
-                            Edit {tierInfo.label} Info
-                          </Button>
+                          <Link href={`/profile/tier/${tier}?from=/profile${fromRoute ? `?from=${encodeURIComponent(fromRoute)}` : ''}`}>
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              className="w-full h-9"
+                              data-testid={`button-edit-${tier}`}
+                            >
+                              <Edit className="h-3.5 w-3.5 mr-2" />
+                              Edit {tierInfo.label} Info
+                            </Button>
+                          </Link>
                         </div>
                       )}
                       </div>

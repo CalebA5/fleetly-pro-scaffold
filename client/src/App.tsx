@@ -35,6 +35,8 @@ import { OperatorGuide } from "./pages/OperatorGuide";
 import { CommunityForum } from "./pages/CommunityForum";
 import { BlogUpdates } from "./pages/BlogUpdates";
 import { Profile } from "./pages/Profile";
+import { EditPersonalInfo } from "./pages/profile/EditPersonalInfo";
+import { EditTierInfo } from "./pages/profile/EditTierInfo";
 import { default as Notifications } from "./pages/Notifications";
 import Wallet from "./pages/Wallet";
 import Payments from "./pages/Payments";
@@ -74,6 +76,8 @@ const App = () => (
               <Route path="/community-forum" component={CommunityForum} />
               <Route path="/blog" component={BlogUpdates} />
               <Route path="/profile" component={Profile} />
+              <Route path="/profile/edit-personal" component={EditPersonalInfo} />
+              <Route path="/profile/tier/:tier" component={EditTierInfo} />
               <Route path="/wallet" component={Wallet} />
               <Route path="/payments" component={Payments} />
               <Route path="/settings" component={Settings} />
