@@ -8,6 +8,7 @@ import { insertJobSchema, insertServiceRequestSchema, insertCustomerSchema, inse
 import { isWithinRadius } from "./utils/distance";
 import { getServiceRelevantAlerts } from "./services/weatherService";
 import { z } from "zod";
+import OpenAI from "openai";
 
 // Validation schemas for operator endpoints
 const updateActiveTierSchema = z.object({
@@ -666,6 +667,7 @@ export function registerRoutes(storage: IStorage) {
         operatorTier: tier,
         subscribedTiers,
         activeTier, // null until operator goes online
+        viewTier: tier, // CRITICAL: Set viewTier to match initial tier for dropdown icon display
         isCertified: result.data.isCertified ?? 1,
         businessLicense: normalizedBusinessLicense, // Use normalized value
         homeLatitude: result.data.homeLatitude || null,
@@ -691,6 +693,7 @@ export function registerRoutes(storage: IStorage) {
         (req as any).session.user.operatorId = result.data.operatorId;
         (req as any).session.user.operatorTier = tier;
         (req as any).session.user.subscribedTiers = subscribedTiers;
+        (req as any).session.user.viewTier = tier; // CRITICAL: Set viewTier for dropdown icon display
         (req as any).session.user.operatorProfileComplete = true;
       }
       
@@ -4451,6 +4454,84 @@ export function registerRoutes(storage: IStorage) {
     } catch (error) {
       console.error("Error rejecting operator:", error);
       res.status(500).json({ message: "Failed to reject operator" });
+    }
+  });
+
+  // AI-Powered Support Chat endpoint
+  router.post("/api/support/chat", async (req, res) => {
+    try {
+      const chatSchema = z.object({
+        message: z.string().min(1, "Message is required"),
+        conversationHistory: z.array(z.object({
+          role: z.enum(["user", "assistant", "system"]),
+          content: z.string()
+        })).optional()
+      });
+
+      const result = chatSchema.safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ errors: result.error.issues });
+      }
+
+      const { message, conversationHistory = [] } = result.data;
+
+      const openai = new OpenAI({
+        apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
+        baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL
+      });
+
+      const systemPrompt = `You are Fleetly's helpful AI support assistant. Fleetly is an on-demand service platform connecting customers with operators for:
+- Snow plowing and removal
+- Towing services
+- Hauling and moving
+- Courier and delivery services
+- Handyman services
+
+Key information to help users:
+- Customers can request services through the app by selecting a service type and location
+- Operators are verified professionals in three tiers: Manual (hand tools), Skilled & Equipped (vehicles/equipment), and Professional (licensed businesses)
+- Payments are processed securely, and operators receive weekly payouts on Fridays
+- Users can track their requests in real-time
+- Emergency services are available 24/7
+- Users can become operators by going to "Drive & Earn" and completing verification
+
+Be friendly, concise, and helpful. If you cannot help with something or the user seems frustrated, suggest they speak with a human agent. Keep responses under 150 words unless more detail is needed.`;
+
+      const messages: { role: "system" | "user" | "assistant"; content: string }[] = [
+        { role: "system", content: systemPrompt },
+        ...conversationHistory.slice(-10).map(m => ({
+          role: m.role as "user" | "assistant",
+          content: m.content
+        })),
+        { role: "user", content: message }
+      ];
+
+      const completion = await openai.chat.completions.create({
+        model: "gpt-4o-mini",
+        messages,
+        max_tokens: 500,
+        temperature: 0.7
+      });
+
+      const assistantResponse = completion.choices[0]?.message?.content || 
+        "I apologize, but I'm having trouble processing your request. Would you like to speak with a human agent?";
+
+      // Check if we should suggest escalation
+      const escalationKeywords = ["speak to human", "talk to agent", "not helpful", "frustrated", "angry", "complaint", "refund", "cancel"];
+      const shouldEscalate = escalationKeywords.some(keyword => 
+        message.toLowerCase().includes(keyword) || assistantResponse.toLowerCase().includes("human agent")
+      );
+
+      res.json({
+        response: assistantResponse,
+        shouldEscalate
+      });
+    } catch (error) {
+      console.error("Error in AI support chat:", error);
+      res.status(500).json({ 
+        response: "I apologize, but I'm experiencing technical difficulties. Would you like to connect with a human support agent instead?",
+        shouldEscalate: true
+      });
     }
   });
 

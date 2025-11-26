@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { Link } from "wouter";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -8,9 +7,10 @@ import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { CompactThemeCard } from "@/components/ThemeToggle";
 import {
   ArrowLeft, Bell, Moon, Globe, Shield, Eye, Volume2,
-  MapPin, Smartphone, Lock, Mail, ChevronRight, LogOut
+  MapPin, Smartphone, Lock, Mail, ChevronRight, LogOut, Palette
 } from "lucide-react";
 import {
   Select,
@@ -23,7 +23,6 @@ import {
 export default function Settings() {
   const { user, signOut } = useAuth();
   const [isLoading] = useState(false);
-  const [darkMode, setDarkMode] = useState(false);
   const [notifications, setNotifications] = useState({
     push: true,
     email: true,
@@ -63,12 +62,16 @@ export default function Settings() {
       <div className="container mx-auto px-4 py-4 md:py-8 max-w-4xl">
         {/* Header */}
         <div className="mb-6">
-          <Link to="/">
-            <Button variant="ghost" size="sm" className="mb-3 -ml-2" data-testid="button-back">
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back
-            </Button>
-          </Link>
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="mb-3 -ml-2" 
+            onClick={() => window.history.back()}
+            data-testid="button-back"
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back
+          </Button>
           <div>
             <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white" data-testid="text-page-title">
               Settings
@@ -78,41 +81,28 @@ export default function Settings() {
         </div>
 
         {/* Appearance */}
+        <div className="mb-4">
+          <CompactThemeCard />
+        </div>
+        
+        {/* Language */}
         <Card className="border border-gray-200 dark:border-gray-700 shadow-sm mb-4">
           <CardHeader className="pb-3">
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
-                <Moon className="h-4 w-4 text-gray-600 dark:text-gray-400" />
+                <Globe className="h-4 w-4 text-gray-600 dark:text-gray-400" />
               </div>
-              <CardTitle className="text-base font-semibold">Appearance</CardTitle>
+              <CardTitle className="text-base font-semibold">Language</CardTitle>
             </div>
           </CardHeader>
-          <CardContent className="pt-0 space-y-4">
+          <CardContent className="pt-0">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <Moon className="h-4 w-4 text-gray-500" />
-                <div>
-                  <p className="text-sm font-medium text-gray-900 dark:text-white">Dark Mode</p>
-                  <p className="text-xs text-gray-500">Use dark theme</p>
-                </div>
-              </div>
-              <Switch 
-                checked={darkMode} 
-                onCheckedChange={setDarkMode}
-                data-testid="switch-dark-mode" 
-              />
-            </div>
-            <Separator />
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <Globe className="h-4 w-4 text-gray-500" />
-                <div>
-                  <p className="text-sm font-medium text-gray-900 dark:text-white">Language</p>
-                  <p className="text-xs text-gray-500">Select your preferred language</p>
-                </div>
+              <div>
+                <p className="text-sm font-medium text-gray-900 dark:text-white">Preferred Language</p>
+                <p className="text-xs text-gray-500">Select your language preference</p>
               </div>
               <Select defaultValue="en">
-                <SelectTrigger className="w-[120px] h-8" data-testid="select-language">
+                <SelectTrigger className="w-[140px] h-9" data-testid="select-language">
                   <SelectValue placeholder="Language" />
                 </SelectTrigger>
                 <SelectContent>

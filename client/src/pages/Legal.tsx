@@ -14,12 +14,16 @@ export default function Legal() {
       <div className="container mx-auto px-4 py-4 md:py-8 max-w-4xl">
         {/* Header */}
         <div className="mb-6">
-          <Link to="/">
-            <Button variant="ghost" size="sm" className="mb-3 -ml-2" data-testid="button-back">
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back
-            </Button>
-          </Link>
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="mb-3 -ml-2" 
+            onClick={() => window.history.back()}
+            data-testid="button-back"
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back
+          </Button>
           <div>
             <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white" data-testid="text-page-title">
               Legal

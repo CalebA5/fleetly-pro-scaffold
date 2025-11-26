@@ -24,9 +24,9 @@ import { useToast } from "@/hooks/use-toast";
 import type { Operator } from "@shared/schema";
 
 const TIER_INFO = {
-  professional: { label: "Professional & Certified", badge: "🏆", color: "text-amber-600" },
-  equipped: { label: "Skilled & Equipped", badge: "🚛", color: "text-blue-600" },
-  manual: { label: "Manual Operator", badge: "⛏️", color: "text-green-600" },
+  professional: { label: "Professional & Certified", shortLabel: "Pro", badge: "🏆", color: "text-amber-600" },
+  equipped: { label: "Skilled & Equipped", shortLabel: "Equipped", badge: "🚛", color: "text-blue-600" },
+  manual: { label: "Manual Operator", shortLabel: "Manual", badge: "⛏️", color: "text-green-600" },
 };
 
 const equippedTierSchema = z.object({
@@ -62,7 +62,9 @@ export function TierSwitcher() {
   
   // viewTier = which dashboard is being viewed (for dropdown button display)
   // activeTier = which tier is online (for online badge only)
-  const viewTier = operatorData?.viewTier || user?.viewTier || user?.activeTier || user?.operatorTier || "professional";
+  // CRITICAL: viewTier should reflect the CURRENT dashboard, not default to professional
+  // Fallback priority: database viewTier > user context viewTier > first subscribed tier > operatorTier
+  const viewTier = operatorData?.viewTier || user?.viewTier || subscribedTiers[0] || user?.operatorTier || "manual";
   
   // Online badge shows which tier the operator is actively online with
   // Note: Switching tiers does NOT automatically make you online on the new tier
@@ -198,16 +200,19 @@ export function TierSwitcher() {
         <DropdownMenuTrigger asChild>
           <Button 
             variant="outline" 
-            className="flex items-center gap-2"
+            className="flex items-center gap-1.5 sm:gap-2"
             data-testid="button-tier-switcher"
           >
             <span className={TIER_INFO[viewTier as keyof typeof TIER_INFO].color}>
               {TIER_INFO[viewTier as keyof typeof TIER_INFO].badge}
             </span>
+            <span className="inline md:hidden text-xs font-medium">
+              {TIER_INFO[viewTier as keyof typeof TIER_INFO].shortLabel}
+            </span>
             <span className="hidden md:inline">
               {TIER_INFO[viewTier as keyof typeof TIER_INFO].label}
             </span>
-            <ChevronDown className="w-4 h-4" />
+            <ChevronDown className="w-3 h-3 sm:w-4 sm:h-4" />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-64">

@@ -5,6 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useUserLocation } from "@/contexts/LocationContext";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { AlertCircle, X, Truck } from "lucide-react";
 import { NotificationBell } from "@/components/NotificationBell";
@@ -234,28 +235,20 @@ export function OperatorDashboardLayout({ tier }: OperatorDashboardLayoutProps) 
             </div>
             
             <div className="flex items-center gap-2 sm:gap-3">
-              <div className="flex items-center gap-1.5 sm:gap-2">
-                <span className={`text-xs font-medium ${isOnline ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-500'}`}>
-                  {isOnline ? 'Online' : 'Offline'}
-                </span>
-                <button
-                  onClick={handleToggleOnline}
+              <div className="flex items-center gap-2 px-2 py-1 rounded-full bg-gray-100 dark:bg-gray-800">
+                <div className="flex items-center gap-1.5">
+                  <span className={`w-2 h-2 rounded-full ${isOnline ? 'bg-emerald-500 animate-pulse' : 'bg-gray-400'}`} />
+                  <span className={`text-xs font-semibold ${isOnline ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-500'}`}>
+                    {isOnline ? 'Online' : 'Offline'}
+                  </span>
+                </div>
+                <Switch
+                  checked={isOnline}
+                  onCheckedChange={handleToggleOnline}
                   disabled={!canGoOnline}
-                  className={`relative inline-flex h-[14px] w-6 items-center rounded-full transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-emerald-500 ${
-                    !canGoOnline 
-                      ? "bg-gray-200 dark:bg-gray-700 cursor-not-allowed opacity-50" 
-                      : isOnline 
-                        ? "bg-emerald-500" 
-                        : "bg-gray-300 dark:bg-gray-600 hover:bg-gray-400 dark:hover:bg-gray-500"
-                  }`}
+                  size="sm"
                   data-testid="online-toggle"
-                >
-                  <span
-                    className={`absolute top-1/2 -translate-y-1/2 h-[10px] w-[10px] rounded-full bg-white shadow-sm transition-all duration-200 ${
-                      isOnline ? "left-[12px]" : "left-0.5"
-                    }`}
-                  />
-                </button>
+                />
               </div>
               
               <NotificationBell />

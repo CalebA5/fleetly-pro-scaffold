@@ -1,4 +1,4 @@
-import { Home, Search, Heart, User, FileText, LogIn, UserPlus, Truck, Wallet, LayoutDashboard, Briefcase } from "lucide-react";
+import { Home, Search, Heart, User, ClipboardList, LogIn, UserPlus, Truck, Wallet, LayoutDashboard, MapPin, CircleUser } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
 import { useState, useEffect, useRef } from "react";
@@ -41,7 +41,7 @@ export function MobileBottomNav({ context = "customer" }: MobileBottomNavProps) 
       testId: "nav-operator-dashboard"
     },
     {
-      icon: Briefcase,
+      icon: MapPin,
       label: "Jobs",
       path: "/operator/nearby-jobs",
       testId: "nav-operator-jobs"
@@ -54,12 +54,12 @@ export function MobileBottomNav({ context = "customer" }: MobileBottomNavProps) 
     },
     {
       icon: Truck,
-      label: "Drive & Earn",
+      label: "Earn",
       path: "/drive-earn",
       testId: "nav-operator-drive"
     },
     {
-      icon: User,
+      icon: CircleUser,
       label: "Profile",
       path: "/profile",
       testId: "nav-operator-profile"
@@ -80,7 +80,7 @@ export function MobileBottomNav({ context = "customer" }: MobileBottomNavProps) 
       testId: "nav-browse"
     },
     {
-      icon: FileText,
+      icon: ClipboardList,
       label: "Requests",
       path: "/customer/requests",
       testId: "nav-requests"
@@ -92,7 +92,7 @@ export function MobileBottomNav({ context = "customer" }: MobileBottomNavProps) 
       testId: "nav-favorites"
     },
     {
-      icon: User,
+      icon: CircleUser,
       label: "Profile",
       path: "/customer/profile",
       testId: "nav-profile"
@@ -112,7 +112,7 @@ export function MobileBottomNav({ context = "customer" }: MobileBottomNavProps) 
     },
     {
       icon: Truck,
-      label: "Drive & Earn",
+      label: "Earn",
       path: "/drive-earn",
       testId: "nav-drive-earn"
     },
@@ -139,7 +139,7 @@ export function MobileBottomNav({ context = "customer" }: MobileBottomNavProps) 
         isVisible ? "translate-y-0" : "translate-y-full"
       )}
     >
-      <div className={cn("grid h-16", user ? "grid-cols-5" : "grid-cols-5")}>
+      <div className="grid grid-cols-5 h-16">
         {navItems.map((item) => {
           const isActive = location === item.path || 
             (item.path !== "/" && location.startsWith(item.path));
@@ -149,15 +149,26 @@ export function MobileBottomNav({ context = "customer" }: MobileBottomNavProps) 
             <Link key={item.path} href={item.path}>
               <button
                 className={cn(
-                  "flex flex-col items-center justify-center w-full h-full gap-1 transition-colors",
+                  "flex flex-col items-center justify-center w-full h-full gap-0.5 transition-all",
                   isActive
-                    ? "text-black dark:text-white"
-                    : "text-gray-500 dark:text-gray-400"
+                    ? "text-teal-600 dark:text-teal-400"
+                    : "text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300"
                 )}
                 data-testid={item.testId}
               >
-                <Icon className={cn("w-6 h-6", isActive && "stroke-[2.5]")} />
-                <span className="text-xs font-medium">{item.label}</span>
+                <div className={cn(
+                  "relative flex items-center justify-center w-10 h-8 rounded-full transition-colors",
+                  isActive && "bg-teal-50 dark:bg-teal-900/30"
+                )}>
+                  <Icon className={cn(
+                    "w-5 h-5 transition-transform",
+                    isActive && "scale-110"
+                  )} strokeWidth={isActive ? 2.5 : 2} />
+                </div>
+                <span className={cn(
+                  "text-[10px] font-medium",
+                  isActive && "font-semibold"
+                )}>{item.label}</span>
               </button>
             </Link>
           );

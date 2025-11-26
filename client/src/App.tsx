@@ -29,7 +29,7 @@ import RatingsTrend from "./pages/operator/RatingsTrend";
 import ActiveOperators from "./pages/operator/ActiveOperators";
 import { DriveEarn } from "./pages/DriveEarn";
 import { AdminPortal } from "./pages/admin/AdminPortal";
-import { HelpSupport } from "./pages/HelpSupport";
+import Help from "./pages/Help";
 import { UserGuide } from "./pages/UserGuide";
 import { OperatorGuide } from "./pages/OperatorGuide";
 import { CommunityForum } from "./pages/CommunityForum";
@@ -68,7 +68,7 @@ const App = () => (
               <Route path="/signup" component={SignUp} />
               <Route path="/emergency-sos" component={EmergencySOS} />
               <Route path="/emergency-tracking/:emergencyId" component={EmergencyTracking} />
-              <Route path="/help" component={HelpSupport} />
+              <Route path="/help" component={Help} />
               <Route path="/user-guide" component={UserGuide} />
               <Route path="/operator-guide" component={OperatorGuide} />
               <Route path="/community-forum" component={CommunityForum} />
