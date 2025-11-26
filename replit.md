@@ -27,7 +27,10 @@ The backend is an Express.js server utilizing PostgreSQL with Drizzle ORM. Zod i
 - **AI Assist Feature**: Recommends services and operators with estimated pricing.
 - **Enhanced Service Request Creation**: Dynamic forms for service types, emergency/scheduled toggles, and photo uploads. Supports **Project Mode** for multi-service bundling with pricing preferences (fixed/hourly/custom quote).
 - **Unified Map Implementation**: Uses Mapbox GL JS for interactive operator selection and filters.
-- **Real-Time Tracking**: Live operator location updates, particularly for emergency requests.
+- **Real-Time Tracking**: Live operator location updates with LiveTrackingMap component showing ETA, distance, and animated operator markers. Particularly for emergency requests.
+- **In-App Messaging**: Customer-operator messaging system with real-time message history on job tracking pages.
+- **Operator Tier Badges**: Operator cards display tier badges ("Pro" for Professional, "Skilled" for Skilled & Equipped) on both mobile and desktop views.
+- **Clickable Operator Profiles**: Operator photos on cards navigate to detailed profile pages showing tier, services, equipment, ratings, and response time.
 - **Proactive Weather Alert System**: Integrates with a weather API for alerts.
 - **Emergency SOS Mode**: Provides no-login emergency assistance with auto-location detection.
 - **Persistent Job Tracking System**: Database-backed job persistence across sessions.

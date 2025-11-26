@@ -1,9 +1,9 @@
 import { Router } from "express";
 import type { IStorage } from "./storage";
 import { db } from "./db";
-import { operators, customers, users, favorites, operatorTierStats, weatherAlerts, insertWeatherAlertSchema, emergencyRequests, dispatchQueue, insertEmergencyRequestSchema, insertDispatchQueueSchema, businesses, serviceRequests, operatorDailyEarnings, operatorMonthlyEarnings, acceptedJobs, operatorPricingConfigs, operatorQuotes, insertOperatorPricingConfigSchema, insertOperatorQuoteSchema, notifications } from "@shared/schema";
+import { operators, customers, users, favorites, operatorTierStats, weatherAlerts, insertWeatherAlertSchema, emergencyRequests, dispatchQueue, insertEmergencyRequestSchema, insertDispatchQueueSchema, businesses, serviceRequests, operatorDailyEarnings, operatorMonthlyEarnings, acceptedJobs, operatorPricingConfigs, operatorQuotes, insertOperatorPricingConfigSchema, insertOperatorQuoteSchema, notifications, jobMessages, operatorLiveLocations, insertJobMessageSchema, insertOperatorLiveLocationSchema } from "@shared/schema";
 import { notificationService } from "./notificationService";
-import { eq, sql, and, gte, or } from "drizzle-orm";
+import { eq, sql, and, gte, or, desc, asc } from "drizzle-orm";
 import { insertJobSchema, insertServiceRequestSchema, insertCustomerSchema, insertOperatorSchema, insertRatingSchema, insertFavoriteSchema, insertOperatorLocationSchema, insertCustomerServiceHistorySchema, OPERATOR_TIER_INFO } from "@shared/schema";
 import { isWithinRadius } from "./utils/distance";
 import { getServiceRelevantAlerts } from "./services/weatherService";
@@ -4598,6 +4598,313 @@ Be friendly, concise, and helpful. If you cannot help with something or the user
     } catch (error) {
       console.error("Error processing support message:", error);
       res.status(500).json({ message: "Failed to process support message" });
+    }
+  });
+
+  // ============================================================================
+  // JOB MESSAGING ROUTES - Customer-Operator Communication
+  // ============================================================================
+
+  // Get all messages for a specific job
+  router.get("/api/jobs/:jobId/messages", async (req, res) => {
+    try {
+      const { jobId } = req.params;
+      
+      const messages = await db.select()
+        .from(jobMessages)
+        .where(eq(jobMessages.jobId, jobId))
+        .orderBy(asc(jobMessages.createdAt));
+      
+      res.json(messages);
+    } catch (error) {
+      console.error("Error fetching job messages:", error);
+      res.status(500).json({ message: "Failed to fetch messages" });
+    }
+  });
+
+  // Send a new message for a job
+  router.post("/api/jobs/:jobId/messages", async (req, res) => {
+    try {
+      const { jobId } = req.params;
+      const { senderId, senderType, senderName, content, jobType } = req.body;
+      
+      if (!senderId || !senderType || !senderName || !content) {
+        return res.status(400).json({ message: "Missing required fields: senderId, senderType, senderName, content" });
+      }
+      
+      if (!["customer", "operator"].includes(senderType)) {
+        return res.status(400).json({ message: "senderType must be 'customer' or 'operator'" });
+      }
+      
+      const messageId = `MSG-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      
+      const [newMessage] = await db.insert(jobMessages).values({
+        messageId,
+        jobId,
+        jobType: jobType || "service_request",
+        senderId,
+        senderType,
+        senderName,
+        content,
+        isRead: 0,
+      }).returning();
+      
+      // Create notification for the recipient
+      const audienceRole = senderType === "customer" ? "operator" : "customer";
+      
+      // Find the job to get recipient info
+      const job = await db.select().from(acceptedJobs).where(eq(acceptedJobs.acceptedJobId, jobId)).limit(1);
+      
+      if (job.length > 0) {
+        const jobData = job[0].jobData as any;
+        const recipientId = senderType === "customer" ? job[0].operatorId : jobData?.customerId;
+        
+        if (recipientId) {
+          await notificationService.createNotification({
+            userId: recipientId,
+            audienceRole,
+            type: "message",
+            title: `New message from ${senderName}`,
+            body: content.length > 50 ? content.substring(0, 50) + "..." : content,
+            requestId: jobId,
+            metadata: { jobId, messageId },
+            deliveryState: "pending"
+          });
+        }
+      }
+      
+      res.status(201).json(newMessage);
+    } catch (error) {
+      console.error("Error sending message:", error);
+      res.status(500).json({ message: "Failed to send message" });
+    }
+  });
+
+  // Mark messages as read
+  router.patch("/api/jobs/:jobId/messages/read", async (req, res) => {
+    try {
+      const { jobId } = req.params;
+      const { readerId, readerType } = req.body;
+      
+      if (!readerId || !readerType) {
+        return res.status(400).json({ message: "readerId and readerType are required" });
+      }
+      
+      // Mark all messages from the other party as read
+      const otherPartyType = readerType === "customer" ? "operator" : "customer";
+      
+      await db.update(jobMessages)
+        .set({ isRead: 1 })
+        .where(and(
+          eq(jobMessages.jobId, jobId),
+          eq(jobMessages.senderType, otherPartyType)
+        ));
+      
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error marking messages as read:", error);
+      res.status(500).json({ message: "Failed to mark messages as read" });
+    }
+  });
+
+  // Get unread message count for a user
+  router.get("/api/messages/unread-count", async (req, res) => {
+    try {
+      const userId = req.query.userId as string;
+      const userType = req.query.userType as string;
+      
+      if (!userId || !userType) {
+        return res.status(400).json({ message: "userId and userType are required" });
+      }
+      
+      // Count unread messages where the user is the recipient (not the sender)
+      const otherPartyType = userType === "customer" ? "operator" : "customer";
+      
+      const result = await db.select({ count: sql<number>`count(*)` })
+        .from(jobMessages)
+        .where(and(
+          eq(jobMessages.senderType, otherPartyType),
+          eq(jobMessages.isRead, 0)
+        ));
+      
+      res.json({ count: result[0]?.count || 0 });
+    } catch (error) {
+      console.error("Error getting unread count:", error);
+      res.status(500).json({ message: "Failed to get unread count" });
+    }
+  });
+
+  // ============================================================================
+  // LIVE OPERATOR LOCATION TRACKING ROUTES
+  // ============================================================================
+
+  // Update operator's live location
+  router.post("/api/operators/:operatorId/location", async (req, res) => {
+    try {
+      const { operatorId } = req.params;
+      const { latitude, longitude, heading, speed, accuracy, activeJobId, isEnRoute } = req.body;
+      
+      if (!latitude || !longitude) {
+        return res.status(400).json({ message: "latitude and longitude are required" });
+      }
+      
+      // Upsert the operator's live location
+      const existingLocation = await db.select()
+        .from(operatorLiveLocations)
+        .where(eq(operatorLiveLocations.operatorId, operatorId))
+        .limit(1);
+      
+      let location;
+      if (existingLocation.length > 0) {
+        // Update existing
+        [location] = await db.update(operatorLiveLocations)
+          .set({
+            latitude: String(latitude),
+            longitude: String(longitude),
+            heading: heading ? String(heading) : null,
+            speed: speed ? String(speed) : null,
+            accuracy: accuracy ? String(accuracy) : null,
+            activeJobId: activeJobId || null,
+            isEnRoute: isEnRoute ? 1 : 0,
+            updatedAt: new Date(),
+          })
+          .where(eq(operatorLiveLocations.operatorId, operatorId))
+          .returning();
+      } else {
+        // Insert new
+        [location] = await db.insert(operatorLiveLocations).values({
+          operatorId,
+          latitude: String(latitude),
+          longitude: String(longitude),
+          heading: heading ? String(heading) : null,
+          speed: speed ? String(speed) : null,
+          accuracy: accuracy ? String(accuracy) : null,
+          activeJobId: activeJobId || null,
+          isEnRoute: isEnRoute ? 1 : 0,
+        }).returning();
+      }
+      
+      res.json(location);
+    } catch (error) {
+      console.error("Error updating operator location:", error);
+      res.status(500).json({ message: "Failed to update location" });
+    }
+  });
+
+  // Get operator's live location (for customer tracking)
+  router.get("/api/operators/:operatorId/live-location", async (req, res) => {
+    try {
+      const { operatorId } = req.params;
+      
+      const location = await db.select()
+        .from(operatorLiveLocations)
+        .where(eq(operatorLiveLocations.operatorId, operatorId))
+        .limit(1);
+      
+      if (location.length === 0) {
+        return res.status(404).json({ message: "Operator location not found" });
+      }
+      
+      res.json(location[0]);
+    } catch (error) {
+      console.error("Error fetching operator location:", error);
+      res.status(500).json({ message: "Failed to fetch location" });
+    }
+  });
+
+  // Get live location for a specific job (includes ETA calculation)
+  router.get("/api/jobs/:jobId/live-tracking", async (req, res) => {
+    try {
+      const { jobId } = req.params;
+      
+      // Get the accepted job to find the operator
+      const job = await db.select()
+        .from(acceptedJobs)
+        .where(eq(acceptedJobs.acceptedJobId, jobId))
+        .limit(1);
+      
+      if (job.length === 0) {
+        return res.status(404).json({ message: "Job not found" });
+      }
+      
+      const operatorId = job[0].operatorId;
+      const jobData = job[0].jobData as any;
+      
+      // Get operator's live location
+      const location = await db.select()
+        .from(operatorLiveLocations)
+        .where(eq(operatorLiveLocations.operatorId, operatorId))
+        .limit(1);
+      
+      if (location.length === 0) {
+        return res.json({
+          isTracking: false,
+          message: "Operator location not available yet"
+        });
+      }
+      
+      const operatorLat = parseFloat(location[0].latitude);
+      const operatorLng = parseFloat(location[0].longitude);
+      const customerLat = jobData?.latitude ? parseFloat(jobData.latitude) : null;
+      const customerLng = jobData?.longitude ? parseFloat(jobData.longitude) : null;
+      
+      let distance = null;
+      let estimatedMinutes = null;
+      
+      if (customerLat && customerLng) {
+        // Calculate distance using Haversine formula
+        distance = calculateDistance(operatorLat, operatorLng, customerLat, customerLng);
+        
+        // Estimate time based on average speed of 40 km/h in urban areas
+        const avgSpeedKmh = 40;
+        estimatedMinutes = Math.round((distance / avgSpeedKmh) * 60);
+        
+        // Minimum 2 minutes if very close
+        if (estimatedMinutes < 2 && distance > 0.1) {
+          estimatedMinutes = 2;
+        }
+      }
+      
+      res.json({
+        isTracking: true,
+        operatorLocation: {
+          latitude: operatorLat,
+          longitude: operatorLng,
+          heading: location[0].heading ? parseFloat(location[0].heading) : null,
+          speed: location[0].speed ? parseFloat(location[0].speed) : null,
+          updatedAt: location[0].updatedAt,
+        },
+        customerLocation: customerLat && customerLng ? {
+          latitude: customerLat,
+          longitude: customerLng,
+        } : null,
+        distance: distance ? `${distance.toFixed(1)} km` : null,
+        estimatedArrival: estimatedMinutes ? `${estimatedMinutes} min` : null,
+        isEnRoute: location[0].isEnRoute === 1,
+        jobStatus: job[0].status,
+      });
+    } catch (error) {
+      console.error("Error fetching live tracking:", error);
+      res.status(500).json({ message: "Failed to fetch tracking info" });
+    }
+  });
+
+  // Clear operator's active job location (when job completes)
+  router.delete("/api/operators/:operatorId/location", async (req, res) => {
+    try {
+      const { operatorId } = req.params;
+      
+      await db.update(operatorLiveLocations)
+        .set({
+          activeJobId: null,
+          isEnRoute: 0,
+        })
+        .where(eq(operatorLiveLocations.operatorId, operatorId));
+      
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error clearing operator location:", error);
+      res.status(500).json({ message: "Failed to clear location" });
     }
   });
 

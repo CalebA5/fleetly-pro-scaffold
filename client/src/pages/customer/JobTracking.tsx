@@ -7,9 +7,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowLeft, MapPin, Clock, User, Phone, MessageSquare, TrendingUp } from "lucide-react";
+import { ArrowLeft, MapPin, Clock, User, Phone, MessageSquare, TrendingUp, Navigation } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { formatDistanceToNow } from "date-fns";
+import { JobMessaging } from "@/components/JobMessaging";
+import { LiveTrackingMap } from "@/components/LiveTrackingMap";
 
 export const JobTracking = () => {
   const [, setLocation] = useLocation();
@@ -172,6 +174,14 @@ export const JobTracking = () => {
             </CardContent>
           </Card>
 
+          {/* Live Tracking Map - Shows when job is accepted or in progress */}
+          {(job.status === "accepted" || job.status === "in_progress") && (
+            <LiveTrackingMap 
+              jobId={job.acceptedJobId} 
+              operatorName={job.operatorName}
+            />
+          )}
+
           {/* Job Description */}
           <Card className="animate-slide-up bg-white dark:bg-gray-800">
             <CardHeader>
@@ -233,18 +243,21 @@ export const JobTracking = () => {
                   </div>
                 )}
 
-                {job.operatorPhone && (
-                  <div className="space-y-2">
+                <div className="space-y-2">
+                  {job.operatorPhone && (
                     <Button variant="outline" className="w-full" size="sm" data-testid="button-call-operator">
                       <Phone className="w-4 h-4 mr-2" />
                       Call {job.operatorPhone}
                     </Button>
-                    <Button variant="outline" className="w-full" size="sm" data-testid="button-message-operator">
-                      <MessageSquare className="w-4 h-4 mr-2" />
-                      Send Message
-                    </Button>
-                  </div>
-                )}
+                  )}
+                  <JobMessaging
+                    jobId={job.acceptedJobId}
+                    currentUserId={customerId || ""}
+                    currentUserType="customer"
+                    currentUserName={user?.name || "Customer"}
+                    recipientName={job.operatorName}
+                  />
+                </div>
               </CardContent>
             </Card>
           )}

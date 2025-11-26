@@ -1041,11 +1041,29 @@ export const OperatorMap = () => {
                             </div>
                           )}
                           
+                          {/* Tier badge - top left for desktop */}
+                          <div className="absolute top-2 left-2 z-10">
+                            <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full shadow-sm ${
+                              operatorCard.tierType === 'professional' 
+                                ? 'bg-amber-500 text-white' 
+                                : 'bg-gray-600 text-white'
+                            }`}>
+                              {operatorCard.tierType === 'professional' ? 'Pro' : 'Skilled'}
+                            </span>
+                          </div>
+                          
                           {/* Top Row: Photo + Name + Online Status */}
                           <div className="flex items-center gap-3 mb-3">
-                            {/* Profile Photo / Business Logo */}
-                            <div className="relative flex-shrink-0">
-                              <div className="w-14 h-14 rounded-full bg-gradient-to-br from-gray-200 to-gray-300 dark:from-gray-600 dark:to-gray-700 flex items-center justify-center overflow-hidden shadow-sm">
+                            {/* Profile Photo / Business Logo - Clickable to view profile */}
+                            <div 
+                              className="relative flex-shrink-0 cursor-pointer group"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                navigate(`/operator/${operatorCard.operatorId}`);
+                              }}
+                              data-testid={`button-view-profile-desktop-${operatorCard.cardId}`}
+                            >
+                              <div className="w-14 h-14 rounded-full bg-gradient-to-br from-gray-200 to-gray-300 dark:from-gray-600 dark:to-gray-700 flex items-center justify-center overflow-hidden shadow-sm ring-2 ring-transparent group-hover:ring-orange-300 transition-all">
                                 {operatorCard.photo ? (
                                   <img src={operatorCard.photo} alt={operatorCard.name} className="w-full h-full object-cover" />
                                 ) : (operatorCard as any).businessLicense ? (
@@ -1284,9 +1302,27 @@ export const OperatorMap = () => {
                         </div>
                       )}
                       
+                      {/* Tier badge - positioned top right */}
+                      <div className="absolute top-2 right-2 z-10">
+                        <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full shadow-sm ${
+                          operatorCard.tierType === 'professional' 
+                            ? 'bg-amber-500 text-white' 
+                            : 'bg-gray-600 text-white'
+                        }`}>
+                          {operatorCard.tierType === 'professional' ? 'Pro' : 'Skilled'}
+                        </span>
+                      </div>
+                      
                       <div className="flex gap-3 p-3">
-                        {/* Operator Photo */}
-                        <div className="flex-shrink-0 w-16 h-16 rounded-xl bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-600 overflow-hidden">
+                        {/* Operator Photo - Clickable to view profile */}
+                        <div 
+                          className="flex-shrink-0 w-16 h-16 rounded-xl bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-600 overflow-hidden cursor-pointer ring-2 ring-transparent hover:ring-orange-300 transition-all"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/operator/${operatorCard.operatorId}`);
+                          }}
+                          data-testid={`button-view-profile-${operatorCard.cardId}`}
+                        >
                           {operatorCard.photo ? (
                             <img src={operatorCard.photo} alt={operatorCard.name} className="w-full h-full object-cover" />
                           ) : (
