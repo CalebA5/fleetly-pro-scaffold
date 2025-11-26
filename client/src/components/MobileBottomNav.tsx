@@ -31,25 +31,40 @@ export function MobileBottomNav({ context = "customer" }: MobileBottomNavProps) 
   const [isVisible, setIsVisible] = useState(true);
   const lastScrollY = useRef(0);
   
-  // Determine navigation context from URL and explicit context prop
-  // If on operator pages OR wallet/profile with operator context, use operator nav
+  // Persist operator context in sessionStorage to maintain navigation state
+  useEffect(() => {
+    if (location.startsWith("/operator")) {
+      sessionStorage.setItem("navContext", "operator");
+    } else if (location === "/" || location.startsWith("/customer") || location === "/drive-earn") {
+      sessionStorage.setItem("navContext", "customer");
+    }
+  }, [location]);
+
+  // Determine navigation context from URL, props, and persisted state
   const isOperatorContext = useMemo(() => {
-    // Explicit context takes precedence
+    // Explicit context prop takes highest precedence
     if (context === "operator") return true;
+    if (context === "customer") {
+      // Only force customer if explicitly on customer-only pages
+      if (location === "/" || location.startsWith("/customer") || location === "/drive-earn") return false;
+    }
+    
+    // Check if on operator-specific pages
+    if (location.startsWith("/operator")) return true;
     
     // Check URL params for operator context
     const urlParams = new URLSearchParams(window.location.search);
     const fromParam = urlParams.get("from");
     if (fromParam?.startsWith("/operator")) return true;
     
-    // Check if on operator-specific pages
-    if (location.startsWith("/operator")) return true;
+    // Check for tier param (indicates operator wallet view)
+    const tierParam = urlParams.get("tier");
+    if (tierParam && user?.operatorId) return true;
     
-    // For wallet and profile, check if user is an operator viewing their dashboard
-    if ((location === "/wallet" || location.startsWith("/wallet?") || location === "/profile") && user?.operatorId) {
-      // If URL has operator tier info or came from operator, use operator nav
-      const tierParam = urlParams.get("tier");
-      if (tierParam) return true;
+    // For shared pages like /wallet and /profile, check persisted context
+    if (location === "/wallet" || location.startsWith("/wallet") || location === "/profile") {
+      const persistedContext = sessionStorage.getItem("navContext");
+      if (persistedContext === "operator" && user?.operatorId) return true;
     }
     
     return false;
@@ -138,13 +153,13 @@ export function MobileBottomNav({ context = "customer" }: MobileBottomNavProps) 
     {
       icon: Heart,
       label: "Favorites",
-      path: "/customer/favorites",
+      path: `/customer/favorites?from=${encodeURIComponent(location)}`,
       testId: "nav-favorites"
     },
     {
       icon: CircleUser,
       label: "Profile",
-      path: "/customer/profile",
+      path: "/profile",
       testId: "nav-profile"
     }
   ] : [
@@ -191,8 +206,10 @@ export function MobileBottomNav({ context = "customer" }: MobileBottomNavProps) 
     >
       <div className="grid grid-cols-5 h-16">
         {navItems.map((item) => {
-          const isActive = location === item.path || 
-            (item.path !== "/" && location.startsWith(item.path));
+          // Extract base path for comparison (remove query params)
+          const basePath = item.path.split("?")[0];
+          const isActive = location === basePath || 
+            (basePath !== "/" && location.startsWith(basePath));
           const Icon = item.icon;
 
           return (
