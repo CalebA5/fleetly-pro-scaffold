@@ -418,8 +418,15 @@ export const OperatorMap = () => {
 
   // Filter operators by selected service AND favorites AND radius (show self but disable service requests)
   const operators = allOperators?.filter(op => {
-    // Filter by service if selected
-    const matchesService = !selectedService || op.services?.includes(selectedService);
+    // Filter by service - support multiple pre-selected services from home page
+    // If preSelectedServices has items, filter by ALL of them; if just selectedService, use that
+    let matchesService = true;
+    if (preSelectedServices.length > 0) {
+      // Show operators that offer ANY of the pre-selected services
+      matchesService = preSelectedServices.some(service => op.services?.includes(service));
+    } else if (selectedService) {
+      matchesService = op.services?.includes(selectedService);
+    }
     
     // Filter by favorites if enabled
     const matchesFavorites = !showFavoritesOnly || isFavorite(op.operatorId);
@@ -872,8 +879,8 @@ export const OperatorMap = () => {
               }
             }}
           >
-            <SelectTrigger className="w-auto border-0 shadow-none p-0 h-auto" data-testid="button-filter-menu">
-              <div className="flex items-center gap-1 px-3 py-1.5 bg-gray-100 dark:bg-gray-800 rounded-full">
+            <SelectTrigger className="w-auto border-0 shadow-none p-0 h-auto focus:ring-0 focus:ring-offset-0 focus:outline-none" data-testid="button-filter-menu">
+              <div className="flex items-center gap-1 px-3 py-1.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-full hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
                 <Filter className="w-4 h-4 text-gray-600 dark:text-gray-400" />
                 <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Filters</span>
               </div>
@@ -944,9 +951,30 @@ export const OperatorMap = () => {
         </div>
         
         {/* Active Filters Display */}
-        {(selectedService || showFavoritesOnly || (userLat && proximityRadius !== 50)) && (
+        {(preSelectedServices.length > 0 || selectedService || showFavoritesOnly || (userLat && proximityRadius !== 50)) && (
           <div className="flex flex-wrap gap-2 mt-3">
-            {selectedService && (
+            {/* Show pre-selected services from home page */}
+            {preSelectedServices.length > 0 ? (
+              <>
+                {preSelectedServices.map((service, idx) => (
+                  <span key={idx} className="inline-flex items-center gap-1 px-2 py-1 bg-teal-50 dark:bg-teal-900/30 text-teal-700 dark:text-teal-400 rounded-full text-xs font-medium">
+                    {service}
+                    <button onClick={() => setPreSelectedServices(preSelectedServices.filter(s => s !== service))} className="hover:text-teal-900">×</button>
+                  </span>
+                ))}
+                {preSelectedServices.length > 1 && (
+                  <button 
+                    onClick={() => {
+                      setPreSelectedServices([]);
+                      setSelectedService('');
+                    }} 
+                    className="text-xs text-gray-500 hover:text-gray-700 underline"
+                  >
+                    Clear all
+                  </button>
+                )}
+              </>
+            ) : selectedService && (
               <span className="inline-flex items-center gap-1 px-2 py-1 bg-teal-50 dark:bg-teal-900/30 text-teal-700 dark:text-teal-400 rounded-full text-xs font-medium">
                 {selectedService}
                 <button onClick={() => setSelectedService('')} className="hover:text-teal-900">×</button>
@@ -1020,7 +1048,7 @@ export const OperatorMap = () => {
                       {operators?.map((operatorCard) => (
                         <div 
                           key={operatorCard.cardId}
-                          className={`bg-gray-50 dark:bg-gray-800/50 rounded-xl p-3 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-all ${
+                          className={`bg-gray-50 dark:bg-gray-800/50 rounded-xl p-3 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 hover:shadow-md transition-all ${
                             isSelf(operatorCard.operatorId)
                               ? 'ring-2 ring-blue-300 dark:ring-blue-700 bg-blue-50 dark:bg-blue-900/20'
                               : selectedOperator?.cardId === operatorCard.cardId 
@@ -1028,8 +1056,7 @@ export const OperatorMap = () => {
                                 : ''
                           }`}
                           onClick={() => {
-                            setSelectedOperator(operatorCard);
-                            panToOperator(operatorCard);
+                            navigate(`/customer/operator-profile/${operatorCard.operatorId}`);
                           }}
                           data-testid={`desktop-operator-${operatorCard.cardId}`}
                         >
@@ -1040,7 +1067,7 @@ export const OperatorMap = () => {
                               className="relative flex-shrink-0 cursor-pointer group"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                navigate(`/operator/${operatorCard.operatorId}`);
+                                navigate(`/customer/operator-profile/${operatorCard.operatorId}`);
                               }}
                               data-testid={`button-view-profile-desktop-${operatorCard.cardId}`}
                             >
@@ -1275,7 +1302,7 @@ export const OperatorMap = () => {
                   operators?.map((operatorCard) => (
                     <div
                       key={operatorCard.cardId}
-                      className={`bg-white dark:bg-gray-800 rounded-xl border overflow-hidden shadow-sm min-h-[88px] ${
+                      className={`bg-white dark:bg-gray-800 rounded-xl border overflow-hidden shadow-sm min-h-[88px] cursor-pointer hover:shadow-md transition-all ${
                         isSelf(operatorCard.operatorId)
                           ? 'border-blue-300 dark:border-blue-700 ring-2 ring-blue-200/50 dark:ring-blue-800/50'
                           : selectedOperator?.cardId === operatorCard.cardId 
@@ -1283,9 +1310,7 @@ export const OperatorMap = () => {
                             : 'border-gray-200 dark:border-gray-700'
                       }`}
                       onClick={() => {
-                        setSelectedOperator(operatorCard);
-                        setSheetPosition('collapsed');
-                        setTimeout(() => panToOperator(operatorCard), 100);
+                        navigate(`/customer/operator-profile/${operatorCard.operatorId}`);
                       }}
                       data-testid={`mobile-operator-card-${operatorCard.cardId}`}
                     >
@@ -1295,7 +1320,7 @@ export const OperatorMap = () => {
                           className="relative flex-shrink-0 w-14 h-14 rounded-lg bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-600 overflow-hidden cursor-pointer ring-2 ring-transparent hover:ring-orange-300 transition-all"
                           onClick={(e) => {
                             e.stopPropagation();
-                            navigate(`/operator/${operatorCard.operatorId}`);
+                            navigate(`/customer/operator-profile/${operatorCard.operatorId}`);
                           }}
                           data-testid={`button-view-profile-${operatorCard.cardId}`}
                         >

@@ -245,8 +245,8 @@ export function ServiceSelector({
   if (isMobile) {
     return (
       <div ref={triggerRef} className={cn("relative", className)}>
-        <Drawer open={isOpen} onOpenChange={setIsOpen}>
-          <DrawerTrigger asChild>
+        <Popover open={isOpen} onOpenChange={setIsOpen}>
+          <PopoverTrigger asChild>
             <div data-testid="button-service-selector">
               <TriggerContent
                 selectedServices={selectedServices}
@@ -256,18 +256,24 @@ export function ServiceSelector({
                 isOpen={isOpen}
               />
             </div>
-          </DrawerTrigger>
-          <DrawerContent className="max-h-[85vh]">
-            <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700">
-              <h3 className="text-lg font-semibold text-center">Select Services</h3>
+          </PopoverTrigger>
+          <PopoverContent 
+            className="w-[calc(100vw-32px)] max-w-[400px] p-0 max-h-[50vh] overflow-hidden"
+            align="start"
+            side="bottom"
+            sideOffset={4}
+            style={{ zIndex: 99999 }}
+          >
+            <div className="px-3 py-2 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 sticky top-0">
+              <h3 className="text-sm font-semibold text-center text-black dark:text-white">Select Services</h3>
             </div>
             <ServiceList
               selectedServices={selectedServices}
               onServicesChange={onServicesChange}
               onDone={handleDone}
             />
-          </DrawerContent>
-        </Drawer>
+          </PopoverContent>
+        </Popover>
       </div>
     );
   }

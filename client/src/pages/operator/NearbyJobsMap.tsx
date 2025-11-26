@@ -327,7 +327,7 @@ export default function NearbyJobsMap() {
   }
 
   return (
-    <div className={`${isFullscreen ? 'fixed inset-0 z-50' : 'min-h-screen'} bg-gray-50 dark:bg-gray-900 flex flex-col ${!isFullscreen ? 'pb-20 md:pb-0' : ''}`}>
+    <div className={`${isFullscreen ? 'fixed inset-0 z-50' : 'h-screen overflow-hidden'} bg-gray-50 dark:bg-gray-900 flex flex-col ${!isFullscreen ? 'pb-16 md:pb-0' : ''}`}>
       {!isFullscreen && <Header />}
       
       {/* Verification Status Banner */}

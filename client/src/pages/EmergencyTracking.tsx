@@ -1,6 +1,7 @@
-import { useParams } from "wouter";
+import { useParams, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
-import { AlertCircle, MapPin, Phone, Clock, CheckCircle, Loader2, User, Users } from "lucide-react";
+import { AlertCircle, MapPin, Phone, Clock, CheckCircle, Loader2, User, Users, Home, ArrowLeft } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import type { EmergencyRequest, DispatchQueue } from "@shared/schema";
 
 interface EmergencyWithQueue extends EmergencyRequest {
@@ -10,6 +11,7 @@ interface EmergencyWithQueue extends EmergencyRequest {
 
 export default function EmergencyTracking() {
   const { emergencyId } = useParams<{ emergencyId: string }>();
+  const [, setLocation] = useLocation();
 
   const { data: emergency, isLoading } = useQuery<EmergencyWithQueue>({
     queryKey: [`/api/emergency-requests/${emergencyId}`],
@@ -99,17 +101,34 @@ export default function EmergencyTracking() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-black">
-      {/* Header */}
-      <div className="bg-gradient-to-r from-red-600 to-orange-500 dark:from-red-700 dark:to-orange-600 text-white py-6 px-4 shadow-2xl">
+      {/* Header with Navigation */}
+      <div className="bg-gradient-to-r from-red-600 to-orange-500 dark:from-red-700 dark:to-orange-600 text-white py-4 px-4 shadow-2xl">
         <div className="max-w-4xl mx-auto">
+          <div className="flex items-center justify-between mb-3">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setLocation("/")}
+              className="text-white hover:bg-white/20"
+              data-testid="button-back-home"
+            >
+              <Home className="w-4 h-4 mr-1" />
+              Home
+            </Button>
+            <span className="text-xs text-white/70 bg-white/20 px-2 py-1 rounded-full">
+              #{emergency.emergencyId}
+            </span>
+          </div>
           <div className="flex items-center gap-3">
-            <AlertCircle className="w-8 h-8 md:w-10 md:h-10 animate-pulse" />
+            <AlertCircle className="w-7 h-7 md:w-8 md:h-8 animate-pulse" />
             <div>
-              <h1 className="text-2xl md:text-3xl font-black tracking-tight">
+              <h1 className="text-xl md:text-2xl font-black tracking-tight">
                 EMERGENCY TRACKING
               </h1>
-              <p className="text-white/90 text-sm md:text-base">
-                Request #{emergency.emergencyId}
+              <p className="text-white/90 text-xs md:text-sm truncate max-w-[250px] md:max-w-none">
+                {emergency.serviceType} - {emergency.location && emergency.location.length > 30 
+                  ? `${emergency.location.substring(0, 30)}...` 
+                  : emergency.location}
               </p>
             </div>
           </div>
