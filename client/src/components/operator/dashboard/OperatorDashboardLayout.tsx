@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { IOSToggle } from "@/components/ui/ios-toggle";
 import { useToast } from "@/hooks/use-toast";
-import { AlertCircle, X, Truck } from "lucide-react";
+import { AlertCircle, X, Truck, AlertTriangle } from "lucide-react";
 import { NotificationBell } from "@/components/NotificationBell";
 import { TierSwitcher } from "@/components/TierSwitcher";
 import { ProfileDropdown } from "@/components/ProfileDropdown";
@@ -20,6 +20,7 @@ import { ServicesPanel } from "./ServicesPanel";
 import { HistoryPanel } from "./HistoryPanel";
 import { ManpowerPanel } from "./ManpowerPanel";
 import { LocationPermissionModal } from "@/components/LocationPermissionModal";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { OperatorTier, Operator } from "@shared/schema";
 import { 
@@ -27,6 +28,12 @@ import {
   getMetricsForTier, 
   getTabsForTier
 } from "@shared/tierCapabilities";
+
+const TIER_LABELS: Record<string, string> = {
+  professional: "Professional & Certified",
+  equipped: "Skilled & Equipped",
+  manual: "Manual Operator",
+};
 
 interface MetricData {
   id: string;
@@ -49,6 +56,8 @@ export function OperatorDashboardLayout({ tier }: OperatorDashboardLayoutProps) 
   const [quoteJobId, setQuoteJobId] = useState<string | null>(null);
   const [declineJobId, setDeclineJobId] = useState<string | null>(null);
   const [showVerificationBanner, setShowVerificationBanner] = useState(true);
+  const [showTierSwitchConfirm, setShowTierSwitchConfirm] = useState(false);
+  const [tierSwitchInfo, setTierSwitchInfo] = useState<{ currentTier: string; newTier: string } | null>(null);
 
   const tierInfo = TIER_CAPABILITIES[tier];
   const metrics = getMetricsForTier(tier);
@@ -91,7 +100,9 @@ export function OperatorDashboardLayout({ tier }: OperatorDashboardLayoutProps) 
     enabled: !!operatorId,
   });
 
-  const handleToggleOnline = async () => {
+  const handleToggleOnline = async (options: { confirmed?: boolean; forceOnline?: boolean } = {}) => {
+    const { confirmed = false, forceOnline } = options;
+    
     if (!canGoOnline) {
       toast({
         title: "Cannot Go Online",
@@ -101,8 +112,11 @@ export function OperatorDashboardLayout({ tier }: OperatorDashboardLayoutProps) 
       return;
     }
 
+    // Determine target status: if forceOnline is set, use it; otherwise toggle current state
+    const targetOnline = forceOnline !== undefined ? forceOnline : !isOnline;
+
     // Check if trying to go online without location
-    if (!isOnline && !hasLocation) {
+    if (targetOnline && !hasLocation) {
       setShowLocationModal(true);
       toast({
         title: "Location Required",
@@ -113,18 +127,60 @@ export function OperatorDashboardLayout({ tier }: OperatorDashboardLayoutProps) 
     }
 
     try {
-      const newStatus = !isOnline;
-      await apiRequest(`/api/operators/${operatorId}/toggle-online`, {
+      const response = await fetch(`/api/operators/${operatorId}/toggle-online`, {
         method: "POST",
-        body: JSON.stringify({ isOnline: newStatus ? 1 : 0, activeTier: tier }),
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ isOnline: targetOnline ? 1 : 0, activeTier: tier, confirmed }),
       });
-      setIsOnline(newStatus);
+      
+      const data = await response.json();
+      
+      // Handle tier switch confirmation requirement
+      if (data.requiresConfirmation && data.warning === "tier_switch") {
+        setTierSwitchInfo({ 
+          currentTier: data.currentTier, 
+          newTier: data.newTier 
+        });
+        setShowTierSwitchConfirm(true);
+        return;
+      }
+      
+      // Handle errors
+      if (!response.ok) {
+        if (data.error === "active_jobs") {
+          toast({
+            title: "Active Jobs in Progress",
+            description: data.message,
+            variant: "destructive",
+          });
+        } else {
+          toast({
+            title: "Error",
+            description: data.message || "Failed to update online status.",
+            variant: "destructive",
+          });
+        }
+        return;
+      }
+      
+      // Success - update local state and invalidate queries
+      setIsOnline(targetOnline);
+      
+      // Update user context with new view tier if going online
+      if (targetOnline && data.viewTier) {
+        updateUser({ viewTier: data.viewTier, activeTier: data.activeTier });
+      }
+      
+      // Invalidate all relevant queries to refresh UI across the app
       queryClient.invalidateQueries({ queryKey: ["/api/operators"] });
       queryClient.invalidateQueries({ queryKey: [`/api/operators/by-id/${operatorId}`] });
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/session"] });
+      
       toast({
-        title: newStatus ? "You're Online" : "You're Offline",
-        description: newStatus 
-          ? "You can now receive job requests in your area."
+        title: targetOnline ? "You're Online" : "You're Offline",
+        description: targetOnline 
+          ? `You can now receive ${TIER_LABELS[tier]} job requests.`
           : "You won't receive new job requests.",
       });
     } catch (error: any) {
@@ -136,31 +192,27 @@ export function OperatorDashboardLayout({ tier }: OperatorDashboardLayoutProps) 
       });
     }
   };
+  
+  const handleConfirmTierSwitch = async () => {
+    setShowTierSwitchConfirm(false);
+    setTierSwitchInfo(null);
+    // Force go online with confirmed=true (we know user wants to go online since they confirmed)
+    await handleToggleOnline({ confirmed: true, forceOnline: true });
+  };
+  
+  const handleCancelTierSwitch = () => {
+    setShowTierSwitchConfirm(false);
+    setTierSwitchInfo(null);
+  };
 
   const handleLocationGranted = async () => {
     setShowLocationModal(false);
-    // After location is granted, try to go online
-    if (canGoOnline) {
-      try {
-        await apiRequest(`/api/operators/${operatorId}/toggle-online`, {
-          method: "POST",
-          body: JSON.stringify({ isOnline: 1, activeTier: tier }),
-        });
-        setIsOnline(true);
-        queryClient.invalidateQueries({ queryKey: ["/api/operators"] });
-        queryClient.invalidateQueries({ queryKey: [`/api/operators/by-id/${operatorId}`] });
-        toast({
-          title: "You're Online",
-          description: "You can now receive job requests in your area.",
-        });
-      } catch (error: any) {
-        const errorMessage = error?.message || "Failed to go online. Please try again.";
-        toast({
-          title: "Error",
-          description: errorMessage,
-          variant: "destructive",
-        });
-      }
+    // After location is granted, try to go online using the full toggle flow
+    if (canGoOnline && !isOnline) {
+      // Use a small delay to ensure location state is updated
+      setTimeout(() => {
+        handleToggleOnline({ forceOnline: true });
+      }, 100);
     }
   };
 
@@ -269,7 +321,7 @@ export function OperatorDashboardLayout({ tier }: OperatorDashboardLayoutProps) 
             </div>
             <IOSToggle
               checked={isOnline}
-              onCheckedChange={handleToggleOnline}
+              onCheckedChange={() => handleToggleOnline({})}
               disabled={!canGoOnline}
               size="sm"
               data-testid="online-toggle"
@@ -374,6 +426,42 @@ export function OperatorDashboardLayout({ tier }: OperatorDashboardLayoutProps) 
           }
         }}
       />
+
+      {/* Tier Switch Confirmation Dialog */}
+      <Dialog open={showTierSwitchConfirm} onOpenChange={setShowTierSwitchConfirm}>
+        <DialogContent className="bg-white dark:bg-gray-900 max-w-md">
+          <DialogHeader>
+            <div className="flex items-center gap-3 mb-2">
+              <div className="p-2 rounded-full bg-amber-100 dark:bg-amber-900/30">
+                <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+              </div>
+              <DialogTitle className="text-lg">Switch Online Status?</DialogTitle>
+            </div>
+            <DialogDescription className="text-gray-600 dark:text-gray-400">
+              You're currently online as <span className="font-semibold text-gray-900 dark:text-white">{tierSwitchInfo?.currentTier && TIER_LABELS[tierSwitchInfo.currentTier]}</span>. 
+              Going online as <span className="font-semibold text-gray-900 dark:text-white">{tierSwitchInfo?.newTier && TIER_LABELS[tierSwitchInfo.newTier]}</span> will 
+              automatically take you offline from {tierSwitchInfo?.currentTier && TIER_LABELS[tierSwitchInfo.currentTier]}.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex gap-2 mt-4">
+            <Button
+              variant="outline"
+              onClick={handleCancelTierSwitch}
+              className="flex-1"
+              data-testid="button-cancel-online-switch"
+            >
+              Stay on {tierSwitchInfo?.currentTier && TIER_LABELS[tierSwitchInfo.currentTier]}
+            </Button>
+            <Button
+              onClick={handleConfirmTierSwitch}
+              className="flex-1 bg-teal-600 hover:bg-teal-700 text-white"
+              data-testid="button-confirm-online-switch"
+            >
+              Switch to {tierSwitchInfo?.newTier && TIER_LABELS[tierSwitchInfo.newTier]}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <MobileBottomNav context="operator" />
     </div>

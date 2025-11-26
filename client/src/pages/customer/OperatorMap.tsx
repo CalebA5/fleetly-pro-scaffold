@@ -767,156 +767,136 @@ export const OperatorMap = () => {
         }}
       />
       
-      {/* Unified Page Header with All Controls */}
-      <div className="border-b border-gray-200 dark:border-gray-800 bg-gradient-to-r from-white via-gray-50 to-orange-50 dark:from-gray-900 dark:via-gray-850 dark:to-orange-900/10 px-4 sm:px-6 lg:px-8 py-4 shadow-sm">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-            {/* Left: Title + Count + Filter */}
-            <div className="flex flex-col sm:flex-row sm:items-center gap-3 flex-1">
-              <div className="flex items-center gap-3">
-                <div className="bg-orange-100 dark:bg-orange-900 p-2 rounded-lg">
-                  <MapPin className="w-5 h-5 text-orange-600 dark:text-orange-400" />
-                </div>
-                <div>
-                  <h1 className="text-lg font-bold text-black dark:text-white">Find Operators</h1>
-                  <p className="text-xs text-gray-600 dark:text-gray-400 flex items-center gap-1">
-                    <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-                    <strong className="text-black dark:text-white">{operators?.length || 0}</strong> available
-                  </p>
-                </div>
-              </div>
-              
-              {/* Service Filter */}
-              <div className="flex items-center gap-2 sm:ml-4">
-                <Filter className="w-4 h-4 text-gray-600 dark:text-gray-400 flex-shrink-0" />
-                <Select
-                  value={selectedService || "all"}
-                  onValueChange={(value) => setSelectedService(value === "all" ? "" : value)}
-                >
-                  <SelectTrigger className="w-[160px]" data-testid="select-service-filter">
-                    <SelectValue placeholder="All Services" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {services.map((service) => (
-                      <SelectItem 
-                        key={service} 
-                        value={service === "All" ? "all" : service}
-                      >
-                        {service}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              {/* Favorites Filter - Only show if user is authenticated */}
-              {customerId && (
-                <div className="flex items-center gap-2">
-                  <label className="flex items-center gap-2 cursor-pointer group">
-                    <input
-                      type="checkbox"
-                      checked={showFavoritesOnly}
-                      onChange={(e) => setShowFavoritesOnly(e.target.checked)}
-                      className="w-4 h-4 rounded border-gray-300 text-orange-600 focus:ring-orange-500 cursor-pointer"
-                      data-testid="checkbox-favorites-only"
-                    />
-                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300 group-hover:text-orange-600 dark:group-hover:text-orange-400 transition-colors flex items-center gap-1">
-                      <Heart className={`w-4 h-4 ${showFavoritesOnly ? 'fill-red-500 text-red-500' : ''}`} />
-                      Favorites Only
-                    </span>
-                  </label>
-                </div>
-              )}
-            </div>
-            
-            {/* Proximity Radius Slider - Only show if user location is available */}
-            {userLat !== null && userLon !== null && (
-              <div className="w-full lg:w-auto lg:min-w-[280px] xl:min-w-[320px] border-t lg:border-t-0 lg:border-l border-gray-200 dark:border-gray-700 pt-3 lg:pt-0 lg:pl-4">
-                <div className="flex items-center gap-3">
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    <Target className="w-4 h-4 text-orange-600 dark:text-orange-400" />
-                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                      Search Radius:
-                    </span>
-                  </div>
-                  <div className="flex-1 flex items-center gap-3">
-                    <Slider
-                      value={[proximityRadius]}
-                      onValueChange={(values) => setProximityRadius(values[0])}
-                      min={1}
-                      max={100}
-                      step={1}
-                      className="flex-1"
-                      data-testid="slider-proximity-radius"
-                    />
-                    <span className="text-sm font-bold text-black dark:text-white whitespace-nowrap min-w-[50px] text-right">
-                      {proximityRadius} km
-                    </span>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Right: View Controls */}
-            <div className="flex items-center gap-2">
-              {/* Map/Satellite Toggle - Desktop */}
-              <div className="hidden md:flex gap-2">
-                <Button
-                  variant={mapStyle === 'streets' ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => setMapStyle('streets')}
-                  className={`transition-all ${mapStyle === 'streets' ? 'bg-black text-white hover:bg-gray-800 dark:bg-white dark:text-black shadow-md' : 'hover:border-gray-400'}`}
-                  data-testid="button-map-view"
-                >
-                  <MapPin className="w-4 h-4 mr-1" />
-                  Map
-                </Button>
-                <Button
-                  variant={mapStyle === 'satellite' ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => setMapStyle('satellite')}
-                  className={`transition-all ${mapStyle === 'satellite' ? 'bg-black text-white hover:bg-gray-800 dark:bg-white dark:text-black shadow-md' : 'hover:border-gray-400'}`}
-                  data-testid="button-satellite-view"
-                >
-                  <Truck className="w-4 h-4 mr-1" />
-                  Satellite
-                </Button>
-              </div>
-
-              {/* Map/List View Toggle - Mobile */}
-              <div className="flex gap-2 md:hidden">
-                <Button
-                  variant={viewMode === 'map' ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => setViewMode('map')}
-                  className={`transition-all ${viewMode === 'map' ? 'bg-black text-white hover:bg-gray-800 dark:bg-white dark:text-black' : ''}`}
-                  data-testid="button-map-view-toggle"
-                >
-                  <MapIcon className="w-4 h-4 mr-1" />
-                  Map
-                </Button>
-                <Button
-                  variant={viewMode === 'list' ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => setViewMode('list')}
-                  className={`transition-all ${viewMode === 'list' ? 'bg-black text-white hover:bg-gray-800 dark:bg-white dark:text-black' : ''}`}
-                  data-testid="button-list-view-toggle"
-                >
-                  <List className="w-4 h-4 mr-1" />
-                  List
-                </Button>
-              </div>
-            </div>
+      {/* Mobile-First Page Header */}
+      <div className="border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 px-4 py-3">
+        {/* Top Row: Title, Count, Filter Button */}
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <h1 className="text-lg font-bold text-black dark:text-white">Find Operators</h1>
+            <span className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded-full">
+              <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></span>
+              {operators?.length || 0}
+            </span>
           </div>
+          
+          {/* Filter Dropdown Button */}
+          <Select
+            value={`${selectedService || 'all'}_${proximityRadius}`}
+            onValueChange={(value) => {
+              // Parse combined value
+              const parts = value.split('_');
+              if (parts.length >= 2) {
+                const svc = parts.slice(0, -1).join('_');
+                const rad = parseInt(parts[parts.length - 1]);
+                setSelectedService(svc === 'all' ? '' : svc);
+                if (!isNaN(rad)) setProximityRadius(rad);
+              }
+            }}
+          >
+            <SelectTrigger className="w-auto border-0 shadow-none p-0 h-auto" data-testid="button-filter-menu">
+              <div className="flex items-center gap-1 px-3 py-1.5 bg-gray-100 dark:bg-gray-800 rounded-full">
+                <Filter className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Filters</span>
+              </div>
+            </SelectTrigger>
+            <SelectContent align="end" className="w-56">
+              <div className="px-3 py-2 border-b border-gray-100 dark:border-gray-700">
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Service Type</p>
+              </div>
+              {services.map((service) => (
+                <SelectItem 
+                  key={service} 
+                  value={`${service === "All" ? "all" : service}_${proximityRadius}`}
+                  className="cursor-pointer"
+                >
+                  {service}
+                </SelectItem>
+              ))}
+              {userLat !== null && userLon !== null && (
+                <>
+                  <div className="px-3 py-2 border-t border-b border-gray-100 dark:border-gray-700 mt-1">
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Distance</p>
+                  </div>
+                  {[10, 25, 50, 75, 100].map((distance) => (
+                    <SelectItem 
+                      key={`dist-${distance}`} 
+                      value={`${selectedService || 'all'}_${distance}`}
+                      className="cursor-pointer"
+                    >
+                      <div className="flex items-center gap-2">
+                        <Target className="w-3 h-3 text-teal-600" />
+                        Within {distance} km
+                        {proximityRadius === distance && <span className="ml-auto text-teal-600">✓</span>}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </>
+              )}
+            </SelectContent>
+          </Select>
         </div>
+        
+        {/* View Toggle Tabs */}
+        <div className="flex gap-1 p-1 bg-gray-100 dark:bg-gray-800 rounded-lg">
+          <button
+            onClick={() => setViewMode('list')}
+            className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-md text-sm font-medium transition-all ${
+              viewMode === 'list' 
+                ? 'bg-white dark:bg-gray-700 text-black dark:text-white shadow-sm' 
+                : 'text-gray-500 dark:text-gray-400'
+            }`}
+            data-testid="button-list-view-toggle"
+          >
+            <List className="w-4 h-4" />
+            List
+          </button>
+          <button
+            onClick={() => setViewMode('map')}
+            className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-md text-sm font-medium transition-all ${
+              viewMode === 'map' 
+                ? 'bg-white dark:bg-gray-700 text-black dark:text-white shadow-sm' 
+                : 'text-gray-500 dark:text-gray-400'
+            }`}
+            data-testid="button-map-view-toggle"
+          >
+            <MapIcon className="w-4 h-4" />
+            Map
+          </button>
+        </div>
+        
+        {/* Active Filters Display */}
+        {(selectedService || showFavoritesOnly || (userLat && proximityRadius !== 50)) && (
+          <div className="flex flex-wrap gap-2 mt-3">
+            {selectedService && (
+              <span className="inline-flex items-center gap-1 px-2 py-1 bg-teal-50 dark:bg-teal-900/30 text-teal-700 dark:text-teal-400 rounded-full text-xs font-medium">
+                {selectedService}
+                <button onClick={() => setSelectedService('')} className="hover:text-teal-900">×</button>
+              </span>
+            )}
+            {userLat && proximityRadius !== 50 && (
+              <span className="inline-flex items-center gap-1 px-2 py-1 bg-orange-50 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 rounded-full text-xs font-medium">
+                <Target className="w-3 h-3" />
+                {proximityRadius} km
+                <button onClick={() => setProximityRadius(50)} className="hover:text-orange-900">×</button>
+              </span>
+            )}
+            {showFavoritesOnly && (
+              <span className="inline-flex items-center gap-1 px-2 py-1 bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-400 rounded-full text-xs font-medium">
+                <Heart className="w-3 h-3 fill-current" />
+                Favorites
+                <button onClick={() => setShowFavoritesOnly(false)} className="hover:text-red-900">×</button>
+              </span>
+            )}
+          </div>
+        )}
       </div>
 
-      {/* Map and Sidebar */}
-      <div className="flex-1 flex overflow-hidden">
-        {/* Map - Disabled on mobile when in list view */}
+      {/* Map and List Content */}
+      <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
+        {/* Map View */}
         <div className={`flex-1 relative bg-gray-100 dark:bg-gray-900 ${
-          viewMode === 'list' ? 'hidden md:flex' : 'flex'
-        } ${viewMode === 'list' ? 'pointer-events-none' : ''}`}>
+          viewMode === 'list' ? 'hidden' : 'flex'
+        }`}>
           <div ref={mapContainerRef} className="absolute inset-0" />
           {!mapLoaded && (
             <div className="absolute inset-0 flex items-center justify-center bg-gray-100 dark:bg-gray-900">
@@ -928,125 +908,180 @@ export const OperatorMap = () => {
           )}
         </div>
 
-        {/* Sidebar with minimize toggle - Full width on mobile in list view */}
-        <div className={`relative border-l border-gray-200 dark:border-gray-800 overflow-y-auto bg-gray-50 dark:bg-gray-800 transition-all duration-300 ${
-          viewMode === 'list' 
-            ? 'w-full md:w-96' 
-            : isSidebarMinimized 
-              ? 'hidden md:block md:w-12' 
-              : 'hidden md:block md:w-96'
+        {/* List View - Full-width mobile scrollable list like Facebook */}
+        <div className={`flex-1 overflow-y-auto bg-gray-50 dark:bg-gray-900 ${
+          viewMode === 'list' ? 'flex flex-col' : 'hidden'
         }`}>
-          {/* Toggle Button - Only visible and functional on desktop in map view - STICKY/FIXED */}
-          {viewMode === 'map' && (
-            <button
-              onClick={() => setIsSidebarMinimized(!isSidebarMinimized)}
-              className="hidden md:flex items-center justify-center fixed left-0 top-1/2 -translate-y-1/2 z-50 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm text-gray-700 dark:text-gray-300 rounded-r-lg px-2 py-6 shadow-lg border border-l-0 border-gray-200 dark:border-gray-700 hover:bg-white dark:hover:bg-gray-800 hover:shadow-xl hover:pr-3 transition-all duration-200 group"
-              style={{ marginLeft: isSidebarMinimized ? 'calc(100vw - 3rem)' : 'calc(100vw - 24rem)' }}
-              aria-label={isSidebarMinimized ? "Expand sidebar" : "Minimize sidebar"}
-              data-testid="button-toggle-sidebar"
-            >
-              {isSidebarMinimized ? (
-                <ChevronLeft className="w-4 h-4 group-hover:scale-110 transition-transform" />
-              ) : (
-                <ChevronRight className="w-4 h-4 group-hover:scale-110 transition-transform" />
-              )}
-            </button>
-          )}
-
-          {!isSidebarMinimized && (
-            <div className="p-4 space-y-4">
-            {/* Favorite Operators Section */}
-            {favorites.length > 0 && allOperators && (
-              <>
-                {(() => {
-                  const favoriteOperators = allOperators.filter(op => 
-                    isFavorite(op.operatorId) && op.isOnline
-                  );
-                  
-                  return favoriteOperators.length > 0 ? (
-                    <div className="mb-6">
-                      <div className="flex items-center gap-2 mb-3">
-                        <Heart className="w-5 h-5 fill-red-500 text-red-500 icon-warm-glow" />
-                        <h3 className="font-bold text-black dark:text-white">Your Favorites Online</h3>
-                      </div>
-                      <div className="space-y-2">
-                        {favoriteOperators.map(operator => (
-                          <div
-                            key={operator.operatorId}
-                            className="p-3 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 shadow-warm cursor-pointer hover:shadow-warm-glow transition-all"
-                            onClick={() => panToOperator(operator)}
-                            data-testid={`favorite-${operator.operatorId}`}
-                          >
-                            <div className="flex items-center justify-between">
-                              <div className="flex-1">
-                                <p className="font-semibold text-black dark:text-white text-sm">{operator.name}</p>
-                                <div className="flex items-center gap-1 text-xs text-gray-600 dark:text-gray-400">
-                                  <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
-                                  <span>{operator.rating}</span>
-                                  <span className="mx-1">•</span>
-                                  <span>${operator.hourlyRate}/hr</span>
-                                </div>
-                              </div>
-                              <Badge className="bg-green-500 dark:bg-green-600 text-white text-xs">Online</Badge>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                      <div className="border-b border-gray-300 dark:border-gray-600 my-4"></div>
-                    </div>
-                  ) : null;
-                })()}
-              </>
-            )}
+          {/* Favorites Horizontal Scroll Section */}
+          {favorites.length > 0 && allOperators && (() => {
+            const favoriteOperators = allOperators.filter(op => 
+              isFavorite(op.operatorId) && op.isOnline
+            );
             
+            return favoriteOperators.length > 0 ? (
+              <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 py-3">
+                <div className="flex items-center gap-2 px-4 mb-2">
+                  <Heart className="w-4 h-4 fill-red-500 text-red-500" />
+                  <h3 className="text-sm font-semibold text-black dark:text-white">Favorites Online</h3>
+                </div>
+                <div className="flex gap-3 overflow-x-auto px-4 pb-1 scrollbar-hide">
+                  {favoriteOperators.map(operator => (
+                    <div
+                      key={operator.operatorId}
+                      className="flex-shrink-0 w-32 p-2 bg-gray-50 dark:bg-gray-700 rounded-xl cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
+                      onClick={() => {
+                        setViewMode('map');
+                        setTimeout(() => panToOperator(operator), 300);
+                      }}
+                      data-testid={`favorite-card-${operator.operatorId}`}
+                    >
+                      <div className="w-10 h-10 rounded-full bg-teal-100 dark:bg-teal-900 flex items-center justify-center mx-auto mb-1">
+                        <span className="text-teal-700 dark:text-teal-300 font-bold text-sm">{operator.name.charAt(0)}</span>
+                      </div>
+                      <p className="text-xs font-medium text-black dark:text-white text-center truncate">{operator.name}</p>
+                      <div className="flex items-center justify-center gap-1 text-xs text-gray-500">
+                        <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
+                        <span>{operator.rating}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : null;
+          })()}
+          
+          {/* Main Operator List - Vertical scroll with swipeable cards */}
+          <div className="flex-1 overflow-y-auto">
             {operators?.length === 0 ? (
-              <div className="text-center py-12">
-                <p className="text-gray-600 dark:text-gray-400">No operators found for this service</p>
+              <div className="text-center py-16">
+                <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
+                  <MapPin className="w-8 h-8 text-gray-400" />
+                </div>
+                <p className="text-gray-600 dark:text-gray-400 mb-2">No operators found</p>
+                <p className="text-sm text-gray-500 dark:text-gray-500 mb-4">Try adjusting your filters</p>
                 <Button 
                   variant="outline" 
-                  size="sm" 
-                  className="mt-4"
-                  onClick={() => setSelectedService("")}
+                  size="sm"
+                  onClick={() => {
+                    setSelectedService("");
+                    setProximityRadius(50);
+                  }}
                   data-testid="button-clear-filter"
                 >
-                  Clear Filter
+                  Clear All Filters
                 </Button>
               </div>
             ) : (
-              operators?.map((operatorCard) => (
-                <div 
-                  key={operatorCard.cardId}
-                  onClick={() => panToOperator(operatorCard)}
-                  className={selectedOperator?.cardId === operatorCard.cardId ? 'ring-2 ring-orange-500 rounded-xl' : ''}
-                >
-                  <OperatorTile
-                    operator={operatorCard}
-                    isFavorite={isFavorite(operatorCard.operatorId)}
-                    onFavoriteToggle={(operatorId, isFav) => {
-                      if (isFav) {
-                        addFavoriteMutation.mutate(operatorId);
-                      } else {
-                        removeFavoriteMutation.mutate(operatorId);
-                      }
-                    }}
-                  />
-                </div>
-              ))
-            )}
-            </div>
-          )}
-
-          {/* Minimized State - Show compact vertical icons */}
-          {isSidebarMinimized && (
-            <div className="flex flex-col items-center py-4 space-y-4">
-              <div className="text-xs font-semibold text-gray-600 dark:text-gray-400 writing-mode-vertical-rl rotate-180">
-                Operators ({operators?.length || 0})
+              <div className="divide-y divide-gray-100 dark:divide-gray-800">
+                {operators?.map((operatorCard) => (
+                  <div 
+                    key={operatorCard.cardId}
+                    className={`bg-white dark:bg-gray-800 ${
+                      selectedOperator?.cardId === operatorCard.cardId 
+                        ? 'border-l-4 border-l-teal-500' 
+                        : ''
+                    }`}
+                    data-testid={`operator-list-item-${operatorCard.cardId}`}
+                  >
+                    {/* Compact Card Layout */}
+                    <div className="flex items-center gap-3 p-4">
+                      {/* Avatar */}
+                      <div className="flex-shrink-0 w-14 h-14 rounded-full bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-600 flex items-center justify-center overflow-hidden">
+                        {operatorCard.photo ? (
+                          <img src={operatorCard.photo} alt={operatorCard.name} className="w-full h-full object-cover" />
+                        ) : (
+                          <span className="text-xl font-bold text-gray-600 dark:text-gray-300">{operatorCard.name.charAt(0)}</span>
+                        )}
+                      </div>
+                      
+                      {/* Info */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <h4 className="font-semibold text-black dark:text-white truncate">{operatorCard.name}</h4>
+                          {isFavorite(operatorCard.operatorId) && (
+                            <Heart className="w-4 h-4 fill-red-500 text-red-500 flex-shrink-0" />
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+                          <div className="flex items-center gap-1">
+                            <Star className="w-3.5 h-3.5 fill-yellow-400 text-yellow-400" />
+                            <span>{operatorCard.rating}</span>
+                          </div>
+                          <span>•</span>
+                          <span>{operatorCard.totalJobs} jobs</span>
+                          {userLat && userLon && (
+                            <>
+                              <span>•</span>
+                              <span className="text-teal-600 dark:text-teal-400">
+                                {calculateDistance(userLat, userLon, parseFloat(operatorCard.latitude), parseFloat(operatorCard.longitude)).toFixed(1)} km
+                              </span>
+                            </>
+                          )}
+                        </div>
+                        {/* Services */}
+                        <div className="flex flex-wrap gap-1 mt-1.5">
+                          {operatorCard.services.slice(0, 2).map((service, idx) => (
+                            <span key={idx} className="text-xs px-1.5 py-0.5 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded">
+                              {service}
+                            </span>
+                          ))}
+                          {operatorCard.services.length > 2 && (
+                            <span className="text-xs text-gray-400">+{operatorCard.services.length - 2}</span>
+                          )}
+                        </div>
+                      </div>
+                      
+                      {/* Actions */}
+                      <div className="flex flex-col items-end gap-2">
+                        <Badge className={`${operatorCard.isOnline ? 'bg-green-500' : 'bg-gray-400'} text-white text-xs`}>
+                          {operatorCard.isOnline ? 'Online' : 'Offline'}
+                        </Badge>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="text-xs h-7 px-2 border-teal-500 text-teal-600 hover:bg-teal-50"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setViewMode('map');
+                            setTimeout(() => panToOperator(operatorCard), 300);
+                          }}
+                          data-testid={`button-view-on-map-${operatorCard.cardId}`}
+                        >
+                          View
+                        </Button>
+                      </div>
+                    </div>
+                    
+                    {/* Swipe Action Hint (hidden but provides touch feedback) */}
+                    <div className="flex border-t border-gray-100 dark:border-gray-700">
+                      <button
+                        className="flex-1 py-2.5 text-xs font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center justify-center gap-1"
+                        onClick={() => {
+                          if (isFavorite(operatorCard.operatorId)) {
+                            removeFavoriteMutation.mutate(operatorCard.operatorId);
+                          } else {
+                            addFavoriteMutation.mutate(operatorCard.operatorId);
+                          }
+                        }}
+                        data-testid={`button-toggle-fav-${operatorCard.cardId}`}
+                      >
+                        <Heart className={`w-4 h-4 ${isFavorite(operatorCard.operatorId) ? 'fill-red-500 text-red-500' : ''}`} />
+                        {isFavorite(operatorCard.operatorId) ? 'Saved' : 'Save'}
+                      </button>
+                      <button
+                        className="flex-1 py-2.5 text-xs font-medium text-teal-600 dark:text-teal-400 hover:bg-teal-50 dark:hover:bg-teal-900/20 flex items-center justify-center gap-1 border-l border-gray-100 dark:border-gray-700"
+                        onClick={(e) => handleRequestService(operatorCard, e)}
+                        data-testid={`button-request-${operatorCard.cardId}`}
+                      >
+                        <Truck className="w-4 h-4" />
+                        Request
+                      </button>
+                    </div>
+                  </div>
+                ))}
               </div>
-              {favorites.length > 0 && (
-                <Heart className="w-5 h-5 fill-red-500 text-red-500" />
-              )}
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </div>
 
