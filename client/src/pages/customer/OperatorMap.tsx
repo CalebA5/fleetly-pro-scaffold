@@ -716,9 +716,10 @@ export const OperatorMap = () => {
     // Navigate to detailed service request form
     // Pre-fill service type and operator info
     const services = operatorCard.activeTiers?.[0]?.services || operatorCard.services || [];
-    const service = services.length > 0 ? services[0] : "";
+    const firstService = services.length > 0 ? services[0] : "";
+    const serviceName = typeof firstService === 'string' ? firstService : firstService?.name || '';
     const params = new URLSearchParams({
-      service: service,
+      service: serviceName,
       operatorId: operatorCard.operatorId,
       operatorName: operatorCard.name
     });
@@ -1020,12 +1021,15 @@ export const OperatorMap = () => {
                         </div>
                         {/* Services */}
                         <div className="flex flex-wrap gap-1 mt-1.5">
-                          {operatorCard.services.slice(0, 2).map((service, idx) => (
-                            <span key={idx} className="text-xs px-1.5 py-0.5 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded">
-                              {service}
-                            </span>
-                          ))}
-                          {operatorCard.services.length > 2 && (
+                          {operatorCard.services?.slice(0, 2).map((service: any, idx: number) => {
+                            const serviceName = typeof service === 'string' ? service : service?.name || 'Service';
+                            return (
+                              <span key={idx} className="text-xs px-1.5 py-0.5 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded">
+                                {serviceName}
+                              </span>
+                            );
+                          })}
+                          {operatorCard.services?.length > 2 && (
                             <span className="text-xs text-gray-400">+{operatorCard.services.length - 2}</span>
                           )}
                         </div>

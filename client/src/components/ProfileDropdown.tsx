@@ -238,9 +238,10 @@ export const ProfileDropdown = ({
             <span>Theme {currentSeasonEmoji} {currentModeLabel}</span>
           </DropdownMenuSubTrigger>
           <DropdownMenuSubContent 
-            className="w-56 max-md:fixed max-md:left-4 max-md:right-4 max-md:w-auto"
+            className="w-56"
             sideOffset={2}
-            alignOffset={-100}
+            alignOffset={0}
+            collisionPadding={16}
           >
             <DropdownMenuLabel className="text-xs text-muted-foreground">
               Theme Settings
