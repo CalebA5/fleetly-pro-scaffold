@@ -68,7 +68,9 @@ export default function Settings() {
   const isCustomerContext = contextParam === 'customer' || location.includes('/customer/');
   const isOperatorContext = !isCustomerContext && (location.includes('/operator') || contextParam === 'operator');
 
-  const handlePasswordChange = () => {
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+
+  const handlePasswordChange = async () => {
     if (passwordForm.newPassword !== passwordForm.confirmPassword) {
       toast({
         title: "Passwords don't match",
@@ -85,12 +87,45 @@ export default function Settings() {
       });
       return;
     }
-    toast({
-      title: "Password updated",
-      description: "Your password has been changed successfully.",
-    });
-    setShowPasswordDialog(false);
-    setPasswordForm({ currentPassword: "", newPassword: "", confirmPassword: "" });
+    
+    setIsChangingPassword(true);
+    try {
+      const response = await fetch('/api/auth/change-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          currentPassword: passwordForm.currentPassword,
+          newPassword: passwordForm.newPassword,
+        }),
+      });
+      
+      const data = await response.json();
+      
+      if (!response.ok) {
+        toast({
+          title: "Password change failed",
+          description: data.error || "Could not change password. Please try again.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      toast({
+        title: "Password updated",
+        description: "Your password has been changed successfully.",
+      });
+      setShowPasswordDialog(false);
+      setPasswordForm({ currentPassword: "", newPassword: "", confirmPassword: "" });
+    } catch (error) {
+      toast({
+        title: "Password change failed",
+        description: "An error occurred. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsChangingPassword(false);
+    }
   };
   
   const handleRefreshLocation = async () => {

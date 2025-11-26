@@ -77,14 +77,16 @@ export const OperatorMap = () => {
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  // Get base height in pixels for each position
+  // Get base height in pixels for each position (accounts for bottom nav)
   const getBaseHeight = useCallback(() => {
     const vh = window.innerHeight;
+    const bottomNavHeight = 64; // Bottom nav height
+    const headerHeight = 56; // Page header height
     switch (sheetPosition) {
-      case 'collapsed': return 60; // Just the drag handle visible
-      case 'half': return vh * 0.45; // 45vh - half screen
-      case 'full': return vh - 120; // Full screen minus header
-      default: return vh * 0.45;
+      case 'collapsed': return 56; // Minimal - just drag handle
+      case 'half': return (vh - bottomNavHeight - headerHeight) * 0.5; // Half available space
+      case 'full': return vh - headerHeight - bottomNavHeight; // Full available space
+      default: return (vh - bottomNavHeight) * 0.5;
     }
   }, [sheetPosition]);
 
@@ -148,17 +150,33 @@ export const OperatorMap = () => {
   const contextLat = contextLocation?.coords.latitude ?? null;
   const contextLon = contextLocation?.coords.longitude ?? null;
   
-  // Parse URL parameters for location and radius
+  // Parse URL parameters for location, radius, and pre-selected services
   const searchParams = new URLSearchParams(window.location.search);
   const urlLat = searchParams.get('lat');
   const urlLon = searchParams.get('lon');
   const urlAddress = searchParams.get('address');
   const urlRadius = searchParams.get('radius'); // in kilometers
+  const urlServices = searchParams.get('services'); // comma-separated service names
   
   // Use URL params if available, otherwise fall back to LocationContext
   const userLat = urlLat ? parseFloat(urlLat) : (contextLat !== null ? contextLat : null);
   const userLon = urlLon ? parseFloat(urlLon) : (contextLon !== null ? contextLon : null);
   const effectiveAddress = urlAddress || contextAddress;
+  
+  // Pre-selected services from home page
+  const [preSelectedServices, setPreSelectedServices] = useState<string[]>([]);
+  
+  // Initialize pre-selected services from URL on mount
+  useEffect(() => {
+    if (urlServices) {
+      const servicesArray = urlServices.split(',').map(s => s.trim()).filter(Boolean);
+      setPreSelectedServices(servicesArray);
+      // Set the first service as the active filter
+      if (servicesArray.length > 0) {
+        setSelectedService(servicesArray[0]);
+      }
+    }
+  }, []);
   
   // Dynamic proximity radius slider (default: 50km, range: 1-100km)
   const [proximityRadius, setProximityRadius] = useState<number>(
@@ -1120,35 +1138,38 @@ export const OperatorMap = () => {
           )}
         </div>
 
-        {/* Mobile Bottom Sheet - Sliding panel over map */}
+        {/* Mobile Bottom Sheet - Seamlessly integrated sliding panel over map */}
         {isMobile && (
           <div 
             ref={sheetRef}
-            className="absolute bottom-16 left-0 right-0 bg-white dark:bg-gray-900 rounded-t-3xl shadow-2xl border-t border-gray-200 dark:border-gray-700 z-20"
-            style={getSheetStyle()}
+            className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-900 rounded-t-2xl shadow-[0_-4px_20px_rgba(0,0,0,0.15)] z-30"
+            style={{
+              ...getSheetStyle(),
+              paddingBottom: '64px', // Space for bottom nav
+            }}
           >
-            {/* Drag Handle */}
+            {/* Drag Handle - Larger touch target for better UX */}
             <div 
-              className="flex flex-col items-center pt-3 pb-2 cursor-grab active:cursor-grabbing"
+              className="flex flex-col items-center pt-2 pb-1 cursor-grab active:cursor-grabbing touch-none"
               onTouchStart={handleSheetTouchStart}
               onTouchMove={handleSheetTouchMove}
               onTouchEnd={handleSheetTouchEnd}
             >
-              <div className="w-12 h-1.5 bg-gray-300 dark:bg-gray-600 rounded-full" />
-              <div className="flex items-center gap-2 mt-2 text-xs text-gray-500">
+              <div className="w-10 h-1 bg-gray-400 dark:bg-gray-500 rounded-full mb-1" />
+              <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400 py-1">
                 {sheetPosition === 'collapsed' && (
                   <>
-                    <ChevronUp className="w-4 h-4" />
-                    <span>Swipe up for operators</span>
+                    <ChevronUp className="w-4 h-4 animate-bounce" />
+                    <span>Swipe up to see operators</span>
                   </>
                 )}
                 {sheetPosition === 'half' && (
-                  <span>{operators?.length || 0} operators nearby</span>
+                  <span className="font-medium">{operators?.length || 0} operators nearby</span>
                 )}
                 {sheetPosition === 'full' && (
                   <>
                     <ChevronDown className="w-4 h-4" />
-                    <span>Swipe down to see map</span>
+                    <span>Swipe down for map</span>
                   </>
                 )}
               </div>

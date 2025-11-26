@@ -188,16 +188,21 @@ const Index = () => {
   };
 
   const handleSearchService = async () => {
+    // Build services parameter if any are selected
+    const servicesParam = selectedServices.length > 0 
+      ? `&services=${encodeURIComponent(selectedServices.join(','))}`
+      : '';
+    
     // Priority 1: If there's a location in the pickup field with coordinates, use that
     if (pickup.trim() && currentLat !== null && currentLon !== null) {
-      // Navigate with 50km radius filter
-      setLocation(`/customer/operators?lat=${currentLat}&lon=${currentLon}&address=${encodeURIComponent(pickup)}&radius=50`);
+      // Navigate with 50km radius filter and selected services
+      setLocation(`/customer/operators?lat=${currentLat}&lon=${currentLon}&address=${encodeURIComponent(pickup)}&radius=50${servicesParam}`);
       return;
     }
     
     // Priority 2: If pickup has text but no coordinates, geocode it first
     if (pickup.trim()) {
-      await geocodeAndNavigate(pickup, true); // Pass true for 50km radius filter
+      await geocodeAndNavigate(pickup, true, servicesParam); // Pass services param
       return;
     }
     
@@ -206,7 +211,7 @@ const Index = () => {
       const lat = location.coords.latitude;
       const lon = location.coords.longitude;
       const address = formattedAddress || "Current Location";
-      setLocation(`/customer/operators?lat=${lat}&lon=${lon}&address=${encodeURIComponent(address)}&radius=50`);
+      setLocation(`/customer/operators?lat=${lat}&lon=${lon}&address=${encodeURIComponent(address)}&radius=50${servicesParam}`);
       return;
     }
     
@@ -223,15 +228,20 @@ const Index = () => {
 
   // Navigate to operators map with smart centering logic
   const handleBrowseOperators = async () => {
+    // Build services parameter if any are selected
+    const servicesParam = selectedServices.length > 0 
+      ? `&services=${encodeURIComponent(selectedServices.join(','))}`
+      : '';
+    
     // Priority 1: If there's a location in the pickup field with coordinates, use that
     if (pickup.trim() && currentLat !== null && currentLon !== null) {
-      setLocation(`/customer/operators?lat=${currentLat}&lon=${currentLon}&address=${encodeURIComponent(pickup)}`);
+      setLocation(`/customer/operators?lat=${currentLat}&lon=${currentLon}&address=${encodeURIComponent(pickup)}${servicesParam}`);
       return;
     }
     
     // Priority 2: If pickup has text but no coordinates, geocode it first
     if (pickup.trim()) {
-      await geocodeAndNavigate(pickup);
+      await geocodeAndNavigate(pickup, false, servicesParam);
       return;
     }
     
@@ -240,7 +250,7 @@ const Index = () => {
       const lat = location.coords.latitude;
       const lon = location.coords.longitude;
       const address = formattedAddress || "Current Location";
-      setLocation(`/customer/operators?lat=${lat}&lon=${lon}&address=${encodeURIComponent(address)}`);
+      setLocation(`/customer/operators?lat=${lat}&lon=${lon}&address=${encodeURIComponent(address)}${servicesParam}`);
       return;
     }
     
@@ -256,7 +266,7 @@ const Index = () => {
   };
 
   // Geocode address/city to coordinates
-  const geocodeAndNavigate = async (address: string, includeRadius: boolean = false) => {
+  const geocodeAndNavigate = async (address: string, includeRadius: boolean = false, servicesParam: string = '') => {
     try {
       const response = await fetch(
         `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(address)}&format=json&limit=1`
@@ -271,9 +281,9 @@ const Index = () => {
         // Store in context
         setFormattedAddress(display_name, latitude, longitude);
         
-        // Navigate with coordinates and optional radius filter
+        // Navigate with coordinates, optional radius filter, and selected services
         const radiusParam = includeRadius ? '&radius=50' : '';
-        setLocation(`/customer/operators?lat=${latitude}&lon=${longitude}&address=${encodeURIComponent(display_name)}${radiusParam}`);
+        setLocation(`/customer/operators?lat=${latitude}&lon=${longitude}&address=${encodeURIComponent(display_name)}${radiusParam}${servicesParam}`);
       } else {
         toast({
           title: "Location not found",
