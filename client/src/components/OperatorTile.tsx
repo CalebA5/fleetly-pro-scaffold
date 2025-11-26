@@ -58,14 +58,18 @@ type OperatorTileProps = {
   operator: OperatorCard;
   isFavorite?: boolean;
   onFavoriteToggle?: (operatorId: string, isFavorite: boolean) => void;
+  isSelf?: boolean;
 };
 
-export function OperatorTile({ operator, isFavorite = false, onFavoriteToggle }: OperatorTileProps) {
+export function OperatorTile({ operator, isFavorite = false, onFavoriteToggle, isSelf: isSelfProp }: OperatorTileProps) {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [showReviews, setShowReviews] = useState(false);
   const { user } = useAuth();
   const customerId = user?.id || "";
+  
+  // Self-detection: prevent users from interacting with their own operator card
+  const isSelf = isSelfProp ?? (user?.operatorId && operator.operatorId === user.operatorId);
   
   const favoriteMutation = useMutation({
     mutationFn: async (data: { operatorId: string; customerId: string; isFavorite: boolean }) => {
@@ -166,18 +170,42 @@ export function OperatorTile({ operator, isFavorite = false, onFavoriteToggle }:
 
   return (
     <>
-      <Card className="overflow-hidden hover:shadow-xl transition-all duration-300 border-2 hover:border-orange-200 dark:hover:border-orange-900 relative" data-testid={`operator-card-${operator.cardId}`}>
-        {/* Favorite button - prominent top-right corner */}
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={handleToggleFavorite}
-          disabled={favoriteMutation.isPending}
-          className="absolute top-3 right-3 h-10 w-10 p-0 hover:bg-red-50 dark:hover:bg-red-950 rounded-full z-10 shadow-md bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm"
-          data-testid="button-favorite"
-        >
-          <Heart className={`h-5 w-5 transition-all ${isFavorite ? "fill-red-500 text-red-500 scale-110" : "text-gray-400"}`} />
-        </Button>
+      <Card className={`overflow-hidden hover:shadow-xl transition-all duration-300 border-2 relative ${
+        isSelf 
+          ? 'border-blue-300 dark:border-blue-700 ring-2 ring-blue-200/50 dark:ring-blue-800/50' 
+          : 'hover:border-orange-200 dark:hover:border-orange-900'
+      }`} data-testid={`operator-card-${operator.cardId}`}>
+        {/* Self-indicator badge */}
+        {isSelf && (
+          <div className="absolute top-3 left-3 z-10">
+            <Badge className="bg-blue-500 hover:bg-blue-600 text-white text-xs font-semibold shadow-md">
+              Your Operator
+            </Badge>
+          </div>
+        )}
+        
+        {/* Favorite button - prominent top-right corner (disabled for own operator) */}
+        <div className="absolute top-3 right-3 z-10">
+          {isSelf ? (
+            <div 
+              className="h-10 w-10 flex items-center justify-center rounded-full bg-gray-200/80 dark:bg-gray-700/80 backdrop-blur-sm cursor-not-allowed"
+              title="Cannot favorite your own operator"
+            >
+              <Heart className="h-5 w-5 text-gray-400 opacity-50" />
+            </div>
+          ) : (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleToggleFavorite}
+              disabled={favoriteMutation.isPending}
+              className="h-10 w-10 p-0 hover:bg-red-50 dark:hover:bg-red-950 rounded-full shadow-md bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm"
+              data-testid="button-favorite"
+            >
+              <Heart className={`h-5 w-5 transition-all ${isFavorite ? "fill-red-500 text-red-500 scale-110" : "text-gray-400"}`} />
+            </Button>
+          )}
+        </div>
 
         <CardHeader className="pb-4 bg-gradient-to-br from-gray-50 to-white dark:from-gray-900 dark:to-gray-950">
           <div className="flex items-start gap-4 pr-12">
@@ -393,24 +421,57 @@ export function OperatorTile({ operator, isFavorite = false, onFavoriteToggle }:
             </p>
           </div>
 
-          {/* Action Buttons */}
+          {/* Action Buttons - Disabled for own operator to prevent self-service */}
           <div className="flex gap-2 pt-2">
-            <Button
-              onClick={handleRequestService}
-              className="flex-1 bg-orange-500 hover:bg-orange-600"
-              size="sm"
-              data-testid="button-request-service"
-            >
-              Request Service
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setLocation(`/customer/operator-profile/${operator.operatorId}`)}
-              data-testid="button-view-profile"
-            >
-              View Profile
-            </Button>
+            {isSelf ? (
+              <>
+                <div 
+                  className="flex-1 relative"
+                  title="Cannot request services from yourself"
+                >
+                  <Button
+                    className="w-full bg-gray-300 dark:bg-gray-700 cursor-not-allowed opacity-60 blur-[1px]"
+                    size="sm"
+                    disabled
+                    data-testid="button-request-service-disabled"
+                  >
+                    Request Service
+                  </Button>
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <span className="text-xs font-semibold text-gray-700 dark:text-gray-300 bg-white/90 dark:bg-gray-800/90 px-2 py-1 rounded shadow-sm">
+                      Your Operator
+                    </span>
+                  </div>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setLocation(`/customer/operator-profile/${operator.operatorId}`)}
+                  data-testid="button-view-profile"
+                >
+                  View Profile
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button
+                  onClick={handleRequestService}
+                  className="flex-1 bg-orange-500 hover:bg-orange-600"
+                  size="sm"
+                  data-testid="button-request-service"
+                >
+                  Request Service
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setLocation(`/customer/operator-profile/${operator.operatorId}`)}
+                  data-testid="button-view-profile"
+                >
+                  View Profile
+                </Button>
+              </>
+            )}
           </div>
         </CardContent>
       </Card>

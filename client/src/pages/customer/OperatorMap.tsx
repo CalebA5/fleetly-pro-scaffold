@@ -1018,10 +1018,12 @@ export const OperatorMap = () => {
                       {operators?.map((operatorCard) => (
                         <div 
                           key={operatorCard.cardId}
-                          className={`bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-all ${
-                            selectedOperator?.cardId === operatorCard.cardId 
-                              ? 'ring-2 ring-teal-500 bg-teal-50 dark:bg-teal-900/20' 
-                              : ''
+                          className={`bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-all relative ${
+                            isSelf(operatorCard.operatorId)
+                              ? 'ring-2 ring-blue-300 dark:ring-blue-700 bg-blue-50 dark:bg-blue-900/20'
+                              : selectedOperator?.cardId === operatorCard.cardId 
+                                ? 'ring-2 ring-teal-500 bg-teal-50 dark:bg-teal-900/20' 
+                                : ''
                           }`}
                           onClick={() => {
                             setSelectedOperator(operatorCard);
@@ -1029,6 +1031,15 @@ export const OperatorMap = () => {
                           }}
                           data-testid={`desktop-operator-${operatorCard.cardId}`}
                         >
+                          {/* Self-indicator badge */}
+                          {isSelf(operatorCard.operatorId) && (
+                            <div className="absolute top-2 right-2 z-10">
+                              <span className="text-[10px] font-semibold bg-blue-500 text-white px-2 py-0.5 rounded-full shadow-sm">
+                                Your Operator
+                              </span>
+                            </div>
+                          )}
+                          
                           {/* Top Row: Photo + Name + Online Status */}
                           <div className="flex items-center gap-3 mb-3">
                             {/* Profile Photo / Business Logo */}
@@ -1052,7 +1063,7 @@ export const OperatorMap = () => {
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2">
                                 <h4 className="font-semibold text-black dark:text-white truncate">{operatorCard.name}</h4>
-                                {isFavorite(operatorCard.operatorId) && (
+                                {!isSelf(operatorCard.operatorId) && isFavorite(operatorCard.operatorId) && (
                                   <Heart className="w-4 h-4 fill-red-500 text-red-500 flex-shrink-0" />
                                 )}
                               </div>
@@ -1095,15 +1106,33 @@ export const OperatorMap = () => {
                             )}
                           </div>
                           
-                          {/* Action Button */}
-                          <Button 
-                            className="w-full"
-                            size="sm"
-                            onClick={(e) => handleRequestService(operatorCard, e)}
-                            data-testid={`button-request-${operatorCard.cardId}`}
-                          >
-                            Request Service
-                          </Button>
+                          {/* Action Button - Disabled for own operator */}
+                          {isSelf(operatorCard.operatorId) ? (
+                            <div className="relative w-full">
+                              <Button 
+                                className="w-full bg-gray-300 dark:bg-gray-700 cursor-not-allowed opacity-60 blur-[1px]"
+                                size="sm"
+                                disabled
+                                data-testid={`button-request-${operatorCard.cardId}-disabled`}
+                              >
+                                Request Service
+                              </Button>
+                              <div className="absolute inset-0 flex items-center justify-center">
+                                <span className="text-xs font-semibold text-gray-700 dark:text-gray-300 bg-white/90 dark:bg-gray-800/90 px-2 py-1 rounded shadow-sm">
+                                  Your Operator
+                                </span>
+                              </div>
+                            </div>
+                          ) : (
+                            <Button 
+                              className="w-full"
+                              size="sm"
+                              onClick={(e) => handleRequestService(operatorCard, e)}
+                              data-testid={`button-request-${operatorCard.cardId}`}
+                            >
+                              Request Service
+                            </Button>
+                          )}
                         </div>
                       ))}
                     </div>
@@ -1227,8 +1256,12 @@ export const OperatorMap = () => {
                   operators?.map((operatorCard) => (
                     <div
                       key={operatorCard.cardId}
-                      className={`bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden shadow-sm ${
-                        selectedOperator?.cardId === operatorCard.cardId ? 'ring-2 ring-teal-500' : ''
+                      className={`bg-white dark:bg-gray-800 rounded-xl border overflow-hidden shadow-sm relative ${
+                        isSelf(operatorCard.operatorId)
+                          ? 'border-blue-300 dark:border-blue-700 ring-2 ring-blue-200/50 dark:ring-blue-800/50'
+                          : selectedOperator?.cardId === operatorCard.cardId 
+                            ? 'ring-2 ring-teal-500 border-gray-200 dark:border-gray-700' 
+                            : 'border-gray-200 dark:border-gray-700'
                       }`}
                       onClick={() => {
                         setSelectedOperator(operatorCard);
@@ -1237,6 +1270,15 @@ export const OperatorMap = () => {
                       }}
                       data-testid={`mobile-operator-card-${operatorCard.cardId}`}
                     >
+                      {/* Self-indicator badge for mobile */}
+                      {isSelf(operatorCard.operatorId) && (
+                        <div className="absolute top-2 left-2 z-10">
+                          <span className="text-[10px] font-semibold bg-blue-500 text-white px-2 py-0.5 rounded-full shadow-sm">
+                            Your Operator
+                          </span>
+                        </div>
+                      )}
+                      
                       <div className="flex gap-3 p-3">
                         {/* Operator Photo */}
                         <div className="flex-shrink-0 w-16 h-16 rounded-xl bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-600 overflow-hidden">
@@ -1255,7 +1297,7 @@ export const OperatorMap = () => {
                             <div>
                               <div className="flex items-center gap-1.5">
                                 <h4 className="font-semibold text-black dark:text-white truncate">{operatorCard.name}</h4>
-                                {isFavorite(operatorCard.operatorId) && (
+                                {!isSelf(operatorCard.operatorId) && isFavorite(operatorCard.operatorId) && (
                                   <Heart className="w-3.5 h-3.5 fill-red-500 text-red-500 flex-shrink-0" />
                                 )}
                               </div>
@@ -1305,29 +1347,44 @@ export const OperatorMap = () => {
                         </div>
                       </div>
 
-                      {/* Action buttons */}
+                      {/* Action buttons - Disabled for own operator */}
                       <div className="flex border-t border-gray-100 dark:border-gray-700">
-                        <button
-                          className="flex-1 py-2.5 text-xs font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50 flex items-center justify-center gap-1.5"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (isFavorite(operatorCard.operatorId)) {
-                              removeFavoriteMutation.mutate(operatorCard.operatorId);
-                            } else {
-                              addFavoriteMutation.mutate(operatorCard.operatorId);
-                            }
-                          }}
-                        >
-                          <Heart className={`w-4 h-4 ${isFavorite(operatorCard.operatorId) ? 'fill-red-500 text-red-500' : ''}`} />
-                          {isFavorite(operatorCard.operatorId) ? 'Saved' : 'Save'}
-                        </button>
-                        <button
-                          className="flex-1 py-2.5 text-xs font-medium text-teal-600 dark:text-teal-400 hover:bg-teal-50 dark:hover:bg-teal-900/20 flex items-center justify-center gap-1.5 border-l border-gray-100 dark:border-gray-700"
-                          onClick={(e) => handleRequestService(operatorCard, e)}
-                        >
-                          <Truck className="w-4 h-4" />
-                          Request
-                        </button>
+                        {isSelf(operatorCard.operatorId) ? (
+                          <>
+                            <div className="flex-1 py-2.5 text-xs font-medium text-gray-400 dark:text-gray-600 flex items-center justify-center gap-1.5 cursor-not-allowed opacity-50">
+                              <Heart className="w-4 h-4" />
+                              Your Operator
+                            </div>
+                            <div className="flex-1 py-2.5 text-xs font-medium text-gray-400 dark:text-gray-600 flex items-center justify-center gap-1.5 border-l border-gray-100 dark:border-gray-700 cursor-not-allowed opacity-50">
+                              <Truck className="w-4 h-4" />
+                              N/A
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            <button
+                              className="flex-1 py-2.5 text-xs font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50 flex items-center justify-center gap-1.5"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (isFavorite(operatorCard.operatorId)) {
+                                  removeFavoriteMutation.mutate(operatorCard.operatorId);
+                                } else {
+                                  addFavoriteMutation.mutate(operatorCard.operatorId);
+                                }
+                              }}
+                            >
+                              <Heart className={`w-4 h-4 ${isFavorite(operatorCard.operatorId) ? 'fill-red-500 text-red-500' : ''}`} />
+                              {isFavorite(operatorCard.operatorId) ? 'Saved' : 'Save'}
+                            </button>
+                            <button
+                              className="flex-1 py-2.5 text-xs font-medium text-teal-600 dark:text-teal-400 hover:bg-teal-50 dark:hover:bg-teal-900/20 flex items-center justify-center gap-1.5 border-l border-gray-100 dark:border-gray-700"
+                              onClick={(e) => handleRequestService(operatorCard, e)}
+                            >
+                              <Truck className="w-4 h-4" />
+                              Request
+                            </button>
+                          </>
+                        )}
                       </div>
                     </div>
                   ))

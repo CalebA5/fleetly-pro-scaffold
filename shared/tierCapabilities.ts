@@ -26,6 +26,13 @@ export interface DrawerMenuItem {
   isPlaceholder?: boolean;
 }
 
+export interface ServicePricing {
+  basePrice: number;
+  hourlyRate?: number;
+  unit?: string;
+  estimatedDuration?: string;
+}
+
 export interface ServiceConfig {
   id: string;
   name: string;
@@ -34,6 +41,7 @@ export interface ServiceConfig {
   requiresCertification?: boolean;
   requiresBusinessLicense?: boolean;
   category: "micro" | "standard" | "professional";
+  pricing?: ServicePricing;
 }
 
 export interface EquipmentLimits {
