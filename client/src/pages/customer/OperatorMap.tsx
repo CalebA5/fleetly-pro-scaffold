@@ -12,7 +12,7 @@ import { MobileBottomNav } from "@/components/MobileBottomNav";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, MapPin, Star, Truck, Filter, Heart, ChevronLeft, ChevronRight, List, Map as MapIcon, Target, GripHorizontal, ChevronUp, ChevronDown } from "lucide-react";
+import { ArrowLeft, MapPin, Star, Truck, Filter, Heart, ChevronLeft, ChevronRight, List, Map as MapIcon, Target, GripHorizontal, ChevronUp, ChevronDown, Layers, PanelLeftClose, PanelLeft, Building2, User } from "lucide-react";
 import type { Operator, InsertServiceRequest, Favorite } from "@shared/schema";
 import { OPERATOR_TIER_INFO } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -59,7 +59,6 @@ export const OperatorMap = () => {
   const [operatorLocations, setOperatorLocations] = useState<Map<string, OperatorLocation>>(new Map());
   const [mapLoaded, setMapLoaded] = useState(false);
   const [isSidebarMinimized, setIsSidebarMinimized] = useState(false);
-  const [viewMode, setViewMode] = useState<'map' | 'list'>('map');
   
   // Mobile bottom sheet state (for half-map/half-list design)
   const [sheetPosition, setSheetPosition] = useState<'collapsed' | 'half' | 'full'>('half');
@@ -82,10 +81,10 @@ export const OperatorMap = () => {
   const getBaseHeight = useCallback(() => {
     const vh = window.innerHeight;
     switch (sheetPosition) {
-      case 'collapsed': return 80; // 80px
-      case 'half': return vh * 0.5; // 50vh
-      case 'full': return vh * 0.85; // 85vh
-      default: return vh * 0.5;
+      case 'collapsed': return 60; // Just the drag handle visible
+      case 'half': return vh * 0.45; // 45vh - half screen
+      case 'full': return vh - 120; // Full screen minus header
+      default: return vh * 0.45;
     }
   }, [sheetPosition]);
 
@@ -109,29 +108,29 @@ export const OperatorMap = () => {
     const vh = window.innerHeight;
     const finalHeight = sheetStartHeight.current + dragOffset;
     
-    // Determine target position based on final height
-    // Heights: collapsed=80px, half=50vh, full=85vh
-    const collapsedH = 80;
-    const halfH = vh * 0.5;
-    const fullH = vh * 0.85;
+    // Heights: collapsed=60px, half=45vh, full=vh-120
+    const collapsedH = 60;
+    const halfH = vh * 0.45;
+    const fullH = vh - 120;
     
-    // Find the closest snap point
-    const distToCollapsed = Math.abs(finalHeight - collapsedH);
-    const distToHalf = Math.abs(finalHeight - halfH);
-    const distToFull = Math.abs(finalHeight - fullH);
+    // Use velocity/direction for better UX - if dragged up significantly, go to next state
+    const dragThreshold = 50; // 50px drag triggers state change
     
-    const minDist = Math.min(distToCollapsed, distToHalf, distToFull);
-    
-    if (minDist === distToCollapsed) {
-      setSheetPosition('collapsed');
-    } else if (minDist === distToFull) {
-      setSheetPosition('full');
-    } else {
-      setSheetPosition('half');
+    if (dragOffset > dragThreshold) {
+      // Dragged up - go to next larger state
+      if (sheetPosition === 'collapsed') setSheetPosition('half');
+      else if (sheetPosition === 'half') setSheetPosition('full');
+      else setSheetPosition('full');
+    } else if (dragOffset < -dragThreshold) {
+      // Dragged down - go to next smaller state
+      if (sheetPosition === 'full') setSheetPosition('half');
+      else if (sheetPosition === 'half') setSheetPosition('collapsed');
+      else setSheetPosition('collapsed');
     }
+    // Otherwise stay at current position
     
     setDragOffset(0);
-  }, [dragOffset]);
+  }, [dragOffset, sheetPosition]);
 
   // Get sheet height with drag offset
   const getSheetStyle = useCallback(() => {
@@ -180,31 +179,6 @@ export const OperatorMap = () => {
     return R * c;
   };
   
-  // Reset sidebar minimize state when switching to list view and disable map interactions
-  useEffect(() => {
-    if (viewMode === 'list') {
-      setIsSidebarMinimized(false);
-      // Disable map interactions in list view
-      if (mapRef.current) {
-        mapRef.current.scrollZoom.disable();
-        mapRef.current.boxZoom.disable();
-        mapRef.current.dragRotate.disable();
-        mapRef.current.dragPan.disable();
-        mapRef.current.keyboard.disable();
-        mapRef.current.doubleClickZoom.disable();
-        mapRef.current.touchZoomRotate.disable();
-      }
-    } else if (viewMode === 'map' && mapRef.current) {
-      // Re-enable map interactions in map view
-      mapRef.current.scrollZoom.enable();
-      mapRef.current.boxZoom.enable();
-      mapRef.current.dragRotate.enable();
-      mapRef.current.dragPan.enable();
-      mapRef.current.keyboard.enable();
-      mapRef.current.doubleClickZoom.enable();
-      mapRef.current.touchZoomRotate.enable();
-    }
-  }, [viewMode]);
   const [, navigate] = useLocation();
   const { toast } = useToast();
   const { user } = useAuth();
@@ -575,18 +549,9 @@ export const OperatorMap = () => {
     return () => clearTimeout(resizeTimer);
   }, [isSidebarMinimized, mapLoaded]);
 
-  // Pause marker updates when in list view on mobile to improve performance
-  useEffect(() => {
-    if (viewMode === 'list' && window.innerWidth < 768) {
-      // Don't update markers when in mobile list view
-      return;
-    }
-  }, [viewMode]);
 
   // Create and update markers for operators
   useEffect(() => {
-    // Skip marker updates in mobile list view
-    if (viewMode === 'list' && window.innerWidth < 768) return;
     if (!mapRef.current || !mapLoaded || !operators) return;
 
     const map = mapRef.current;
@@ -930,31 +895,31 @@ export const OperatorMap = () => {
           </Select>
         </div>
         
-        {/* View Toggle Tabs - Hidden on mobile (mobile has sliding sheet) */}
+        {/* Map Style Toggle - Map vs Satellite */}
         <div className="hidden md:flex gap-1 p-1 bg-gray-100 dark:bg-gray-800 rounded-lg">
           <button
-            onClick={() => setViewMode('list')}
-            className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-md text-sm font-medium transition-all ${
-              viewMode === 'list' 
+            onClick={() => setMapStyle('streets')}
+            className={`flex items-center justify-center gap-1.5 py-2 px-3 rounded-md text-sm font-medium transition-all ${
+              mapStyle === 'streets' 
                 ? 'bg-white dark:bg-gray-700 text-black dark:text-white shadow-sm' 
                 : 'text-gray-500 dark:text-gray-400'
             }`}
-            data-testid="button-list-view-toggle"
-          >
-            <List className="w-4 h-4" />
-            List
-          </button>
-          <button
-            onClick={() => setViewMode('map')}
-            className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-md text-sm font-medium transition-all ${
-              viewMode === 'map' 
-                ? 'bg-white dark:bg-gray-700 text-black dark:text-white shadow-sm' 
-                : 'text-gray-500 dark:text-gray-400'
-            }`}
-            data-testid="button-map-view-toggle"
+            data-testid="button-map-style-streets"
           >
             <MapIcon className="w-4 h-4" />
             Map
+          </button>
+          <button
+            onClick={() => setMapStyle('satellite')}
+            className={`flex items-center justify-center gap-1.5 py-2 px-3 rounded-md text-sm font-medium transition-all ${
+              mapStyle === 'satellite' 
+                ? 'bg-white dark:bg-gray-700 text-black dark:text-white shadow-sm' 
+                : 'text-gray-500 dark:text-gray-400'
+            }`}
+            data-testid="button-map-style-satellite"
+          >
+            <Layers className="w-4 h-4" />
+            Satellite
           </button>
         </div>
         
@@ -987,129 +952,159 @@ export const OperatorMap = () => {
 
       {/* Map and List Content */}
       <div className="flex-1 flex flex-col md:flex-row overflow-hidden relative">
-        {/* Desktop Sidebar - Always visible on desktop */}
+        {/* Desktop Sidebar - Collapsible */}
         {!isMobile && (
-          <div className="hidden md:flex md:w-96 lg:w-[420px] flex-col bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 overflow-hidden">
-            {/* Sidebar Header */}
-            <div className="p-4 border-b border-gray-100 dark:border-gray-800">
-              <div className="flex items-center justify-between">
-                <h2 className="text-lg font-bold text-black dark:text-white">
-                  {operators?.length || 0} Operators
-                </h2>
-                <div className="flex items-center gap-2 text-sm text-gray-500">
-                  {userLat && userLon && (
-                    <span className="flex items-center gap-1">
-                      <Target className="w-4 h-4" />
-                      {proximityRadius}km
-                    </span>
-                  )}
-                </div>
-              </div>
-            </div>
-            
-            {/* Operator List */}
-            <div className="flex-1 overflow-y-auto">
-              {operators?.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-16 px-4">
-                  <MapPin className="w-12 h-12 text-gray-300 dark:text-gray-600 mb-4" />
-                  <p className="text-gray-500 dark:text-gray-400 text-center mb-2">No operators found</p>
-                  <p className="text-xs text-gray-400 text-center mb-4">Try adjusting your filters or expanding the search radius</p>
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => {
-                      setSelectedService("");
-                      setProximityRadius(100);
-                    }}
-                  >
-                    Expand Search
-                  </Button>
-                </div>
-              ) : (
-                <div className="divide-y divide-gray-100 dark:divide-gray-800">
-                  {operators?.map((operatorCard) => (
-                    <div 
-                      key={operatorCard.cardId}
-                      className={`p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors ${
-                        selectedOperator?.cardId === operatorCard.cardId 
-                          ? 'bg-teal-50 dark:bg-teal-900/20 border-l-4 border-l-teal-500' 
-                          : ''
-                      }`}
-                      onClick={() => {
-                        setSelectedOperator(operatorCard);
-                        panToOperator(operatorCard);
-                      }}
-                      data-testid={`desktop-operator-${operatorCard.cardId}`}
+          <div 
+            className={`hidden md:flex flex-col bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 overflow-hidden transition-all duration-300 ${
+              isSidebarMinimized ? 'w-0' : 'md:w-96 lg:w-[400px]'
+            }`}
+          >
+            {!isSidebarMinimized && (
+              <>
+                {/* Sidebar Header with minimize button */}
+                <div className="p-4 border-b border-gray-100 dark:border-gray-800">
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-lg font-bold text-black dark:text-white">
+                      {operators?.length || 0} Operators
+                    </h2>
+                    <button 
+                      onClick={() => setIsSidebarMinimized(true)}
+                      className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+                      data-testid="button-minimize-sidebar"
                     >
-                      <div className="flex items-start gap-3">
-                        {/* Avatar with online indicator */}
-                        <div className="relative flex-shrink-0">
-                          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-600 flex items-center justify-center overflow-hidden">
-                            {operatorCard.photo ? (
-                              <img src={operatorCard.photo} alt={operatorCard.name} className="w-full h-full object-cover" />
-                            ) : (
-                              <span className="text-lg font-bold text-gray-600 dark:text-gray-300">{operatorCard.name.charAt(0)}</span>
-                            )}
-                          </div>
-                          {operatorCard.isOnline === 1 && (
-                            <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-green-500 rounded-full border-2 border-white dark:border-gray-900"></div>
-                          )}
-                        </div>
-                        
-                        {/* Info */}
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <h4 className="font-semibold text-black dark:text-white truncate">{operatorCard.name}</h4>
-                            {isFavorite(operatorCard.operatorId) && (
-                              <Heart className="w-3.5 h-3.5 fill-red-500 text-red-500 flex-shrink-0" />
-                            )}
-                          </div>
-                          <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 mt-0.5">
-                            <div className="flex items-center gap-1">
-                              <Star className="w-3.5 h-3.5 fill-yellow-400 text-yellow-400" />
-                              <span>{operatorCard.rating}</span>
+                      <PanelLeftClose className="w-5 h-5 text-gray-500" />
+                    </button>
+                  </div>
+                </div>
+                
+                {/* Operator List */}
+                <div className="flex-1 overflow-y-auto">
+                  {operators?.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-16 px-4">
+                      <MapPin className="w-12 h-12 text-gray-300 dark:text-gray-600 mb-4" />
+                      <p className="text-gray-500 dark:text-gray-400 text-center mb-2">No operators found</p>
+                      <p className="text-xs text-gray-400 text-center mb-4">Try adjusting filters or expanding search</p>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => {
+                          setSelectedService("");
+                          setProximityRadius(100);
+                        }}
+                      >
+                        Expand Search
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="p-3 space-y-3">
+                      {operators?.map((operatorCard) => (
+                        <div 
+                          key={operatorCard.cardId}
+                          className={`bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-all ${
+                            selectedOperator?.cardId === operatorCard.cardId 
+                              ? 'ring-2 ring-teal-500 bg-teal-50 dark:bg-teal-900/20' 
+                              : ''
+                          }`}
+                          onClick={() => {
+                            setSelectedOperator(operatorCard);
+                            panToOperator(operatorCard);
+                          }}
+                          data-testid={`desktop-operator-${operatorCard.cardId}`}
+                        >
+                          {/* Top Row: Photo + Name + Online Status */}
+                          <div className="flex items-center gap-3 mb-3">
+                            {/* Profile Photo / Business Logo */}
+                            <div className="relative flex-shrink-0">
+                              <div className="w-14 h-14 rounded-full bg-gradient-to-br from-gray-200 to-gray-300 dark:from-gray-600 dark:to-gray-700 flex items-center justify-center overflow-hidden shadow-sm">
+                                {operatorCard.photo ? (
+                                  <img src={operatorCard.photo} alt={operatorCard.name} className="w-full h-full object-cover" />
+                                ) : (operatorCard as any).businessLicense ? (
+                                  <Building2 className="w-6 h-6 text-gray-500 dark:text-gray-400" />
+                                ) : (
+                                  <User className="w-6 h-6 text-gray-500 dark:text-gray-400" />
+                                )}
+                              </div>
+                              {/* Online indicator */}
+                              {operatorCard.isOnline === 1 && (
+                                <div className="absolute bottom-0 right-0 w-4 h-4 bg-green-500 rounded-full border-2 border-white dark:border-gray-800"></div>
+                              )}
                             </div>
-                            <span className="text-gray-300">|</span>
-                            <span>{operatorCard.totalJobs} jobs</span>
+                            
+                            {/* Name and Type */}
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2">
+                                <h4 className="font-semibold text-black dark:text-white truncate">{operatorCard.name}</h4>
+                                {isFavorite(operatorCard.operatorId) && (
+                                  <Heart className="w-4 h-4 fill-red-500 text-red-500 flex-shrink-0" />
+                                )}
+                              </div>
+                              <p className="text-sm text-gray-500 dark:text-gray-400">
+                                {(operatorCard as any).businessLicense ? 'Business' : 'Individual'}
+                              </p>
+                            </div>
+                          </div>
+                          
+                          {/* Stats Row */}
+                          <div className="flex items-center gap-4 mb-3 text-sm">
+                            <div className="flex items-center gap-1.5">
+                              <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                              <span className="font-medium text-black dark:text-white">{operatorCard.rating}</span>
+                            </div>
+                            <div className="text-gray-500 dark:text-gray-400">
+                              {operatorCard.totalJobs} jobs
+                            </div>
                             {userLat && userLon && (
-                              <>
-                                <span className="text-gray-300">|</span>
-                                <span className="text-teal-600 dark:text-teal-400 font-medium">
-                                  {calculateDistance(userLat, userLon, parseFloat(operatorCard.latitude), parseFloat(operatorCard.longitude)).toFixed(1)} km
-                                </span>
-                              </>
+                              <div className="text-teal-600 dark:text-teal-400 font-medium ml-auto">
+                                {calculateDistance(userLat, userLon, parseFloat(operatorCard.latitude), parseFloat(operatorCard.longitude)).toFixed(1)} km away
+                              </div>
                             )}
                           </div>
-                          {/* Services */}
-                          <div className="flex flex-wrap gap-1 mt-2">
+                          
+                          {/* Services Tags */}
+                          <div className="flex flex-wrap gap-1.5 mb-3">
                             {operatorCard.services?.slice(0, 3).map((service: any, idx: number) => {
                               const serviceName = typeof service === 'string' ? service : service?.name || 'Service';
                               return (
-                                <span key={idx} className="text-xs px-2 py-0.5 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-full">
+                                <span key={idx} className="text-xs px-2.5 py-1 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-full border border-gray-200 dark:border-gray-600">
                                   {serviceName}
                                 </span>
                               );
                             })}
+                            {operatorCard.services?.length > 3 && (
+                              <span className="text-xs px-2.5 py-1 bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-300 rounded-full">
+                                +{operatorCard.services.length - 3} more
+                              </span>
+                            )}
                           </div>
+                          
+                          {/* Action Button */}
+                          <Button 
+                            className="w-full"
+                            size="sm"
+                            onClick={(e) => handleRequestService(operatorCard, e)}
+                            data-testid={`button-request-${operatorCard.cardId}`}
+                          >
+                            Request Service
+                          </Button>
                         </div>
-                        
-                        {/* Action */}
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          className="flex-shrink-0"
-                          onClick={(e) => handleRequestService(operatorCard, e)}
-                          data-testid={`button-request-${operatorCard.cardId}`}
-                        >
-                          Request
-                        </Button>
-                      </div>
+                      ))}
                     </div>
-                  ))}
+                  )}
                 </div>
-              )}
-            </div>
+              </>
+            )}
           </div>
+        )}
+        
+        {/* Sidebar expand button (shown when minimized) */}
+        {!isMobile && isSidebarMinimized && (
+          <button 
+            onClick={() => setIsSidebarMinimized(false)}
+            className="absolute left-0 top-4 z-20 bg-white dark:bg-gray-800 p-2 rounded-r-lg shadow-lg border border-l-0 border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+            data-testid="button-expand-sidebar"
+          >
+            <PanelLeft className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+          </button>
         )}
 
         {/* Map View - Always visible */}
@@ -1321,184 +1316,6 @@ export const OperatorMap = () => {
           </div>
         )}
 
-        {/* Desktop List View - Full-width scrollable list (hidden on mobile) */}
-        <div className={`flex-1 overflow-y-auto bg-gray-50 dark:bg-gray-900 ${
-          !isMobile && viewMode === 'list' ? 'flex flex-col' : 'hidden'
-        }`}>
-          {/* Favorites Horizontal Scroll Section */}
-          {favorites.length > 0 && allOperators && (() => {
-            const favoriteOperators = allOperators.filter(op => 
-              isFavorite(op.operatorId) && op.isOnline
-            );
-            
-            return favoriteOperators.length > 0 ? (
-              <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 py-3">
-                <div className="flex items-center gap-2 px-4 mb-2">
-                  <Heart className="w-4 h-4 fill-red-500 text-red-500" />
-                  <h3 className="text-sm font-semibold text-black dark:text-white">Favorites Online</h3>
-                </div>
-                <div className="flex gap-3 overflow-x-auto px-4 pb-1 scrollbar-hide">
-                  {favoriteOperators.map(operator => (
-                    <div
-                      key={operator.operatorId}
-                      className="flex-shrink-0 w-32 p-2 bg-gray-50 dark:bg-gray-700 rounded-xl cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
-                      onClick={() => {
-                        setViewMode('map');
-                        setTimeout(() => panToOperator(operator), 300);
-                      }}
-                      data-testid={`favorite-card-${operator.operatorId}`}
-                    >
-                      <div className="w-10 h-10 rounded-full bg-teal-100 dark:bg-teal-900 flex items-center justify-center mx-auto mb-1">
-                        <span className="text-teal-700 dark:text-teal-300 font-bold text-sm">{operator.name.charAt(0)}</span>
-                      </div>
-                      <p className="text-xs font-medium text-black dark:text-white text-center truncate">{operator.name}</p>
-                      <div className="flex items-center justify-center gap-1 text-xs text-gray-500">
-                        <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
-                        <span>{operator.rating}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ) : null;
-          })()}
-          
-          {/* Main Operator List - Vertical scroll with swipeable cards */}
-          <div className="flex-1 overflow-y-auto">
-            {operators?.length === 0 ? (
-              <div className="text-center py-16">
-                <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
-                  <MapPin className="w-8 h-8 text-gray-400" />
-                </div>
-                <p className="text-gray-600 dark:text-gray-400 mb-2">No operators found</p>
-                <p className="text-sm text-gray-500 dark:text-gray-500 mb-4">Try adjusting your filters</p>
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => {
-                    setSelectedService("");
-                    setProximityRadius(50);
-                  }}
-                  data-testid="button-clear-filter"
-                >
-                  Clear All Filters
-                </Button>
-              </div>
-            ) : (
-              <div className="divide-y divide-gray-100 dark:divide-gray-800">
-                {operators?.map((operatorCard) => (
-                  <div 
-                    key={operatorCard.cardId}
-                    className={`bg-white dark:bg-gray-800 ${
-                      selectedOperator?.cardId === operatorCard.cardId 
-                        ? 'border-l-4 border-l-teal-500' 
-                        : ''
-                    }`}
-                    data-testid={`operator-list-item-${operatorCard.cardId}`}
-                  >
-                    {/* Compact Card Layout */}
-                    <div className="flex items-center gap-3 p-4">
-                      {/* Avatar */}
-                      <div className="flex-shrink-0 w-14 h-14 rounded-full bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-600 flex items-center justify-center overflow-hidden">
-                        {operatorCard.photo ? (
-                          <img src={operatorCard.photo} alt={operatorCard.name} className="w-full h-full object-cover" />
-                        ) : (
-                          <span className="text-xl font-bold text-gray-600 dark:text-gray-300">{operatorCard.name.charAt(0)}</span>
-                        )}
-                      </div>
-                      
-                      {/* Info */}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <h4 className="font-semibold text-black dark:text-white truncate">{operatorCard.name}</h4>
-                          {isFavorite(operatorCard.operatorId) && (
-                            <Heart className="w-4 h-4 fill-red-500 text-red-500 flex-shrink-0" />
-                          )}
-                        </div>
-                        <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 mt-0.5">
-                          <div className="flex items-center gap-1">
-                            <Star className="w-3.5 h-3.5 fill-yellow-400 text-yellow-400" />
-                            <span>{operatorCard.rating}</span>
-                          </div>
-                          <span>•</span>
-                          <span>{operatorCard.totalJobs} jobs</span>
-                          {userLat && userLon && (
-                            <>
-                              <span>•</span>
-                              <span className="text-teal-600 dark:text-teal-400">
-                                {calculateDistance(userLat, userLon, parseFloat(operatorCard.latitude), parseFloat(operatorCard.longitude)).toFixed(1)} km
-                              </span>
-                            </>
-                          )}
-                        </div>
-                        {/* Services */}
-                        <div className="flex flex-wrap gap-1 mt-1.5">
-                          {operatorCard.services?.slice(0, 2).map((service: any, idx: number) => {
-                            const serviceName = typeof service === 'string' ? service : service?.name || 'Service';
-                            return (
-                              <span key={idx} className="text-xs px-1.5 py-0.5 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded">
-                                {serviceName}
-                              </span>
-                            );
-                          })}
-                          {operatorCard.services?.length > 2 && (
-                            <span className="text-xs text-gray-400">+{operatorCard.services.length - 2}</span>
-                          )}
-                        </div>
-                      </div>
-                      
-                      {/* Actions */}
-                      <div className="flex flex-col items-end gap-2">
-                        <Badge className={`${operatorCard.isOnline ? 'bg-green-500' : 'bg-gray-400'} text-white text-xs`}>
-                          {operatorCard.isOnline ? 'Online' : 'Offline'}
-                        </Badge>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="text-xs h-7 px-2 border-teal-500 text-teal-600 hover:bg-teal-50"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setViewMode('map');
-                            setTimeout(() => panToOperator(operatorCard), 300);
-                          }}
-                          data-testid={`button-view-on-map-${operatorCard.cardId}`}
-                        >
-                          View
-                        </Button>
-                      </div>
-                    </div>
-                    
-                    {/* Swipe Action Hint (hidden but provides touch feedback) */}
-                    <div className="flex border-t border-gray-100 dark:border-gray-700">
-                      <button
-                        className="flex-1 py-2.5 text-xs font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center justify-center gap-1"
-                        onClick={() => {
-                          if (isFavorite(operatorCard.operatorId)) {
-                            removeFavoriteMutation.mutate(operatorCard.operatorId);
-                          } else {
-                            addFavoriteMutation.mutate(operatorCard.operatorId);
-                          }
-                        }}
-                        data-testid={`button-toggle-fav-${operatorCard.cardId}`}
-                      >
-                        <Heart className={`w-4 h-4 ${isFavorite(operatorCard.operatorId) ? 'fill-red-500 text-red-500' : ''}`} />
-                        {isFavorite(operatorCard.operatorId) ? 'Saved' : 'Save'}
-                      </button>
-                      <button
-                        className="flex-1 py-2.5 text-xs font-medium text-teal-600 dark:text-teal-400 hover:bg-teal-50 dark:hover:bg-teal-900/20 flex items-center justify-center gap-1 border-l border-gray-100 dark:border-gray-700"
-                        onClick={(e) => handleRequestService(operatorCard, e)}
-                        data-testid={`button-request-${operatorCard.cardId}`}
-                      >
-                        <Truck className="w-4 h-4" />
-                        Request
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
       </div>
 
       {/* Rating Dialog */}
