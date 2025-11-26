@@ -28,8 +28,12 @@ import {
   Snowflake,
   Car,
   Truck,
-  Package
+  Package,
+  Layers,
+  Plus
 } from "lucide-react";
+import { ServiceSelector } from "@/components/ServiceSelector";
+import { TIER_SERVICES } from "@shared/tierCapabilities";
 
 export const CreateServiceRequest = () => {
   const [location, setLocation] = useLocation();
@@ -46,6 +50,9 @@ export const CreateServiceRequest = () => {
 
   // Basic Fields
   const [serviceType, setServiceType] = useState(prefilledService);
+  const [selectedServices, setSelectedServices] = useState<string[]>(prefilledService ? [prefilledService] : []);
+  const [isProjectMode, setIsProjectMode] = useState(false);
+  const [pricingPreference, setPricingPreference] = useState<"fixed" | "hourly" | "custom_quote">("custom_quote");
   const [isEmergency, setIsEmergency] = useState(false);
   const [urgencyLevel, setUrgencyLevel] = useState<"low" | "medium" | "high" | "emergency">("medium");
   const [showScheduleFields, setShowScheduleFields] = useState(false);
@@ -149,10 +156,13 @@ export const CreateServiceRequest = () => {
   };
 
   const handleSubmit = () => {
-    if (!serviceType) {
+    // For multi-service mode, check selectedServices; for single service mode, check serviceType
+    const hasService = isProjectMode ? selectedServices.length > 0 : !!serviceType;
+    
+    if (!hasService) {
       toast({
         title: "Service Type Required",
-        description: "Please select the type of service you need.",
+        description: isProjectMode ? "Please select at least one service for your project." : "Please select the type of service you need.",
         variant: "destructive",
       });
       return;
@@ -185,15 +195,34 @@ export const CreateServiceRequest = () => {
       return;
     }
 
+    // Determine the primary service type
+    const primaryServiceType = isProjectMode 
+      ? (TIER_SERVICES.find(s => s.id === selectedServices[0])?.name || selectedServices[0])
+      : serviceType;
+    
+    // Get service names for the serviceTypes array
+    const serviceTypeNames = selectedServices.map(id => 
+      TIER_SERVICES.find(s => s.id === id)?.name || id
+    );
+
     // Build request data - only include fields that have values
     const requestData: any = {
       customerId: user?.id || "",
       customerName: user?.name || "",
-      serviceType,
+      serviceType: primaryServiceType,
       description: jobDescription,
       location: locationAddress,
       imageCount: images.length,
     };
+    
+    // Add multi-service fields
+    if (isProjectMode && selectedServices.length > 0) {
+      requestData.serviceTypes = serviceTypeNames;
+      requestData.isProjectMode = true;
+    }
+    if (pricingPreference) {
+      requestData.pricingPreference = pricingPreference;
+    }
     
     // Add optional fields only if they have values
     if (isEmergency) requestData.isEmergency = true;
@@ -362,45 +391,127 @@ export const CreateServiceRequest = () => {
                 Basic Information
               </h3>
 
-              {/* Service Type - Icon Grid */}
+              {/* Project Mode Toggle */}
+              <div className="flex items-center justify-between p-4 bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 rounded-xl border border-purple-200 dark:border-purple-800">
+                <div className="flex items-center gap-3">
+                  <Layers className="w-6 h-6 text-purple-600 dark:text-purple-400" />
+                  <div>
+                    <Label htmlFor="project-mode" className="text-base font-semibold text-black dark:text-white cursor-pointer">
+                      Project Mode
+                    </Label>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      Request multiple services at once for bundled pricing
+                    </p>
+                  </div>
+                </div>
+                <Switch 
+                  id="project-mode"
+                  checked={isProjectMode}
+                  onCheckedChange={(checked) => {
+                    setIsProjectMode(checked);
+                    if (!checked) {
+                      setSelectedServices([]);
+                    }
+                  }}
+                  data-testid="switch-project-mode"
+                />
+              </div>
+
+              {/* Service Type Selection */}
               <div>
                 <Label className="text-black dark:text-white mb-3 block">
-                  Select Service Type *
+                  {isProjectMode ? "Select Services for Your Project *" : "Select Service Type *"}
                 </Label>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                  {[
-                    { value: "Snow Plowing", icon: Snowflake, label: "Snow Plowing", color: "blue" },
-                    { value: "Towing", icon: Truck, label: "Towing", color: "orange" },
-                    { value: "Hauling", icon: Package, label: "Hauling", color: "green" },
-                    { value: "Courier", icon: Send, label: "Courier", color: "purple" },
-                    { value: "Ice Removal", icon: Snowflake, label: "Ice Removal", color: "cyan" },
-                    { value: "Roadside Assistance", icon: Car, label: "Roadside", color: "red" }
-                  ].map((service) => {
-                    const Icon = service.icon;
-                    const isSelected = serviceType === service.value;
-                    return (
-                      <button
-                        key={service.value}
-                        type="button"
-                        onClick={() => setServiceType(service.value)}
-                        className={`p-4 rounded-xl border-2 transition-all hover:scale-105 ${
-                          isSelected
-                            ? `border-${service.color}-500 bg-${service.color}-50 dark:bg-${service.color}-900/20 shadow-lg`
-                            : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
-                        }`}
-                        data-testid={`button-service-${service.value.toLowerCase().replace(/\s+/g, '-')}`}
-                      >
-                        <Icon className={`w-8 h-8 mx-auto mb-2 ${
-                          isSelected ? `text-${service.color}-600 dark:text-${service.color}-400` : 'text-gray-600 dark:text-gray-400'
-                        }`} />
-                        <p className={`text-sm font-medium ${
-                          isSelected ? 'text-black dark:text-white' : 'text-gray-700 dark:text-gray-300'
-                        }`}>{service.label}</p>
-                      </button>
-                    );
-                  })}
-                </div>
+                
+                {isProjectMode ? (
+                  <div className="space-y-4">
+                    <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
+                      <ServiceSelector
+                        selectedServices={selectedServices}
+                        onServicesChange={setSelectedServices}
+                        placeholder="Select multiple services..."
+                        className="w-full"
+                      />
+                    </div>
+                    {selectedServices.length > 0 && (
+                      <div className="text-sm text-gray-600 dark:text-gray-400">
+                        <span className="font-medium text-black dark:text-white">{selectedServices.length}</span> service(s) selected
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                    {[
+                      { value: "Snow Plowing", icon: Snowflake, label: "Snow Plowing", color: "blue" },
+                      { value: "Towing", icon: Truck, label: "Towing", color: "orange" },
+                      { value: "Hauling", icon: Package, label: "Hauling", color: "green" },
+                      { value: "Courier", icon: Send, label: "Courier", color: "purple" },
+                      { value: "Ice Removal", icon: Snowflake, label: "Ice Removal", color: "cyan" },
+                      { value: "Roadside Assistance", icon: Car, label: "Roadside", color: "red" }
+                    ].map((service) => {
+                      const Icon = service.icon;
+                      const isSelected = serviceType === service.value;
+                      return (
+                        <button
+                          key={service.value}
+                          type="button"
+                          onClick={() => setServiceType(service.value)}
+                          className={`p-4 rounded-xl border-2 transition-all hover:scale-105 ${
+                            isSelected
+                              ? `border-${service.color}-500 bg-${service.color}-50 dark:bg-${service.color}-900/20 shadow-lg`
+                              : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+                          }`}
+                          data-testid={`button-service-${service.value.toLowerCase().replace(/\s+/g, '-')}`}
+                        >
+                          <Icon className={`w-8 h-8 mx-auto mb-2 ${
+                            isSelected ? `text-${service.color}-600 dark:text-${service.color}-400` : 'text-gray-600 dark:text-gray-400'
+                          }`} />
+                          <p className={`text-sm font-medium ${
+                            isSelected ? 'text-black dark:text-white' : 'text-gray-700 dark:text-gray-300'
+                          }`}>{service.label}</p>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
+
+              {/* Pricing Preference - Only show in project mode */}
+              {isProjectMode && selectedServices.length > 0 && (
+                <div>
+                  <Label className="text-black dark:text-white mb-3 block">
+                    <DollarSign className="w-4 h-4 inline-block mr-1" />
+                    Pricing Preference
+                  </Label>
+                  <div className="grid grid-cols-3 gap-3">
+                    {[
+                      { value: "fixed" as const, label: "Fixed Price", desc: "Total cost upfront" },
+                      { value: "hourly" as const, label: "Hourly Rate", desc: "Pay by the hour" },
+                      { value: "custom_quote" as const, label: "Custom Quote", desc: "Get operator quotes" }
+                    ].map((option) => {
+                      const isSelected = pricingPreference === option.value;
+                      return (
+                        <button
+                          key={option.value}
+                          type="button"
+                          onClick={() => setPricingPreference(option.value)}
+                          className={`p-3 rounded-xl border-2 transition-all text-left ${
+                            isSelected
+                              ? 'border-green-500 bg-green-50 dark:bg-green-900/20'
+                              : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+                          }`}
+                          data-testid={`button-pricing-${option.value}`}
+                        >
+                          <p className={`text-sm font-medium ${
+                            isSelected ? 'text-black dark:text-white' : 'text-gray-700 dark:text-gray-300'
+                          }`}>{option.label}</p>
+                          <p className="text-xs text-gray-500 mt-1">{option.desc}</p>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
 
               {/* Urgency Level Selector */}
               <div>

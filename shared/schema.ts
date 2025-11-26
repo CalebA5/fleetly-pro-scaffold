@@ -335,6 +335,9 @@ export const serviceRequests = pgTable("service_requests", {
   operatorId: text("operator_id"),
   operatorName: text("operator_name"),
   serviceType: text("service_type").notNull(),
+  serviceTypes: text("service_types").array(), // Multiple services for project mode
+  isProjectMode: integer("is_project_mode").notNull().default(0), // 1 = bundled multi-service project
+  pricingPreference: text("pricing_preference"), // "fixed" | "hourly" | "custom_quote"
   isEmergency: integer("is_emergency").notNull().default(0),
   urgencyLevel: text("urgency_level"), // Added urgency level column
   description: text("description").notNull(),
@@ -382,6 +385,9 @@ const baseServiceRequestSchema = z.object({
   operatorId: z.string().optional(),
   operatorName: z.string().optional(),
   serviceType: z.string(),
+  serviceTypes: z.array(z.string()).optional(), // Multiple services for project mode
+  isProjectMode: z.boolean().optional(), // Bundled multi-service project
+  pricingPreference: z.enum(["fixed", "hourly", "custom_quote"]).optional(),
   isEmergency: z.boolean().optional(),
   urgencyLevel: z.string().optional(),
   description: z.string(),

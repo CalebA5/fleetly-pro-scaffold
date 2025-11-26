@@ -419,10 +419,11 @@ const Index = () => {
           </div>
 
           {/* Two-column grid - Location search and Services aligned */}
+          {/* On mobile: Services first, then location picker. On desktop: location picker left, services right */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-start">
-            <div className="space-y-4">
+            <div className="space-y-4 order-2 lg:order-1 relative z-50">
               {/* Interactive Location Search - Uber Style with Glassmorphism */}
-              <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl p-6 rounded-2xl shadow-2xl border border-gray-200/50 dark:border-gray-700/50">
+              <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl p-6 rounded-2xl shadow-2xl border border-gray-200/50 dark:border-gray-700/50 relative z-50">
                 <div className="space-y-3">
                   <div className="flex items-center gap-3">
                     <div className="w-3 h-3 rounded-full bg-black dark:bg-white flex-shrink-0"></div>
@@ -466,7 +467,7 @@ const Index = () => {
             </div>
 
             {/* Dynamic Operators or Services Section */}
-            <div className="relative">
+            <div className="relative order-1 lg:order-2">
               <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-6 md:p-8 shadow-lg border border-gray-200 dark:border-gray-700">
                 <h3 className="text-xl md:text-2xl font-bold text-black dark:text-white mb-6">
                   {selectedServices.length > 0 && proximityOperators.length > 0 ? "Available Operators" : "Our Services"}
