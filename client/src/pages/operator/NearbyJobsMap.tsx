@@ -8,11 +8,13 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "
 import { Header } from "@/components/Header";
 import { MobileBottomNav } from "@/components/MobileBottomNav";
 import { useAuth } from "@/contexts/AuthContext";
+import { useUserLocation } from "@/contexts/LocationContext";
 import { ArrowLeft, MapPin, DollarSign, Clock, AlertTriangle, Maximize2, Minimize2, List, Eye, ShieldAlert, X } from "lucide-react";
 import { useLocation } from "wouter";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import { OPERATOR_TIER_INFO, type Operator } from "@shared/schema";
+import { TIER_CAPABILITIES } from "@shared/tierCapabilities";
 import { RequestDetailsModal } from "@/components/operator/RequestDetailsModal";
 import { QuoteModal } from "@/components/operator/QuoteModal";
 import { useToast } from "@/hooks/use-toast";
@@ -49,6 +51,7 @@ export default function NearbyJobsMap() {
   const { user } = useAuth();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const { location: currentLocation } = useUserLocation();
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
   const [selectedJob, setSelectedJob] = useState<ServiceRequest | null>(null);
@@ -61,7 +64,9 @@ export default function NearbyJobsMap() {
   const [showVerificationBanner, setShowVerificationBanner] = useState(true);
 
   const operatorId = user?.operatorId;
-  const currentTier = user?.viewTier || user?.activeTier || "manual";
+  const currentTier = (user?.viewTier || user?.activeTier || "manual") as keyof typeof TIER_CAPABILITIES;
+  const tierCapabilities = TIER_CAPABILITIES[currentTier];
+  const operatingRadiusKm = tierCapabilities?.radiusKm || null;
 
   const handleViewDetails = (job: ServiceRequest, e?: React.MouseEvent) => {
     if (e) {
@@ -106,18 +111,37 @@ export default function NearbyJobsMap() {
   const isCurrentTierVerified = currentTierProfile?.approvalStatus === "approved";
 
   const mapboxToken = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN;
+  const operatorMarker = useRef<mapboxgl.Marker | null>(null);
+  const [mapLoaded, setMapLoaded] = useState(false);
 
+  // Helper function to generate circle coordinates
+  const generateCircleCoordinates = (centerLat: number, centerLng: number, radiusKm: number) => {
+    const radiusInMeters = radiusKm * 1000;
+    const points = 64;
+    const coordinates: [number, number][] = [];
+    for (let i = 0; i <= points; i++) {
+      const angle = (i * 360) / points;
+      const dx = radiusInMeters * Math.cos((angle * Math.PI) / 180);
+      const dy = radiusInMeters * Math.sin((angle * Math.PI) / 180);
+      const lat = centerLat + (dy / 111320);
+      const lng = centerLng + (dx / (111320 * Math.cos((centerLat * Math.PI) / 180)));
+      coordinates.push([lng, lat]);
+    }
+    return coordinates;
+  };
+
+  // Initialize map once
   useEffect(() => {
     if (!mapContainer.current || !mapboxToken || map.current) return;
 
-    // Initialize map
-    const operatorLat = operatorData?.homeLatitude || 40.7128;
-    const operatorLng = operatorData?.homeLongitude || -74.006;
+    // Get initial center (will be updated by separate effect)
+    const initialLat = operatorData?.homeLatitude || 40.7128;
+    const initialLng = operatorData?.homeLongitude || -74.006;
 
     map.current = new mapboxgl.Map({
       container: mapContainer.current,
       style: "mapbox://styles/mapbox/streets-v12",
-      center: [operatorLng, operatorLat],
+      center: [initialLng, initialLat],
       zoom: 11,
       accessToken: mapboxToken,
     });
@@ -125,24 +149,118 @@ export default function NearbyJobsMap() {
     // Add navigation controls
     map.current.addControl(new mapboxgl.NavigationControl(), "top-right");
 
-    // Add operator's home location marker
-    new mapboxgl.Marker({ color: "#f97316" })
-      .setLngLat([operatorLng, operatorLat])
-      .setPopup(
-        new mapboxgl.Popup().setHTML(
-          `<div class="p-2">
-            <p class="font-semibold">Your Location</p>
-            <p class="text-sm text-gray-600">Home Base</p>
-          </div>`
-        )
-      )
+    // Add operator's location marker
+    operatorMarker.current = new mapboxgl.Marker({ color: "#f97316" })
+      .setLngLat([initialLng, initialLat])
+      .setPopup(new mapboxgl.Popup().setHTML('<div class="p-2"><p class="font-semibold">Your Location</p></div>'))
       .addTo(map.current);
+
+    // Set up layers after map loads
+    map.current.on('load', () => {
+      if (!map.current) return;
+      
+      // Add empty source for radius circle (will be updated by separate effect)
+      map.current.addSource('operating-radius', {
+        type: 'geojson',
+        data: {
+          type: 'Feature',
+          properties: {},
+          geometry: {
+            type: 'Polygon',
+            coordinates: [[]]
+          }
+        }
+      });
+
+      // Add fill layer (semi-transparent)
+      map.current.addLayer({
+        id: 'radius-fill',
+        type: 'fill',
+        source: 'operating-radius',
+        paint: {
+          'fill-color': '#f97316',
+          'fill-opacity': 0.1
+        }
+      });
+
+      // Add outline layer
+      map.current.addLayer({
+        id: 'radius-outline',
+        type: 'line',
+        source: 'operating-radius',
+        paint: {
+          'line-color': '#f97316',
+          'line-width': 2,
+          'line-dasharray': [3, 2]
+        }
+      });
+
+      setMapLoaded(true);
+    });
 
     return () => {
       map.current?.remove();
       map.current = null;
+      operatorMarker.current = null;
+      setMapLoaded(false);
     };
-  }, [mapboxToken, operatorData]);
+  }, [mapboxToken]);
+
+  // Update map center, marker, and radius when location or tier changes
+  useEffect(() => {
+    if (!map.current || !mapLoaded) return;
+
+    // Get current position
+    const operatorLat = currentLocation?.coords?.latitude || operatorData?.homeLatitude || 40.7128;
+    const operatorLng = currentLocation?.coords?.longitude || operatorData?.homeLongitude || -74.006;
+
+    // Update map center
+    map.current.setCenter([operatorLng, operatorLat]);
+    
+    // Adjust zoom based on radius
+    const zoom = operatingRadiusKm ? Math.max(10, 12 - Math.log2(operatingRadiusKm)) : 11;
+    map.current.setZoom(zoom);
+
+    // Update operator marker position and popup
+    if (operatorMarker.current) {
+      operatorMarker.current.setLngLat([operatorLng, operatorLat]);
+      operatorMarker.current.setPopup(
+        new mapboxgl.Popup().setHTML(
+          `<div class="p-2">
+            <p class="font-semibold">Your Location</p>
+            <p class="text-sm text-gray-600">${currentLocation ? 'Current Position' : 'Home Base'}</p>
+            ${operatingRadiusKm ? `<p class="text-xs text-orange-600">Operating radius: ${operatingRadiusKm}km</p>` : ''}
+          </div>`
+        )
+      );
+    }
+
+    // Update radius circle
+    const source = map.current.getSource('operating-radius') as mapboxgl.GeoJSONSource;
+    if (source) {
+      if (operatingRadiusKm) {
+        const coordinates = generateCircleCoordinates(operatorLat, operatorLng, operatingRadiusKm);
+        source.setData({
+          type: 'Feature',
+          properties: {},
+          geometry: {
+            type: 'Polygon',
+            coordinates: [coordinates]
+          }
+        });
+      } else {
+        // Clear circle for unlimited radius
+        source.setData({
+          type: 'Feature',
+          properties: {},
+          geometry: {
+            type: 'Polygon',
+            coordinates: [[]]
+          }
+        });
+      }
+    }
+  }, [currentLocation, operatorData, operatingRadiusKm, mapLoaded]);
 
   // Add job markers when data loads
   useEffect(() => {

@@ -166,6 +166,24 @@ export const ProfileDropdown = ({
               </Link>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
+            <DropdownMenuGroup>
+              <DropdownMenuLabel className="text-xs text-muted-foreground px-2 py-1">
+                Support
+              </DropdownMenuLabel>
+              <Link href="/help">
+                <DropdownMenuItem data-testid="menu-help-support">
+                  <HelpCircle className="mr-2 h-4 w-4" />
+                  <span>Help & Support</span>
+                </DropdownMenuItem>
+              </Link>
+              <Link href="/legal">
+                <DropdownMenuItem data-testid="menu-legal">
+                  <FileText className="mr-2 h-4 w-4" />
+                  <span>Legal & Policies</span>
+                </DropdownMenuItem>
+              </Link>
+            </DropdownMenuGroup>
+            <DropdownMenuSeparator />
             <Link href="/">
               <DropdownMenuItem data-testid="menu-home">
                 <Home className="mr-2 h-4 w-4" />

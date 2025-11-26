@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation, Link } from "wouter";
 import { useAuth } from "@/contexts/AuthContext";
+import { useUserLocation } from "@/contexts/LocationContext";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -12,19 +13,18 @@ import { TierSwitcher } from "@/components/TierSwitcher";
 import { ProfileDropdown } from "@/components/ProfileDropdown";
 import { MetricsSlider } from "./MetricsSlider";
 import { TierTabs } from "./TierTabs";
-import { DrawerNav } from "./DrawerNav";
 import { JobsPanel } from "./JobsPanel";
 import { EquipmentPanel } from "./EquipmentPanel";
 import { ServicesPanel } from "./ServicesPanel";
 import { HistoryPanel } from "./HistoryPanel";
 import { ManpowerPanel } from "./ManpowerPanel";
+import { LocationPermissionModal } from "@/components/LocationPermissionModal";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { OperatorTier, Operator } from "@shared/schema";
 import { 
   TIER_CAPABILITIES, 
   getMetricsForTier, 
-  getTabsForTier, 
-  getDrawerMenuForTier 
+  getTabsForTier
 } from "@shared/tierCapabilities";
 
 interface MetricData {
@@ -52,9 +52,11 @@ export function OperatorDashboardLayout({ tier }: OperatorDashboardLayoutProps) 
   const tierInfo = TIER_CAPABILITIES[tier];
   const metrics = getMetricsForTier(tier);
   const tabs = getTabsForTier(tier);
-  const menuItems = getDrawerMenuForTier(tier);
+  const { location: userLocation, permissionStatus } = useUserLocation();
+  const [showLocationModal, setShowLocationModal] = useState(false);
 
   const operatorId = user?.operatorId;
+  const hasLocation = userLocation !== null && permissionStatus === "granted";
 
   const { data: operatorData, isLoading: isLoadingOperator } = useQuery<Operator>({
     queryKey: [`/api/operators/by-id/${operatorId}`],
@@ -94,6 +96,17 @@ export function OperatorDashboardLayout({ tier }: OperatorDashboardLayoutProps) 
       return;
     }
 
+    // Check if trying to go online without location
+    if (!isOnline && !hasLocation) {
+      setShowLocationModal(true);
+      toast({
+        title: "Location Required",
+        description: "Please share your location to go online and receive nearby job requests.",
+        variant: "default",
+      });
+      return;
+    }
+
     try {
       const newStatus = !isOnline;
       await apiRequest(`/api/operators/${operatorId}/status`, {
@@ -114,6 +127,31 @@ export function OperatorDashboardLayout({ tier }: OperatorDashboardLayoutProps) 
         description: "Failed to update online status. Please try again.",
         variant: "destructive",
       });
+    }
+  };
+
+  const handleLocationGranted = async () => {
+    setShowLocationModal(false);
+    // After location is granted, try to go online
+    if (canGoOnline) {
+      try {
+        await apiRequest(`/api/operators/${operatorId}/status`, {
+          method: "PATCH",
+          body: JSON.stringify({ isOnline: 1 }),
+        });
+        setIsOnline(true);
+        queryClient.invalidateQueries({ queryKey: ["/api/operators"] });
+        toast({
+          title: "You're Online",
+          description: "You can now receive job requests in your area.",
+        });
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: "Failed to go online. Please try again.",
+          variant: "destructive",
+        });
+      }
     }
   };
 
@@ -181,18 +219,6 @@ export function OperatorDashboardLayout({ tier }: OperatorDashboardLayoutProps) 
         <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
           <div className="flex justify-between h-14 md:h-16">
             <div className="flex items-center gap-3">
-              <DrawerNav
-                tier={tier}
-                menuItems={menuItems}
-                operator={{
-                  name: operatorData?.name || user?.name || "Operator",
-                  email: user?.email,
-                  photo: operatorData?.photo || undefined,
-                  rating: operatorData?.rating ? Number(operatorData.rating) : undefined,
-                }}
-                onLogout={handleLogout}
-                onProfileClick={handleProfileClick}
-              />
               <Link href="/" className="flex items-center">
                 <div className="flex items-center cursor-pointer hover:opacity-80 transition-opacity" data-testid="link-home-logo">
                   <Truck className="text-black dark:text-white w-6 h-6 md:w-8 md:h-8" />
@@ -217,7 +243,7 @@ export function OperatorDashboardLayout({ tier }: OperatorDashboardLayoutProps) 
                 <button
                   onClick={handleToggleOnline}
                   disabled={!canGoOnline}
-                  className={`relative inline-flex h-5 w-9 items-center rounded-full p-0.5 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 ${
+                  className={`relative inline-flex h-[18px] w-9 items-center justify-start rounded-full transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 ${
                     !canGoOnline 
                       ? "bg-gray-200 dark:bg-gray-700 cursor-not-allowed opacity-50" 
                       : isOnline 
@@ -227,8 +253,8 @@ export function OperatorDashboardLayout({ tier }: OperatorDashboardLayoutProps) 
                   data-testid="online-toggle"
                 >
                   <span
-                    className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-md ring-0 transition-all duration-300 ${
-                      isOnline ? "translate-x-4" : "translate-x-0"
+                    className={`absolute top-1/2 -translate-y-1/2 h-3.5 w-3.5 rounded-full bg-white shadow-md transition-all duration-300 ${
+                      isOnline ? "left-[calc(100%-16px)]" : "left-0.5"
                     }`}
                   />
                 </button>
@@ -335,6 +361,16 @@ export function OperatorDashboardLayout({ tier }: OperatorDashboardLayoutProps) 
           </TierTabs>
         </section>
       </main>
+
+      <LocationPermissionModal
+        open={showLocationModal}
+        onOpenChange={(open) => {
+          setShowLocationModal(open);
+          if (!open && userLocation) {
+            handleLocationGranted();
+          }
+        }}
+      />
     </div>
   );
 }

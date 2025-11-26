@@ -915,7 +915,7 @@ export function registerRoutes(storage: IStorage) {
       const updatedServices = [...currentServices, serviceWithId];
       
       await db.update(operators)
-        .set({ services: updatedServices } as any)
+        .set({ operatorServices: updatedServices } as any)
         .where(eq(operators.operatorId, operatorId));
       
       res.json(serviceWithId);
@@ -944,7 +944,7 @@ export function registerRoutes(storage: IStorage) {
       );
       
       await db.update(operators)
-        .set({ services: updatedServices } as any)
+        .set({ operatorServices: updatedServices } as any)
         .where(eq(operators.operatorId, operatorId));
       
       const updatedService = updatedServices.find((s: any) => s.id === serviceId);
@@ -971,7 +971,7 @@ export function registerRoutes(storage: IStorage) {
       const updatedServices = currentServices.filter((svc: any) => svc.id !== serviceId);
       
       await db.update(operators)
-        .set({ services: updatedServices } as any)
+        .set({ operatorServices: updatedServices } as any)
         .where(eq(operators.operatorId, operatorId));
       
       res.json({ success: true });
