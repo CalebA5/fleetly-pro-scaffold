@@ -218,6 +218,25 @@ export function ServiceSelector({
     return () => window.removeEventListener("resize", checkMobile);
   }, []);
 
+  // Close popover when scrolling to prevent it from floating away
+  useEffect(() => {
+    if (!isOpen) return;
+    
+    const handleScroll = () => {
+      setIsOpen(false);
+    };
+    
+    // Listen to scroll events at the capture phase to catch all scrollable ancestors
+    // Using capture phase ensures we catch scroll events before they reach their targets
+    document.addEventListener('scroll', handleScroll, { passive: true, capture: true });
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    
+    return () => {
+      document.removeEventListener('scroll', handleScroll, { capture: true });
+      window.removeEventListener('scroll', handleScroll);
+    };
+  }, [isOpen]);
+
   const clearAll = (e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();

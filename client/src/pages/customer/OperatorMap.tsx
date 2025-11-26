@@ -15,6 +15,7 @@ import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, MapPin, Star, Truck, Filter, Heart, ChevronLeft, ChevronRight, List, Map as MapIcon, Target, GripHorizontal, ChevronUp, ChevronDown, Layers, PanelLeftClose, PanelLeft, Building2, User } from "lucide-react";
 import type { Operator, InsertServiceRequest, Favorite } from "@shared/schema";
 import { OPERATOR_TIER_INFO } from "@shared/schema";
+import { TIER_SERVICES } from "@shared/tierCapabilities";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserLocation } from "@/contexts/LocationContext";
@@ -83,12 +84,12 @@ export const OperatorMap = () => {
     const bottomNavHeight = 64; // Bottom nav height
     const headerHeight = 56; // Page header height
     const filterHeaderHeight = 80; // Find operators filter bar height
-    const availableHeight = vh - bottomNavHeight - headerHeight - filterHeaderHeight;
+    const availableHeight = vh - bottomNavHeight;
     switch (sheetPosition) {
-      case 'collapsed': return 100; // Increased collapsed height for better visibility of "Tap to see X operators"
-      case 'half': return availableHeight * 0.55; // Slightly more than half for better visibility
-      case 'full': return availableHeight * 0.9; // 90% to leave some map visible at top
-      default: return availableHeight * 0.55;
+      case 'collapsed': return 100; // Collapsed shows just the handle and tap prompt
+      case 'half': return availableHeight * 0.45; // 45% of available height - shows map above
+      case 'full': return availableHeight - headerHeight; // Full height, overlaps the filter header but not main header
+      default: return availableHeight * 0.45;
     }
   }, [sheetPosition]);
 
@@ -139,11 +140,12 @@ export const OperatorMap = () => {
   // Get sheet height with drag offset
   const getSheetStyle = useCallback(() => {
     const baseHeight = getBaseHeight();
-    const currentHeight = isDragging ? Math.max(80, Math.min(window.innerHeight * 0.9, baseHeight + dragOffset)) : baseHeight;
+    const currentHeight = isDragging ? Math.max(80, Math.min(window.innerHeight * 0.85, baseHeight + dragOffset)) : baseHeight;
     return {
       height: `${currentHeight}px`,
-      transition: isDragging ? 'none' : 'height 0.3s ease-out',
-      touchAction: 'none'
+      transition: isDragging ? 'none' : 'height 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+      touchAction: 'none',
+      willChange: 'height',
     };
   }, [getBaseHeight, isDragging, dragOffset]);
   
@@ -811,7 +813,8 @@ export const OperatorMap = () => {
     navigate(`/customer/create-request?${params.toString()}`);
   };
 
-  const services = ["All", "Snow Plowing", "Towing", "Hauling", "Courier", "Ice Removal", "Roadside Assistance"];
+  // Build services list from TIER_SERVICES for consistent filtering across the app
+  const services = ["All", ...TIER_SERVICES.map(s => s.name)];
 
   if (isLoading) {
     return (

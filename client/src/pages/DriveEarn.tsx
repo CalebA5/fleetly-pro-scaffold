@@ -179,7 +179,8 @@ export const DriveEarn = () => {
   const getTierDashboardPath = (tier: string) => {
     // All tiers now use the unified operator dashboard with tier parameter
     // This ensures the correct tier is loaded even before user context updates
-    return `/operator?tier=${tier}`;
+    // Navigate with search params to ensure tier is read from URL
+    return `/operator?tier=${encodeURIComponent(tier)}`;
   };
 
   const getTierIcon = (tier: string) => {
