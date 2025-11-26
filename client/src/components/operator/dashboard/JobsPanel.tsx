@@ -84,10 +84,10 @@ export function JobsPanel({
       <Tabs value={activeSubTab} onValueChange={setActiveSubTab}>
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
           <TabsList className="grid w-full sm:w-auto grid-cols-3 bg-muted/50">
-            <TabsTrigger value="nearby" className="text-xs sm:text-sm" data-testid="jobs-subtab-nearby">
+            <TabsTrigger value="nearby" className="text-xs sm:text-sm" data-testid="jobs-subtab-requests">
               <MapPin className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-              <span className="hidden sm:inline">Nearby</span>
-              <span className="sm:hidden">Near</span>
+              <span className="hidden sm:inline">Requests</span>
+              <span className="sm:hidden">Req</span>
             </TabsTrigger>
             <TabsTrigger value="active" className="text-xs sm:text-sm" data-testid="jobs-subtab-active">
               <Briefcase className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
@@ -122,6 +122,7 @@ export function JobsPanel({
                   <SelectItem value="towing">Towing</SelectItem>
                   <SelectItem value="hauling">Hauling</SelectItem>
                   <SelectItem value="courier">Courier</SelectItem>
+                  <SelectItem value="handyman">Handyman</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -193,7 +194,7 @@ export function JobsPanel({
                 </div>
                 <h3 className="font-semibold mb-2">No Active Jobs</h3>
                 <p className="text-sm text-muted-foreground max-w-sm">
-                  You don't have any active jobs at the moment. Accept a job from the Nearby tab to get started.
+                  You don't have any active jobs at the moment. Accept a job from the Requests tab to get started.
                 </p>
               </CardContent>
             </Card>

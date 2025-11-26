@@ -1,20 +1,25 @@
-import { Home, Search, Heart, User, FileText, LogIn, UserPlus, Truck } from "lucide-react";
+import { Home, Search, Heart, User, FileText, LogIn, UserPlus, Truck, Wallet, LayoutDashboard, Briefcase } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 
-export function MobileBottomNav() {
+interface MobileBottomNavProps {
+  context?: "customer" | "operator";
+}
+
+export function MobileBottomNav({ context = "customer" }: MobileBottomNavProps) {
   const [location] = useLocation();
   const { user } = useAuth();
   const [isVisible, setIsVisible] = useState(true);
   const lastScrollY = useRef(0);
 
+  const isOnOperatorDashboard = context === "operator" || location.startsWith("/operator");
+
   useEffect(() => {
     const handleScroll = () => {
       const currentScrollY = window.scrollY;
       
-      // Show nav when scrolling up, hide when scrolling down
       if (currentScrollY < lastScrollY.current || currentScrollY < 50) {
         setIsVisible(true);
       } else if (currentScrollY > lastScrollY.current && currentScrollY > 100) {
@@ -26,10 +31,42 @@ export function MobileBottomNav() {
 
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
-  }, []); // Empty dependency array - listener only attached once
+  }, []);
 
-  // Show different nav items based on authentication
-  const navItems = user ? [
+  const operatorNavItems = [
+    {
+      icon: LayoutDashboard,
+      label: "Dashboard",
+      path: "/operator",
+      testId: "nav-operator-dashboard"
+    },
+    {
+      icon: Briefcase,
+      label: "Jobs",
+      path: "/operator/nearby-jobs",
+      testId: "nav-operator-jobs"
+    },
+    {
+      icon: Wallet,
+      label: "Wallet",
+      path: "/wallet",
+      testId: "nav-operator-wallet"
+    },
+    {
+      icon: Truck,
+      label: "Drive & Earn",
+      path: "/drive-earn",
+      testId: "nav-operator-drive"
+    },
+    {
+      icon: User,
+      label: "Profile",
+      path: "/profile",
+      testId: "nav-operator-profile"
+    }
+  ];
+
+  const customerNavItems = user ? [
     {
       icon: Home,
       label: "Home",
@@ -92,6 +129,8 @@ export function MobileBottomNav() {
       testId: "nav-signup"
     }
   ];
+
+  const navItems = isOnOperatorDashboard ? operatorNavItems : customerNavItems;
 
   return (
     <nav 

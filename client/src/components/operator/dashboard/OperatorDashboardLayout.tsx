@@ -4,13 +4,13 @@ import { useLocation, Link } from "wouter";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserLocation } from "@/contexts/LocationContext";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { AlertCircle, X, Truck } from "lucide-react";
 import { NotificationBell } from "@/components/NotificationBell";
 import { TierSwitcher } from "@/components/TierSwitcher";
 import { ProfileDropdown } from "@/components/ProfileDropdown";
+import { MobileBottomNav } from "@/components/MobileBottomNav";
 import { MetricsSlider } from "./MetricsSlider";
 import { TierTabs } from "./TierTabs";
 import { JobsPanel } from "./JobsPanel";
@@ -231,12 +231,6 @@ export function OperatorDashboardLayout({ tier }: OperatorDashboardLayoutProps) 
                   </span>
                 </div>
               </Link>
-              <div className="hidden sm:flex items-center gap-1.5 ml-2">
-                <span className="text-lg">{tierInfo.badge}</span>
-                <Badge variant="outline" className="text-xs font-medium">
-                  {tierInfo.label.split(" ")[0]}
-                </Badge>
-              </div>
             </div>
             
             <div className="flex items-center gap-2 sm:gap-3">
@@ -247,7 +241,7 @@ export function OperatorDashboardLayout({ tier }: OperatorDashboardLayoutProps) 
                 <button
                   onClick={handleToggleOnline}
                   disabled={!canGoOnline}
-                  className={`relative inline-flex h-4 w-7 items-center rounded-full transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-emerald-500 ${
+                  className={`relative inline-flex h-[14px] w-6 items-center rounded-full transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-emerald-500 ${
                     !canGoOnline 
                       ? "bg-gray-200 dark:bg-gray-700 cursor-not-allowed opacity-50" 
                       : isOnline 
@@ -257,8 +251,8 @@ export function OperatorDashboardLayout({ tier }: OperatorDashboardLayoutProps) 
                   data-testid="online-toggle"
                 >
                   <span
-                    className={`absolute top-1/2 -translate-y-1/2 h-3 w-3 rounded-full bg-white shadow-sm transition-all duration-200 ${
-                      isOnline ? "left-[calc(100%-14px)]" : "left-0.5"
+                    className={`absolute top-1/2 -translate-y-1/2 h-[10px] w-[10px] rounded-full bg-white shadow-sm transition-all duration-200 ${
+                      isOnline ? "left-[12px]" : "left-0.5"
                     }`}
                   />
                 </button>
@@ -279,7 +273,7 @@ export function OperatorDashboardLayout({ tier }: OperatorDashboardLayoutProps) 
         </div>
       </header>
 
-      <main className="container max-w-4xl mx-auto px-4 py-4 space-y-5">
+      <main className="container max-w-4xl mx-auto px-4 py-4 pb-24 md:pb-4 space-y-5">
         {!isApproved && showVerificationBanner && (
           <div className="relative flex items-start gap-3 p-3 rounded-xl bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-950/40 dark:to-orange-950/40 border border-amber-200/50 dark:border-amber-800/50">
             <AlertCircle className="h-5 w-5 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
@@ -375,6 +369,8 @@ export function OperatorDashboardLayout({ tier }: OperatorDashboardLayoutProps) 
           }
         }}
       />
+
+      <MobileBottomNav context="operator" />
     </div>
   );
 }

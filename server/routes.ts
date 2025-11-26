@@ -1136,6 +1136,28 @@ export function registerRoutes(storage: IStorage) {
     }
   });
 
+  router.get("/api/service-requests/active/:operatorId", async (req, res) => {
+    try {
+      const operatorId = req.params.operatorId;
+      
+      const activeRequests = await db.query.serviceRequests.findMany({
+        where: and(
+          eq(serviceRequests.assignedOperatorId, operatorId),
+          or(
+            eq(serviceRequests.status, "assigned"),
+            eq(serviceRequests.status, "in_progress"),
+            eq(serviceRequests.status, "operator_accepted")
+          )
+        )
+      });
+      
+      res.json(activeRequests);
+    } catch (error) {
+      console.error("Error fetching active jobs:", error);
+      res.status(500).json({ message: "Failed to fetch active jobs" });
+    }
+  });
+
   router.get("/api/service-requests/:id", async (req, res) => {
     const id = parseInt(req.params.id);
     const request = await storage.getServiceRequest(id);

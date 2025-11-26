@@ -18,7 +18,8 @@ import {
   Eye,
   Truck,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  ArrowLeft
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { useState } from "react";
@@ -414,12 +415,30 @@ export default function RequestStatus() {
     );
   };
 
+  const handleBack = () => {
+    if (window.history.length > 1) {
+      window.history.back();
+    } else {
+      setLocation("/");
+    }
+  };
+
   return (
     <>
       <Header />
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pb-20">
         <div className="max-w-4xl mx-auto p-6 pt-20">
           <div className="mb-6">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="mb-3 -ml-2 md:hidden" 
+              data-testid="button-back-mobile"
+              onClick={handleBack}
+            >
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back
+            </Button>
             <h1 className="text-3xl font-bold text-gray-900 dark:text-white">My Requests</h1>
             <p className="text-gray-600 dark:text-gray-400 mt-2">
               Track the status of all your service requests

@@ -1,25 +1,45 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { Link } from "wouter";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { Link, useLocation } from "wouter";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import {
   ArrowLeft, User, Mail, Phone, Briefcase, Star, TrendingUp, Award, 
   DollarSign, CheckCircle, ChevronRight, ChevronDown, Edit, Truck, 
-  FileText, Clock, AlertCircle, Shield, Package, Wrench, MapPin, Plus
+  FileText, Clock, AlertCircle, Shield, Package, Wrench, MapPin, Plus, Heart, Save, X
 } from "lucide-react";
 import type { ServiceRequest, Operator, OperatorTierStats, OperatorTierProfile, TierApprovalStatus } from "@shared/schema";
 import { OPERATOR_TIER_INFO } from "@shared/schema";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { InfoTooltip } from "@/components/ui/info-tooltip";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 
 export const Profile = () => {
-  const { user } = useAuth();
+  const { user, updateUser } = useAuth();
+  const { toast } = useToast();
+  const [, navigate] = useLocation();
   const [expandedTier, setExpandedTier] = useState<string | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editForm, setEditForm] = useState({
+    name: "",
+    phone: "",
+  });
+
+  const handleBack = () => {
+    if (window.history.length > 1) {
+      window.history.back();
+    } else {
+      navigate("/");
+    }
+  };
 
   // Fetch operator data if user has operatorId
   const { data: operatorData, isLoading: isLoadingOperator } = useQuery<Operator>({
@@ -96,12 +116,10 @@ export const Profile = () => {
       <div className="container mx-auto px-4 py-4 md:py-8 max-w-6xl">
         {/* Clean Header */}
         <div className="mb-6">
-          <Link to="/">
-            <Button variant="ghost" size="sm" className="mb-3 -ml-2" data-testid="button-back">
+          <Button variant="ghost" size="sm" className="mb-3 -ml-2" data-testid="button-back" onClick={handleBack}>
               <ArrowLeft className="h-4 w-4 mr-2" />
               Back
             </Button>
-          </Link>
           <div>
             <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white" data-testid="text-page-title">
               My Profile

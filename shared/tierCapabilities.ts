@@ -188,7 +188,7 @@ export const TIER_SERVICES: ServiceConfig[] = [
   { id: "window_cleaning", name: "Window Cleaning", description: "Residential and commercial window cleaning", tiers: ["manual", "equipped", "professional"], category: "micro" },
   { id: "yard_cleanup", name: "Yard Cleanup", description: "General yard cleanup and debris removal", tiers: ["manual", "equipped", "professional"], category: "micro" },
   { id: "debris_removal", name: "Debris Removal", description: "Light debris and waste removal", tiers: ["manual", "equipped", "professional"], category: "micro" },
-  { id: "local_errands", name: "Local Errands", description: "Helping with moving, truck loading, and local tasks", tiers: ["manual", "equipped", "professional"], category: "micro" },
+  { id: "handyman", name: "Handyman", description: "General handyman services including minor repairs, assembly, and odd jobs", tiers: ["manual", "equipped", "professional"], category: "micro" },
   
   { id: "snow_plowing", name: "Snow Plowing", description: "Vehicle-mounted snow plowing services", tiers: ["equipped", "professional"], category: "standard" },
   { id: "towing", name: "Towing", description: "Vehicle towing and roadside assistance", tiers: ["equipped", "professional"], category: "standard" },
