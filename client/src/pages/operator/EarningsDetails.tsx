@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo, lazy, Suspense } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/enhanced-button";
@@ -23,7 +23,7 @@ import {
   ChevronRight, Briefcase, ArrowUpRight
 } from "lucide-react";
 import { useLocation } from "wouter";
-import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, Area, AreaChart } from "recharts";
+import { XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart, BarChart, Bar } from "recharts";
 import { format, differenceInHours } from "date-fns";
 import type { ServiceRequest } from "@shared/schema";
 
@@ -97,14 +97,17 @@ export default function EarningsDetails() {
   const totalJobs = currentTierStats?.jobsCompleted || 0;
   const avgEarningsPerJob = totalJobs > 0 ? (parseFloat(totalEarnings) / totalJobs).toFixed(2) : "0.00";
 
-  const todayEarnings = completedJobs.reduce((sum, job) => {
-    const price = typeof job.details === 'object' && job.details && 'quotedPrice' in job.details
-      ? parseFloat(String(job.details.quotedPrice) || "0")
-      : 0;
-    return sum + price;
-  }, 0);
+  const todayEarnings = useMemo(() => 
+    completedJobs.reduce((sum, job) => {
+      const price = typeof job.details === 'object' && job.details && 'quotedPrice' in job.details
+        ? parseFloat(String(job.details.quotedPrice) || "0")
+        : 0;
+      return sum + price;
+    }, 0),
+    [completedJobs]
+  );
 
-  const generateEarningsData = (): EarningsData[] => {
+  const earningsData = useMemo((): EarningsData[] => {
     const earnings = parseFloat(currentTierStats?.totalEarnings || "0");
     const jobs = currentTierStats?.jobsCompleted || 0;
 
@@ -141,7 +144,7 @@ export default function EarningsDetails() {
         jobs: Math.floor((jobs / 12) * monthlyFactors[i]),
       }));
     }
-  };
+  }, [currentTierStats, interval]);
 
   const canAddReview = (job: ServiceRequest): boolean => {
     if (!job.completedAt) return false;
@@ -167,7 +170,6 @@ export default function EarningsDetails() {
     return labels[tier] || tier;
   };
 
-  const earningsData = generateEarningsData();
   const isLoading = isLoadingStats || isLoadingJobs;
 
   if (isLoading) {
