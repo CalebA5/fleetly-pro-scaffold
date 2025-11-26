@@ -1,14 +1,15 @@
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useLocation } from "wouter";
+import { useLocation, Link } from "wouter";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
-import { AlertCircle, X, Home } from "lucide-react";
+import { AlertCircle, X, Truck } from "lucide-react";
 import { NotificationBell } from "@/components/NotificationBell";
 import { TierSwitcher } from "@/components/TierSwitcher";
+import { ProfileDropdown } from "@/components/ProfileDropdown";
 import { MetricsSlider } from "./MetricsSlider";
 import { TierTabs } from "./TierTabs";
 import { DrawerNav } from "./DrawerNav";
@@ -176,9 +177,9 @@ export function OperatorDashboardLayout({ tier }: OperatorDashboardLayoutProps) 
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900" data-testid="operator-dashboard">
-      <header className="sticky top-0 z-50 bg-white dark:bg-gray-800 shadow-sm">
-        <div className="container max-w-4xl mx-auto px-4 py-3">
-          <div className="flex items-center justify-between gap-3">
+      <header className="sticky top-0 z-50 border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
+          <div className="flex justify-between h-14 md:h-16">
             <div className="flex items-center gap-3">
               <DrawerNav
                 tier={tier}
@@ -192,47 +193,57 @@ export function OperatorDashboardLayout({ tier }: OperatorDashboardLayoutProps) 
                 onLogout={handleLogout}
                 onProfileClick={handleProfileClick}
               />
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8"
-                  onClick={() => setLocation("/")}
-                  data-testid="button-home"
-                >
-                  <Home className="h-4 w-4" />
-                </Button>
-                <div>
-                  <h1 className="font-bold text-base leading-tight text-gray-900 dark:text-white">
-                    {tierInfo.badge} {tierInfo.label.split(" ")[0]}
-                  </h1>
+              <Link href="/" className="flex items-center">
+                <div className="flex items-center cursor-pointer hover:opacity-80 transition-opacity" data-testid="link-home-logo">
+                  <Truck className="text-black dark:text-white w-6 h-6 md:w-8 md:h-8" />
+                  <span className="font-bold text-black dark:text-white ml-2 text-xl md:text-2xl hidden sm:inline">
+                    Fleetly
+                  </span>
                 </div>
+              </Link>
+              <div className="hidden sm:flex items-center gap-1.5 ml-2">
+                <span className="text-lg">{tierInfo.badge}</span>
+                <Badge variant="outline" className="text-xs font-medium">
+                  {tierInfo.label.split(" ")[0]}
+                </Badge>
               </div>
             </div>
             
-            <div className="flex items-center gap-3">
-              <button
-                onClick={handleToggleOnline}
-                disabled={!canGoOnline}
-                className={`relative inline-flex h-5 w-9 items-center rounded-full p-0.5 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 ${
-                  !canGoOnline 
-                    ? "bg-gray-200 dark:bg-gray-700 cursor-not-allowed opacity-50" 
-                    : isOnline 
-                      ? "bg-emerald-500" 
-                      : "bg-gray-300 dark:bg-gray-600 hover:bg-gray-400 dark:hover:bg-gray-500"
-                }`}
-                data-testid="online-toggle"
-              >
-                <span
-                  className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-md ring-0 transition-all duration-300 ${
-                    isOnline ? "translate-x-4" : "translate-x-0"
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="flex items-center gap-1.5 sm:gap-2">
+                <span className={`text-xs font-medium ${isOnline ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-500'}`}>
+                  {isOnline ? 'Online' : 'Offline'}
+                </span>
+                <button
+                  onClick={handleToggleOnline}
+                  disabled={!canGoOnline}
+                  className={`relative inline-flex h-5 w-9 items-center rounded-full p-0.5 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 ${
+                    !canGoOnline 
+                      ? "bg-gray-200 dark:bg-gray-700 cursor-not-allowed opacity-50" 
+                      : isOnline 
+                        ? "bg-emerald-500" 
+                        : "bg-gray-300 dark:bg-gray-600 hover:bg-gray-400 dark:hover:bg-gray-500"
                   }`}
-                />
-              </button>
+                  data-testid="online-toggle"
+                >
+                  <span
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-md ring-0 transition-all duration-300 ${
+                      isOnline ? "translate-x-4" : "translate-x-0"
+                    }`}
+                  />
+                </button>
+              </div>
               
               <NotificationBell />
               
               <TierSwitcher />
+              
+              <ProfileDropdown 
+                context="operator-dashboard"
+                operatorTier={tier}
+                operatorRating={operatorData?.rating ? Number(operatorData.rating) : undefined}
+                operatorPhoto={operatorData?.photo || undefined}
+              />
             </div>
           </div>
         </div>
