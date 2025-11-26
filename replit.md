@@ -8,6 +8,35 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes (Nov 26, 2025)
 
+### Phase 2: New Account Pages (Latest)
+- **Wallet Page** (`client/src/pages/Wallet.tsx`):
+  - Balance display with available/pending breakdown
+  - Transaction history with filterable tabs (All/Earnings/Withdrawals/Bonuses)
+  - Quick stats for weekly earnings and total withdrawn
+  - Withdrawal functionality UI
+
+- **Payments Page** (`client/src/pages/Payments.tsx`):
+  - Cards management with add/remove/set default
+  - Bank accounts management
+  - Payout preferences (weekly/instant)
+  - Dropdown menus with proper data-testid coverage
+
+- **Settings Page** (`client/src/pages/Settings.tsx`):
+  - Appearance settings (dark mode, language selection)
+  - Notification preferences (push, email, SMS toggles)
+  - Privacy & security (password, privacy, location)
+  - Account actions (logout, delete account)
+
+- **Legal Page** (`client/src/pages/Legal.tsx`):
+  - Terms of Service
+  - Privacy Policy
+  - Liability Disclaimer
+  - Cookie Policy
+  - Tabbed interface with scrollable content
+
+- **Routes Added** (`client/src/App.tsx`):
+  - `/wallet`, `/payments`, `/settings`, `/legal`
+
 ### UI/UX Improvements
 - **Redesigned MetricsSlider** (`MetricsSlider.tsx`):
   - Clean, professional design with subtle gray icon badges
@@ -22,6 +51,12 @@ Preferred communication style: Simple, everyday language.
 
 - **Removed duplicate metric** (`tierCapabilities.ts`):
   - Removed "Completed Today" metric (duplicates Today's Earnings functionality)
+
+- **Unified Profile Page** (`client/src/pages/Profile.tsx`):
+  - Clean header without gradient styling
+  - User info card with tier badges
+  - Customer activity section with clickable stats
+  - Expandable operator tier cards with verification status
 
 ### Bug Fixes
 - **Fixed Profile.tsx tier display errors**:
