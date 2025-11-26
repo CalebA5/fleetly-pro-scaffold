@@ -17,6 +17,7 @@ import {
   DollarSign, Star, FileText, Upload, Trash2, Edit2, Info
 } from "lucide-react";
 import { queryClient, apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 import type { OperatorTier } from "@shared/schema";
 import { TIER_CAPABILITIES, TIER_SERVICES, getServicesForTier } from "@shared/tierCapabilities";
 import type { ServiceConfig } from "@shared/tierCapabilities";
@@ -42,10 +43,21 @@ interface ServicesPanelProps {
 
 export function ServicesPanel({ tier, operatorId }: ServicesPanelProps) {
   const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const [preSelectedServiceId, setPreSelectedServiceId] = useState<string>("");
   const [editingService, setEditingService] = useState<OperatorService | null>(null);
 
   const tierInfo = TIER_CAPABILITIES[tier];
   const availableServices = getServicesForTier(tier);
+
+  const handleAddService = (serviceId?: string) => {
+    setPreSelectedServiceId(serviceId || "");
+    setAddDialogOpen(true);
+  };
+
+  const handleCloseAddDialog = () => {
+    setAddDialogOpen(false);
+    setPreSelectedServiceId("");
+  };
 
   const { data: operatorServices = [], isLoading } = useQuery<OperatorService[]>({
     queryKey: [`/api/operators/${operatorId}/services`],
@@ -79,9 +91,12 @@ export function ServicesPanel({ tier, operatorId }: ServicesPanelProps) {
             Manage the services you offer and set your pricing
           </p>
         </div>
-        <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
+        <Dialog open={addDialogOpen} onOpenChange={(open) => {
+          if (!open) handleCloseAddDialog();
+          else setAddDialogOpen(true);
+        }}>
           <DialogTrigger asChild>
-            <Button data-testid="add-service-btn">
+            <Button data-testid="add-service-btn" onClick={() => handleAddService()}>
               <Plus className="h-4 w-4 mr-2" />
               Add Service
             </Button>
@@ -98,7 +113,8 @@ export function ServicesPanel({ tier, operatorId }: ServicesPanelProps) {
               operatorId={operatorId}
               availableServices={availableServices}
               addedServiceIds={addedServiceIds}
-              onClose={() => setAddDialogOpen(false)}
+              preSelectedServiceId={preSelectedServiceId}
+              onClose={handleCloseAddDialog}
             />
           </DialogContent>
         </Dialog>
@@ -159,7 +175,7 @@ export function ServicesPanel({ tier, operatorId }: ServicesPanelProps) {
                   key={service.id}
                   service={service}
                   isAdded={addedServiceIds.includes(service.id)}
-                  onAdd={() => setAddDialogOpen(true)}
+                  onAdd={() => handleAddService(service.id)}
                 />
               ))}
             </div>
@@ -180,7 +196,7 @@ export function ServicesPanel({ tier, operatorId }: ServicesPanelProps) {
                   key={service.id}
                   service={service}
                   isAdded={addedServiceIds.includes(service.id)}
-                  onAdd={() => setAddDialogOpen(true)}
+                  onAdd={() => handleAddService(service.id)}
                 />
               ))}
             </div>
@@ -201,7 +217,7 @@ export function ServicesPanel({ tier, operatorId }: ServicesPanelProps) {
                   key={service.id}
                   service={service}
                   isAdded={addedServiceIds.includes(service.id)}
-                  onAdd={() => setAddDialogOpen(true)}
+                  onAdd={() => handleAddService(service.id)}
                 />
               ))}
             </div>
@@ -376,15 +392,18 @@ function AddServiceForm({
   operatorId,
   availableServices,
   addedServiceIds,
+  preSelectedServiceId = "",
   onClose,
 }: {
   tier: OperatorTier;
   operatorId: string;
   availableServices: ServiceConfig[];
   addedServiceIds: string[];
+  preSelectedServiceId?: string;
   onClose: () => void;
 }) {
-  const [selectedServiceId, setSelectedServiceId] = useState<string>("");
+  const { toast } = useToast();
+  const [selectedServiceId, setSelectedServiceId] = useState<string>(preSelectedServiceId);
   const [skillLevel, setSkillLevel] = useState<string>("intermediate");
   const [priceType, setPriceType] = useState<string>("hourly");
   const [basePrice, setBasePrice] = useState<string>("");
@@ -419,9 +438,20 @@ function AddServiceForm({
       });
       
       queryClient.invalidateQueries({ queryKey: [`/api/operators/${operatorId}/services`] });
+      
+      toast({
+        title: "Service Added",
+        description: `${selectedService.name} has been added to your services.`,
+      });
+      
       onClose();
     } catch (error) {
       console.error("Error adding service:", error);
+      toast({
+        title: "Failed to Add Service",
+        description: "Please try again later.",
+        variant: "destructive",
+      });
     } finally {
       setIsSubmitting(false);
     }

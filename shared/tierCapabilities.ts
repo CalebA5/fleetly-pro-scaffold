@@ -51,6 +51,8 @@ export interface TierCapabilities {
   badge: string;
   radiusKm: number | null;
   radiusMax: number;
+  radiusMoving?: number | null;
+  radiusMovingMax?: number;
   gamifiedRadiusIncrease: boolean;
   equipmentLimits: EquipmentLimits;
   features: {
@@ -73,8 +75,10 @@ export const TIER_CAPABILITIES: Record<OperatorTier, TierCapabilities> = {
     label: "Manual Operator",
     description: "Operators with hand tools and limited mobility, providing micro-services within a small radius",
     badge: "⛏️",
-    radiusKm: 5,
-    radiusMax: 8,
+    radiusKm: 3,
+    radiusMax: 5,
+    radiusMoving: 1.5,
+    radiusMovingMax: 3,
     gamifiedRadiusIncrease: true,
     equipmentLimits: {
       maxVehicles: 0,
@@ -101,8 +105,10 @@ export const TIER_CAPABILITIES: Record<OperatorTier, TierCapabilities> = {
     label: "Skilled & Equipped",
     description: "Operators with equipment and skills, including vehicles and heavy equipment",
     badge: "🚛",
-    radiusKm: 15,
-    radiusMax: 50,
+    radiusKm: 12,
+    radiusMax: 15,
+    radiusMoving: 8,
+    radiusMovingMax: 10,
     gamifiedRadiusIncrease: false,
     equipmentLimits: {
       maxVehicles: 3,
