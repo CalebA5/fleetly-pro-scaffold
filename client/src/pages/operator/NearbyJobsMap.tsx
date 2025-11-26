@@ -91,14 +91,19 @@ export default function NearbyJobsMap() {
     enabled: !!operatorId,
   });
 
-  // Fetch operator data to get home location
+  // Fetch operator data to get home location and tier profiles
   const { data: operatorData } = useQuery<{
     homeLatitude?: number;
     homeLongitude?: number;
+    operatorTierProfiles?: Record<string, { approvalStatus?: string; submittedAt?: string }>;
   }>({
     queryKey: [`/api/operators/by-id/${operatorId}`],
     enabled: !!operatorId,
   });
+
+  // Check if current tier is verified
+  const currentTierProfile = operatorData?.operatorTierProfiles?.[currentTier];
+  const isCurrentTierVerified = currentTierProfile?.approvalStatus === "approved";
 
   const mapboxToken = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN;
 
@@ -206,6 +211,42 @@ export default function NearbyJobsMap() {
   return (
     <div className={`${isFullscreen ? 'fixed inset-0 z-50' : 'min-h-screen'} bg-gray-50 dark:bg-gray-900 flex flex-col ${!isFullscreen ? 'pb-20 md:pb-0' : ''}`}>
       {!isFullscreen && <Header />}
+      
+      {/* Verification Status Banner */}
+      {!isFullscreen && showVerificationBanner && !isCurrentTierVerified && operatorData && (
+        <div className="bg-amber-50 dark:bg-amber-950/30 border-b border-amber-200 dark:border-amber-800">
+          <div className="container mx-auto px-4 py-3 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="p-1.5 bg-amber-100 dark:bg-amber-900/50 rounded-full">
+                <ShieldAlert className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-amber-800 dark:text-amber-200">
+                  {currentTierProfile?.approvalStatus === "pending" ? "Verification Pending" : 
+                   currentTierProfile?.approvalStatus === "under_review" ? "Under Review" :
+                   currentTierProfile?.approvalStatus === "rejected" ? "Verification Rejected" :
+                   "Not Verified"}
+                </p>
+                <p className="text-xs text-amber-600 dark:text-amber-400">
+                  {currentTierProfile?.approvalStatus === "pending" ? "Your tier application is awaiting review" :
+                   currentTierProfile?.approvalStatus === "under_review" ? "Our team is reviewing your application" :
+                   currentTierProfile?.approvalStatus === "rejected" ? "Please update your application" :
+                   `Complete verification to receive ${getTierLabel(currentTier)} jobs`}
+                </p>
+              </div>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowVerificationBanner(false)}
+              className="text-amber-600 hover:text-amber-800 hover:bg-amber-100 dark:text-amber-400 dark:hover:text-amber-200 dark:hover:bg-amber-900/50 p-1 h-auto"
+              data-testid="button-dismiss-verification-banner"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      )}
       
       {/* Floating Controls - Always Visible on Mobile */}
       {!isFullscreen && (
