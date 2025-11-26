@@ -214,25 +214,20 @@ export function OperatorDashboardLayout({ tier }: OperatorDashboardLayoutProps) 
               <button
                 onClick={handleToggleOnline}
                 disabled={!canGoOnline}
-                className={`relative inline-flex h-7 w-12 items-center rounded-lg transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-orange-500 ${
+                className={`relative inline-flex h-5 w-9 items-center rounded-full p-0.5 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 ${
                   !canGoOnline 
                     ? "bg-gray-200 dark:bg-gray-700 cursor-not-allowed opacity-50" 
                     : isOnline 
-                      ? "bg-emerald-500 shadow-emerald-500/30 shadow-md" 
-                      : "bg-gray-300 dark:bg-gray-600"
+                      ? "bg-emerald-500" 
+                      : "bg-gray-300 dark:bg-gray-600 hover:bg-gray-400 dark:hover:bg-gray-500"
                 }`}
                 data-testid="online-toggle"
               >
                 <span
-                  className={`inline-block h-5 w-5 transform rounded-md bg-white shadow-md ring-0 transition-all duration-300 ${
-                    isOnline ? "translate-x-6" : "translate-x-1"
+                  className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-md ring-0 transition-all duration-300 ${
+                    isOnline ? "translate-x-4" : "translate-x-0"
                   }`}
                 />
-                {!isOnline && (
-                  <span className="absolute right-1.5 text-[8px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
-                    off
-                  </span>
-                )}
               </button>
               
               <NotificationBell />

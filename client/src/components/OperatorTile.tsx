@@ -299,11 +299,15 @@ export function OperatorTile({ operator, isFavorite = false, onFavoriteToggle }:
                 Services
               </p>
               <div className="flex flex-wrap gap-1.5">
-                {operator.services.slice(0, 3).map((service: string) => (
-                  <Badge key={service} variant="secondary" className="text-xs" data-testid={`service-badge-${service}`}>
-                    {service}
-                  </Badge>
-                ))}
+                {operator.services.slice(0, 3).map((service: any, idx: number) => {
+                  const serviceName = typeof service === 'string' ? service : (service?.name || service?.serviceType || 'Service');
+                  const serviceKey = typeof service === 'string' ? service : (service?.id || idx);
+                  return (
+                    <Badge key={serviceKey} variant="secondary" className="text-xs" data-testid={`service-badge-${serviceKey}`}>
+                      {serviceName}
+                    </Badge>
+                  );
+                })}
                 {operator.services.length > 3 && (
                   <Badge variant="secondary" className="text-xs">
                     +{operator.services.length - 3} more

@@ -8,11 +8,11 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "
 import { Header } from "@/components/Header";
 import { MobileBottomNav } from "@/components/MobileBottomNav";
 import { useAuth } from "@/contexts/AuthContext";
-import { ArrowLeft, MapPin, DollarSign, Clock, AlertTriangle, Maximize2, Minimize2, List, Eye } from "lucide-react";
+import { ArrowLeft, MapPin, DollarSign, Clock, AlertTriangle, Maximize2, Minimize2, List, Eye, ShieldAlert, X } from "lucide-react";
 import { useLocation } from "wouter";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
-import { OPERATOR_TIER_INFO } from "@shared/schema";
+import { OPERATOR_TIER_INFO, type Operator } from "@shared/schema";
 import { RequestDetailsModal } from "@/components/operator/RequestDetailsModal";
 import { QuoteModal } from "@/components/operator/QuoteModal";
 import { useToast } from "@/hooks/use-toast";
@@ -58,6 +58,7 @@ export default function NearbyJobsMap() {
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [showQuoteModal, setShowQuoteModal] = useState(false);
   const [requestForDetails, setRequestForDetails] = useState<ServiceRequest | null>(null);
+  const [showVerificationBanner, setShowVerificationBanner] = useState(true);
 
   const operatorId = user?.operatorId;
   const currentTier = user?.viewTier || user?.activeTier || "manual";

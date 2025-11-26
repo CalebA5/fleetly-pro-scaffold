@@ -55,12 +55,13 @@ export function JobsPanel({
   const hasJobAssignment = canAccessFeature(tier, "jobAssignment");
 
   const { data: nearbyJobs = [], isLoading: isLoadingNearby } = useQuery<ServiceRequest[]>({
-    queryKey: ["/api/service-requests/nearby", operatorId, tier],
-    enabled: isOnline,
+    queryKey: [`/api/service-requests/for-operator/${operatorId}`],
+    enabled: !!operatorId,
   });
 
   const { data: activeJobs = [], isLoading: isLoadingActive } = useQuery<ServiceRequest[]>({
-    queryKey: ["/api/operators", operatorId, "active-jobs"],
+    queryKey: [`/api/service-requests/active/${operatorId}`],
+    enabled: !!operatorId,
   });
 
   const { data: customerGroups = [], isLoading: isLoadingGroups } = useQuery<CustomerGroup[]>({
