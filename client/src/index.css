@@ -2,6 +2,15 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Hide scrollbar but keep functionality */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
 /* Hide browser's native clear button (Chrome, Edge, Safari) */
 input[type="text"]::-webkit-search-decoration,
 input[type="text"]::-webkit-search-cancel-button,

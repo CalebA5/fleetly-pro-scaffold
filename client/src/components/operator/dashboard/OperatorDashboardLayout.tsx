@@ -5,7 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useUserLocation } from "@/contexts/LocationContext";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Switch } from "@/components/ui/switch";
+import { IOSToggle } from "@/components/ui/ios-toggle";
 import { useToast } from "@/hooks/use-toast";
 import { AlertCircle, X, Truck } from "lucide-react";
 import { NotificationBell } from "@/components/NotificationBell";
@@ -70,11 +70,15 @@ export function OperatorDashboardLayout({ tier }: OperatorDashboardLayoutProps) 
   const isApproved = tierProfile?.approvalStatus === "approved";
   const canGoOnline = isApproved && tierProfile?.canEarn !== false;
 
+  // CRITICAL: isOnline should be TRUE only if operator is online AND on THIS SPECIFIC TIER
+  // This ensures each tier dashboard correctly shows its own online status
   useEffect(() => {
     if (operatorData?.isOnline !== undefined) {
-      setIsOnline(operatorData.isOnline === 1);
+      // Operator is online for THIS tier only if isOnline=1 AND activeTier matches current tier
+      const isOnlineForThisTier = operatorData.isOnline === 1 && operatorData.activeTier === tier;
+      setIsOnline(isOnlineForThisTier);
     }
-  }, [operatorData?.isOnline]);
+  }, [operatorData?.isOnline, operatorData?.activeTier, tier]);
 
   useEffect(() => {
     if (user && user.viewTier !== tier) {
@@ -235,22 +239,6 @@ export function OperatorDashboardLayout({ tier }: OperatorDashboardLayoutProps) 
             </div>
             
             <div className="flex items-center gap-2 sm:gap-3">
-              <div className="flex items-center gap-2 px-2 py-1 rounded-full bg-gray-100 dark:bg-gray-800">
-                <div className="flex items-center gap-1.5">
-                  <span className={`w-2 h-2 rounded-full ${isOnline ? 'bg-emerald-500 animate-pulse' : 'bg-gray-400'}`} />
-                  <span className={`text-xs font-semibold ${isOnline ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-500'}`}>
-                    {isOnline ? 'Online' : 'Offline'}
-                  </span>
-                </div>
-                <Switch
-                  checked={isOnline}
-                  onCheckedChange={handleToggleOnline}
-                  disabled={!canGoOnline}
-                  size="sm"
-                  data-testid="online-toggle"
-                />
-              </div>
-              
               <NotificationBell />
               
               <TierSwitcher />
@@ -265,6 +253,30 @@ export function OperatorDashboardLayout({ tier }: OperatorDashboardLayoutProps) 
           </div>
         </div>
       </header>
+
+      {/* Online Status Bar */}
+      <div className="sticky top-14 md:top-16 z-40 bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800">
+        <div className="max-w-4xl mx-auto px-4 py-2.5">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className={`w-2 h-2 rounded-full ${isOnline ? 'bg-teal-500 animate-pulse' : 'bg-gray-400'}`} />
+              <span className={`text-sm font-medium ${isOnline ? 'text-teal-600 dark:text-teal-400' : 'text-gray-500 dark:text-gray-400'}`}>
+                {isOnline ? 'Online' : 'Offline'}
+              </span>
+              <span className="text-xs text-gray-400 dark:text-gray-500">
+                {isOnline ? '• Receiving jobs' : '• Not receiving jobs'}
+              </span>
+            </div>
+            <IOSToggle
+              checked={isOnline}
+              onCheckedChange={handleToggleOnline}
+              disabled={!canGoOnline}
+              size="sm"
+              data-testid="online-toggle"
+            />
+          </div>
+        </div>
+      </div>
 
       <main className="container max-w-4xl mx-auto px-4 py-4 pb-24 md:pb-4 space-y-5">
         {!isApproved && showVerificationBanner && (

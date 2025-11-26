@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/enhanced-button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Heart, Star, MapPin, Truck, Trash2 } from "lucide-react";
+import { Heart, Star, MapPin, Truck, Trash2, ArrowLeft } from "lucide-react";
 import type { Operator, Favorite } from "@shared/schema";
 import { OPERATOR_TIER_INFO } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";

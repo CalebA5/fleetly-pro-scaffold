@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -11,11 +11,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
+import { InfoTooltip } from "@/components/ui/info-tooltip";
 import {
   ArrowLeft, Wallet as WalletIcon, ArrowUpRight, ArrowDownLeft,
   CreditCard, DollarSign, Clock, TrendingUp, Filter, Gift, Info,
   Calendar, ChevronRight, Sparkles, AlertCircle
 } from "lucide-react";
+
+type OperatorTier = "professional" | "equipped" | "manual";
 
 interface Transaction {
   id: string;
@@ -25,23 +28,32 @@ interface Transaction {
   date: string;
   status: "completed" | "pending" | "failed";
   reference?: string;
+  tier?: OperatorTier;
 }
 
+const TIER_INFO = {
+  professional: { label: "Professional", shortLabel: "Pro", badge: "🏆", color: "text-amber-600", bgColor: "bg-amber-100 dark:bg-amber-900/30" },
+  equipped: { label: "Skilled & Equipped", shortLabel: "Equipped", badge: "🚛", color: "text-blue-600", bgColor: "bg-blue-100 dark:bg-blue-900/30" },
+  manual: { label: "Manual", shortLabel: "Manual", badge: "⛏️", color: "text-green-600", bgColor: "bg-green-100 dark:bg-green-900/30" },
+};
+
 const mockTransactions: Transaction[] = [
-  { id: "1", type: "credit", amount: 125.00, description: "Snow Plowing Job - Calgary Downtown", date: "2025-11-26", status: "completed", reference: "JOB-2411260" },
-  { id: "2", type: "credit", amount: 85.50, description: "Towing Service - Highway 2", date: "2025-11-25", status: "completed", reference: "JOB-2411252" },
+  { id: "1", type: "credit", amount: 125.00, description: "Snow Plowing Job - Calgary Downtown", date: "2025-11-26", status: "completed", reference: "JOB-2411260", tier: "professional" },
+  { id: "2", type: "credit", amount: 85.50, description: "Towing Service - Highway 2", date: "2025-11-25", status: "completed", reference: "JOB-2411252", tier: "equipped" },
   { id: "3", type: "withdrawal", amount: -200.00, description: "Withdrawal to Bank Account", date: "2025-11-24", status: "completed" },
-  { id: "4", type: "credit", amount: 45.00, description: "Courier Delivery", date: "2025-11-23", status: "completed", reference: "JOB-2411231" },
+  { id: "4", type: "credit", amount: 45.00, description: "Courier Delivery", date: "2025-11-23", status: "completed", reference: "JOB-2411231", tier: "manual" },
   { id: "5", type: "referral_credit", amount: 25.00, description: "Referral Credit - New Operator John", date: "2025-11-22", status: "completed" },
-  { id: "6", type: "credit", amount: 180.00, description: "Hauling Job - Industrial Area", date: "2025-11-21", status: "completed", reference: "JOB-2411211" },
+  { id: "6", type: "credit", amount: 180.00, description: "Hauling Job - Industrial Area", date: "2025-11-21", status: "completed", reference: "JOB-2411211", tier: "professional" },
   { id: "7", type: "withdrawal", amount: -150.00, description: "Withdrawal to Bank Account (Friday Payout)", date: "2025-11-20", status: "pending" },
   { id: "8", type: "referral_credit", amount: 15.00, description: "Referral Credit - New Customer Sarah", date: "2025-11-19", status: "completed" },
+  { id: "9", type: "credit", amount: 95.00, description: "Snow Removal - Residential", date: "2025-11-18", status: "completed", reference: "JOB-2411181", tier: "equipped" },
+  { id: "10", type: "credit", amount: 55.00, description: "Handyman Service", date: "2025-11-17", status: "completed", reference: "JOB-2411171", tier: "manual" },
 ];
 
 export default function Wallet() {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [, navigate] = useLocation();
+  const [location, navigate] = useLocation();
   const [activeTab, setActiveTab] = useState("all");
   const [isLoading] = useState(false);
   const [showWithdrawDialog, setShowWithdrawDialog] = useState(false);
@@ -49,6 +61,23 @@ export default function Wallet() {
   const [withdrawAmount, setWithdrawAmount] = useState("");
   const [filterPeriod, setFilterPeriod] = useState("all");
   const [displayedCount, setDisplayedCount] = useState(5);
+  
+  // Tier filtering - read from URL params or user's current viewTier
+  const searchParams = new URLSearchParams(window.location.search);
+  const urlTier = searchParams.get('tier') as OperatorTier | null;
+  const [selectedTier, setSelectedTier] = useState<OperatorTier | "all">(
+    urlTier || "all"
+  );
+  
+  // Store the origin path to navigate back to the correct dashboard
+  const originPath = searchParams.get('from') || (user?.viewTier ? `/operator` : "/");
+
+  // Calculate tier-specific earnings
+  const tierEarnings = {
+    professional: mockTransactions.filter(t => t.tier === "professional" && t.type === "credit").reduce((sum, t) => sum + t.amount, 0),
+    equipped: mockTransactions.filter(t => t.tier === "equipped" && t.type === "credit").reduce((sum, t) => sum + t.amount, 0),
+    manual: mockTransactions.filter(t => t.tier === "manual" && t.type === "credit").reduce((sum, t) => sum + t.amount, 0),
+  };
 
   const balance = 460.50;
   const pendingBalance = 150.00;
@@ -59,8 +88,14 @@ export default function Wallet() {
     if (window.history.length > 1) {
       window.history.back();
     } else {
-      navigate("/");
+      navigate(originPath);
     }
+  };
+  
+  // Handle tier filter change
+  const handleTierFilterChange = (tier: string) => {
+    setSelectedTier(tier as OperatorTier | "all");
+    setDisplayedCount(5);
   };
 
   const getNextFriday = () => {
@@ -89,12 +124,17 @@ export default function Wallet() {
     }
   };
 
+  // First filter by tier, then by period, then by transaction type
+  const tierFilteredTransactions = selectedTier === "all" 
+    ? mockTransactions 
+    : mockTransactions.filter(t => t.tier === selectedTier || !t.tier);
+    
   const filteredTransactions = filterByPeriod(
     activeTab === "all" 
-      ? mockTransactions 
+      ? tierFilteredTransactions 
       : activeTab === "credits"
-        ? mockTransactions.filter(t => t.type === "referral_credit")
-        : mockTransactions.filter(t => t.type === activeTab)
+        ? tierFilteredTransactions.filter(t => t.type === "referral_credit")
+        : tierFilteredTransactions.filter(t => t.type === activeTab)
   );
 
   const displayedTransactions = filteredTransactions.slice(0, displayedCount);
@@ -288,16 +328,52 @@ export default function Wallet() {
           </CardContent>
         </Card>
 
-        {/* Quick Stats - Credits instead of Add Funds */}
+        {/* Tier Earnings Breakdown - Horizontal Scroll on Mobile */}
+        <div className="mb-4 -mx-4 px-4 overflow-x-auto scrollbar-hide">
+          <div className="flex gap-2 min-w-max pb-2">
+            <button
+              onClick={() => handleTierFilterChange("all")}
+              className={`flex items-center gap-2 px-3 py-2 rounded-xl border transition-all shrink-0 ${
+                selectedTier === "all"
+                  ? "bg-gray-900 dark:bg-white border-gray-900 dark:border-white text-white dark:text-gray-900"
+                  : "bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:border-gray-300"
+              }`}
+              data-testid="button-tier-all"
+            >
+              <span className="text-sm font-medium">All Tiers</span>
+              <span className="text-xs opacity-75">${totalEarnings.toFixed(0)}</span>
+            </button>
+            {(Object.keys(TIER_INFO) as OperatorTier[]).map((tier) => (
+              <button
+                key={tier}
+                onClick={() => handleTierFilterChange(tier)}
+                className={`flex items-center gap-2 px-3 py-2 rounded-xl border transition-all shrink-0 ${
+                  selectedTier === tier
+                    ? `${TIER_INFO[tier].bgColor} border-current ${TIER_INFO[tier].color}`
+                    : "bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:border-gray-300"
+                }`}
+                data-testid={`button-tier-${tier}`}
+              >
+                <span>{TIER_INFO[tier].badge}</span>
+                <span className="text-sm font-medium">{TIER_INFO[tier].shortLabel}</span>
+                <span className="text-xs opacity-75">${tierEarnings[tier].toFixed(0)}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Quick Stats */}
         <div className="grid grid-cols-2 gap-3 mb-4">
           <Card className="border border-gray-200 dark:border-gray-700 shadow-sm">
             <CardContent className="p-4">
               <div className="flex items-center gap-2 mb-1">
                 <TrendingUp className="h-4 w-4 text-emerald-500" />
-                <span className="text-sm text-gray-500 dark:text-gray-400">Total Earnings</span>
+                <span className="text-sm text-gray-500 dark:text-gray-400">
+                  {selectedTier === "all" ? "Total Earnings" : `${TIER_INFO[selectedTier as OperatorTier].shortLabel} Earnings`}
+                </span>
               </div>
               <p className="text-xl font-bold text-gray-900 dark:text-white" data-testid="text-total-earnings">
-                ${totalEarnings.toFixed(2)}
+                ${selectedTier === "all" ? totalEarnings.toFixed(2) : tierEarnings[selectedTier as OperatorTier].toFixed(2)}
               </p>
             </CardContent>
           </Card>
@@ -395,12 +471,20 @@ export default function Wallet() {
                             <p className="text-sm font-medium text-gray-900 dark:text-white truncate max-w-[200px]">
                               {transaction.description}
                             </p>
-                            <div className="flex items-center gap-2 text-xs text-gray-500">
+                            <div className="flex items-center gap-2 text-xs text-gray-500 flex-wrap">
                               <span>{new Date(transaction.date).toLocaleDateString()}</span>
+                              {transaction.tier && (
+                                <>
+                                  <span>•</span>
+                                  <span className={`${TIER_INFO[transaction.tier].color}`}>
+                                    {TIER_INFO[transaction.tier].badge} {TIER_INFO[transaction.tier].shortLabel}
+                                  </span>
+                                </>
+                              )}
                               {transaction.reference && (
                                 <>
                                   <span>•</span>
-                                  <span>{transaction.reference}</span>
+                                  <span className="hidden sm:inline">{transaction.reference}</span>
                                 </>
                               )}
                             </div>

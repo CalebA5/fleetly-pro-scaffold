@@ -1,7 +1,7 @@
 import { Home, Search, Heart, User, ClipboardList, LogIn, UserPlus, Truck, Wallet, LayoutDashboard, MapPin, CircleUser } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 
 interface MobileBottomNavProps {
@@ -15,6 +15,9 @@ export function MobileBottomNav({ context = "customer" }: MobileBottomNavProps) 
   const lastScrollY = useRef(0);
 
   const isOnOperatorDashboard = context === "operator" || location.startsWith("/operator");
+  
+  // Get current tier for wallet navigation
+  const currentTier = user?.viewTier || user?.activeTier || user?.operatorTier;
 
   useEffect(() => {
     const handleScroll = () => {
@@ -33,6 +36,14 @@ export function MobileBottomNav({ context = "customer" }: MobileBottomNavProps) 
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
+  // Build wallet path with tier filter when navigating from operator context
+  const walletPath = useMemo(() => {
+    if (currentTier) {
+      return `/wallet?tier=${currentTier}&from=/operator`;
+    }
+    return "/wallet";
+  }, [currentTier]);
+
   const operatorNavItems = [
     {
       icon: LayoutDashboard,
@@ -49,7 +60,7 @@ export function MobileBottomNav({ context = "customer" }: MobileBottomNavProps) 
     {
       icon: Wallet,
       label: "Wallet",
-      path: "/wallet",
+      path: walletPath,
       testId: "nav-operator-wallet"
     },
     {
