@@ -82,11 +82,12 @@ export const OperatorMap = () => {
     const vh = window.innerHeight;
     const bottomNavHeight = 64; // Bottom nav height
     const headerHeight = 56; // Page header height
+    const availableHeight = vh - bottomNavHeight - headerHeight;
     switch (sheetPosition) {
-      case 'collapsed': return 56; // Minimal - just drag handle
-      case 'half': return (vh - bottomNavHeight - headerHeight) * 0.5; // Half available space
-      case 'full': return vh - headerHeight - bottomNavHeight; // Full available space
-      default: return (vh - bottomNavHeight) * 0.5;
+      case 'collapsed': return 80; // Larger collapsed height - shows drag handle + message clearly
+      case 'half': return availableHeight * 0.55; // Slightly more than half for better visibility
+      case 'full': return availableHeight; // Full available space
+      default: return availableHeight * 0.55;
     }
   }, [sheetPosition]);
 
@@ -1179,27 +1180,31 @@ export const OperatorMap = () => {
           >
             {/* Drag Handle - Larger touch target for better UX */}
             <div 
-              className="flex flex-col items-center pt-2 pb-1 cursor-grab active:cursor-grabbing touch-none"
+              className="flex flex-col items-center pt-3 pb-2 cursor-grab active:cursor-grabbing touch-none"
               onTouchStart={handleSheetTouchStart}
               onTouchMove={handleSheetTouchMove}
               onTouchEnd={handleSheetTouchEnd}
+              onClick={() => {
+                if (sheetPosition === 'collapsed') setSheetPosition('half');
+                else if (sheetPosition === 'full') setSheetPosition('half');
+              }}
             >
-              <div className="w-10 h-1 bg-gray-400 dark:bg-gray-500 rounded-full mb-1" />
-              <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400 py-1">
+              <div className="w-12 h-1.5 bg-gray-300 dark:bg-gray-600 rounded-full mb-2" />
+              <div className="flex items-center justify-center gap-2 text-sm text-gray-600 dark:text-gray-300 py-1 min-h-[28px]">
                 {sheetPosition === 'collapsed' && (
-                  <>
-                    <ChevronUp className="w-4 h-4 animate-bounce" />
-                    <span>Swipe up to see operators</span>
-                  </>
+                  <div className="flex items-center gap-2 bg-gray-100 dark:bg-gray-800 px-4 py-1.5 rounded-full">
+                    <ChevronUp className="w-4 h-4 animate-bounce text-gray-600 dark:text-gray-300" />
+                    <span className="font-medium">Tap to see {operators?.length || 0} operators</span>
+                  </div>
                 )}
                 {sheetPosition === 'half' && (
-                  <span className="font-medium">{operators?.length || 0} operators nearby</span>
+                  <span className="font-semibold">{operators?.length || 0} operators nearby</span>
                 )}
                 {sheetPosition === 'full' && (
-                  <>
-                    <ChevronDown className="w-4 h-4" />
-                    <span>Swipe down for map</span>
-                  </>
+                  <div className="flex items-center gap-2 bg-gray-100 dark:bg-gray-800 px-4 py-1.5 rounded-full">
+                    <ChevronDown className="w-4 h-4 text-gray-600 dark:text-gray-300" />
+                    <span className="font-medium">Swipe down for map</span>
+                  </div>
                 )}
               </div>
             </div>

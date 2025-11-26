@@ -894,3 +894,46 @@ export const insertAcceptedJobSchema = createInsertSchema(acceptedJobs).omit({
 export type InsertAcceptedJob = z.infer<typeof insertAcceptedJobSchema>;
 export type AcceptedJob = typeof acceptedJobs.$inferSelect;
 export type AcceptedJobStatus = "accepted" | "in_progress" | "completed" | "cancelled";
+
+// Job Messages - Customer-Operator Communication for active jobs
+export const jobMessages = pgTable("job_messages", {
+  id: serial("id").primaryKey(),
+  messageId: text("message_id").notNull().unique(),
+  jobId: text("job_id").notNull(), // Links to acceptedJobId or emergencyId
+  jobType: text("job_type").notNull(), // "service_request" | "emergency"
+  senderId: text("sender_id").notNull(), // customerId or operatorId
+  senderType: text("sender_type").notNull(), // "customer" | "operator"
+  senderName: text("sender_name").notNull(),
+  content: text("content").notNull(),
+  isRead: integer("is_read").notNull().default(0), // 0 = unread, 1 = read
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertJobMessageSchema = createInsertSchema(jobMessages).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertJobMessage = z.infer<typeof insertJobMessageSchema>;
+export type JobMessage = typeof jobMessages.$inferSelect;
+
+// Live Operator Location - Real-time tracking for active jobs
+export const operatorLiveLocations = pgTable("operator_live_locations", {
+  id: serial("id").primaryKey(),
+  operatorId: text("operator_id").notNull().unique(), // One entry per operator
+  latitude: decimal("latitude", { precision: 10, scale: 7 }).notNull(),
+  longitude: decimal("longitude", { precision: 10, scale: 7 }).notNull(),
+  heading: decimal("heading", { precision: 5, scale: 2 }), // Direction in degrees
+  speed: decimal("speed", { precision: 5, scale: 2 }), // Speed in km/h
+  accuracy: decimal("accuracy", { precision: 6, scale: 2 }), // GPS accuracy in meters
+  activeJobId: text("active_job_id"), // Currently active job being worked on
+  isEnRoute: integer("is_en_route").notNull().default(0), // 1 if traveling to job
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertOperatorLiveLocationSchema = createInsertSchema(operatorLiveLocations).omit({
+  id: true,
+});
+
+export type InsertOperatorLiveLocation = z.infer<typeof insertOperatorLiveLocationSchema>;
+export type OperatorLiveLocation = typeof operatorLiveLocations.$inferSelect;
