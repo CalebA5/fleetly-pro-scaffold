@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/enhanced-button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Header } from "@/components/Header";
-import { ArrowLeft, Star, MapPin, Phone, Truck, Wrench, Award } from "lucide-react";
+import { BackButton } from "@/components/BackButton";
+import { Star, MapPin, Phone, Truck, Wrench, Award } from "lucide-react";
 import { OPERATOR_TIER_INFO, type Operator } from "@shared/schema";
 import { format } from "date-fns";
 
@@ -77,15 +78,11 @@ export const OperatorProfile = () => {
 
       <div className="max-w-4xl mx-auto px-4 py-8">
         {/* Back Button */}
-        <Button 
-          variant="ghost" 
-          size="sm" 
-          onClick={() => setLocation("/customer/operators")}
+        <BackButton 
+          fallbackPath="/customer/operators" 
+          label="Back to Operators"
           className="mb-6"
-        >
-          <ArrowLeft className="w-4 h-4 mr-2" />
-          Back to Operators
-        </Button>
+        />
 
         {/* Profile Header */}
         <Card className="mb-6">

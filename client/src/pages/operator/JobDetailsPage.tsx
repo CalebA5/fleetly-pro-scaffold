@@ -572,7 +572,7 @@ export default function JobDetailsPage() {
               )}
             </div>
 
-            {/* Location */}
+            {/* Location with Directions */}
             {jobData.location && (
               <div className="mt-4 p-4 bg-purple-50 dark:bg-purple-900/10 rounded-lg border border-purple-200 dark:border-purple-800">
                 <div className="flex items-start gap-3">
@@ -582,15 +582,36 @@ export default function JobDetailsPage() {
                     <p className="font-medium text-gray-900 dark:text-white" data-testid="text-location">
                       {jobData.location}
                     </p>
-                    <a
-                      href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(jobData.location)}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-sm text-purple-600 dark:text-purple-400 hover:underline mt-2 inline-flex items-center gap-1"
-                    >
-                      <MapPin className="w-3 h-3" />
-                      Open in Maps
-                    </a>
+                    <div className="flex flex-wrap gap-2 mt-3">
+                      <a
+                        href={`https://www.google.com/maps/dir/?api=1&destination=${
+                          jobData.latitude && jobData.longitude 
+                            ? `${jobData.latitude},${jobData.longitude}` 
+                            : encodeURIComponent(jobData.location)
+                        }`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors text-sm"
+                        data-testid="button-get-directions"
+                      >
+                        <Navigation className="w-4 h-4" />
+                        Get Directions
+                      </a>
+                      <a
+                        href={`https://maps.apple.com/?daddr=${
+                          jobData.latitude && jobData.longitude 
+                            ? `${jobData.latitude},${jobData.longitude}` 
+                            : encodeURIComponent(jobData.location)
+                        }`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-2 bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg font-medium transition-colors text-sm"
+                        data-testid="button-apple-maps"
+                      >
+                        <MapPin className="w-4 h-4" />
+                        Apple Maps
+                      </a>
+                    </div>
                   </div>
                 </div>
               </div>

@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { useAuth } from "@/contexts/AuthContext";
 
 type ServiceType = "towing" | "roadside" | "debris" | "snow_plowing" | "hauling" | "equipment_transport";
 
@@ -72,6 +73,7 @@ const EMERGENCY_SERVICES: ServiceOption[] = [
 export default function EmergencySOS() {
   const [, navigate] = useLocation();
   const { toast } = useToast();
+  const { user, isAuthenticated } = useAuth();
   
   const [step, setStep] = useState<"select" | "details">("select");
   const [selectedService, setSelectedService] = useState<ServiceType | null>(null);
@@ -82,10 +84,18 @@ export default function EmergencySOS() {
     navigate("/");
   };
   
-  // Form state
+  // Pre-fill form with logged-in user info
   const [contactName, setContactName] = useState("");
   const [contactPhone, setContactPhone] = useState("");
   const [contactEmail, setContactEmail] = useState("");
+  
+  // Pre-fill contact info if user is logged in
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      if (user.name && !contactName) setContactName(user.name);
+      if (user.email && !contactEmail) setContactEmail(user.email);
+    }
+  }, [isAuthenticated, user]);
   const [description, setDescription] = useState("");
   const [location, setLocation] = useState("");
   const [latitude, setLatitude] = useState<number | null>(null);
@@ -249,6 +259,7 @@ export default function EmergencySOS() {
           location,
           latitude: finalLat,
           longitude: finalLng,
+          customerId: isAuthenticated && (user?.role === 'customer' || user?.role === 'both') ? user.id : undefined,
         }),
       });
       
