@@ -94,75 +94,76 @@ export const Profile = () => {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pb-20 md:pb-0">
       <div className="container mx-auto px-4 py-4 md:py-8 max-w-6xl">
-        {/* Mobile-Optimized Header */}
+        {/* Clean Header */}
         <div className="mb-6">
           <Link to="/">
-            <Button variant="ghost" size="sm" className="mb-3" data-testid="button-back">
-              <ArrowLeft style={{ width: 'clamp(0.875rem, 3vw, 1rem)', height: 'clamp(0.875rem, 3vw, 1rem)' }} className="mr-2" />
+            <Button variant="ghost" size="sm" className="mb-3 -ml-2" data-testid="button-back">
+              <ArrowLeft className="h-4 w-4 mr-2" />
               Back
             </Button>
           </Link>
           <div>
-            <h1 className="text-2xl md:text-4xl font-bold bg-gradient-to-r from-orange-600 to-orange-500 bg-clip-text text-transparent" data-testid="text-page-title">
+            <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white" data-testid="text-page-title">
               My Profile
             </h1>
-            <p className="text-sm text-muted-foreground">Your account overview and statistics</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Manage your account and view your activity</p>
           </div>
         </div>
 
         <div className="space-y-4">
-          {/* User Info Card - Mobile Optimized */}
-          <Card className="border-2 border-orange-200 dark:border-orange-900">
-            <CardHeader className="bg-gradient-to-r from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20 pb-4">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 md:w-16 md:h-16 rounded-full bg-gradient-to-r from-orange-500 to-orange-600 flex items-center justify-center text-white text-xl md:text-2xl font-bold">
+          {/* User Info Card - Clean Design */}
+          <Card className="border border-gray-200 dark:border-gray-700 shadow-sm">
+            <CardContent className="p-5">
+              <div className="flex items-start gap-4">
+                <div className="w-14 h-14 rounded-full bg-gray-900 dark:bg-white flex items-center justify-center text-white dark:text-gray-900 text-xl font-bold shrink-0">
                   {user.name.charAt(0).toUpperCase()}
                 </div>
-                <div className="flex-1">
-                  <CardTitle className="text-lg md:text-xl" data-testid="text-user-name">{user.name}</CardTitle>
-                  <p className="text-xs md:text-sm text-muted-foreground">Active Member</p>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="pt-4 space-y-3">
-              <div className="flex flex-wrap gap-2">
-                <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 text-xs">
-                  🛒 Customer
-                </Badge>
-                {hasAnyTier && operatorData && Array.isArray(operatorData.subscribedTiers) && operatorData.subscribedTiers.map((tier) => {
-                  const tierInfo = OPERATOR_TIER_INFO[tier as keyof typeof OPERATOR_TIER_INFO];
-                  if (!tierInfo) return null;
-                  return (
-                    <Badge 
-                      key={tier}
-                      className="bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200 text-xs"
-                      data-testid={`badge-tier-${tier}`}
-                    >
-                      {tierInfo.badge} {tierInfo.label}
+                <div className="flex-1 min-w-0">
+                  <h2 className="text-lg font-semibold text-gray-900 dark:text-white" data-testid="text-user-name">{user.name}</h2>
+                  <div className="flex flex-wrap gap-1.5 mt-2">
+                    <Badge variant="secondary" className="bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300 text-xs font-medium">
+                      Customer
                     </Badge>
-                  );
-                })}
-              </div>
-              <Separator />
-              <div className="space-y-2 text-sm">
-                <div className="flex items-center gap-2">
-                  <Mail style={{ width: 'clamp(0.875rem, 3vw, 1rem)', height: 'clamp(0.875rem, 3vw, 1rem)' }} className="text-orange-600 dark:text-orange-400" />
-                  <span className="text-gray-700 dark:text-gray-300 truncate" data-testid="text-email">{user.email}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Phone style={{ width: 'clamp(0.875rem, 3vw, 1rem)', height: 'clamp(0.875rem, 3vw, 1rem)' }} className="text-orange-600 dark:text-orange-400" />
-                  <span className="text-gray-700 dark:text-gray-300" data-testid="text-phone">{operatorData?.phone || "Not provided"}</span>
+                    {hasAnyTier && operatorData && Array.isArray(operatorData.subscribedTiers) && operatorData.subscribedTiers.map((tier) => {
+                      const tierInfo = OPERATOR_TIER_INFO[tier as keyof typeof OPERATOR_TIER_INFO];
+                      if (!tierInfo) return null;
+                      return (
+                        <Badge 
+                          key={tier}
+                          variant="secondary"
+                          className="bg-orange-100 text-orange-700 dark:bg-orange-900/50 dark:text-orange-300 text-xs font-medium"
+                          data-testid={`badge-tier-${tier}`}
+                        >
+                          {tierInfo.badge} {tierInfo.label}
+                        </Badge>
+                      );
+                    })}
+                  </div>
+                  <div className="mt-3 space-y-1.5 text-sm">
+                    <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
+                      <Mail className="h-4 w-4" />
+                      <span className="truncate" data-testid="text-email">{user.email}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
+                      <Phone className="h-4 w-4" />
+                      <span data-testid="text-phone">{operatorData?.phone || "Not provided"}</span>
+                    </div>
+                  </div>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          {/* Customer Activity - Interactive Sections */}
-          <Card>
-            <CardHeader className="bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 pb-4">
-              <div className="flex items-center gap-2">
-                <User style={{ width: 'clamp(1rem, 4vw, 1.25rem)', height: 'clamp(1rem, 4vw, 1.25rem)' }} />
-                <CardTitle className="text-lg">Customer Activity</CardTitle>
+          {/* Customer Activity - Clean Design */}
+          <Card className="border border-gray-200 dark:border-gray-700 shadow-sm">
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
+                    <User className="h-4 w-4 text-gray-600 dark:text-gray-400" />
+                  </div>
+                  <CardTitle className="text-base font-semibold">Customer Activity</CardTitle>
+                </div>
                 <InfoTooltip
                   content="Tap any stat to view detailed information about your service requests, completed jobs, and favorites."
                   testId="button-info-customer-activity"
@@ -170,23 +171,21 @@ export const Profile = () => {
                 />
               </div>
             </CardHeader>
-            <CardContent className="pt-4">
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <CardContent className="pt-0">
+              <div className="grid grid-cols-3 gap-3">
                 {/* Total Requests - Clickable */}
                 <Sheet>
                   <SheetTrigger asChild>
                     <button 
-                      className="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20 p-4 rounded-lg border border-orange-200 dark:border-orange-800 text-left transition-all active:scale-98 hover:shadow-md"
+                      className="bg-gray-50 dark:bg-gray-800/50 p-3 rounded-lg border border-gray-200 dark:border-gray-700 text-left transition-all hover:bg-gray-100 dark:hover:bg-gray-800 hover:shadow-sm group"
                       data-testid="button-total-requests"
                     >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2 text-orange-600 dark:text-orange-400 mb-2">
-                          <Briefcase style={{ width: 'clamp(0.875rem, 3vw, 1rem)', height: 'clamp(0.875rem, 3vw, 1rem)' }} />
-                          <span className="text-xs md:text-sm font-medium">Total Requests</span>
-                        </div>
-                        <ChevronRight style={{ width: 'clamp(0.875rem, 3vw, 1rem)', height: 'clamp(0.875rem, 3vw, 1rem)' }} className="text-orange-400" />
+                      <div className="flex items-center gap-1.5 text-gray-500 dark:text-gray-400 mb-1">
+                        <Briefcase className="h-3.5 w-3.5" />
+                        <span className="text-xs font-medium">Total</span>
+                        <ChevronRight className="h-3 w-3 ml-auto opacity-0 group-hover:opacity-100 transition-opacity" />
                       </div>
-                      <p className="text-2xl md:text-3xl font-bold text-black dark:text-white" data-testid="text-total-requests">{customerRequests.length}</p>
+                      <p className="text-xl font-bold text-gray-900 dark:text-white" data-testid="text-total-requests">{customerRequests.length}</p>
                     </button>
                   </SheetTrigger>
                   <SheetContent side="bottom" className="h-[85vh]">
@@ -226,17 +225,15 @@ export const Profile = () => {
                 <Sheet>
                   <SheetTrigger asChild>
                     <button 
-                      className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 p-4 rounded-lg border border-green-200 dark:border-green-800 text-left transition-all active:scale-98 hover:shadow-md"
+                      className="bg-emerald-50 dark:bg-emerald-900/20 p-3 rounded-lg border border-emerald-200 dark:border-emerald-800 text-left transition-all hover:bg-emerald-100 dark:hover:bg-emerald-900/30 hover:shadow-sm group"
                       data-testid="button-completed-requests"
                     >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2 text-green-600 dark:text-green-400 mb-2">
-                          <CheckCircle style={{ width: 'clamp(0.875rem, 3vw, 1rem)', height: 'clamp(0.875rem, 3vw, 1rem)' }} />
-                          <span className="text-xs md:text-sm font-medium">Completed</span>
-                        </div>
-                        <ChevronRight style={{ width: 'clamp(0.875rem, 3vw, 1rem)', height: 'clamp(0.875rem, 3vw, 1rem)' }} className="text-green-400" />
+                      <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 mb-1">
+                        <CheckCircle className="h-3.5 w-3.5" />
+                        <span className="text-xs font-medium">Completed</span>
+                        <ChevronRight className="h-3 w-3 ml-auto opacity-0 group-hover:opacity-100 transition-opacity" />
                       </div>
-                      <p className="text-2xl md:text-3xl font-bold text-black dark:text-white" data-testid="text-completed-requests">{completedRequests.length}</p>
+                      <p className="text-xl font-bold text-gray-900 dark:text-white" data-testid="text-completed-requests">{completedRequests.length}</p>
                     </button>
                   </SheetTrigger>
                   <SheetContent side="bottom" className="h-[85vh]">
@@ -275,17 +272,15 @@ export const Profile = () => {
                 <Sheet>
                   <SheetTrigger asChild>
                     <button 
-                      className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800 text-left transition-all active:scale-98 hover:shadow-md"
+                      className="bg-amber-50 dark:bg-amber-900/20 p-3 rounded-lg border border-amber-200 dark:border-amber-800 text-left transition-all hover:bg-amber-100 dark:hover:bg-amber-900/30 hover:shadow-sm group"
                       data-testid="button-pending-requests"
                     >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2 text-blue-600 dark:text-blue-400 mb-2">
-                          <TrendingUp style={{ width: 'clamp(0.875rem, 3vw, 1rem)', height: 'clamp(0.875rem, 3vw, 1rem)' }} />
-                          <span className="text-xs md:text-sm font-medium">Pending</span>
-                        </div>
-                        <ChevronRight style={{ width: 'clamp(0.875rem, 3vw, 1rem)', height: 'clamp(0.875rem, 3vw, 1rem)' }} className="text-blue-400" />
+                      <div className="flex items-center gap-1.5 text-amber-600 dark:text-amber-400 mb-1">
+                        <Clock className="h-3.5 w-3.5" />
+                        <span className="text-xs font-medium">Pending</span>
+                        <ChevronRight className="h-3 w-3 ml-auto opacity-0 group-hover:opacity-100 transition-opacity" />
                       </div>
-                      <p className="text-2xl md:text-3xl font-bold text-black dark:text-white" data-testid="text-pending-requests">{pendingRequests.length}</p>
+                      <p className="text-xl font-bold text-gray-900 dark:text-white" data-testid="text-pending-requests">{pendingRequests.length}</p>
                     </button>
                   </SheetTrigger>
                   <SheetContent side="bottom" className="h-[85vh]">
@@ -323,12 +318,16 @@ export const Profile = () => {
             </CardContent>
           </Card>
 
-          {/* Account Verification & Operator Tiers Section - Always show for operators or users interested in becoming operators */}
-          <Card>
-            <CardHeader className="bg-gradient-to-r from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20 pb-4">
-              <div className="flex items-center gap-2">
-                <Shield style={{ width: 'clamp(1rem, 4vw, 1.25rem)', height: 'clamp(1rem, 4vw, 1.25rem)' }} />
-                <CardTitle className="text-lg">Account Verification & Operator Tiers</CardTitle>
+          {/* Operator Tiers Section - Clean Design */}
+          <Card className="border border-gray-200 dark:border-gray-700 shadow-sm">
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-lg bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center">
+                    <Shield className="h-4 w-4 text-orange-600 dark:text-orange-400" />
+                  </div>
+                  <CardTitle className="text-base font-semibold">Operator Tiers</CardTitle>
+                </div>
                 <InfoTooltip
                   content="View your operator tier registrations, verification status, and tier-specific information. Only registered tiers can be expanded to see detailed information. Click 'Add Tier' to register for new tiers."
                   testId="button-info-account-verification"
@@ -336,240 +335,229 @@ export const Profile = () => {
                 />
               </div>
             </CardHeader>
-            <CardContent className="pt-4 space-y-4">
-              {/* All 3 Tier Cards - Show subscribed vs non-subscribed differently */}
-              <div className="space-y-3">
+            <CardContent className="pt-0 space-y-3">
+              {/* All 3 Tier Cards - Clean Design */}
+              <div className="space-y-2">
                 {(["professional", "equipped", "manual"] as const).map((tier) => {
                   const tierInfo = OPERATOR_TIER_INFO[tier];
                   const isSubscribed = hasAnyTier && operatorData?.subscribedTiers?.includes(tier);
                   const stats = tierStats?.find(s => s.tier === tier);
                   const tierProfile = tierProfiles.find(p => p.tier === tier);
                   const isExpanded = expandedTier === tier && isSubscribed;
-                  
-                  const tierColors = {
-                    professional: "from-amber-50 to-amber-100 dark:from-amber-900/20 dark:to-amber-800/20 border-amber-200 dark:border-amber-800",
-                    equipped: "from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 border-blue-200 dark:border-blue-800",
-                    manual: "from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 border-green-200 dark:border-green-800",
-                  };
 
-                  // Non-subscribed tier - show as disabled with "Add Tier" option
+                  // Non-subscribed tier - show as muted with "Add Tier" option
                   if (!isSubscribed) {
                     return (
                       <div 
                         key={tier}
-                        className="bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800/40 dark:to-gray-700/40 rounded-lg border border-gray-200 dark:border-gray-700 opacity-60"
+                        className="bg-gray-50 dark:bg-gray-800/30 rounded-lg border border-gray-200 dark:border-gray-700"
                         data-testid={`tier-section-${tier}`}
                       >
-                        <div className="p-4">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                              <span className="text-xl md:text-2xl grayscale">{tierInfo.badge}</span>
-                              <div>
-                                <h4 className="font-semibold text-gray-500 dark:text-gray-400 text-sm md:text-base">{tierInfo.label}</h4>
-                                <p className="text-xs text-gray-400 dark:text-gray-500">{tierInfo.description}</p>
-                              </div>
+                        <div className="p-3 flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <span className="text-lg grayscale opacity-60">{tierInfo.badge}</span>
+                            <div>
+                              <h4 className="font-medium text-gray-400 dark:text-gray-500 text-sm">{tierInfo.label}</h4>
+                              <p className="text-xs text-gray-400 dark:text-gray-600">{tierInfo.description}</p>
                             </div>
-                            <Link to={`/operator/onboarding?tier=${tier}`}>
-                              <Badge 
-                                variant="outline" 
-                                className="cursor-pointer hover:bg-orange-100 dark:hover:bg-orange-900/30 transition-colors"
-                              >
-                                <Plus className="w-3 h-3 mr-1" />
-                                Add Tier
-                              </Badge>
-                            </Link>
                           </div>
+                          <Link to={`/operator/onboarding?tier=${tier}`}>
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              className="h-8 text-xs text-gray-500 hover:text-orange-600 dark:hover:text-orange-400"
+                            >
+                              <Plus className="h-3 w-3 mr-1" />
+                              Add
+                            </Button>
+                          </Link>
                         </div>
                       </div>
                     );
                   }
 
-                  // Subscribed tier - show with full details and expandable content
+                  // Subscribed tier - clean expandable card
                   return (
                     <div 
                       key={tier}
-                      className={`bg-gradient-to-br ${tierColors[tier]} rounded-lg border overflow-hidden`}
+                      className="bg-white dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden"
                       data-testid={`tier-section-${tier}`}
                     >
-                      {/* Tier Header - Clickable for subscribed tiers */}
+                      {/* Tier Header - Clickable */}
                       <button
                         onClick={() => setExpandedTier(isExpanded ? null : tier)}
-                        className="w-full p-4 text-left transition-all active:scale-98"
+                        className="w-full p-3 text-left transition-all hover:bg-gray-50 dark:hover:bg-gray-800"
                       >
-                        <div className="flex items-center justify-between mb-3">
-                          <div className="flex items-center gap-2">
-                            <span className="text-xl md:text-2xl">{tierInfo.badge}</span>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <span className="text-lg">{tierInfo.badge}</span>
                             <div>
-                              <h4 className="font-semibold text-black dark:text-white text-sm md:text-base">{tierInfo.label}</h4>
-                              <p className="text-xs text-gray-600 dark:text-gray-400">{tierInfo.description}</p>
+                              <div className="flex items-center gap-2">
+                                <h4 className="font-medium text-gray-900 dark:text-white text-sm">{tierInfo.label}</h4>
+                                {getApprovalStatusBadge(tierProfile?.approvalStatus)}
+                              </div>
+                              <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{tierInfo.description}</p>
                             </div>
                           </div>
                           {isExpanded ? (
-                            <ChevronDown style={{ width: 'clamp(1rem, 4vw, 1.25rem)', height: 'clamp(1rem, 4vw, 1.25rem)' }} />
+                            <ChevronDown className="h-4 w-4 text-gray-400" />
                           ) : (
-                            <ChevronRight style={{ width: 'clamp(1rem, 4vw, 1.25rem)', height: 'clamp(1rem, 4vw, 1.25rem)' }} />
+                            <ChevronRight className="h-4 w-4 text-gray-400" />
                           )}
                         </div>
 
-                        {/* Approval Status Badge */}
-                        <div className="mb-3">
-                          {getApprovalStatusBadge(tierProfile?.approvalStatus)}
+                        {/* Quick Stats Row */}
+                        <div className="flex items-center gap-4 mt-3 text-sm">
+                          <div className="flex items-center gap-1.5">
+                            <Briefcase className="h-3.5 w-3.5 text-gray-400" />
+                            <span className="text-gray-600 dark:text-gray-400">Jobs:</span>
+                            <span className="font-semibold text-gray-900 dark:text-white" data-testid={`text-${tier}-jobs`}>
+                              {stats?.jobsCompleted || 0}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <DollarSign className="h-3.5 w-3.5 text-gray-400" />
+                            <span className="text-gray-600 dark:text-gray-400">Earned:</span>
+                            <span className="font-semibold text-gray-900 dark:text-white" data-testid={`text-${tier}-earnings`}>
+                              ${Number(stats?.totalEarnings || 0).toFixed(0)}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <Star className="h-3.5 w-3.5 fill-yellow-400 text-yellow-400" />
+                            <span className="font-semibold text-gray-900 dark:text-white" data-testid={`text-${tier}-rating`}>
+                              {stats?.rating ? Number(stats.rating).toFixed(1) : "N/A"}
+                            </span>
+                          </div>
                         </div>
-                        
-                        {/* Quick Stats Grid */}
-                          <div className="grid grid-cols-3 gap-3">
-                            <div>
-                              <p className="text-xs text-gray-600 dark:text-gray-400">Jobs</p>
-                              <p className="text-lg md:text-xl font-bold text-black dark:text-white" data-testid={`text-${tier}-jobs`}>
-                                {stats?.jobsCompleted || 0}
-                              </p>
-                            </div>
-                            <div>
-                              <p className="text-xs text-gray-600 dark:text-gray-400">Earnings</p>
-                              <p className="text-lg md:text-xl font-bold text-black dark:text-white" data-testid={`text-${tier}-earnings`}>
-                                ${Number(stats?.totalEarnings || 0).toFixed(2)}
-                              </p>
-                            </div>
-                            <div>
-                              <p className="text-xs text-gray-600 dark:text-gray-400">Rating</p>
-                              <p className="text-lg md:text-xl font-bold text-black dark:text-white flex items-center gap-1" data-testid={`text-${tier}-rating`}>
-                                <Star style={{ width: 'clamp(0.75rem, 2.5vw, 0.875rem)', height: 'clamp(0.75rem, 2.5vw, 0.875rem)' }} className="fill-yellow-400 text-yellow-400" />
-                                {stats?.rating ? Number(stats.rating).toFixed(1) : "N/A"}
-                              </p>
-                            </div>
-                          </div>
-                        </button>
+                      </button>
 
-                        {/* Expanded Content - Tier Details */}
-                        {isExpanded && (
-                          <div className="px-4 pb-4 space-y-4 border-t border-gray-200 dark:border-gray-700 pt-4">
-                            {/* Approval Status Details */}
-                            <div className="bg-white/50 dark:bg-gray-800/50 p-3 rounded-lg">
-                              <h5 className="font-semibold text-sm mb-2 flex items-center gap-2">
-                                <Shield style={{ width: 'clamp(0.875rem, 3vw, 1rem)', height: 'clamp(0.875rem, 3vw, 1rem)' }} className="text-orange-600" />
-                                Verification Status
-                              </h5>
-                              {tierProfile?.approvalStatus === "approved" && tierProfile?.canEarn ? (
-                                <div className="space-y-1 text-xs">
-                                  <p className="text-green-600 dark:text-green-400 font-semibold flex items-center gap-1">
-                                    <CheckCircle className="w-3 h-3" />
-                                    Verified & Active - You can start earning!
-                                  </p>
-                                  {tierProfile.approvedAt && (
-                                    <p className="text-muted-foreground">Approved on: {new Date(tierProfile.approvedAt).toLocaleDateString()}</p>
-                                  )}
-                                </div>
-                              ) : tierProfile?.approvalStatus === "under_review" ? (
-                                <div className="space-y-1 text-xs">
-                                  <p className="text-blue-600 dark:text-blue-400 font-semibold">Your documents are being reviewed</p>
-                                  <p className="text-muted-foreground">This typically takes 2-3 business days</p>
-                                </div>
-                              ) : tierProfile?.approvalStatus === "pending" ? (
-                                <div className="space-y-1 text-xs">
-                                  <p className="text-yellow-600 dark:text-yellow-400 font-semibold">Pending approval</p>
-                                  <p className="text-muted-foreground">Submit your documents to start the verification process</p>
-                                </div>
-                              ) : tierProfile?.approvalStatus === "rejected" ? (
-                                <div className="space-y-1 text-xs">
-                                  <p className="text-red-600 dark:text-red-400 font-semibold">Verification rejected</p>
-                                  {tierProfile.rejectionReason && <p className="text-muted-foreground">Reason: {tierProfile.rejectionReason}</p>}
-                                </div>
-                              ) : (
-                                <div className="space-y-1 text-xs">
-                                  <p className="text-muted-foreground">Complete onboarding and submit documents to get verified</p>
-                                </div>
-                              )}
-                            </div>
-
-                            {/* Business Information */}
-                            {tierProfile?.businessName && (
-                              <div className="bg-white/50 dark:bg-gray-800/50 p-3 rounded-lg">
-                                <h5 className="font-semibold text-sm mb-2 flex items-center gap-2">
-                                  <Briefcase style={{ width: 'clamp(0.875rem, 3vw, 1rem)', height: 'clamp(0.875rem, 3vw, 1rem)' }} className="text-orange-600" />
-                                  Business Details
-                                </h5>
-                                <div className="space-y-1 text-xs">
-                                  <p><span className="font-medium">Business Name:</span> {tierProfile.businessName}</p>
-                                  {tierProfile.businessLicense && <p><span className="font-medium">License #:</span> {tierProfile.businessLicense}</p>}
-                                </div>
-                              </div>
-                            )}
-
-                            {/* Vehicle Information */}
-                            {tierProfile?.vehicle && (
-                              <div className="bg-white/50 dark:bg-gray-800/50 p-3 rounded-lg">
-                                <h5 className="font-semibold text-sm mb-2 flex items-center gap-2">
-                                  <Truck style={{ width: 'clamp(0.875rem, 3vw, 1rem)', height: 'clamp(0.875rem, 3vw, 1rem)' }} className="text-orange-600" />
-                                  Vehicle Details
-                                </h5>
-                                <div className="space-y-1 text-xs">
-                                  <p><span className="font-medium">Vehicle:</span> {tierProfile.vehicle}</p>
-                                  {tierProfile.licensePlate && <p><span className="font-medium">License Plate:</span> {tierProfile.licensePlate}</p>}
-                                </div>
-                              </div>
-                            )}
-
-                            {/* Services Offered */}
-                            {tierProfile?.services && tierProfile.services.length > 0 && (
-                              <div className="bg-white/50 dark:bg-gray-800/50 p-3 rounded-lg">
-                                <h5 className="font-semibold text-sm mb-2 flex items-center gap-2">
-                                  <Package style={{ width: 'clamp(0.875rem, 3vw, 1rem)', height: 'clamp(0.875rem, 3vw, 1rem)' }} className="text-orange-600" />
-                                  Services
-                                </h5>
-                                <div className="flex flex-wrap gap-1">
-                                  {tierProfile.services.map((service, idx) => (
-                                    <Badge key={idx} variant="outline" className="text-xs">{service}</Badge>
-                                  ))}
-                                </div>
-                              </div>
-                            )}
-
-                            {/* Equipment Inventory - Manual Operators */}
-                            {tier === "manual" && operatorData?.equipmentInventory && (
-                              <div className="bg-white/50 dark:bg-gray-800/50 p-3 rounded-lg">
-                                <h5 className="font-semibold text-sm mb-2 flex items-center gap-2">
-                                  <Wrench style={{ width: 'clamp(0.875rem, 3vw, 1rem)', height: 'clamp(0.875rem, 3vw, 1rem)' }} className="text-orange-600" />
-                                  Equipment Inventory
-                                </h5>
-                                <div className="flex flex-wrap gap-1">
-                                  {(operatorData.equipmentInventory as any[]).map((equipment: any, idx: number) => (
-                                    <Badge key={idx} variant="outline" className="text-xs bg-green-50 dark:bg-green-900/20">
-                                      {equipment.displayName || equipment}
-                                    </Badge>
-                                  ))}
-                                </div>
-                              </div>
-                            )}
-
-                            {/* Operating Radius */}
-                            {tierInfo.radiusKm && (
-                              <div className="bg-white/50 dark:bg-gray-800/50 p-3 rounded-lg">
-                                <h5 className="font-semibold text-sm mb-2 flex items-center gap-2">
-                                  <MapPin style={{ width: 'clamp(0.875rem, 3vw, 1rem)', height: 'clamp(0.875rem, 3vw, 1rem)' }} className="text-orange-600" />
-                                  Operating Radius
-                                </h5>
-                                <p className="text-xs text-gray-700 dark:text-gray-300">
-                                  You can accept jobs within <span className="font-semibold">{tierInfo.radiusKm}km</span> from your home location.
+                      {/* Expanded Content - Tier Details */}
+                      {isExpanded && (
+                        <div className="px-3 pb-3 space-y-3 border-t border-gray-100 dark:border-gray-700 pt-3 bg-gray-50/50 dark:bg-gray-800/30">
+                          {/* Verification Status */}
+                          <div className="bg-white dark:bg-gray-800 p-3 rounded-lg border border-gray-100 dark:border-gray-700">
+                            <h5 className="font-medium text-sm mb-2 flex items-center gap-2">
+                              <Shield className="h-4 w-4 text-gray-400" />
+                              Verification Status
+                            </h5>
+                            {tierProfile?.approvalStatus === "approved" && tierProfile?.canEarn ? (
+                              <div className="text-xs space-y-1">
+                                <p className="text-emerald-600 dark:text-emerald-400 font-medium flex items-center gap-1">
+                                  <CheckCircle className="h-3 w-3" />
+                                  Verified & Active
                                 </p>
+                                {tierProfile.approvedAt && (
+                                  <p className="text-gray-500">Approved: {new Date(tierProfile.approvedAt).toLocaleDateString()}</p>
+                                )}
                               </div>
+                            ) : tierProfile?.approvalStatus === "under_review" ? (
+                              <div className="text-xs space-y-1">
+                                <p className="text-blue-600 dark:text-blue-400 font-medium">Documents under review</p>
+                                <p className="text-gray-500">Typically 2-3 business days</p>
+                              </div>
+                            ) : tierProfile?.approvalStatus === "pending" ? (
+                              <div className="text-xs space-y-1">
+                                <p className="text-amber-600 dark:text-amber-400 font-medium">Pending approval</p>
+                                <p className="text-gray-500">Submit documents to get verified</p>
+                              </div>
+                            ) : tierProfile?.approvalStatus === "rejected" ? (
+                              <div className="text-xs space-y-1">
+                                <p className="text-red-600 dark:text-red-400 font-medium">Verification rejected</p>
+                                {tierProfile.rejectionReason && <p className="text-gray-500">Reason: {tierProfile.rejectionReason}</p>}
+                              </div>
+                            ) : (
+                              <p className="text-xs text-gray-500">Complete onboarding to get verified</p>
                             )}
-
-                            {/* Edit Button */}
-                            <Button 
-                              variant="outline" 
-                              size="sm" 
-                              className="w-full"
-                              onClick={() => {
-                                // TODO: Navigate to tier-specific edit/onboarding form
-                                console.log('Edit tier:', tier);
-                              }}
-                              data-testid={`button-edit-${tier}`}
-                            >
-                              <Edit style={{ width: 'clamp(0.875rem, 3vw, 1rem)', height: 'clamp(0.875rem, 3vw, 1rem)' }} className="mr-2" />
-                              Edit {tierInfo.label} Info
-                            </Button>
                           </div>
-                        )}
+
+                          {/* Business Information */}
+                          {tierProfile?.businessName && (
+                            <div className="bg-white dark:bg-gray-800 p-3 rounded-lg border border-gray-100 dark:border-gray-700">
+                              <h5 className="font-medium text-sm mb-2 flex items-center gap-2">
+                                <Briefcase className="h-4 w-4 text-gray-400" />
+                                Business Details
+                              </h5>
+                              <div className="space-y-1 text-xs text-gray-600 dark:text-gray-400">
+                                <p><span className="font-medium text-gray-900 dark:text-white">Name:</span> {tierProfile.businessName}</p>
+                                {tierProfile.businessLicense && <p><span className="font-medium text-gray-900 dark:text-white">License:</span> {tierProfile.businessLicense}</p>}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Vehicle Information */}
+                          {tierProfile?.vehicle && (
+                            <div className="bg-white dark:bg-gray-800 p-3 rounded-lg border border-gray-100 dark:border-gray-700">
+                              <h5 className="font-medium text-sm mb-2 flex items-center gap-2">
+                                <Truck className="h-4 w-4 text-gray-400" />
+                                Vehicle Details
+                              </h5>
+                              <div className="space-y-1 text-xs text-gray-600 dark:text-gray-400">
+                                <p><span className="font-medium text-gray-900 dark:text-white">Vehicle:</span> {tierProfile.vehicle}</p>
+                                {tierProfile.licensePlate && <p><span className="font-medium text-gray-900 dark:text-white">Plate:</span> {tierProfile.licensePlate}</p>}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Services Offered */}
+                          {tierProfile?.services && tierProfile.services.length > 0 && (
+                            <div className="bg-white dark:bg-gray-800 p-3 rounded-lg border border-gray-100 dark:border-gray-700">
+                              <h5 className="font-medium text-sm mb-2 flex items-center gap-2">
+                                <Package className="h-4 w-4 text-gray-400" />
+                                Services
+                              </h5>
+                              <div className="flex flex-wrap gap-1">
+                                {tierProfile.services.map((service, idx) => (
+                                  <Badge key={idx} variant="secondary" className="text-xs bg-gray-100 dark:bg-gray-700">{service}</Badge>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Equipment Inventory - Manual Operators */}
+                          {tier === "manual" && operatorData?.equipmentInventory && (
+                            <div className="bg-white dark:bg-gray-800 p-3 rounded-lg border border-gray-100 dark:border-gray-700">
+                              <h5 className="font-medium text-sm mb-2 flex items-center gap-2">
+                                <Wrench className="h-4 w-4 text-gray-400" />
+                                Equipment
+                              </h5>
+                              <div className="flex flex-wrap gap-1">
+                                {(operatorData.equipmentInventory as any[]).map((equipment: any, idx: number) => (
+                                  <Badge key={idx} variant="secondary" className="text-xs bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300">
+                                    {equipment.displayName || equipment}
+                                  </Badge>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Operating Radius */}
+                          {tierInfo.radiusKm && (
+                            <div className="bg-white dark:bg-gray-800 p-3 rounded-lg border border-gray-100 dark:border-gray-700">
+                              <h5 className="font-medium text-sm mb-1 flex items-center gap-2">
+                                <MapPin className="h-4 w-4 text-gray-400" />
+                                Operating Radius
+                              </h5>
+                              <p className="text-xs text-gray-600 dark:text-gray-400">
+                                Accept jobs within <span className="font-medium text-gray-900 dark:text-white">{tierInfo.radiusKm}km</span> from home
+                              </p>
+                            </div>
+                          )}
+
+                          {/* Edit Button */}
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="w-full h-9"
+                            onClick={() => {
+                              console.log('Edit tier:', tier);
+                            }}
+                            data-testid={`button-edit-${tier}`}
+                          >
+                            <Edit className="h-3.5 w-3.5 mr-2" />
+                            Edit {tierInfo.label} Info
+                          </Button>
+                        </div>
+                      )}
                       </div>
                     );
                   })}

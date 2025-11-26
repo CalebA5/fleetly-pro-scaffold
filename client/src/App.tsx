@@ -36,6 +36,10 @@ import { CommunityForum } from "./pages/CommunityForum";
 import { BlogUpdates } from "./pages/BlogUpdates";
 import { Profile } from "./pages/Profile";
 import { default as Notifications } from "./pages/Notifications";
+import Wallet from "./pages/Wallet";
+import Payments from "./pages/Payments";
+import Settings from "./pages/Settings";
+import Legal from "./pages/Legal";
 import EmergencySOS from "./pages/EmergencySOS";
 import EmergencyTracking from "./pages/EmergencyTracking";
 import Index from "./pages/Index";
@@ -69,6 +73,10 @@ const App = () => (
               <Route path="/community-forum" component={CommunityForum} />
               <Route path="/blog" component={BlogUpdates} />
               <Route path="/profile" component={Profile} />
+              <Route path="/wallet" component={Wallet} />
+              <Route path="/payments" component={Payments} />
+              <Route path="/settings" component={Settings} />
+              <Route path="/legal" component={Legal} />
               <Route path="/notifications" component={Notifications} />
               <Route path="/weather-alerts" component={Notifications} />
               
