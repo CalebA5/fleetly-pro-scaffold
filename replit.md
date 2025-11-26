@@ -11,6 +11,11 @@ Preferred communication style: Simple, everyday language.
 ### UI/UX Decisions
 The frontend is built with React 18, TypeScript, Vite, Wouter for routing, Radix UI primitives, shadcn/ui, and Tailwind CSS. The design adopts a black-and-white color scheme with orange accents, minimal aesthetics, and bold typography. It features adaptive theming with seasonal palettes and dark mode. A LocationPermissionModal guides first-time users, and features are progressively disclosed.
 
+**Mobile-First Design Patterns:**
+- **Find Operators Page**: Mobile uses a half-map/half-list sliding sheet design with touch gesture support. The bottom sheet follows the user's finger during drag and snaps to three positions (collapsed, half, full). Desktop uses a separate list/map toggle view.
+- **Service Selector**: Services are grouped by category (Micro Services, Standard Services, Professional Services) with multi-select capability.
+- **Operator Cards**: Mobile cards show operator photo, name, service badges, and a bottom row with rating/jobs/distance. A small map icon allows focusing on the operator's location.
+
 ### Technical Implementations
 The backend is an Express.js server utilizing PostgreSQL with Drizzle ORM. Zod is employed for schema validation. API endpoints are RESTful under `/api` with centralized error handling. State management on the frontend uses TanStack Query for server state and React Hook Form with Zod for form validation.
 
