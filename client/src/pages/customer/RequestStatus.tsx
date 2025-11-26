@@ -106,15 +106,19 @@ export default function RequestStatus() {
     ...(requests || []),
     ...(emergencyRequests || []).map((er: any) => ({
       ...er,
-      id: er.emergencyId, // Use emergencyId as id for consistency
+      id: er.emergencyId,
       requestId: er.emergencyId,
       isEmergency: true,
       status: er.status || 'searching',
       serviceType: er.serviceType,
       location: er.location,
       createdAt: er.createdAt,
+      requestedAt: er.createdAt,
+      description: er.description || `Emergency ${er.serviceType} request`,
+      customerName: er.contactName,
       operatorName: er.assignedOperator?.name || null,
       operatorId: er.assignedOperator?.operatorId || null,
+      quoteCount: 0,
     }))
   ];
 
