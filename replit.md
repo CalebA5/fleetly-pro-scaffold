@@ -8,7 +8,51 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes (Nov 26, 2025)
 
+### UI/UX Improvements
+- **Redesigned MetricsSlider** (`MetricsSlider.tsx`):
+  - Clean, professional design with subtle gray icon badges
+  - Removed colored accent bars and gradient styling
+  - Simple hover effects with shadow transitions
+  - Maintained click navigation to detail pages and tabs
+
+- **Modernized Switch component** (`switch.tsx`):
+  - Sleeker h-5 height with emerald accent for checked state
+  - Smooth 200ms transitions for state changes
+  - Better contrast for light/dark modes
+
+- **Removed duplicate metric** (`tierCapabilities.ts`):
+  - Removed "Completed Today" metric (duplicates Today's Earnings functionality)
+
 ### Bug Fixes
+- **Fixed Profile.tsx tier display errors**:
+  - Added Array.isArray() guards for tierProfiles and subscribedTiers
+  - Defensive null checks prevent runtime errors when data is missing
+
+- **Fixed JobsPanel key warnings**:
+  - Added fallback keys for job list items when requestId is undefined
+
+### Equipment & Services Panel Fixes
+- **Fixed EquipmentPanel functionality** (`EquipmentPanel.tsx`):
+  - Fixed query key format (from array to URL-style path)
+  - Removed redundant "Add Equipment" button at top of panel
+  - Category auto-selection when clicking "Add Tool/Vehicle/Equipment" from each sub-tab
+  - Form now actually saves equipment via API with proper ID generation
+  - Added defensive handling for both array and object API responses
+  
+- **Fixed ServicesPanel functionality** (`ServicesPanel.tsx`):
+  - Fixed query key format for proper data fetching
+  - Toggle switch now properly updates service status via PATCH API
+  - Add Service form now actually saves to database
+  - Edit Service form properly saves changes and deletes services
+  - Added loading states for all async operations
+  
+- **Added Operator Services API endpoints** (`server/routes.ts`):
+  - GET `/api/operators/:operatorId/services` - fetch operator's services
+  - POST `/api/operators/:operatorId/services` - add new service
+  - PATCH `/api/operators/:operatorId/services/:serviceId` - update service
+  - DELETE `/api/operators/:operatorId/services/:serviceId` - remove service
+
+### Previous Bug Fixes
 - **Fixed `/api/operators/by-id` route ordering** (`server/routes.ts`): Moved specific routes (`/by-id/:operatorId`, `/by-user/:email`) before the generic `/:id` route to prevent Express from matching "by-id" as an integer ID, which was causing NaN parse errors
 - **Fixed ManpowerPanel rating display** (`ManpowerPanel.tsx`): Added type checking to handle cases where `driver.rating` isn't a number before calling `.toFixed()`
 - **Fixed JobsPanel ActiveJobCard** (`JobsPanel.tsx`): Added default status handling to prevent undefined errors when job status is missing

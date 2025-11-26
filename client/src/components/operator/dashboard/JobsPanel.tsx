@@ -161,9 +161,9 @@ export function JobsPanel({
           ) : (
             <ScrollArea className="h-[400px]">
               <div className="space-y-3 pr-4">
-                {filteredNearbyJobs.map((job) => (
+                {filteredNearbyJobs.map((job, index) => (
                   <JobCard
-                    key={job.requestId}
+                    key={job.requestId || `nearby-job-${index}`}
                     job={job}
                     tier={tier}
                     onView={() => onViewJob?.(job.requestId)}
@@ -199,9 +199,9 @@ export function JobsPanel({
           ) : (
             <ScrollArea className="h-[400px]">
               <div className="space-y-3 pr-4">
-                {activeJobs.map((job) => (
+                {activeJobs.map((job, index) => (
                   <ActiveJobCard
-                    key={job.requestId}
+                    key={job.requestId || `active-job-${index}`}
                     job={job}
                     onView={() => onViewJob?.(job.requestId)}
                   />

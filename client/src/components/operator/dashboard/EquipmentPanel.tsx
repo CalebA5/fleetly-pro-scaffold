@@ -11,8 +11,8 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { 
-  Wrench, Truck, Plus, Camera, CheckCircle, AlertTriangle,
-  Settings, Clock, Edit2, Trash2, Upload, Image, Lock
+  Wrench, Truck, Plus, CheckCircle,
+  Settings, Clock, Edit2, Trash2, Lock
 } from "lucide-react";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import type { OperatorTier } from "@shared/schema";
@@ -45,9 +45,20 @@ export function EquipmentPanel({ tier, operatorId }: EquipmentPanelProps) {
   const canAddVehicles = tier !== "manual";
   const canAddHeavyEquipment = tier !== "manual";
 
-  const { data: equipment = [], isLoading } = useQuery<Equipment[]>({
-    queryKey: ["/api/operators", operatorId, "equipment"],
+  const { data: rawEquipment, isLoading } = useQuery<Equipment[] | { equipmentInventory: Equipment[] }>({
+    queryKey: [`/api/operators/${operatorId}/equipment`],
+    enabled: !!operatorId,
   });
+  
+  // Handle both array and object responses safely
+  const equipment: Equipment[] = Array.isArray(rawEquipment) 
+    ? rawEquipment 
+    : (rawEquipment as any)?.equipmentInventory || [];
+  
+  const openAddDialogWithCategory = (category: "tools" | "vehicles" | "heavyEquipment") => {
+    setSelectedCategory(category);
+    setAddDialogOpen(true);
+  };
 
   const tools = equipment.filter(e => e.category === "tool");
   const vehicles = equipment.filter(e => e.category === "vehicle");
@@ -72,39 +83,34 @@ export function EquipmentPanel({ tier, operatorId }: EquipmentPanelProps) {
 
   return (
     <div className="space-y-4" data-testid="equipment-panel">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-lg font-semibold">Equipment Management</h2>
-          <p className="text-sm text-muted-foreground">
-            Manage your tools, vehicles, and equipment
-          </p>
-        </div>
-        <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
-          <DialogTrigger asChild>
-            <Button data-testid="add-equipment-btn">
-              <Plus className="h-4 w-4 mr-2" />
-              Add Equipment
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Add Equipment</DialogTitle>
-              <DialogDescription>
-                Add new tools or equipment to your inventory.
-              </DialogDescription>
-            </DialogHeader>
-            <AddEquipmentForm
-              tier={tier}
-              availableTools={availableTools}
-              availableVehicles={availableVehicles}
-              availableHeavyEquipment={availableHeavyEquipment}
-              canAddVehicles={canAddVehicles}
-              canAddHeavyEquipment={canAddHeavyEquipment}
-              onClose={() => setAddDialogOpen(false)}
-            />
-          </DialogContent>
-        </Dialog>
+      <div className="mb-2">
+        <h2 className="text-lg font-semibold">Equipment Management</h2>
+        <p className="text-sm text-muted-foreground">
+          Manage your tools, vehicles, and equipment
+        </p>
       </div>
+      
+      <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add Equipment</DialogTitle>
+            <DialogDescription>
+              Add new tools or equipment to your inventory.
+            </DialogDescription>
+          </DialogHeader>
+          <AddEquipmentForm
+            tier={tier}
+            operatorId={operatorId}
+            availableTools={availableTools}
+            availableVehicles={availableVehicles}
+            availableHeavyEquipment={availableHeavyEquipment}
+            canAddVehicles={canAddVehicles}
+            canAddHeavyEquipment={canAddHeavyEquipment}
+            initialCategory={selectedCategory}
+            onClose={() => setAddDialogOpen(false)}
+          />
+        </DialogContent>
+      </Dialog>
 
       <Tabs value={activeSubTab} onValueChange={setActiveSubTab}>
         <TabsList className="grid w-full grid-cols-3 bg-muted/50">
@@ -145,10 +151,7 @@ export function EquipmentPanel({ tier, operatorId }: EquipmentPanelProps) {
               title="No Tools Added"
               description="Add your tools and equipment to start accepting jobs that require them."
               actionLabel="Add Tool"
-              onAction={() => {
-                setSelectedCategory("tools");
-                setAddDialogOpen(true);
-              }}
+              onAction={() => openAddDialogWithCategory("tools")}
             />
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -177,10 +180,7 @@ export function EquipmentPanel({ tier, operatorId }: EquipmentPanelProps) {
               title="No Vehicles Added"
               description={`You can add up to ${tierInfo.equipmentLimits.maxVehicles} vehicles.`}
               actionLabel="Add Vehicle"
-              onAction={() => {
-                setSelectedCategory("vehicles");
-                setAddDialogOpen(true);
-              }}
+              onAction={() => openAddDialogWithCategory("vehicles")}
             />
           ) : (
             <div className="space-y-4">
@@ -221,10 +221,7 @@ export function EquipmentPanel({ tier, operatorId }: EquipmentPanelProps) {
               title="No Heavy Equipment"
               description="Add plows, trailers, and other heavy equipment."
               actionLabel="Add Equipment"
-              onAction={() => {
-                setSelectedCategory("heavyEquipment");
-                setAddDialogOpen(true);
-              }}
+              onAction={() => openAddDialogWithCategory("heavyEquipment")}
             />
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -364,25 +361,30 @@ function LockedFeatureCard({ title, description }: { title: string; description:
 
 function AddEquipmentForm({
   tier,
+  operatorId,
   availableTools,
   availableVehicles,
   availableHeavyEquipment,
   canAddVehicles,
   canAddHeavyEquipment,
+  initialCategory,
   onClose,
 }: {
   tier: OperatorTier;
+  operatorId: string;
   availableTools: any[];
   availableVehicles: any[];
   availableHeavyEquipment: any[];
   canAddVehicles: boolean;
   canAddHeavyEquipment: boolean;
+  initialCategory: "tools" | "vehicles" | "heavyEquipment";
   onClose: () => void;
 }) {
-  const [category, setCategory] = useState<string>("tools");
+  const categoryMap = { tools: "tools", vehicles: "vehicles", heavyEquipment: "heavy" };
+  const [category, setCategory] = useState<string>(categoryMap[initialCategory]);
   const [equipmentType, setEquipmentType] = useState<string>("");
   const [name, setName] = useState("");
-  const [photo, setPhoto] = useState<File | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const currentOptions = category === "tools" 
     ? availableTools 
@@ -392,7 +394,32 @@ function AddEquipmentForm({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    onClose();
+    if (!equipmentType) return;
+    
+    setIsSubmitting(true);
+    try {
+      const selectedEquipment = currentOptions.find(item => item.id === equipmentType);
+      const equipmentData = {
+        id: `eq-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        type: equipmentType,
+        name: name || selectedEquipment?.name || equipmentType,
+        category: category === "tools" ? "tool" : category === "vehicles" ? "vehicle" : "heavy_equipment",
+        status: "active" as const,
+        verified: false,
+      };
+      
+      await apiRequest(`/api/operators/${operatorId}/equipment`, {
+        method: "POST",
+        body: JSON.stringify(equipmentData),
+      });
+      
+      queryClient.invalidateQueries({ queryKey: [`/api/operators/${operatorId}/equipment`] });
+      onClose();
+    } catch (error) {
+      console.error("Error adding equipment:", error);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -441,34 +468,12 @@ function AddEquipmentForm({
         />
       </div>
 
-      <div className="space-y-2">
-        <Label>Photo</Label>
-        <div className="border-2 border-dashed rounded-lg p-6 text-center cursor-pointer hover:border-primary/50 transition-colors">
-          <input
-            type="file"
-            accept="image/*"
-            className="hidden"
-            id="equipment-photo"
-            onChange={(e) => setPhoto(e.target.files?.[0] || null)}
-          />
-          <label htmlFor="equipment-photo" className="cursor-pointer">
-            <Upload className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
-            <p className="text-sm text-muted-foreground">
-              Click to upload a photo
-            </p>
-            <p className="text-xs text-muted-foreground mt-1">
-              Required for admin verification
-            </p>
-          </label>
-        </div>
-      </div>
-
       <div className="flex gap-2 pt-4">
-        <Button type="button" variant="outline" onClick={onClose} className="flex-1">
+        <Button type="button" variant="outline" onClick={onClose} className="flex-1" disabled={isSubmitting}>
           Cancel
         </Button>
-        <Button type="submit" className="flex-1" data-testid="save-equipment-btn">
-          Add Equipment
+        <Button type="submit" className="flex-1" data-testid="save-equipment-btn" disabled={isSubmitting || !equipmentType}>
+          {isSubmitting ? "Adding..." : "Add Equipment"}
         </Button>
       </div>
     </form>

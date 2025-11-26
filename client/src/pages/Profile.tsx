@@ -45,9 +45,10 @@ export const Profile = () => {
 
   const isLoading = isLoadingOperator || isLoadingRequests || isLoadingTierStats;
 
-  // Parse tier profiles from operator data
-  const tierProfiles = (operatorData?.operatorTierProfiles as OperatorTierProfile[] | undefined) || [];
-  const hasAnyTier = tierProfiles.length > 0 || (operatorData && operatorData.subscribedTiers.length > 0);
+  // Parse tier profiles from operator data - ensure it's an array
+  const rawTierProfiles = operatorData?.operatorTierProfiles;
+  const tierProfiles: OperatorTierProfile[] = Array.isArray(rawTierProfiles) ? rawTierProfiles : [];
+  const hasAnyTier = tierProfiles.length > 0 || (operatorData && Array.isArray(operatorData.subscribedTiers) && operatorData.subscribedTiers.length > 0);
 
   // Get approval status badge
   const getApprovalStatusBadge = (status: TierApprovalStatus | undefined) => {
@@ -128,8 +129,9 @@ export const Profile = () => {
                 <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 text-xs">
                   🛒 Customer
                 </Badge>
-                {hasAnyTier && operatorData.subscribedTiers.map((tier) => {
+                {hasAnyTier && operatorData && Array.isArray(operatorData.subscribedTiers) && operatorData.subscribedTiers.map((tier) => {
                   const tierInfo = OPERATOR_TIER_INFO[tier as keyof typeof OPERATOR_TIER_INFO];
+                  if (!tierInfo) return null;
                   return (
                     <Badge 
                       key={tier}

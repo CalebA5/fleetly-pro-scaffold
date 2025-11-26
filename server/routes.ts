@@ -164,6 +164,83 @@ export function registerRoutes(storage: IStorage) {
     }
   });
 
+  // Dashboard metrics endpoint for operator dashboard
+  router.get("/api/operators/:operatorId/dashboard-metrics/:tier", async (req, res) => {
+    try {
+      const { operatorId, tier } = req.params;
+      
+      // Get tier stats for this operator
+      const tierStats = await db.query.operatorTierStats.findFirst({
+        where: and(
+          eq(operatorTierStats.operatorId, operatorId),
+          eq(operatorTierStats.tier, tier)
+        )
+      });
+
+      // Get today's date for filtering
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      // Get completed jobs today
+      const completedToday = await db.query.serviceRequests.findMany({
+        where: and(
+          eq(serviceRequests.assignedOperatorId, operatorId),
+          eq(serviceRequests.status, "completed"),
+          gte(serviceRequests.completedAt, today)
+        )
+      });
+
+      // Get today's earnings from completed jobs
+      const dailyEarnings = completedToday.reduce((sum, job) => {
+        const details = job.details as Record<string, any> | null;
+        const price = details?.quotedPrice ? parseFloat(String(details.quotedPrice)) : 0;
+        return sum + price;
+      }, 0);
+
+      // Get pending/active jobs nearby (simple count for now)
+      const nearbyJobs = await db.query.serviceRequests.findMany({
+        where: and(
+          or(eq(serviceRequests.status, "pending"), eq(serviceRequests.status, "quoted")),
+        )
+      });
+
+      // Get operator's rating
+      const operator = await db.query.operators.findFirst({
+        where: eq(operators.operatorId, operatorId)
+      });
+
+      // Get active drivers count (for professional tier)
+      let activeDriversCount = 0;
+      if (tier === "professional" && operator?.businessId) {
+        const business = await db.query.businesses.findFirst({
+          where: eq(businesses.businessId, operator.businessId)
+        });
+        activeDriversCount = business?.driverIds?.length || 0;
+      }
+
+      // Get equipment count
+      const equipmentInventory = operator?.equipmentInventory as any[] || [];
+      const activeEquipment = equipmentInventory.filter((item: any) => item?.status === "active" || !item?.status).length;
+
+      // Build response metrics
+      const metrics = [
+        { id: "dailyEarnings", value: dailyEarnings, trend: "neutral" as const },
+        { id: "jobsNearby", value: nearbyJobs.length, trend: "neutral" as const },
+        { id: "completedToday", value: completedToday.length, trend: "neutral" as const },
+        { id: "rating", value: operator?.rating ? parseFloat(String(operator.rating)) : 0, trend: "neutral" as const },
+        { id: "equipmentStatus", value: activeEquipment, trend: "neutral" as const },
+        { id: "activeOperators", value: activeDriversCount, trend: "neutral" as const },
+        { id: "fleetCount", value: equipmentInventory.filter((item: any) => item?.type === "vehicle").length, trend: "neutral" as const },
+        { id: "radiusLimit", value: tier === "manual" ? 5 : tier === "equipped" ? 15 : 999, trend: "neutral" as const },
+      ];
+
+      res.json(metrics);
+    } catch (error) {
+      console.error("Error fetching dashboard metrics:", error);
+      res.status(500).json({ message: "Failed to fetch dashboard metrics" });
+    }
+  });
+
   router.get("/api/operators/by-user/:email", async (req, res) => {
     try {
       const email = req.params.email;
@@ -714,13 +791,40 @@ export function registerRoutes(storage: IStorage) {
         return res.status(404).json({ message: "Operator not found" });
       }
 
-      res.json({
-        equipmentInventory: operator.equipmentInventory || [],
-        primaryVehicleImage: operator.primaryVehicleImage
-      });
+      // Return just the array for easier frontend consumption
+      res.json(operator.equipmentInventory || []);
     } catch (error) {
       console.error("Error fetching equipment:", error);
       res.status(500).json({ message: "Failed to fetch equipment" });
+    }
+  });
+  
+  // Add equipment to operator inventory
+  router.post("/api/operators/:operatorId/equipment", async (req, res) => {
+    try {
+      const operatorId = req.params.operatorId;
+      const newEquipment = req.body;
+      
+      // Get operator
+      const existing = await db.query.operators.findFirst({
+        where: eq(operators.operatorId, operatorId)
+      });
+      if (!existing) {
+        return res.status(404).json({ message: "Operator not found" });
+      }
+      
+      // Add to existing inventory
+      const currentInventory = existing.equipmentInventory || [];
+      const updatedInventory = [...currentInventory, newEquipment];
+      
+      await db.update(operators)
+        .set({ equipmentInventory: updatedInventory })
+        .where(eq(operators.operatorId, operatorId));
+      
+      res.json(newEquipment);
+    } catch (error) {
+      console.error("Error adding equipment:", error);
+      res.status(500).json({ message: "Failed to add equipment" });
     }
   });
 
@@ -763,6 +867,117 @@ export function registerRoutes(storage: IStorage) {
     } catch (error) {
       console.error("Error updating equipment:", error);
       res.status(500).json({ message: "Failed to update equipment" });
+    }
+  });
+
+  // Get operator services
+  router.get("/api/operators/:operatorId/services", async (req, res) => {
+    try {
+      const operatorId = req.params.operatorId;
+      
+      const operator = await db.query.operators.findFirst({
+        where: eq(operators.operatorId, operatorId)
+      });
+      
+      if (!operator) {
+        return res.status(404).json({ message: "Operator not found" });
+      }
+
+      // Return operator services - stored as operatorServices in jsonb
+      const operatorServices = (operator as any).operatorServices || [];
+      res.json(operatorServices);
+    } catch (error) {
+      console.error("Error fetching operator services:", error);
+      res.status(500).json({ message: "Failed to fetch operator services" });
+    }
+  });
+
+  // Add service to operator
+  router.post("/api/operators/:operatorId/services", async (req, res) => {
+    try {
+      const operatorId = req.params.operatorId;
+      const newService = req.body;
+      
+      const existing = await db.query.operators.findFirst({
+        where: eq(operators.operatorId, operatorId)
+      });
+      if (!existing) {
+        return res.status(404).json({ message: "Operator not found" });
+      }
+      
+      // Add service with unique ID
+      const serviceWithId = {
+        ...newService,
+        id: `svc-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+      };
+      
+      const currentServices = (existing as any).operatorServices || [];
+      const updatedServices = [...currentServices, serviceWithId];
+      
+      await db.update(operators)
+        .set({ services: updatedServices } as any)
+        .where(eq(operators.operatorId, operatorId));
+      
+      res.json(serviceWithId);
+    } catch (error) {
+      console.error("Error adding service:", error);
+      res.status(500).json({ message: "Failed to add service" });
+    }
+  });
+
+  // Update operator service
+  router.patch("/api/operators/:operatorId/services/:serviceId", async (req, res) => {
+    try {
+      const { operatorId, serviceId } = req.params;
+      const updates = req.body;
+      
+      const existing = await db.query.operators.findFirst({
+        where: eq(operators.operatorId, operatorId)
+      });
+      if (!existing) {
+        return res.status(404).json({ message: "Operator not found" });
+      }
+      
+      const currentServices = (existing as any).operatorServices || [];
+      const updatedServices = currentServices.map((svc: any) => 
+        svc.id === serviceId ? { ...svc, ...updates } : svc
+      );
+      
+      await db.update(operators)
+        .set({ services: updatedServices } as any)
+        .where(eq(operators.operatorId, operatorId));
+      
+      const updatedService = updatedServices.find((s: any) => s.id === serviceId);
+      res.json(updatedService);
+    } catch (error) {
+      console.error("Error updating service:", error);
+      res.status(500).json({ message: "Failed to update service" });
+    }
+  });
+
+  // Delete operator service
+  router.delete("/api/operators/:operatorId/services/:serviceId", async (req, res) => {
+    try {
+      const { operatorId, serviceId } = req.params;
+      
+      const existing = await db.query.operators.findFirst({
+        where: eq(operators.operatorId, operatorId)
+      });
+      if (!existing) {
+        return res.status(404).json({ message: "Operator not found" });
+      }
+      
+      const currentServices = (existing as any).operatorServices || [];
+      const updatedServices = currentServices.filter((svc: any) => svc.id !== serviceId);
+      
+      await db.update(operators)
+        .set({ services: updatedServices } as any)
+        .where(eq(operators.operatorId, operatorId));
+      
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting service:", error);
+      res.status(500).json({ message: "Failed to delete service" });
     }
   });
 
@@ -811,6 +1026,31 @@ export function registerRoutes(storage: IStorage) {
     } catch (error) {
       console.error("Error fetching service requests:", error);
       return res.status(500).json({ error: "Failed to fetch service requests" });
+    }
+  });
+
+  // Get completed jobs today for an operator
+  router.get("/api/service-requests/completed-today/:operatorId", async (req, res) => {
+    try {
+      const operatorId = req.params.operatorId;
+      
+      // Get today's date at midnight
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      // Get completed jobs for this operator today
+      const completedJobs = await db.query.serviceRequests.findMany({
+        where: and(
+          eq(serviceRequests.assignedOperatorId, operatorId),
+          eq(serviceRequests.status, "completed"),
+          gte(serviceRequests.completedAt, today)
+        )
+      });
+      
+      res.json(completedJobs);
+    } catch (error) {
+      console.error("Error fetching completed jobs:", error);
+      res.status(500).json({ message: "Failed to fetch completed jobs" });
     }
   });
 

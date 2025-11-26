@@ -48,7 +48,20 @@ export function ServicesPanel({ tier, operatorId }: ServicesPanelProps) {
   const availableServices = getServicesForTier(tier);
 
   const { data: operatorServices = [], isLoading } = useQuery<OperatorService[]>({
-    queryKey: ["/api/operators", operatorId, "services"],
+    queryKey: [`/api/operators/${operatorId}/services`],
+    enabled: !!operatorId,
+  });
+  
+  const toggleServiceMutation = useMutation({
+    mutationFn: async ({ serviceId, isActive }: { serviceId: string; isActive: boolean }) => {
+      return apiRequest(`/api/operators/${operatorId}/services/${serviceId}`, {
+        method: "PATCH",
+        body: JSON.stringify({ isActive }),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/operators/${operatorId}/services`] });
+    },
   });
 
   const microServices = availableServices.filter(s => s.category === "micro");
@@ -82,6 +95,7 @@ export function ServicesPanel({ tier, operatorId }: ServicesPanelProps) {
             </DialogHeader>
             <AddServiceForm
               tier={tier}
+              operatorId={operatorId}
               availableServices={availableServices}
               addedServiceIds={addedServiceIds}
               onClose={() => setAddDialogOpen(false)}
@@ -119,6 +133,8 @@ export function ServicesPanel({ tier, operatorId }: ServicesPanelProps) {
               key={service.id}
               service={service}
               onEdit={() => setEditingService(service)}
+              onToggle={(isActive) => toggleServiceMutation.mutate({ serviceId: service.id, isActive })}
+              isToggling={toggleServiceMutation.isPending}
             />
           ))}
         </div>
@@ -218,6 +234,7 @@ export function ServicesPanel({ tier, operatorId }: ServicesPanelProps) {
             </DialogHeader>
             <EditServiceForm
               service={editingService}
+              operatorId={operatorId}
               onClose={() => setEditingService(null)}
             />
           </DialogContent>
@@ -229,10 +246,14 @@ export function ServicesPanel({ tier, operatorId }: ServicesPanelProps) {
 
 function ServiceCard({ 
   service, 
-  onEdit 
+  onEdit,
+  onToggle,
+  isToggling
 }: { 
   service: OperatorService;
   onEdit: () => void;
+  onToggle: (isActive: boolean) => void;
+  isToggling: boolean;
 }) {
   const getSkillBadge = (level: string) => {
     switch (level) {
@@ -281,7 +302,12 @@ function ServiceCard({
             </div>
           </div>
           <div className="flex flex-col gap-2">
-            <Switch checked={service.isActive} data-testid={`toggle-service-${service.id}`} />
+            <Switch 
+              checked={service.isActive} 
+              onCheckedChange={onToggle}
+              disabled={isToggling}
+              data-testid={`toggle-service-${service.id}`} 
+            />
             <Button variant="outline" size="sm" onClick={onEdit} data-testid={`edit-service-${service.id}`}>
               <Edit2 className="h-3 w-3" />
             </Button>
@@ -347,11 +373,13 @@ function AvailableServiceCard({
 
 function AddServiceForm({
   tier,
+  operatorId,
   availableServices,
   addedServiceIds,
   onClose,
 }: {
   tier: OperatorTier;
+  operatorId: string;
   availableServices: ServiceConfig[];
   addedServiceIds: string[];
   onClose: () => void;
@@ -361,13 +389,42 @@ function AddServiceForm({
   const [priceType, setPriceType] = useState<string>("hourly");
   const [basePrice, setBasePrice] = useState<string>("");
   const [description, setDescription] = useState<string>("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const selectedService = availableServices.find(s => s.id === selectedServiceId);
   const notAddedServices = availableServices.filter(s => !addedServiceIds.includes(s.id));
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    onClose();
+    if (!selectedService || !basePrice) return;
+    
+    setIsSubmitting(true);
+    try {
+      const serviceData = {
+        serviceId: selectedServiceId,
+        name: selectedService.name,
+        description: description || selectedService.description,
+        isActive: true,
+        skillLevel: skillLevel as "beginner" | "intermediate" | "expert",
+        basePrice: parseFloat(basePrice),
+        priceType: priceType as "hourly" | "fixed" | "quote",
+        certificationUploaded: false,
+        certificationVerified: false,
+        toolPhotosUploaded: false,
+      };
+      
+      await apiRequest(`/api/operators/${operatorId}/services`, {
+        method: "POST",
+        body: JSON.stringify(serviceData),
+      });
+      
+      queryClient.invalidateQueries({ queryKey: [`/api/operators/${operatorId}/services`] });
+      onClose();
+    } catch (error) {
+      console.error("Error adding service:", error);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -474,16 +531,16 @@ function AddServiceForm({
       )}
 
       <div className="flex gap-2 pt-4">
-        <Button type="button" variant="outline" onClick={onClose} className="flex-1">
+        <Button type="button" variant="outline" onClick={onClose} className="flex-1" disabled={isSubmitting}>
           Cancel
         </Button>
         <Button 
           type="submit" 
           className="flex-1" 
-          disabled={!selectedServiceId || !basePrice}
+          disabled={!selectedServiceId || !basePrice || isSubmitting}
           data-testid="save-service-btn"
         >
-          Add Service
+          {isSubmitting ? "Adding..." : "Add Service"}
         </Button>
       </div>
     </form>
@@ -492,19 +549,55 @@ function AddServiceForm({
 
 function EditServiceForm({
   service,
+  operatorId,
   onClose,
 }: {
   service: OperatorService;
+  operatorId: string;
   onClose: () => void;
 }) {
   const [skillLevel, setSkillLevel] = useState(service.skillLevel);
   const [priceType, setPriceType] = useState(service.priceType);
   const [basePrice, setBasePrice] = useState(service.basePrice.toString());
   const [isActive, setIsActive] = useState(service.isActive);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    onClose();
+    setIsSubmitting(true);
+    try {
+      await apiRequest(`/api/operators/${operatorId}/services/${service.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({
+          skillLevel,
+          priceType,
+          basePrice: parseFloat(basePrice),
+          isActive,
+        }),
+      });
+      queryClient.invalidateQueries({ queryKey: [`/api/operators/${operatorId}/services`] });
+      onClose();
+    } catch (error) {
+      console.error("Error updating service:", error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+  
+  const handleDelete = async () => {
+    setIsDeleting(true);
+    try {
+      await apiRequest(`/api/operators/${operatorId}/services/${service.id}`, {
+        method: "DELETE",
+      });
+      queryClient.invalidateQueries({ queryKey: [`/api/operators/${operatorId}/services`] });
+      onClose();
+    } catch (error) {
+      console.error("Error deleting service:", error);
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   return (
@@ -560,20 +653,21 @@ function EditServiceForm({
       </div>
 
       <div className="flex gap-2 pt-4">
-        <Button type="button" variant="outline" onClick={onClose} className="flex-1">
+        <Button type="button" variant="outline" onClick={onClose} className="flex-1" disabled={isSubmitting || isDeleting}>
           Cancel
         </Button>
         <Button 
           type="button" 
           variant="destructive" 
-          onClick={onClose}
+          onClick={handleDelete}
           className="flex-1"
+          disabled={isSubmitting || isDeleting}
         >
           <Trash2 className="h-4 w-4 mr-2" />
-          Remove
+          {isDeleting ? "Removing..." : "Remove"}
         </Button>
-        <Button type="submit" className="flex-1">
-          Save Changes
+        <Button type="submit" className="flex-1" disabled={isSubmitting || isDeleting}>
+          {isSubmitting ? "Saving..." : "Save Changes"}
         </Button>
       </div>
     </form>
