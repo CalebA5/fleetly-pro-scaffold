@@ -156,11 +156,11 @@ export const TIER_CAPABILITIES: Record<OperatorTier, TierCapabilities> = {
 
 export const DASHBOARD_METRICS: MetricConfig[] = [
   { id: "dailyEarnings", label: "Today's Earnings", icon: "DollarSign", tiers: ["manual", "equipped", "professional"], format: "currency", navigateTo: "/operator/earnings" },
-  { id: "jobsNearby", label: "Jobs & Active", icon: "MapPin", tiers: ["manual", "equipped", "professional"], format: "number", navigateTo: "/operator/jobs-map" },
-  { id: "completedToday", label: "Completed Today", icon: "CheckCircle", tiers: ["manual", "equipped", "professional"], format: "number", navigateTo: "/operator/completed-today" },
+  { id: "jobsNearby", label: "Jobs Nearby", icon: "MapPin", tiers: ["manual", "equipped", "professional"], format: "number", linkToTab: "jobs" },
+  { id: "completedToday", label: "Completed Today", icon: "CheckCircle", tiers: ["manual", "equipped", "professional"], format: "number", navigateTo: "/operator/earnings" },
   { id: "rating", label: "Rating", icon: "Star", tiers: ["manual", "equipped", "professional"], format: "rating", navigateTo: "/operator/ratings" },
   { id: "equipmentStatus", label: "Equipment Status", icon: "Wrench", tiers: ["equipped"], format: "number", linkToTab: "equipment" },
-  { id: "activeOperators", label: "Active Operators", icon: "Users", tiers: ["professional"], format: "number", navigateTo: "/operator/active-operators" },
+  { id: "activeOperators", label: "Active Drivers", icon: "Users", tiers: ["professional"], format: "number", linkToTab: "manpower" },
   { id: "fleetCount", label: "Fleet", icon: "Truck", tiers: ["professional"], format: "number", linkToTab: "equipment" },
   { id: "radiusLimit", label: "Operating Radius", icon: "Target", tiers: ["manual"], format: "distance" },
 ];
