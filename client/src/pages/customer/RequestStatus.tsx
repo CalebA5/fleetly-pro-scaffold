@@ -208,7 +208,7 @@ export default function RequestStatus() {
     const handleViewDetails = () => {
       // For emergency requests, navigate to emergency tracking page
       if (request.isEmergency === true) {
-        setLocation(`/emergency/tracking/${request.emergencyId || request.requestId}`);
+        setLocation(`/emergency-tracking/${request.emergencyId || request.requestId}`);
         return;
       }
       
