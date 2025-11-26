@@ -177,8 +177,9 @@ export const DriveEarn = () => {
   const activeTier = operatorData?.activeTier || operatorData?.operatorTier || null;
 
   const getTierDashboardPath = (tier: string) => {
-    // All tiers now use the unified operator dashboard
-    return "/operator";
+    // All tiers now use the unified operator dashboard with tier parameter
+    // This ensures the correct tier is loaded even before user context updates
+    return `/operator?tier=${tier}`;
   };
 
   const getTierIcon = (tier: string) => {

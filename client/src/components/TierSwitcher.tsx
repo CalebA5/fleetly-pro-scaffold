@@ -137,8 +137,9 @@ export function TierSwitcher() {
         description: `You are now operating as ${TIER_INFO[newTier].label}`,
       });
       
-      // Navigate to the unified operator dashboard
-      setLocation('/operator');
+      // Navigate to the unified operator dashboard with tier parameter
+      // This ensures the correct dashboard is shown immediately
+      setLocation(`/operator?tier=${newTier}`);
     },
   });
 
@@ -184,8 +185,8 @@ export function TierSwitcher() {
       setShowUpgradeDialog(false);
       setSelectedTier(null);
       
-      // Navigate to the unified operator dashboard
-      setLocation('/operator');
+      // Navigate to the unified operator dashboard with tier parameter
+      setLocation(`/operator?tier=${variables.tier}`);
     },
   });
 

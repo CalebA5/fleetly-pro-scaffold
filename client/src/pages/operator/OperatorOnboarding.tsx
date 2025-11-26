@@ -202,7 +202,7 @@ export const OperatorOnboarding = () => {
   const handleTierSelection = (tier: OperatorTier) => {
     // If user is already subscribed to this tier, redirect to unified dashboard
     if (operatorData?.subscribedTiers?.includes(tier)) {
-      setLocation("/operator");
+      setLocation(`/operator?tier=${tier}`);
       return;
     }
     
@@ -715,7 +715,8 @@ export const OperatorOnboarding = () => {
         description: "You can complete your profile later from your dashboard.",
       });
       
-      setLocation("/operator");
+      // Navigate to dashboard with tier parameter for immediate correct view
+      setLocation(`/operator?tier=${tier}`);
     } catch (error: any) {
       console.error("Error creating operator:", error);
       toast({

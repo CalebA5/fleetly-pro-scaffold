@@ -2276,6 +2276,57 @@ export function registerRoutes(storage: IStorage) {
     }
   });
 
+  // Get emergency requests for a customer
+  router.get("/api/customers/:customerId/emergency-requests", async (req, res) => {
+    try {
+      const { customerId } = req.params;
+      
+      if (!customerId) {
+        return res.status(400).json({ message: "Customer ID required" });
+      }
+      
+      const customerEmergencies = await db.query.emergencyRequests.findMany({
+        where: eq(emergencyRequests.customerId, customerId),
+        orderBy: (requests, { desc }) => [desc(requests.createdAt)]
+      });
+      
+      // Enrich with queue/operator details
+      const enrichedEmergencies = await Promise.all(
+        customerEmergencies.map(async (emergency) => {
+          const queue = await db.query.dispatchQueue.findMany({
+            where: eq(dispatchQueue.emergencyId, emergency.emergencyId)
+          });
+          
+          // Find assigned operator if any
+          const acceptedEntry = queue.find(q => q.status === 'accepted');
+          let assignedOperator = null;
+          if (acceptedEntry) {
+            assignedOperator = await db.query.operators.findFirst({
+              where: eq(operators.operatorId, acceptedEntry.operatorId)
+            });
+          }
+          
+          return {
+            ...emergency,
+            isEmergency: true, // Flag for frontend to distinguish
+            queueCount: queue.length,
+            assignedOperator: assignedOperator ? {
+              operatorId: assignedOperator.operatorId,
+              name: assignedOperator.name,
+              phone: assignedOperator.phone,
+              photo: assignedOperator.photo
+            } : null
+          };
+        })
+      );
+      
+      res.json(enrichedEmergencies);
+    } catch (error) {
+      console.error("Error fetching customer emergency requests:", error);
+      res.status(500).json({ message: "Failed to fetch emergency requests" });
+    }
+  });
+
   // Operator accepts emergency request
   router.post("/api/emergency-requests/:emergencyId/accept", async (req, res) => {
     try {

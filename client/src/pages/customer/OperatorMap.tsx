@@ -82,11 +82,12 @@ export const OperatorMap = () => {
     const vh = window.innerHeight;
     const bottomNavHeight = 64; // Bottom nav height
     const headerHeight = 56; // Page header height
-    const availableHeight = vh - bottomNavHeight - headerHeight;
+    const filterHeaderHeight = 80; // Find operators filter bar height
+    const availableHeight = vh - bottomNavHeight - headerHeight - filterHeaderHeight;
     switch (sheetPosition) {
-      case 'collapsed': return 80; // Larger collapsed height - shows drag handle + message clearly
+      case 'collapsed': return 100; // Increased collapsed height for better visibility of "Tap to see X operators"
       case 'half': return availableHeight * 0.55; // Slightly more than half for better visibility
-      case 'full': return availableHeight; // Full available space
+      case 'full': return availableHeight * 0.9; // 90% to leave some map visible at top
       default: return availableHeight * 0.55;
     }
   }, [sheetPosition]);
@@ -832,7 +833,7 @@ export const OperatorMap = () => {
   }
 
   return (
-    <div className="h-screen flex flex-col bg-white dark:bg-gray-900 pb-16 md:pb-0">
+    <div className="h-screen flex flex-col bg-white dark:bg-gray-900 pb-16 md:pb-0 overflow-hidden">
       {/* Header */}
       <Header 
         onSignIn={() => {
@@ -845,8 +846,8 @@ export const OperatorMap = () => {
         }}
       />
       
-      {/* Mobile-First Page Header */}
-      <div className="border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 px-4 py-3">
+      {/* Mobile-First Page Header - Sticky so it stays visible while scrolling */}
+      <div className="sticky top-0 z-40 border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 px-4 py-3">
         {/* Top Row: Title, Count, Filter Button */}
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
@@ -969,8 +970,8 @@ export const OperatorMap = () => {
         )}
       </div>
 
-      {/* Map and List Content */}
-      <div className="flex-1 flex flex-col md:flex-row overflow-hidden relative">
+      {/* Map and List Content - Fixed layout to prevent scroll issues */}
+      <div className="flex-1 flex flex-col md:flex-row relative min-h-0">
         {/* Desktop Sidebar - Collapsible */}
         {!isMobile && (
           <div 

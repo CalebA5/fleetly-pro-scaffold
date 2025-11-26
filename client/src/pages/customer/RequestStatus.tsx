@@ -44,7 +44,11 @@ const STATUS_COLORS = {
   operator_accepted: "bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200",
   operator_declined: "bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200",
   in_progress: "bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200",
-  completed: "bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200"
+  completed: "bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200",
+  searching: "bg-orange-100 dark:bg-orange-900 text-orange-800 dark:text-orange-200",
+  operator_assigned: "bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200",
+  en_route: "bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200",
+  cancelled: "bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200"
 };
 
 const STATUS_ICONS = {
@@ -54,7 +58,11 @@ const STATUS_ICONS = {
   operator_accepted: CheckCircle,
   operator_declined: XCircle,
   in_progress: AlertCircle,
-  completed: CheckCircle
+  completed: CheckCircle,
+  searching: Clock,
+  operator_assigned: Truck,
+  en_route: MapPin,
+  cancelled: XCircle
 };
 
 export default function RequestStatus() {
@@ -75,6 +83,14 @@ export default function RequestStatus() {
     retryDelay: 500,
   });
 
+  // Also fetch emergency requests for this customer
+  const { data: emergencyRequests, isLoading: isLoadingEmergencies } = useQuery<any[]>({
+    queryKey: [`/api/customers/${user?.id}/emergency-requests`],
+    enabled: !!user?.id,
+    retry: 1,
+    retryDelay: 500,
+  });
+
   if (!user) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -85,14 +101,33 @@ export default function RequestStatus() {
     );
   }
 
+  // Combine service requests and emergency requests
+  const allRequests = [
+    ...(requests || []),
+    ...(emergencyRequests || []).map((er: any) => ({
+      ...er,
+      id: er.emergencyId, // Use emergencyId as id for consistency
+      requestId: er.emergencyId,
+      isEmergency: true,
+      status: er.status || 'searching',
+      serviceType: er.serviceType,
+      location: er.location,
+      createdAt: er.createdAt,
+      operatorName: er.assignedOperator?.name || null,
+      operatorId: er.assignedOperator?.operatorId || null,
+    }))
+  ];
+
   const groupedRequests = {
-    pending: (requests || []).filter((r: any) => 
-      r.status === 'pending' || r.status === 'quoted' || r.status === 'operator_pending' || r.status === 'operator_declined'
+    pending: allRequests.filter((r: any) => 
+      r.status === 'pending' || r.status === 'quoted' || r.status === 'operator_pending' || r.status === 'operator_declined' ||
+      r.status === 'searching' // Emergency requests in searching state
     ),
-    active: (requests || []).filter((r: any) => 
-      r.status === 'assigned' || r.status === 'in_progress'
+    active: allRequests.filter((r: any) => 
+      r.status === 'assigned' || r.status === 'in_progress' ||
+      r.status === 'operator_assigned' || r.status === 'en_route' // Emergency request active states
     ),
-    completed: (requests || []).filter((r: any) => r.status === 'completed')
+    completed: allRequests.filter((r: any) => r.status === 'completed')
   };
 
   const RequestCard = ({ request }: { request: any }) => {
@@ -167,6 +202,12 @@ export default function RequestStatus() {
     });
     
     const handleViewDetails = () => {
+      // For emergency requests, navigate to emergency tracking page
+      if (request.isEmergency === true) {
+        setLocation(`/emergency/tracking/${request.emergencyId || request.requestId}`);
+        return;
+      }
+      
       // For assigned jobs, navigate to job tracking page
       // No need to check selectedQuoteId - just use requestId
       if (isAssigned) {
@@ -188,7 +229,7 @@ export default function RequestStatus() {
                 <h3 className="font-semibold text-base md:text-lg text-gray-900 dark:text-white break-words">
                   {request.serviceType}
                 </h3>
-                {request.isEmergency === 1 && (
+                {(request.isEmergency === 1 || request.isEmergency === true) && (
                   <Badge variant="destructive" className="text-xs shrink-0">
                     <AlertCircle className="w-3 h-3 mr-1" />
                     EMERGENCY
@@ -467,7 +508,7 @@ export default function RequestStatus() {
             </TabsTrigger>
           </TabsList>
 
-          {isLoading ? (
+          {(isLoading || isLoadingEmergencies) ? (
             <div className="flex items-center justify-center py-12">
               <Clock className="w-6 h-6 animate-spin text-gray-400" />
               <span className="ml-2 text-gray-600 dark:text-gray-400">Loading requests...</span>
