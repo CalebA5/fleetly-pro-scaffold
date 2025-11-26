@@ -22,7 +22,7 @@ export function UserGuide() {
       <Header />
 
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <Link href="/help-support">
+        <Link href="/help">
           <Button variant="ghost" size="sm" className="mb-6" data-testid="button-back-help">
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back to Help & Support
@@ -301,7 +301,7 @@ export function UserGuide() {
             <p className="text-gray-700 dark:text-gray-300 mb-4">
               Can't find what you're looking for? Contact our support team for personalized help.
             </p>
-            <Link href="/help-support">
+            <Link href="/help">
               <Button
                 className="bg-black text-white hover:bg-gray-800 dark:bg-white dark:text-black dark:hover:bg-gray-200"
                 data-testid="button-contact-support"

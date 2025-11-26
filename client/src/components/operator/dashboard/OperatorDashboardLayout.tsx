@@ -109,22 +109,24 @@ export function OperatorDashboardLayout({ tier }: OperatorDashboardLayoutProps) 
 
     try {
       const newStatus = !isOnline;
-      await apiRequest(`/api/operators/${operatorId}/status`, {
-        method: "PATCH",
-        body: JSON.stringify({ isOnline: newStatus ? 1 : 0 }),
+      await apiRequest(`/api/operators/${operatorId}/toggle-online`, {
+        method: "POST",
+        body: JSON.stringify({ isOnline: newStatus ? 1 : 0, activeTier: tier }),
       });
       setIsOnline(newStatus);
       queryClient.invalidateQueries({ queryKey: ["/api/operators"] });
+      queryClient.invalidateQueries({ queryKey: [`/api/operators/by-id/${operatorId}`] });
       toast({
         title: newStatus ? "You're Online" : "You're Offline",
         description: newStatus 
           ? "You can now receive job requests in your area."
           : "You won't receive new job requests.",
       });
-    } catch (error) {
+    } catch (error: any) {
+      const errorMessage = error?.message || "Failed to update online status. Please try again.";
       toast({
         title: "Error",
-        description: "Failed to update online status. Please try again.",
+        description: errorMessage,
         variant: "destructive",
       });
     }
@@ -135,20 +137,22 @@ export function OperatorDashboardLayout({ tier }: OperatorDashboardLayoutProps) 
     // After location is granted, try to go online
     if (canGoOnline) {
       try {
-        await apiRequest(`/api/operators/${operatorId}/status`, {
-          method: "PATCH",
-          body: JSON.stringify({ isOnline: 1 }),
+        await apiRequest(`/api/operators/${operatorId}/toggle-online`, {
+          method: "POST",
+          body: JSON.stringify({ isOnline: 1, activeTier: tier }),
         });
         setIsOnline(true);
         queryClient.invalidateQueries({ queryKey: ["/api/operators"] });
+        queryClient.invalidateQueries({ queryKey: [`/api/operators/by-id/${operatorId}`] });
         toast({
           title: "You're Online",
           description: "You can now receive job requests in your area.",
         });
-      } catch (error) {
+      } catch (error: any) {
+        const errorMessage = error?.message || "Failed to go online. Please try again.";
         toast({
           title: "Error",
-          description: "Failed to go online. Please try again.",
+          description: errorMessage,
           variant: "destructive",
         });
       }
@@ -243,7 +247,7 @@ export function OperatorDashboardLayout({ tier }: OperatorDashboardLayoutProps) 
                 <button
                   onClick={handleToggleOnline}
                   disabled={!canGoOnline}
-                  className={`relative inline-flex h-[18px] w-9 items-center justify-start rounded-full transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 ${
+                  className={`relative inline-flex h-4 w-7 items-center rounded-full transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-emerald-500 ${
                     !canGoOnline 
                       ? "bg-gray-200 dark:bg-gray-700 cursor-not-allowed opacity-50" 
                       : isOnline 
@@ -253,8 +257,8 @@ export function OperatorDashboardLayout({ tier }: OperatorDashboardLayoutProps) 
                   data-testid="online-toggle"
                 >
                   <span
-                    className={`absolute top-1/2 -translate-y-1/2 h-3.5 w-3.5 rounded-full bg-white shadow-md transition-all duration-300 ${
-                      isOnline ? "left-[calc(100%-16px)]" : "left-0.5"
+                    className={`absolute top-1/2 -translate-y-1/2 h-3 w-3 rounded-full bg-white shadow-sm transition-all duration-200 ${
+                      isOnline ? "left-[calc(100%-14px)]" : "left-0.5"
                     }`}
                   />
                 </button>

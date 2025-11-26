@@ -40,6 +40,7 @@ import Wallet from "./pages/Wallet";
 import Payments from "./pages/Payments";
 import Settings from "./pages/Settings";
 import Legal from "./pages/Legal";
+import LiveChat from "./pages/LiveChat";
 import EmergencySOS from "./pages/EmergencySOS";
 import EmergencyTracking from "./pages/EmergencyTracking";
 import Index from "./pages/Index";
@@ -77,6 +78,7 @@ const App = () => (
               <Route path="/payments" component={Payments} />
               <Route path="/settings" component={Settings} />
               <Route path="/legal" component={Legal} />
+              <Route path="/live-chat" component={LiveChat} />
               <Route path="/notifications" component={Notifications} />
               <Route path="/weather-alerts" component={Notifications} />
               

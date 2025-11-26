@@ -190,9 +190,11 @@ export const HelpSupport = () => {
               <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
                 Chat with support team
               </p>
-              <Button variant="outline" className="w-full" data-testid="button-live-chat">
-                Start Chat
-              </Button>
+              <Link href="/live-chat">
+                <Button variant="outline" className="w-full" data-testid="button-live-chat">
+                  Start Chat
+                </Button>
+              </Link>
             </CardContent>
           </Card>
 
@@ -203,9 +205,11 @@ export const HelpSupport = () => {
               <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
                 support@fleetly.com
               </p>
-              <Button variant="outline" className="w-full" data-testid="button-email-support">
-                Send Email
-              </Button>
+              <a href="mailto:support@fleetly.com?subject=Fleetly Support Request">
+                <Button variant="outline" className="w-full" data-testid="button-email-support">
+                  Send Email
+                </Button>
+              </a>
             </CardContent>
           </Card>
 
@@ -216,9 +220,11 @@ export const HelpSupport = () => {
               <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
                 1-800-FLEETLY
               </p>
-              <Button variant="outline" className="w-full" data-testid="button-phone-support">
-                Call Now
-              </Button>
+              <a href="tel:1-800-353-3859">
+                <Button variant="outline" className="w-full" data-testid="button-phone-support">
+                  Call Now
+                </Button>
+              </a>
             </CardContent>
           </Card>
         </div>
