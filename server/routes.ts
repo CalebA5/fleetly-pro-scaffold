@@ -198,16 +198,59 @@ export function registerRoutes(storage: IStorage) {
         return sum + price;
       }, 0);
 
-      // Get pending/active jobs nearby (simple count for now)
-      const nearbyJobs = await db.query.serviceRequests.findMany({
-        where: and(
-          or(eq(serviceRequests.status, "pending"), eq(serviceRequests.status, "quoted")),
-        )
-      });
-
-      // Get operator's rating
+      // Get operator data first for filtering
       const operator = await db.query.operators.findFirst({
         where: eq(operators.operatorId, operatorId)
+      });
+
+      // Get pending/active jobs nearby - PROPERLY FILTERED by tier, services, and location
+      // Services available for each tier from TIER_SERVICES in shared/tierCapabilities.ts
+      const tierServicesMap: Record<string, string[]> = {
+        manual: ["snow_shoveling", "lawn_maintenance", "window_cleaning", "yard_cleanup", "debris_removal", "handyman"],
+        equipped: ["snow_shoveling", "lawn_maintenance", "window_cleaning", "yard_cleanup", "debris_removal", "handyman", 
+                   "snow_plowing", "towing", "hauling", "courier", "drywall", "framing", "basic_home_repairs", "carpentry", "light_plumbing", "electrician"],
+        professional: ["snow_shoveling", "lawn_maintenance", "window_cleaning", "yard_cleanup", "debris_removal", "handyman",
+                      "snow_plowing", "towing", "hauling", "courier", "drywall", "framing", "basic_home_repairs", "carpentry", "light_plumbing", "electrician",
+                      "roofing", "licensed_plumbing", "licensed_electrical", "welding", "restoration", "full_construction", "heavy_hauling"]
+      };
+      
+      // Get radius for this tier (in km)
+      const tierRadiusKm: Record<string, number> = {
+        manual: 5,
+        equipped: 15,
+        professional: 50
+      };
+      
+      const availableServices = tierServicesMap[tier] || [];
+      const maxRadiusKm = tierRadiusKm[tier] || 5;
+      
+      // Get all pending jobs first
+      const allPendingJobs = await db.query.serviceRequests.findMany({
+        where: or(eq(serviceRequests.status, "pending"), eq(serviceRequests.status, "quoted"))
+      });
+      
+      // Filter by service type and distance
+      const operatorLat = operator?.homeLatitude ? parseFloat(String(operator.homeLatitude)) : null;
+      const operatorLng = operator?.homeLongitude ? parseFloat(String(operator.homeLongitude)) : null;
+      
+      const nearbyJobs = allPendingJobs.filter(job => {
+        // Filter by service type - must be available for this tier
+        const serviceType = job.serviceType?.toLowerCase().replace(/\s+/g, '_');
+        if (!availableServices.includes(serviceType || '')) {
+          return false;
+        }
+        
+        // Filter by distance if operator has a home location
+        if (operatorLat && operatorLng && job.latitude && job.longitude) {
+          const jobLat = parseFloat(String(job.latitude));
+          const jobLng = parseFloat(String(job.longitude));
+          const distance = calculateDistance(operatorLat, operatorLng, jobLat, jobLng);
+          if (distance > maxRadiusKm) {
+            return false;
+          }
+        }
+        
+        return true;
       });
 
       // Get active drivers count (for professional tier)

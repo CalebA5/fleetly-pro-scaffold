@@ -1,15 +1,14 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/enhanced-button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Header } from "@/components/Header";
 import { MobileBottomNav } from "@/components/MobileBottomNav";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserLocation } from "@/contexts/LocationContext";
-import { ArrowLeft, MapPin, DollarSign, Clock, AlertTriangle, Maximize2, Minimize2, List, Eye, ShieldAlert, X } from "lucide-react";
+import { ArrowLeft, MapPin, DollarSign, Clock, AlertTriangle, Maximize2, Minimize2, List, Eye, ShieldAlert, X, ChevronUp } from "lucide-react";
 import { useLocation } from "wouter";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
@@ -56,17 +55,91 @@ export default function NearbyJobsMap() {
   const map = useRef<mapboxgl.Map | null>(null);
   const [selectedJob, setSelectedJob] = useState<ServiceRequest | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [showJobSheet, setShowJobSheet] = useState(false);
   const [viewMode, setViewMode] = useState<'map' | 'list'>('map');
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [showQuoteModal, setShowQuoteModal] = useState(false);
   const [requestForDetails, setRequestForDetails] = useState<ServiceRequest | null>(null);
   const [showVerificationBanner, setShowVerificationBanner] = useState(true);
+  
+  // Mobile sliding bottom sheet state (like Find Operators page)
+  const [sheetPosition, setSheetPosition] = useState<'collapsed' | 'half' | 'full'>('half');
+  const [dragOffset, setDragOffset] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const sheetRef = useRef<HTMLDivElement>(null);
+  const dragStartY = useRef<number>(0);
+  const sheetStartHeight = useRef<number>(0);
+  const [isMobile, setIsMobile] = useState(false);
 
   const operatorId = user?.operatorId;
   const currentTier = (user?.viewTier || user?.activeTier || "manual") as keyof typeof TIER_CAPABILITIES;
   const tierCapabilities = TIER_CAPABILITIES[currentTier];
   const operatingRadiusKm = tierCapabilities?.radiusKm || null;
+  
+  // Detect mobile viewport
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  // Get base height in pixels for each sheet position
+  const getBaseHeight = useCallback(() => {
+    const vh = window.innerHeight;
+    const bottomNavHeight = 64;
+    const headerHeight = 56;
+    const availableHeight = vh - bottomNavHeight;
+    switch (sheetPosition) {
+      case 'collapsed': return 100; // Just handle and prompt
+      case 'half': return availableHeight * 0.45; // 45% of available
+      case 'full': return availableHeight - headerHeight; // Full minus header
+      default: return availableHeight * 0.45;
+    }
+  }, [sheetPosition]);
+
+  // Sheet touch handlers for mobile dragging
+  const handleSheetTouchStart = useCallback((e: React.TouchEvent) => {
+    dragStartY.current = e.touches[0].clientY;
+    sheetStartHeight.current = getBaseHeight();
+    setIsDragging(true);
+    setDragOffset(0);
+  }, [getBaseHeight]);
+
+  const handleSheetTouchMove = useCallback((e: React.TouchEvent) => {
+    if (!isDragging) return;
+    const currentY = e.touches[0].clientY;
+    const diff = dragStartY.current - currentY; // Positive = dragged up
+    setDragOffset(diff);
+  }, [isDragging]);
+
+  const handleSheetTouchEnd = useCallback(() => {
+    setIsDragging(false);
+    const dragThreshold = 50;
+    
+    if (dragOffset > dragThreshold) {
+      // Dragged up - go to next larger state
+      if (sheetPosition === 'collapsed') setSheetPosition('half');
+      else if (sheetPosition === 'half') setSheetPosition('full');
+    } else if (dragOffset < -dragThreshold) {
+      // Dragged down - go to next smaller state
+      if (sheetPosition === 'full') setSheetPosition('half');
+      else if (sheetPosition === 'half') setSheetPosition('collapsed');
+    }
+    
+    setDragOffset(0);
+  }, [dragOffset, sheetPosition]);
+
+  // Get sheet style with drag offset
+  const getSheetStyle = useCallback(() => {
+    const baseHeight = getBaseHeight();
+    const currentHeight = isDragging ? Math.max(80, Math.min(window.innerHeight * 0.85, baseHeight + dragOffset)) : baseHeight;
+    return {
+      height: `${currentHeight}px`,
+      transition: isDragging ? 'none' : 'height 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+      touchAction: 'none',
+      willChange: 'height',
+    };
+  }, [getBaseHeight, isDragging, dragOffset]);
 
   const handleViewDetails = (job: ServiceRequest, e?: React.MouseEvent) => {
     if (e) {
@@ -500,109 +573,119 @@ export default function NearbyJobsMap() {
             data-testid="map-container"
           />
 
-          {/* Mobile: Floating Job Count Badge (Map view only) */}
-          {viewMode === 'map' && (
-            <Button
-              onClick={() => setShowJobSheet(true)}
-              className="md:hidden absolute bottom-4 right-4 bg-orange-500 hover:bg-orange-600 text-white shadow-lg rounded-full h-14 px-6"
-              data-testid="button-show-jobs"
-            >
-              <MapPin style={{ width: 'clamp(1rem, 4vw, 1.25rem)', height: 'clamp(1rem, 4vw, 1.25rem)' }} className="mr-2" />
-              <span className="font-semibold">{nearbyJobs.length} Jobs</span>
-            </Button>
-          )}
         </div>
 
-        {/* MOBILE: List View (when toggled) */}
-        {viewMode === 'list' && (
-          <div className="md:hidden w-full h-[calc(100vh-200px)] bg-white dark:bg-gray-900 overflow-y-auto">
-            <div className="p-4 sticky top-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 z-10">
-              <h2 className="text-xl font-bold text-black dark:text-white mb-1">
-                Available Jobs
-              </h2>
-              <p className="text-sm text-muted-foreground">
-                {getTierLabel(currentTier)} • {nearbyJobs.length} nearby
-              </p>
+        {/* MOBILE: Sliding Bottom Sheet (like Find Operators page) */}
+        {isMobile && (
+          <div
+            ref={sheetRef}
+            className="md:hidden fixed bottom-16 left-0 right-0 bg-white dark:bg-gray-900 rounded-t-3xl shadow-2xl z-30 border-t border-gray-200 dark:border-gray-700"
+            style={getSheetStyle()}
+            onTouchStart={handleSheetTouchStart}
+            onTouchMove={handleSheetTouchMove}
+            onTouchEnd={handleSheetTouchEnd}
+            data-testid="jobs-bottom-sheet"
+          >
+            {/* Drag Handle */}
+            <div className="flex justify-center pt-3 pb-2 cursor-grab active:cursor-grabbing">
+              <div className="w-12 h-1.5 bg-gray-300 dark:bg-gray-600 rounded-full" />
             </div>
             
-            <div className="p-4 space-y-3">
+            {/* Header */}
+            <div className="px-4 pb-3 border-b border-gray-200 dark:border-gray-700">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-lg font-bold text-black dark:text-white">
+                    {nearbyJobs.length} Jobs Nearby
+                  </h2>
+                  <p className="text-xs text-muted-foreground">{getTierLabel(currentTier)}</p>
+                </div>
+                {sheetPosition === 'collapsed' && (
+                  <button
+                    onClick={() => setSheetPosition('half')}
+                    className="flex items-center gap-1 text-sm text-orange-500 font-medium"
+                    data-testid="button-expand-sheet"
+                  >
+                    <ChevronUp className="w-4 h-4" />
+                    View Jobs
+                  </button>
+                )}
+              </div>
+            </div>
+            
+            {/* Job Cards List */}
+            <div 
+              className={`overflow-y-auto px-4 ${sheetPosition === 'collapsed' && !isDragging ? 'hidden' : ''}`}
+              style={{ height: 'calc(100% - 80px)', opacity: sheetPosition === 'collapsed' && !isDragging ? 0 : 1 }}
+            >
               {nearbyJobs.length === 0 ? (
                 <div className="py-12 text-center">
                   <MapPin className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
                   <p className="text-muted-foreground mb-2">No jobs available</p>
-                  <p className="text-sm text-muted-foreground">
-                    Check back later for new opportunities
-                  </p>
+                  <p className="text-sm text-muted-foreground">Check back later for new opportunities</p>
                 </div>
               ) : (
-                nearbyJobs.map((job) => (
-                  <Card 
-                    key={job.id}
-                    className="cursor-pointer transition-all active:scale-98"
-                    onClick={() => {
-                      setSelectedJob(job);
-                      setViewMode('map');
-                      // Resize map after switching from list mode
-                      setTimeout(() => {
-                        map.current?.resize();
+                <div className="space-y-3 py-3">
+                  {nearbyJobs.map((job) => (
+                    <Card 
+                      key={job.id}
+                      className={`cursor-pointer transition-all active:scale-98 ${
+                        selectedJob?.id === job.id ? "ring-2 ring-orange-500" : ""
+                      }`}
+                      onClick={() => {
+                        setSelectedJob(job);
+                        setSheetPosition('collapsed');
                         if (job.latitude && job.longitude && map.current) {
                           const lng = typeof job.longitude === 'string' ? parseFloat(job.longitude) : job.longitude;
                           const lat = typeof job.latitude === 'string' ? parseFloat(job.latitude) : job.latitude;
                           map.current.flyTo({ center: [lng, lat], zoom: 15 });
                         }
-                      }, 100);
-                    }}
-                    data-testid={`card-job-list-${job.id}`}
-                  >
-                    <CardHeader className="pb-3">
-                      <div className="flex items-start justify-between gap-2">
-                        <CardTitle className="text-base">{job.serviceType}</CardTitle>
-                        {job.isEmergency === 1 && (
-                          <Badge variant="destructive" className="flex items-center gap-1">
-                            <AlertTriangle style={{ width: 'clamp(0.75rem, 2.5vw, 0.875rem)', height: 'clamp(0.75rem, 2.5vw, 0.875rem)' }} />
-                            Emergency
-                          </Badge>
-                        )}
-                      </div>
-                      <CardDescription className="text-xs">
-                        {job.requestId}
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-2">
-                      <div className="flex items-start gap-2 text-sm">
-                        <MapPin style={{ width: 'clamp(0.875rem, 3vw, 1rem)', height: 'clamp(0.875rem, 3vw, 1rem)' }} className="mt-0.5 text-muted-foreground flex-shrink-0" />
-                        <span className="text-muted-foreground line-clamp-2">{job.location}</span>
-                      </div>
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="flex items-center gap-1 text-green-600 dark:text-green-400 font-semibold">
-                          <DollarSign style={{ width: 'clamp(0.875rem, 3vw, 1rem)', height: 'clamp(0.875rem, 3vw, 1rem)' }} />
-                          {job.budgetRange}
-                        </span>
-                        {job.distance && (
-                          <span className="flex items-center gap-1 text-muted-foreground">
-                            <Clock style={{ width: 'clamp(0.875rem, 3vw, 1rem)', height: 'clamp(0.875rem, 3vw, 1rem)' }} />
-                            {job.distance.toFixed(1)} km
+                      }}
+                      data-testid={`card-job-mobile-${job.id}`}
+                    >
+                      <CardHeader className="pb-3">
+                        <div className="flex items-start justify-between gap-2">
+                          <CardTitle className="text-base">{job.serviceType}</CardTitle>
+                          {job.isEmergency === 1 && (
+                            <Badge variant="destructive" className="flex items-center gap-1">
+                              <AlertTriangle style={{ width: 'clamp(0.75rem, 2.5vw, 0.875rem)', height: 'clamp(0.75rem, 2.5vw, 0.875rem)' }} />
+                              SOS
+                            </Badge>
+                          )}
+                        </div>
+                        <CardDescription className="text-xs">{job.requestId}</CardDescription>
+                      </CardHeader>
+                      <CardContent className="space-y-2">
+                        <div className="flex items-start gap-2 text-sm">
+                          <MapPin style={{ width: 'clamp(0.875rem, 3vw, 1rem)', height: 'clamp(0.875rem, 3vw, 1rem)' }} className="mt-0.5 text-muted-foreground flex-shrink-0" />
+                          <span className="text-muted-foreground line-clamp-2">{job.location}</span>
+                        </div>
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="flex items-center gap-1 text-green-600 dark:text-green-400 font-semibold">
+                            <DollarSign style={{ width: 'clamp(0.875rem, 3vw, 1rem)', height: 'clamp(0.875rem, 3vw, 1rem)' }} />
+                            {job.budgetRange}
                           </span>
-                        )}
-                      </div>
-                      {job.description && (
-                        <p className="text-xs text-muted-foreground line-clamp-2 mt-2">
-                          {job.description}
-                        </p>
-                      )}
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={(e) => handleViewDetails(job, e)}
-                        className="w-full mt-3"
-                        data-testid={`button-view-details-list-${job.id}`}
-                      >
-                        <Eye className="w-4 h-4 mr-1" />
-                        View Full Details
-                      </Button>
-                    </CardContent>
-                  </Card>
-                ))
+                          {job.distance && (
+                            <span className="flex items-center gap-1 text-muted-foreground">
+                              <Clock style={{ width: 'clamp(0.875rem, 3vw, 1rem)', height: 'clamp(0.875rem, 3vw, 1rem)' }} />
+                              {job.distance.toFixed(1)} km
+                            </span>
+                          )}
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={(e) => handleViewDetails(job, e)}
+                          className="w-full mt-2"
+                          data-testid={`button-view-details-mobile-${job.id}`}
+                        >
+                          <Eye className="w-4 h-4 mr-1" />
+                          View Details
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
               )}
             </div>
           </div>
@@ -689,95 +772,6 @@ export default function NearbyJobsMap() {
           </div>
         </div>
 
-        {/* MOBILE: Bottom Sheet for Jobs */}
-        <Sheet open={showJobSheet} onOpenChange={setShowJobSheet}>
-          <SheetContent side="bottom" className="h-[85vh] p-0">
-            <div className="h-full flex flex-col">
-              <SheetHeader className="p-4 border-b border-gray-200 dark:border-gray-800">
-                <div className="w-12 h-1 bg-gray-300 dark:bg-gray-700 rounded-full mx-auto mb-3"></div>
-                <SheetTitle>{nearbyJobs.length} Jobs Nearby</SheetTitle>
-                <SheetDescription>{getTierLabel(currentTier)}</SheetDescription>
-              </SheetHeader>
-              
-              <div className="flex-1 overflow-y-auto p-4 space-y-3">
-                {nearbyJobs.length === 0 ? (
-                  <div className="py-12 text-center">
-                    <MapPin className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-                    <p className="text-muted-foreground mb-2">No jobs available</p>
-                    <p className="text-sm text-muted-foreground">
-                      Check back later for new opportunities
-                    </p>
-                  </div>
-                ) : (
-                  nearbyJobs.map((job) => (
-                    <Card 
-                      key={job.id}
-                      className="cursor-pointer transition-all active:scale-98"
-                      onClick={() => {
-                        setSelectedJob(job);
-                        setShowJobSheet(false);
-                        if (job.latitude && job.longitude && map.current) {
-                          const lng = typeof job.longitude === 'string' ? parseFloat(job.longitude) : job.longitude;
-                          const lat = typeof job.latitude === 'string' ? parseFloat(job.latitude) : job.latitude;
-                          map.current.flyTo({ center: [lng, lat], zoom: 15 });
-                        }
-                      }}
-                      data-testid={`card-job-mobile-${job.id}`}
-                    >
-                      <CardHeader className="pb-3">
-                        <div className="flex items-start justify-between gap-2">
-                          <CardTitle className="text-base">{job.serviceType}</CardTitle>
-                          {job.isEmergency === 1 && (
-                            <Badge variant="destructive" className="flex items-center gap-1">
-                              <AlertTriangle style={{ width: 'clamp(0.75rem, 2.5vw, 0.875rem)', height: 'clamp(0.75rem, 2.5vw, 0.875rem)' }} />
-                              Emergency
-                            </Badge>
-                          )}
-                        </div>
-                        <CardDescription className="text-xs">
-                          {job.requestId}
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent className="space-y-2">
-                        <div className="flex items-start gap-2 text-sm">
-                          <MapPin style={{ width: 'clamp(0.875rem, 3vw, 1rem)', height: 'clamp(0.875rem, 3vw, 1rem)' }} className="mt-0.5 text-muted-foreground flex-shrink-0" />
-                          <span className="text-muted-foreground line-clamp-2">{job.location}</span>
-                        </div>
-                        <div className="flex items-center justify-between text-sm">
-                          <span className="flex items-center gap-1 text-green-600 dark:text-green-400 font-semibold">
-                            <DollarSign style={{ width: 'clamp(0.875rem, 3vw, 1rem)', height: 'clamp(0.875rem, 3vw, 1rem)' }} />
-                            {job.budgetRange}
-                          </span>
-                          {job.distance && (
-                            <span className="flex items-center gap-1 text-muted-foreground">
-                              <Clock style={{ width: 'clamp(0.875rem, 3vw, 1rem)', height: 'clamp(0.875rem, 3vw, 1rem)' }} />
-                              {job.distance.toFixed(1)} km
-                            </span>
-                          )}
-                        </div>
-                        {job.description && (
-                          <p className="text-xs text-muted-foreground line-clamp-2 mt-2">
-                            {job.description}
-                          </p>
-                        )}
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={(e) => handleViewDetails(job, e)}
-                          className="w-full mt-3"
-                          data-testid={`button-view-details-mobile-${job.id}`}
-                        >
-                          <Eye className="w-4 h-4 mr-1" />
-                          View Full Details
-                        </Button>
-                      </CardContent>
-                    </Card>
-                  ))
-                )}
-              </div>
-            </div>
-          </SheetContent>
-        </Sheet>
       </div>
 
       {!isFullscreen && <MobileBottomNav />}
