@@ -142,7 +142,7 @@ export function ServiceSelector({
       </div>
 
       {isOpen && (
-        <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white dark:bg-gray-900 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 max-h-[60vh] overflow-y-auto">
+        <div className="fixed md:absolute z-[100] md:z-50 top-auto md:top-full left-4 right-4 md:left-0 md:right-0 mt-1 bg-white dark:bg-gray-900 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 max-h-[70vh] md:max-h-[60vh] overflow-y-auto" style={{ bottom: 'auto' }}>
           {(["micro", "standard", "professional"] as const).map((category) => {
             const categoryConfig = SERVICE_CATEGORIES[category];
             const services = groupedServices[category] || [];

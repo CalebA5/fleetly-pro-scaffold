@@ -218,10 +218,34 @@ export const ProfileDropdown = ({
               </Link>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
+            <DropdownMenuGroup>
+              <DropdownMenuLabel className="text-xs text-muted-foreground px-2 py-1">
+                Account
+              </DropdownMenuLabel>
+              <Link href="/settings?context=customer">
+                <DropdownMenuItem data-testid="menu-settings">
+                  <Settings className="mr-2 h-4 w-4" />
+                  <span>Settings</span>
+                </DropdownMenuItem>
+              </Link>
+              <Link href="/wallet">
+                <DropdownMenuItem data-testid="menu-wallet">
+                  <CreditCard className="mr-2 h-4 w-4" />
+                  <span>Wallet</span>
+                </DropdownMenuItem>
+              </Link>
+            </DropdownMenuGroup>
+            <DropdownMenuSeparator />
             <Link href="/help">
               <DropdownMenuItem data-testid="menu-help">
                 <HelpCircle className="mr-2 h-4 w-4" />
                 <span>Help & Support</span>
+              </DropdownMenuItem>
+            </Link>
+            <Link href="/legal">
+              <DropdownMenuItem data-testid="menu-legal">
+                <FileText className="mr-2 h-4 w-4" />
+                <span>Legal & Policies</span>
               </DropdownMenuItem>
             </Link>
           </>

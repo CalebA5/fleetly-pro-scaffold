@@ -18,9 +18,13 @@ import { OPERATOR_TIER_INFO } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserLocation } from "@/contexts/LocationContext";
+import { useSeasonalTheme } from "@/contexts/SeasonalThemeContext";
 import { OperatorTile } from "@/components/OperatorTile";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
+
+// Calgary, AB as default location
+const DEFAULT_LOCATION: [number, number] = [-114.0719, 51.0447];
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN;
 mapboxgl.accessToken = MAPBOX_TOKEN;
@@ -46,6 +50,8 @@ export const OperatorMap = () => {
   const [selectedOperator, setSelectedOperator] = useState<{cardId: string; operatorId: string; name: string; [key: string]: any} | null>(null);
   const [mapStyle, setMapStyle] = useState<'streets' | 'satellite'>('streets');
   const [selectedService, setSelectedService] = useState<string>("");
+  const { activeTheme } = useSeasonalTheme();
+  const isDarkMode = activeTheme.mode === 'dark';
   const [showRatingDialog, setShowRatingDialog] = useState(false);
   const [ratingOperator, setRatingOperator] = useState<{operatorId: string; name: string; [key: string]: any} | null>(null);
   const [rating, setRating] = useState(5);
@@ -448,12 +454,16 @@ export const OperatorMap = () => {
     return matchesService && matchesFavorites && withinRadius;
   });
 
-  // Get map style URL based on selection
-  const getMapStyle = () => {
-    return mapStyle === 'satellite'
-      ? 'mapbox://styles/mapbox/satellite-streets-v12'
+  // Get map style URL based on selection and theme
+  const getMapStyle = useCallback(() => {
+    if (mapStyle === 'satellite') {
+      return 'mapbox://styles/mapbox/satellite-streets-v12';
+    }
+    // Use dark style for dark mode (like Uber/Lyft)
+    return isDarkMode 
+      ? 'mapbox://styles/mapbox/dark-v11'
       : 'mapbox://styles/mapbox/streets-v12';
-  };
+  }, [mapStyle, isDarkMode]);
 
   // Initialize map
   useEffect(() => {
@@ -471,12 +481,12 @@ export const OperatorMap = () => {
     }
 
     try {
-      // Use user's location if provided via URL params, otherwise default to NYC
+      // Use user's location if provided via URL params, otherwise default to Calgary, AB
       const initialCenter: [number, number] = (userLat !== null && userLon !== null) 
         ? [userLon, userLat] 
-        : [-73.9851, 40.7589];
+        : DEFAULT_LOCATION;
       
-      const initialZoom = (userLat !== null && userLon !== null) ? 13 : 12;
+      const initialZoom = (userLat !== null && userLon !== null) ? 13 : 11;
       
       const map = new mapboxgl.Map({
         container: mapContainerRef.current,
@@ -509,11 +519,11 @@ export const OperatorMap = () => {
     }
   }, []);
 
-  // Handle map style changes
+  // Handle map style changes (including dark mode toggle)
   useEffect(() => {
     if (!mapRef.current || !mapLoaded) return;
     mapRef.current.setStyle(getMapStyle());
-  }, [mapStyle, mapLoaded]);
+  }, [mapStyle, mapLoaded, isDarkMode, getMapStyle]);
 
   // Update map center and user location marker when coordinates change
   useEffect(() => {
@@ -977,10 +987,133 @@ export const OperatorMap = () => {
 
       {/* Map and List Content */}
       <div className="flex-1 flex flex-col md:flex-row overflow-hidden relative">
-        {/* Map View - Always visible on mobile, toggle on desktop */}
-        <div className={`flex-1 relative bg-gray-100 dark:bg-gray-900 ${
-          !isMobile && viewMode === 'list' ? 'hidden' : 'flex'
-        }`}>
+        {/* Desktop Sidebar - Always visible on desktop */}
+        {!isMobile && (
+          <div className="hidden md:flex md:w-96 lg:w-[420px] flex-col bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 overflow-hidden">
+            {/* Sidebar Header */}
+            <div className="p-4 border-b border-gray-100 dark:border-gray-800">
+              <div className="flex items-center justify-between">
+                <h2 className="text-lg font-bold text-black dark:text-white">
+                  {operators?.length || 0} Operators
+                </h2>
+                <div className="flex items-center gap-2 text-sm text-gray-500">
+                  {userLat && userLon && (
+                    <span className="flex items-center gap-1">
+                      <Target className="w-4 h-4" />
+                      {proximityRadius}km
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+            
+            {/* Operator List */}
+            <div className="flex-1 overflow-y-auto">
+              {operators?.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 px-4">
+                  <MapPin className="w-12 h-12 text-gray-300 dark:text-gray-600 mb-4" />
+                  <p className="text-gray-500 dark:text-gray-400 text-center mb-2">No operators found</p>
+                  <p className="text-xs text-gray-400 text-center mb-4">Try adjusting your filters or expanding the search radius</p>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => {
+                      setSelectedService("");
+                      setProximityRadius(100);
+                    }}
+                  >
+                    Expand Search
+                  </Button>
+                </div>
+              ) : (
+                <div className="divide-y divide-gray-100 dark:divide-gray-800">
+                  {operators?.map((operatorCard) => (
+                    <div 
+                      key={operatorCard.cardId}
+                      className={`p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors ${
+                        selectedOperator?.cardId === operatorCard.cardId 
+                          ? 'bg-teal-50 dark:bg-teal-900/20 border-l-4 border-l-teal-500' 
+                          : ''
+                      }`}
+                      onClick={() => {
+                        setSelectedOperator(operatorCard);
+                        panToOperator(operatorCard);
+                      }}
+                      data-testid={`desktop-operator-${operatorCard.cardId}`}
+                    >
+                      <div className="flex items-start gap-3">
+                        {/* Avatar with online indicator */}
+                        <div className="relative flex-shrink-0">
+                          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-600 flex items-center justify-center overflow-hidden">
+                            {operatorCard.photo ? (
+                              <img src={operatorCard.photo} alt={operatorCard.name} className="w-full h-full object-cover" />
+                            ) : (
+                              <span className="text-lg font-bold text-gray-600 dark:text-gray-300">{operatorCard.name.charAt(0)}</span>
+                            )}
+                          </div>
+                          {operatorCard.isOnline === 1 && (
+                            <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-green-500 rounded-full border-2 border-white dark:border-gray-900"></div>
+                          )}
+                        </div>
+                        
+                        {/* Info */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <h4 className="font-semibold text-black dark:text-white truncate">{operatorCard.name}</h4>
+                            {isFavorite(operatorCard.operatorId) && (
+                              <Heart className="w-3.5 h-3.5 fill-red-500 text-red-500 flex-shrink-0" />
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+                            <div className="flex items-center gap-1">
+                              <Star className="w-3.5 h-3.5 fill-yellow-400 text-yellow-400" />
+                              <span>{operatorCard.rating}</span>
+                            </div>
+                            <span className="text-gray-300">|</span>
+                            <span>{operatorCard.totalJobs} jobs</span>
+                            {userLat && userLon && (
+                              <>
+                                <span className="text-gray-300">|</span>
+                                <span className="text-teal-600 dark:text-teal-400 font-medium">
+                                  {calculateDistance(userLat, userLon, parseFloat(operatorCard.latitude), parseFloat(operatorCard.longitude)).toFixed(1)} km
+                                </span>
+                              </>
+                            )}
+                          </div>
+                          {/* Services */}
+                          <div className="flex flex-wrap gap-1 mt-2">
+                            {operatorCard.services?.slice(0, 3).map((service: any, idx: number) => {
+                              const serviceName = typeof service === 'string' ? service : service?.name || 'Service';
+                              return (
+                                <span key={idx} className="text-xs px-2 py-0.5 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-full">
+                                  {serviceName}
+                                </span>
+                              );
+                            })}
+                          </div>
+                        </div>
+                        
+                        {/* Action */}
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          className="flex-shrink-0"
+                          onClick={(e) => handleRequestService(operatorCard, e)}
+                          data-testid={`button-request-${operatorCard.cardId}`}
+                        >
+                          Request
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Map View - Always visible */}
+        <div className="flex-1 relative bg-gray-100 dark:bg-gray-900">
           <div ref={mapContainerRef} className="absolute inset-0" />
           {!mapLoaded && (
             <div className="absolute inset-0 flex items-center justify-center bg-gray-100 dark:bg-gray-900">

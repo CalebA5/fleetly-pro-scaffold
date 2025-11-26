@@ -20,6 +20,7 @@ interface LocationContextType {
   permissionStatus: "prompt" | "granted" | "denied" | "unavailable" | null;
   requestLocation: () => Promise<void>;
   refreshLocation: () => Promise<LocationRefreshResult>;
+  clearLocation: () => void;
   markPrompted: () => void;
   markPermission: (granted: boolean) => void;
   cityState: string | null;
@@ -347,6 +348,17 @@ export function LocationProvider({ children }: { children: ReactNode }) {
     localStorage.setItem(LOCATION_STORAGE_KEYS.GRANTED, granted ? 'true' : 'false');
   };
 
+  // Clear saved location data
+  const clearLocation = () => {
+    setLocation(null);
+    setFormattedAddressState(null);
+    setCityState(null);
+    setLocationError(null);
+    localStorage.removeItem(LOCATION_STORAGE_KEYS.LOCATION);
+    localStorage.removeItem(LOCATION_STORAGE_KEYS.FORMATTED_ADDRESS);
+    localStorage.removeItem(LOCATION_STORAGE_KEYS.CITY_STATE);
+  };
+
   return (
     <LocationContext.Provider 
       value={{ 
@@ -355,6 +367,7 @@ export function LocationProvider({ children }: { children: ReactNode }) {
         permissionStatus, 
         requestLocation,
         refreshLocation,
+        clearLocation,
         markPrompted,
         markPermission,
         cityState,

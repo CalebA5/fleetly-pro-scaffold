@@ -459,48 +459,55 @@ const Index = () => {
             <div className="relative">
               <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-6 md:p-8 shadow-lg border border-gray-200 dark:border-gray-700">
                 <h3 className="text-xl md:text-2xl font-bold text-black dark:text-white mb-6">
-                  {proximityOperators.length > 0 ? "Operators Near You" : "Our Services"}
+                  {selectedServices.length > 0 && proximityOperators.length > 0 ? "Available Operators" : "Our Services"}
                 </h3>
                 <div className="space-y-3">
-                  {proximityOperators.length > 0 ? (
+                  {selectedServices.length > 0 && proximityOperators.length > 0 ? (
                     <>
-                      {proximityOperators.map((operator) => (
+                      {proximityOperators.map((operator, index) => (
                         <div 
                           key={operator.cardId}
                           onClick={() => setLocation(`/customer/operators?lat=${currentLat}&lon=${currentLon}&operator=${operator.operatorId}`)}
-                          className="group flex items-center justify-between p-4 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-black dark:hover:border-white transition-all cursor-pointer" 
+                          className="group flex items-center justify-between p-4 bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-gray-400 dark:hover:border-gray-500 hover:shadow-md transition-all cursor-pointer" 
                           data-testid={`card-operator-${operator.operatorId}`}
                         >
-                          <div className="flex items-center gap-3">
-                            {operator.photo ? (
-                              <img 
-                                src={operator.photo} 
-                                alt={operator.name}
-                                className="w-12 h-12 rounded-full object-cover ring-2 ring-orange-200 dark:ring-orange-800"
-                              />
-                            ) : (
-                              <div className="w-12 h-12 bg-black dark:bg-white rounded-full flex items-center justify-center transition-all duration-300 group-hover:scale-110 group-hover:shadow-lg">
-                                <Truck className="w-6 h-6 text-white dark:text-black" />
+                          <div className="flex items-center gap-4">
+                            {/* Mysterious operator icon with online indicator */}
+                            <div className="relative">
+                              <div className="w-12 h-12 bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-600 rounded-full flex items-center justify-center shadow-inner">
+                                <Truck className="w-5 h-5 text-gray-500 dark:text-gray-400" />
                               </div>
-                            )}
+                              {/* Green online indicator */}
+                              <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-green-500 rounded-full border-2 border-white dark:border-gray-900 shadow-sm">
+                                <span className="absolute inset-0 rounded-full bg-green-400 animate-ping opacity-75"></span>
+                              </div>
+                            </div>
                             <div>
-                              <p className="font-semibold text-black dark:text-white">{operator.name}</p>
-                              <div className="flex items-center gap-2 text-sm text-gray-500">
-                                <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
+                              <p className="font-medium text-black dark:text-white">Operator #{index + 1}</p>
+                              <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+                                <Star className="w-3.5 h-3.5 fill-yellow-400 text-yellow-400" />
                                 <span>{operator.rating}</span>
-                                <span>•</span>
-                                <span>{operator.distance?.toFixed(1)} km</span>
+                                <span className="text-gray-300 dark:text-gray-600">•</span>
+                                <span>{operator.distance?.toFixed(1)} km away</span>
                               </div>
                             </div>
                           </div>
-                          <div className="text-right">
-                            <p className="font-bold text-black dark:text-white">{operator.hourlyRate}/hr</p>
-                            <Badge className="bg-green-500 text-white text-xs">Online</Badge>
-                          </div>
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            className="border-gray-300 dark:border-gray-600 hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black transition-all"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setLocation(`/customer/operators?lat=${currentLat}&lon=${currentLon}&operator=${operator.operatorId}`);
+                            }}
+                            data-testid={`button-see-prices-${operator.operatorId}`}
+                          >
+                            See Prices
+                          </Button>
                         </div>
                       ))}
-                      <p className="text-sm text-gray-500 dark:text-gray-400 mt-4 text-center">
-                        Click any operator to view details
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-4 text-center">
+                        Select operators to compare quotes
                       </p>
                     </>
                   ) : (
