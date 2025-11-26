@@ -57,9 +57,11 @@ export const OperatorMap = () => {
   
   // Mobile bottom sheet state (for half-map/half-list design)
   const [sheetPosition, setSheetPosition] = useState<'collapsed' | 'half' | 'full'>('half');
+  const [dragOffset, setDragOffset] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
   const sheetRef = useRef<HTMLDivElement>(null);
   const dragStartY = useRef<number>(0);
-  const currentTranslateY = useRef<number>(0);
+  const sheetStartHeight = useRef<number>(0);
   const [isMobile, setIsMobile] = useState(false);
 
   // Detect mobile viewport
@@ -70,43 +72,71 @@ export const OperatorMap = () => {
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
+  // Get base height in pixels for each position
+  const getBaseHeight = useCallback(() => {
+    const vh = window.innerHeight;
+    switch (sheetPosition) {
+      case 'collapsed': return 80; // 80px
+      case 'half': return vh * 0.5; // 50vh
+      case 'full': return vh * 0.85; // 85vh
+      default: return vh * 0.5;
+    }
+  }, [sheetPosition]);
+
   // Sheet touch handlers for mobile dragging
   const handleSheetTouchStart = useCallback((e: React.TouchEvent) => {
     dragStartY.current = e.touches[0].clientY;
-    currentTranslateY.current = 0;
-  }, []);
+    sheetStartHeight.current = getBaseHeight();
+    setIsDragging(true);
+    setDragOffset(0);
+  }, [getBaseHeight]);
 
   const handleSheetTouchMove = useCallback((e: React.TouchEvent) => {
+    if (!isDragging) return;
     const currentY = e.touches[0].clientY;
-    const diff = dragStartY.current - currentY;
-    currentTranslateY.current = diff;
-  }, []);
+    const diff = dragStartY.current - currentY; // Positive = dragged up
+    setDragOffset(diff);
+  }, [isDragging]);
 
   const handleSheetTouchEnd = useCallback(() => {
-    const threshold = 50;
+    setIsDragging(false);
+    const vh = window.innerHeight;
+    const finalHeight = sheetStartHeight.current + dragOffset;
     
-    if (currentTranslateY.current > threshold) {
-      // Dragged up - expand
-      if (sheetPosition === 'collapsed') setSheetPosition('half');
-      else if (sheetPosition === 'half') setSheetPosition('full');
-    } else if (currentTranslateY.current < -threshold) {
-      // Dragged down - collapse
-      if (sheetPosition === 'full') setSheetPosition('half');
-      else if (sheetPosition === 'half') setSheetPosition('collapsed');
+    // Determine target position based on final height
+    // Heights: collapsed=80px, half=50vh, full=85vh
+    const collapsedH = 80;
+    const halfH = vh * 0.5;
+    const fullH = vh * 0.85;
+    
+    // Find the closest snap point
+    const distToCollapsed = Math.abs(finalHeight - collapsedH);
+    const distToHalf = Math.abs(finalHeight - halfH);
+    const distToFull = Math.abs(finalHeight - fullH);
+    
+    const minDist = Math.min(distToCollapsed, distToHalf, distToFull);
+    
+    if (minDist === distToCollapsed) {
+      setSheetPosition('collapsed');
+    } else if (minDist === distToFull) {
+      setSheetPosition('full');
+    } else {
+      setSheetPosition('half');
     }
     
-    currentTranslateY.current = 0;
-  }, [sheetPosition]);
+    setDragOffset(0);
+  }, [dragOffset]);
 
-  // Get sheet height based on position
-  const getSheetHeight = () => {
-    switch (sheetPosition) {
-      case 'collapsed': return 'h-20';
-      case 'half': return 'h-[50vh]';
-      case 'full': return 'h-[85vh]';
-      default: return 'h-[50vh]';
-    }
-  };
+  // Get sheet height with drag offset
+  const getSheetStyle = useCallback(() => {
+    const baseHeight = getBaseHeight();
+    const currentHeight = isDragging ? Math.max(80, Math.min(window.innerHeight * 0.9, baseHeight + dragOffset)) : baseHeight;
+    return {
+      height: `${currentHeight}px`,
+      transition: isDragging ? 'none' : 'height 0.3s ease-out',
+      touchAction: 'none'
+    };
+  }, [getBaseHeight, isDragging, dragOffset]);
   
   // Get location from context (persisted user location)
   const { location: contextLocation, formattedAddress: contextAddress } = useUserLocation();
@@ -966,8 +996,8 @@ export const OperatorMap = () => {
         {isMobile && (
           <div 
             ref={sheetRef}
-            className={`absolute bottom-16 left-0 right-0 bg-white dark:bg-gray-900 rounded-t-3xl shadow-2xl border-t border-gray-200 dark:border-gray-700 transition-all duration-300 ease-out z-20 ${getSheetHeight()}`}
-            style={{ touchAction: 'none' }}
+            className="absolute bottom-16 left-0 right-0 bg-white dark:bg-gray-900 rounded-t-3xl shadow-2xl border-t border-gray-200 dark:border-gray-700 z-20"
+            style={getSheetStyle()}
           >
             {/* Drag Handle */}
             <div 
@@ -997,7 +1027,10 @@ export const OperatorMap = () => {
             </div>
 
             {/* Mobile Sheet Content - Scrollable operator list */}
-            <div className={`overflow-y-auto px-4 ${sheetPosition === 'collapsed' ? 'hidden' : ''}`} style={{ height: 'calc(100% - 60px)' }}>
+            <div 
+              className={`overflow-y-auto px-4 ${sheetPosition === 'collapsed' && !isDragging ? 'hidden' : ''}`} 
+              style={{ height: 'calc(100% - 60px)', opacity: sheetPosition === 'collapsed' && !isDragging ? 0 : 1 }}
+            >
               {/* Quick filters as horizontal scroll chips */}
               <div className="flex gap-2 overflow-x-auto pb-3 mb-3 scrollbar-hide">
                 <button
