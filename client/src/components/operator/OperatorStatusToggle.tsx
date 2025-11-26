@@ -12,6 +12,7 @@ interface OperatorStatusToggleProps {
 }
 
 // Core pill-shaped toggle switch component
+// Designed to match the online/offline badge styling on operator cards
 function PillToggle({
   isOnline,
   onToggle,
@@ -19,21 +20,23 @@ function PillToggle({
   size = "md",
   className,
 }: Omit<OperatorStatusToggleProps, "variant" | "label">) {
+  // Reduced vertical height to match badge proportions
+  // Track shape matches the rounded-full pill of online/offline badges
   const sizeClasses = {
     sm: {
-      track: "w-12 h-6",
-      knob: "w-5 h-5",
-      translate: "translate-x-6",
+      track: "w-11 h-5",
+      knob: "w-4 h-4",
+      translate: "translate-x-[22px]",
     },
     md: {
-      track: "w-16 h-8",
-      knob: "w-7 h-7",
-      translate: "translate-x-8",
+      track: "w-14 h-6",
+      knob: "w-5 h-5",
+      translate: "translate-x-[30px]",
     },
     lg: {
-      track: "w-20 h-10",
-      knob: "w-9 h-9",
-      translate: "translate-x-10",
+      track: "w-16 h-7",
+      knob: "w-6 h-6",
+      translate: "translate-x-[34px]",
     },
   };
 
@@ -45,10 +48,10 @@ function PillToggle({
       disabled={isPending}
       className={cn(
         "relative inline-flex items-center rounded-full transition-all duration-300 ease-in-out",
-        "focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500",
+        "focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500",
         sizes.track,
         isOnline
-          ? "bg-emerald-500 hover:bg-emerald-600"
+          ? "bg-teal-500 hover:bg-teal-600"
           : "bg-gray-300 dark:bg-gray-600 hover:bg-gray-400 dark:hover:bg-gray-500",
         isPending && "opacity-50 cursor-not-allowed",
         className
@@ -60,10 +63,10 @@ function PillToggle({
     >
       <span
         className={cn(
-          "inline-block transform rounded-full bg-white shadow-lg transition-transform duration-300 ease-in-out",
+          "absolute top-0.5 left-0.5 transform rounded-full bg-white shadow-md transition-transform duration-300 ease-in-out",
           "flex items-center justify-center",
           sizes.knob,
-          isOnline ? sizes.translate : "translate-x-0.5"
+          isOnline ? sizes.translate : "translate-x-0"
         )}
       >
         {isPending && <Loader2 className="w-3 h-3 text-gray-600 animate-spin" />}

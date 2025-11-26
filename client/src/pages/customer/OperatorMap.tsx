@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Link, useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/enhanced-button";
@@ -12,7 +12,7 @@ import { MobileBottomNav } from "@/components/MobileBottomNav";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, MapPin, Star, Truck, Filter, Heart, ChevronLeft, ChevronRight, List, Map as MapIcon, Target } from "lucide-react";
+import { ArrowLeft, MapPin, Star, Truck, Filter, Heart, ChevronLeft, ChevronRight, List, Map as MapIcon, Target, GripHorizontal, ChevronUp, ChevronDown } from "lucide-react";
 import type { Operator, InsertServiceRequest, Favorite } from "@shared/schema";
 import { OPERATOR_TIER_INFO } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -54,6 +54,59 @@ export const OperatorMap = () => {
   const [mapLoaded, setMapLoaded] = useState(false);
   const [isSidebarMinimized, setIsSidebarMinimized] = useState(false);
   const [viewMode, setViewMode] = useState<'map' | 'list'>('map');
+  
+  // Mobile bottom sheet state (for half-map/half-list design)
+  const [sheetPosition, setSheetPosition] = useState<'collapsed' | 'half' | 'full'>('half');
+  const sheetRef = useRef<HTMLDivElement>(null);
+  const dragStartY = useRef<number>(0);
+  const currentTranslateY = useRef<number>(0);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Detect mobile viewport
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  // Sheet touch handlers for mobile dragging
+  const handleSheetTouchStart = useCallback((e: React.TouchEvent) => {
+    dragStartY.current = e.touches[0].clientY;
+    currentTranslateY.current = 0;
+  }, []);
+
+  const handleSheetTouchMove = useCallback((e: React.TouchEvent) => {
+    const currentY = e.touches[0].clientY;
+    const diff = dragStartY.current - currentY;
+    currentTranslateY.current = diff;
+  }, []);
+
+  const handleSheetTouchEnd = useCallback(() => {
+    const threshold = 50;
+    
+    if (currentTranslateY.current > threshold) {
+      // Dragged up - expand
+      if (sheetPosition === 'collapsed') setSheetPosition('half');
+      else if (sheetPosition === 'half') setSheetPosition('full');
+    } else if (currentTranslateY.current < -threshold) {
+      // Dragged down - collapse
+      if (sheetPosition === 'full') setSheetPosition('half');
+      else if (sheetPosition === 'half') setSheetPosition('collapsed');
+    }
+    
+    currentTranslateY.current = 0;
+  }, [sheetPosition]);
+
+  // Get sheet height based on position
+  const getSheetHeight = () => {
+    switch (sheetPosition) {
+      case 'collapsed': return 'h-20';
+      case 'half': return 'h-[50vh]';
+      case 'full': return 'h-[85vh]';
+      default: return 'h-[50vh]';
+    }
+  };
   
   // Get location from context (persisted user location)
   const { location: contextLocation, formattedAddress: contextAddress } = useUserLocation();
@@ -837,8 +890,8 @@ export const OperatorMap = () => {
           </Select>
         </div>
         
-        {/* View Toggle Tabs */}
-        <div className="flex gap-1 p-1 bg-gray-100 dark:bg-gray-800 rounded-lg">
+        {/* View Toggle Tabs - Hidden on mobile (mobile has sliding sheet) */}
+        <div className="hidden md:flex gap-1 p-1 bg-gray-100 dark:bg-gray-800 rounded-lg">
           <button
             onClick={() => setViewMode('list')}
             className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-md text-sm font-medium transition-all ${
@@ -893,10 +946,10 @@ export const OperatorMap = () => {
       </div>
 
       {/* Map and List Content */}
-      <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
-        {/* Map View */}
+      <div className="flex-1 flex flex-col md:flex-row overflow-hidden relative">
+        {/* Map View - Always visible on mobile, toggle on desktop */}
         <div className={`flex-1 relative bg-gray-100 dark:bg-gray-900 ${
-          viewMode === 'list' ? 'hidden' : 'flex'
+          !isMobile && viewMode === 'list' ? 'hidden' : 'flex'
         }`}>
           <div ref={mapContainerRef} className="absolute inset-0" />
           {!mapLoaded && (
@@ -909,9 +962,202 @@ export const OperatorMap = () => {
           )}
         </div>
 
-        {/* List View - Full-width mobile scrollable list like Facebook */}
+        {/* Mobile Bottom Sheet - Sliding panel over map */}
+        {isMobile && (
+          <div 
+            ref={sheetRef}
+            className={`absolute bottom-16 left-0 right-0 bg-white dark:bg-gray-900 rounded-t-3xl shadow-2xl border-t border-gray-200 dark:border-gray-700 transition-all duration-300 ease-out z-20 ${getSheetHeight()}`}
+            style={{ touchAction: 'none' }}
+          >
+            {/* Drag Handle */}
+            <div 
+              className="flex flex-col items-center pt-3 pb-2 cursor-grab active:cursor-grabbing"
+              onTouchStart={handleSheetTouchStart}
+              onTouchMove={handleSheetTouchMove}
+              onTouchEnd={handleSheetTouchEnd}
+            >
+              <div className="w-12 h-1.5 bg-gray-300 dark:bg-gray-600 rounded-full" />
+              <div className="flex items-center gap-2 mt-2 text-xs text-gray-500">
+                {sheetPosition === 'collapsed' && (
+                  <>
+                    <ChevronUp className="w-4 h-4" />
+                    <span>Swipe up for operators</span>
+                  </>
+                )}
+                {sheetPosition === 'half' && (
+                  <span>{operators?.length || 0} operators nearby</span>
+                )}
+                {sheetPosition === 'full' && (
+                  <>
+                    <ChevronDown className="w-4 h-4" />
+                    <span>Swipe down to see map</span>
+                  </>
+                )}
+              </div>
+            </div>
+
+            {/* Mobile Sheet Content - Scrollable operator list */}
+            <div className={`overflow-y-auto px-4 ${sheetPosition === 'collapsed' ? 'hidden' : ''}`} style={{ height: 'calc(100% - 60px)' }}>
+              {/* Quick filters as horizontal scroll chips */}
+              <div className="flex gap-2 overflow-x-auto pb-3 mb-3 scrollbar-hide">
+                <button
+                  onClick={() => setSelectedService('')}
+                  className={`flex-shrink-0 px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                    !selectedService ? 'bg-black text-white dark:bg-white dark:text-black' : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300'
+                  }`}
+                  data-testid="filter-chip-all"
+                >
+                  All
+                </button>
+                {services.slice(1).map(service => (
+                  <button
+                    key={service}
+                    onClick={() => setSelectedService(service)}
+                    className={`flex-shrink-0 px-3 py-1.5 rounded-full text-sm font-medium transition-colors whitespace-nowrap ${
+                      selectedService === service ? 'bg-black text-white dark:bg-white dark:text-black' : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300'
+                    }`}
+                    data-testid={`filter-chip-${service.toLowerCase().replace(/\s+/g, '-')}`}
+                  >
+                    {service}
+                  </button>
+                ))}
+              </div>
+
+              {/* Operator Cards - Mobile optimized */}
+              <div className="space-y-3 pb-4">
+                {operators?.length === 0 ? (
+                  <div className="text-center py-8">
+                    <MapPin className="w-12 h-12 mx-auto mb-3 text-gray-300 dark:text-gray-600" />
+                    <p className="text-gray-500 dark:text-gray-400">No operators found nearby</p>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="mt-3"
+                      onClick={() => {
+                        setSelectedService('');
+                        setProximityRadius(100);
+                      }}
+                    >
+                      Expand search
+                    </Button>
+                  </div>
+                ) : (
+                  operators?.map((operatorCard) => (
+                    <div
+                      key={operatorCard.cardId}
+                      className={`bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden shadow-sm ${
+                        selectedOperator?.cardId === operatorCard.cardId ? 'ring-2 ring-teal-500' : ''
+                      }`}
+                      onClick={() => {
+                        setSelectedOperator(operatorCard);
+                        setSheetPosition('collapsed');
+                        setTimeout(() => panToOperator(operatorCard), 100);
+                      }}
+                      data-testid={`mobile-operator-card-${operatorCard.cardId}`}
+                    >
+                      <div className="flex gap-3 p-3">
+                        {/* Operator Photo */}
+                        <div className="flex-shrink-0 w-16 h-16 rounded-xl bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-600 overflow-hidden">
+                          {operatorCard.photo ? (
+                            <img src={operatorCard.photo} alt={operatorCard.name} className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center">
+                              <span className="text-2xl font-bold text-gray-500 dark:text-gray-400">{operatorCard.name.charAt(0)}</span>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Operator Info */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-start justify-between">
+                            <div>
+                              <div className="flex items-center gap-1.5">
+                                <h4 className="font-semibold text-black dark:text-white truncate">{operatorCard.name}</h4>
+                                {isFavorite(operatorCard.operatorId) && (
+                                  <Heart className="w-3.5 h-3.5 fill-red-500 text-red-500 flex-shrink-0" />
+                                )}
+                              </div>
+                              {/* Services */}
+                              <div className="flex flex-wrap gap-1 mt-1">
+                                {operatorCard.services?.slice(0, 2).map((service: any, idx: number) => {
+                                  const serviceName = typeof service === 'string' ? service : service?.name || 'Service';
+                                  return (
+                                    <span key={idx} className="text-xs px-1.5 py-0.5 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded">
+                                      {serviceName}
+                                    </span>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                            {/* Map icon to view on map */}
+                            <button 
+                              className="p-2 rounded-full bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSheetPosition('collapsed');
+                                setTimeout(() => panToOperator(operatorCard), 100);
+                              }}
+                              data-testid={`button-map-pin-${operatorCard.cardId}`}
+                            >
+                              <MapIcon className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                            </button>
+                          </div>
+
+                          {/* Rating, jobs, distance row */}
+                          <div className="flex items-center gap-3 mt-2 text-sm">
+                            <div className="flex items-center gap-1 text-gray-600 dark:text-gray-400">
+                              <Star className="w-3.5 h-3.5 fill-yellow-400 text-yellow-400" />
+                              <span className="font-medium">{operatorCard.rating}</span>
+                            </div>
+                            <span className="text-gray-300 dark:text-gray-600">|</span>
+                            <span className="text-gray-500 dark:text-gray-400">{operatorCard.totalJobs} jobs</span>
+                            {userLat && userLon && (
+                              <>
+                                <span className="text-gray-300 dark:text-gray-600">|</span>
+                                <span className="text-teal-600 dark:text-teal-400 font-medium">
+                                  {calculateDistance(userLat, userLon, parseFloat(operatorCard.latitude), parseFloat(operatorCard.longitude)).toFixed(1)} km
+                                </span>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Action buttons */}
+                      <div className="flex border-t border-gray-100 dark:border-gray-700">
+                        <button
+                          className="flex-1 py-2.5 text-xs font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50 flex items-center justify-center gap-1.5"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (isFavorite(operatorCard.operatorId)) {
+                              removeFavoriteMutation.mutate(operatorCard.operatorId);
+                            } else {
+                              addFavoriteMutation.mutate(operatorCard.operatorId);
+                            }
+                          }}
+                        >
+                          <Heart className={`w-4 h-4 ${isFavorite(operatorCard.operatorId) ? 'fill-red-500 text-red-500' : ''}`} />
+                          {isFavorite(operatorCard.operatorId) ? 'Saved' : 'Save'}
+                        </button>
+                        <button
+                          className="flex-1 py-2.5 text-xs font-medium text-teal-600 dark:text-teal-400 hover:bg-teal-50 dark:hover:bg-teal-900/20 flex items-center justify-center gap-1.5 border-l border-gray-100 dark:border-gray-700"
+                          onClick={(e) => handleRequestService(operatorCard, e)}
+                        >
+                          <Truck className="w-4 h-4" />
+                          Request
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Desktop List View - Full-width scrollable list (hidden on mobile) */}
         <div className={`flex-1 overflow-y-auto bg-gray-50 dark:bg-gray-900 ${
-          viewMode === 'list' ? 'flex flex-col' : 'hidden'
+          !isMobile && viewMode === 'list' ? 'flex flex-col' : 'hidden'
         }`}>
           {/* Favorites Horizontal Scroll Section */}
           {favorites.length > 0 && allOperators && (() => {

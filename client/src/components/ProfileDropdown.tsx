@@ -1,4 +1,4 @@
-import { User, LogOut, HelpCircle, FileText, Truck, List, Palette, Check, Settings, Wallet, CreditCard, Shield, LayoutDashboard, Home, Briefcase, Star, MapPin } from "lucide-react";
+import { User, LogOut, HelpCircle, FileText, Truck, List, Palette, Settings, Wallet, CreditCard, Shield, LayoutDashboard, Home, Briefcase, Star, MapPin } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import {
   DropdownMenu,
@@ -7,9 +7,6 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-  DropdownMenuSub,
-  DropdownMenuSubTrigger,
-  DropdownMenuSubContent,
   DropdownMenuGroup,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
@@ -232,56 +229,56 @@ export const ProfileDropdown = ({
         
         <DropdownMenuSeparator />
         
-        <DropdownMenuSub>
-          <DropdownMenuSubTrigger data-testid="menu-theme">
-            <Palette className="mr-2 h-4 w-4" />
-            <span>Theme {currentSeasonEmoji} {currentModeLabel}</span>
-          </DropdownMenuSubTrigger>
-          <DropdownMenuSubContent 
-            className="w-56"
-            sideOffset={2}
-            alignOffset={0}
-            collisionPadding={16}
+        <DropdownMenuLabel className="flex items-center gap-2 text-xs text-muted-foreground">
+          <Palette className="h-3.5 w-3.5" />
+          Theme {currentSeasonEmoji} {currentModeLabel}
+        </DropdownMenuLabel>
+        <div className="grid grid-cols-2 gap-1 px-2 pb-2">
+          <button
+            onClick={() => setThemeMode('auto-seasonal')}
+            className={`flex items-center justify-center gap-1.5 rounded-md px-2 py-1.5 text-xs font-medium transition-colors ${
+              themeMode === 'auto-seasonal'
+                ? 'bg-primary text-primary-foreground'
+                : 'bg-muted hover:bg-muted/80 text-muted-foreground'
+            }`}
+            data-testid="theme-option-auto-seasonal"
           >
-            <DropdownMenuLabel className="text-xs text-muted-foreground">
-              Theme Settings
-            </DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem
-              onClick={() => setThemeMode('auto-seasonal')}
-              className="cursor-pointer"
-              data-testid="theme-option-auto-seasonal"
-            >
-              <span className="flex-1">{THEME_MODE_LABELS['auto-seasonal']}</span>
-              {themeMode === 'auto-seasonal' && <Check className="h-4 w-4 ml-2" />}
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() => setThemeMode('time-based')}
-              className="cursor-pointer"
-              data-testid="theme-option-time-based"
-            >
-              <span className="flex-1">{THEME_MODE_LABELS['time-based']}</span>
-              {themeMode === 'time-based' && <Check className="h-4 w-4 ml-2" />}
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem
-              onClick={() => setThemeMode('light')}
-              className="cursor-pointer"
-              data-testid="theme-option-light"
-            >
-              <span className="flex-1">{THEME_MODE_LABELS['light']}</span>
-              {themeMode === 'light' && <Check className="h-4 w-4 ml-2" />}
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() => setThemeMode('dark')}
-              className="cursor-pointer"
-              data-testid="theme-option-dark"
-            >
-              <span className="flex-1">{THEME_MODE_LABELS['dark']}</span>
-              {themeMode === 'dark' && <Check className="h-4 w-4 ml-2" />}
-            </DropdownMenuItem>
-          </DropdownMenuSubContent>
-        </DropdownMenuSub>
+            🍂 Auto
+          </button>
+          <button
+            onClick={() => setThemeMode('time-based')}
+            className={`flex items-center justify-center gap-1.5 rounded-md px-2 py-1.5 text-xs font-medium transition-colors ${
+              themeMode === 'time-based'
+                ? 'bg-primary text-primary-foreground'
+                : 'bg-muted hover:bg-muted/80 text-muted-foreground'
+            }`}
+            data-testid="theme-option-time-based"
+          >
+            🌍 Time
+          </button>
+          <button
+            onClick={() => setThemeMode('light')}
+            className={`flex items-center justify-center gap-1.5 rounded-md px-2 py-1.5 text-xs font-medium transition-colors ${
+              themeMode === 'light'
+                ? 'bg-primary text-primary-foreground'
+                : 'bg-muted hover:bg-muted/80 text-muted-foreground'
+            }`}
+            data-testid="theme-option-light"
+          >
+            ☀️ Light
+          </button>
+          <button
+            onClick={() => setThemeMode('dark')}
+            className={`flex items-center justify-center gap-1.5 rounded-md px-2 py-1.5 text-xs font-medium transition-colors ${
+              themeMode === 'dark'
+                ? 'bg-primary text-primary-foreground'
+                : 'bg-muted hover:bg-muted/80 text-muted-foreground'
+            }`}
+            data-testid="theme-option-dark"
+          >
+            🌙 Dark
+          </button>
+        </div>
         
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={handleSignOut} data-testid="menu-sign-out">

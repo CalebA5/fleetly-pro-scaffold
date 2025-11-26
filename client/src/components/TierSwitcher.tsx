@@ -463,37 +463,59 @@ export function TierSwitcher() {
         </DialogContent>
       </Dialog>
 
-      {/* Online Status Warning Dialog */}
+      {/* Online Status Warning Dialog - Matches TierOnlineConfirmDialog styling */}
       <Dialog open={showOnlineWarning} onOpenChange={setShowOnlineWarning}>
-        <DialogContent className="bg-white dark:bg-gray-900 max-w-md">
-          <DialogHeader>
-            <div className="flex items-center gap-3 mb-2">
-              <div className="p-2 rounded-full bg-amber-100 dark:bg-amber-900/30">
-                <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+        <DialogContent className="bg-white dark:bg-gray-900 max-w-md w-[calc(100%-2rem)] mx-auto">
+          <DialogHeader className="space-y-4">
+            <DialogTitle className="text-lg font-semibold text-center">
+              Switch Dashboard?
+            </DialogTitle>
+            
+            {onlineTier && pendingTierSwitch && (
+              <div className="flex items-center justify-center gap-3 py-4 px-2 bg-gray-50 dark:bg-gray-800 rounded-xl">
+                <div className="flex flex-col items-center gap-1 flex-1 min-w-0">
+                  <span className="text-2xl">{TIER_INFO[onlineTier].badge}</span>
+                  <span className={`text-xs font-medium ${TIER_INFO[onlineTier].color} text-center truncate w-full`}>
+                    {TIER_INFO[onlineTier].shortLabel}
+                  </span>
+                  <span className="text-[10px] px-2 py-0.5 bg-green-500 text-white rounded-full">
+                    Online
+                  </span>
+                </div>
+                
+                <span className="text-gray-400 flex-shrink-0">→</span>
+                
+                <div className="flex flex-col items-center gap-1 flex-1 min-w-0">
+                  <span className="text-2xl">{TIER_INFO[pendingTierSwitch].badge}</span>
+                  <span className={`text-xs font-medium ${TIER_INFO[pendingTierSwitch].color} text-center truncate w-full`}>
+                    {TIER_INFO[pendingTierSwitch].shortLabel}
+                  </span>
+                  <span className="text-[10px] px-2 py-0.5 bg-gray-400 text-white rounded-full">
+                    Offline
+                  </span>
+                </div>
               </div>
-              <DialogTitle className="text-lg">Switch Dashboard?</DialogTitle>
-            </div>
-            <DialogDescription className="text-gray-600 dark:text-gray-400">
-              You're currently online as <span className="font-semibold text-gray-900 dark:text-white">{onlineTier && TIER_INFO[onlineTier].label}</span>. 
-              Switching to <span className="font-semibold text-gray-900 dark:text-white">{pendingTierSwitch && TIER_INFO[pendingTierSwitch].label}</span> will 
-              take you offline from your current tier. You'll need to go online again on the new dashboard to receive jobs.
+            )}
+            
+            <DialogDescription className="text-center text-sm text-gray-600 dark:text-gray-400">
+              Switching dashboards will take you offline. You'll need to go online again on the new dashboard to receive jobs.
             </DialogDescription>
           </DialogHeader>
-          <DialogFooter className="flex gap-2 mt-4">
+          <DialogFooter className="flex-col sm:flex-row gap-2 mt-4">
             <Button
               variant="outline"
               onClick={cancelTierSwitch}
-              className="flex-1"
+              className="flex-1 order-2 sm:order-1"
               data-testid="button-cancel-tier-switch"
             >
-              Stay Online
+              Stay on {onlineTier ? TIER_INFO[onlineTier].shortLabel : 'Current'}
             </Button>
             <Button
               onClick={confirmTierSwitch}
-              className="flex-1 bg-amber-600 hover:bg-amber-700 text-white"
+              className="flex-1 order-1 sm:order-2 bg-teal-600 hover:bg-teal-700 text-white"
               data-testid="button-confirm-tier-switch"
             >
-              Switch Anyway
+              Switch to {pendingTierSwitch ? TIER_INFO[pendingTierSwitch].shortLabel : 'New'}
             </Button>
           </DialogFooter>
         </DialogContent>

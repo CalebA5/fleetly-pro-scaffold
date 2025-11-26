@@ -1,8 +1,10 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
+import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import { AuthDialog } from "@/components/AuthDialog";
 import { Header } from "@/components/Header";
 import { MobileBottomNav } from "@/components/MobileBottomNav";
@@ -10,11 +12,13 @@ import { WeatherAlertToast } from "@/components/WeatherAlertToast";
 import { EmergencySOSButton } from "@/components/EmergencySOSButton";
 import { AutocompleteLocation } from "@/components/AutocompleteLocation";
 import { LocationPermissionModal } from "@/components/LocationPermissionModal";
+import { ServiceSelector } from "@/components/ServiceSelector";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserLocation } from "@/contexts/LocationContext";
-import { MapPin, ArrowRight, Truck, Clock, Shield, Star, Search, Loader2, X } from "lucide-react";
+import { MapPin, ArrowRight, Truck, Clock, Shield, Star, Search, Loader2, X, Wrench } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import type { GeocodingResult } from "@/lib/geocoding";
+import { TIER_SERVICES } from "@shared/tierCapabilities";
 
 const Index = () => {
   const [, setLocation] = useLocation();
@@ -22,7 +26,7 @@ const Index = () => {
   const [authTab, setAuthTab] = useState<"signin" | "signup">("signin");
   const [signupRole, setSignupRole] = useState<"customer" | "operator">("customer");
   const [pickup, setPickup] = useState("");
-  const [dropoff, setDropoff] = useState("");
+  const [selectedServices, setSelectedServices] = useState<string[]>([]);
   const [showAvailability, setShowAvailability] = useState(false);
   const [loadingLocation, setLoadingLocation] = useState(false);
   const [currentLat, setCurrentLat] = useState<number | null>(null);
@@ -31,6 +35,73 @@ const Index = () => {
   const { isAuthenticated, user, isLoading: isAuthLoading } = useAuth();
   const { toast } = useToast();
   const { setFormattedAddress, formattedAddress, location, permissionStatus, refreshLocation } = useUserLocation();
+
+  // Fetch nearby operators when location is available
+  type NearbyOperator = {
+    cardId: string;
+    operatorId: string;
+    name: string;
+    photo: string | null;
+    rating: string;
+    totalJobs: number;
+    hourlyRate: string;
+    services: string[];
+    isOnline: number;
+    latitude: string;
+    longitude: string;
+  };
+
+  const { data: nearbyOperators = [] } = useQuery<NearbyOperator[]>({
+    queryKey: ['/api/operator-cards'],
+    enabled: !!(currentLat && currentLon),
+  });
+
+  // Calculate distance and filter nearby operators
+  const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
+    const R = 6371;
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+      Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+  };
+
+  // Get top 3 nearby online operators based on selected services
+  const getFilteredOperators = () => {
+    if (!currentLat || !currentLon || nearbyOperators.length === 0) return [];
+    
+    return nearbyOperators
+      .filter(op => {
+        // Only show online operators
+        if (op.isOnline !== 1) return false;
+        // If services selected, filter by service match
+        if (selectedServices.length > 0) {
+          const opServices = (op.services || []).map(s => 
+            typeof s === 'string' ? s.toLowerCase() : ''
+          );
+          return selectedServices.some(selectedId => {
+            const serviceName = TIER_SERVICES.find(s => s.id === selectedId)?.name.toLowerCase() || '';
+            return opServices.some(os => os.includes(serviceName) || serviceName.includes(os));
+          });
+        }
+        return true;
+      })
+      .map(op => ({
+        ...op,
+        distance: calculateDistance(
+          currentLat,
+          currentLon,
+          parseFloat(op.latitude),
+          parseFloat(op.longitude)
+        )
+      }))
+      .sort((a, b) => a.distance - b.distance)
+      .slice(0, 3);
+  };
+
+  const proximityOperators = getFilteredOperators();
 
   // Check if user should see location permission prompt
   useEffect(() => {
@@ -363,13 +434,11 @@ const Index = () => {
                   <div className="flex items-center gap-3">
                     <div className="w-3 h-3 rounded bg-black dark:bg-white flex-shrink-0"></div>
                     <div className="flex-1">
-                      <AutocompleteLocation
-                        value={dropoff}
-                        onChange={setDropoff}
-                        onSelectLocation={() => {}}
-                        placeholder="Enter dropoff location (optional)"
-                        testId="input-dropoff-location"
-                        icon={false}
+                      <ServiceSelector
+                        selectedServices={selectedServices}
+                        onServicesChange={setSelectedServices}
+                        placeholder="Select services you need"
+                        disabled={!pickup.trim()}
                       />
                     </div>
                   </div>
@@ -384,123 +453,95 @@ const Index = () => {
                   See available operators
                 </Button>
               </div>
-
-              {/* Quick Browse */}
-              <Button 
-                variant="outline" 
-                size="lg" 
-                onClick={handleBrowseOperators}
-                className="w-full border-2 border-black dark:border-white hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black transition-colors font-semibold"
-                data-testid="button-browse-all-operators"
-              >
-                Or browse all operators
-                <ArrowRight className="ml-2 w-5 h-5" />
-              </Button>
             </div>
 
-            {/* Availability Preview - Shows After Search */}
+            {/* Dynamic Operators or Services Section */}
             <div className="relative">
-              {showAvailability ? (
-                <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-6 md:p-8 shadow-lg border border-gray-200 dark:border-gray-700">
-                  <h3 className="text-xl md:text-2xl font-bold text-black dark:text-white mb-6">
-                    Available near you
-                  </h3>
-                  <div className="space-y-3">
-                    <div 
-                      onClick={() => handleRequestService("Snow Plowing")}
-                      className="group flex items-center justify-between p-4 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-black dark:hover:border-white transition-all cursor-pointer" 
-                      data-testid="card-service-snow"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 bg-black dark:bg-white rounded-full flex items-center justify-center transition-all duration-300 group-hover:scale-110 group-hover:rotate-6 group-hover:shadow-lg">
-                          <Truck className="w-6 h-6 text-white dark:text-black transition-transform duration-300" />
+              <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-6 md:p-8 shadow-lg border border-gray-200 dark:border-gray-700">
+                <h3 className="text-xl md:text-2xl font-bold text-black dark:text-white mb-6">
+                  {proximityOperators.length > 0 ? "Operators Near You" : "Our Services"}
+                </h3>
+                <div className="space-y-3">
+                  {proximityOperators.length > 0 ? (
+                    <>
+                      {proximityOperators.map((operator) => (
+                        <div 
+                          key={operator.cardId}
+                          onClick={() => setLocation(`/customer/operators?lat=${currentLat}&lon=${currentLon}&operator=${operator.operatorId}`)}
+                          className="group flex items-center justify-between p-4 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-black dark:hover:border-white transition-all cursor-pointer" 
+                          data-testid={`card-operator-${operator.operatorId}`}
+                        >
+                          <div className="flex items-center gap-3">
+                            {operator.photo ? (
+                              <img 
+                                src={operator.photo} 
+                                alt={operator.name}
+                                className="w-12 h-12 rounded-full object-cover ring-2 ring-orange-200 dark:ring-orange-800"
+                              />
+                            ) : (
+                              <div className="w-12 h-12 bg-black dark:bg-white rounded-full flex items-center justify-center transition-all duration-300 group-hover:scale-110 group-hover:shadow-lg">
+                                <Truck className="w-6 h-6 text-white dark:text-black" />
+                              </div>
+                            )}
+                            <div>
+                              <p className="font-semibold text-black dark:text-white">{operator.name}</p>
+                              <div className="flex items-center gap-2 text-sm text-gray-500">
+                                <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
+                                <span>{operator.rating}</span>
+                                <span>•</span>
+                                <span>{operator.distance?.toFixed(1)} km</span>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <p className="font-bold text-black dark:text-white">{operator.hourlyRate}/hr</p>
+                            <Badge className="bg-green-500 text-white text-xs">Online</Badge>
+                          </div>
                         </div>
-                        <div>
-                          <p className="font-semibold text-black dark:text-white">Snow Plowing</p>
-                          <p className="text-sm text-gray-500">5 min away</p>
+                      ))}
+                      <p className="text-sm text-gray-500 dark:text-gray-400 mt-4 text-center">
+                        Click any operator to view details
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <div className="group flex items-center justify-between p-4 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-gray-400 dark:hover:border-gray-500 transition-all">
+                        <div className="flex items-center gap-3">
+                          <div className="w-12 h-12 bg-black dark:bg-white rounded-full flex items-center justify-center transition-all duration-300 group-hover:scale-110 group-hover:rotate-6 group-hover:shadow-lg">
+                            <Truck className="w-6 h-6 text-white dark:text-black" />
+                          </div>
+                          <div>
+                            <p className="font-semibold text-black dark:text-white">Snow Plowing</p>
+                            <p className="text-sm text-gray-500">Professional clearing</p>
+                          </div>
                         </div>
                       </div>
-                      <p className="font-bold text-black dark:text-white">$95/hr</p>
-                    </div>
-                    <div 
-                      onClick={() => handleRequestService("Towing")}
-                      className="group flex items-center justify-between p-4 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-black dark:hover:border-white transition-all cursor-pointer" 
-                      data-testid="card-service-towing"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 bg-black dark:bg-white rounded-full flex items-center justify-center transition-all duration-300 group-hover:scale-110 group-hover:rotate-6 group-hover:shadow-lg">
-                          <Truck className="w-6 h-6 text-white dark:text-black transition-transform duration-300" />
-                        </div>
-                        <div>
-                          <p className="font-semibold text-black dark:text-white">Towing</p>
-                          <p className="text-sm text-gray-500">8 min away</p>
+                      <div className="group flex items-center justify-between p-4 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-gray-400 dark:hover:border-gray-500 transition-all">
+                        <div className="flex items-center gap-3">
+                          <div className="w-12 h-12 bg-black dark:bg-white rounded-full flex items-center justify-center transition-all duration-300 group-hover:scale-110 group-hover:rotate-6 group-hover:shadow-lg">
+                            <Wrench className="w-6 h-6 text-white dark:text-black" />
+                          </div>
+                          <div>
+                            <p className="font-semibold text-black dark:text-white">Handyman</p>
+                            <p className="text-sm text-gray-500">Home repairs & odd jobs</p>
+                          </div>
                         </div>
                       </div>
-                      <p className="font-bold text-black dark:text-white">$125/hr</p>
-                    </div>
-                    <div 
-                      onClick={() => handleRequestService("Hauling")}
-                      className="group flex items-center justify-between p-4 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-black dark:hover:border-white transition-all cursor-pointer" 
-                      data-testid="card-service-hauling"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 bg-black dark:bg-white rounded-full flex items-center justify-center transition-all duration-300 group-hover:scale-110 group-hover:rotate-6 group-hover:shadow-lg">
-                          <Truck className="w-6 h-6 text-white dark:text-black transition-transform duration-300" />
-                        </div>
-                        <div>
-                          <p className="font-semibold text-black dark:text-white">Hauling</p>
-                          <p className="text-sm text-gray-500">12 min away</p>
+                      <div className="group flex items-center justify-between p-4 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-gray-400 dark:hover:border-gray-500 transition-all">
+                        <div className="flex items-center gap-3">
+                          <div className="w-12 h-12 bg-black dark:bg-white rounded-full flex items-center justify-center transition-all duration-300 group-hover:scale-110 group-hover:rotate-6 group-hover:shadow-lg">
+                            <Truck className="w-6 h-6 text-white dark:text-black" />
+                          </div>
+                          <div>
+                            <p className="font-semibold text-black dark:text-white">Hauling</p>
+                            <p className="text-sm text-gray-500">Junk & debris removal</p>
+                          </div>
                         </div>
                       </div>
-                      <p className="font-bold text-black dark:text-white">$110/hr</p>
-                    </div>
-                  </div>
-                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-6 text-center">
-                    Click any service to continue
-                  </p>
+                    </>
+                  )}
                 </div>
-              ) : (
-                <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-6 md:p-8 shadow-lg border border-gray-200 dark:border-gray-700">
-                  <h3 className="text-xl md:text-2xl font-bold text-black dark:text-white mb-6">
-                    Our Services
-                  </h3>
-                  <div className="space-y-3">
-                    <div className="group flex items-center justify-between p-4 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-gray-400 dark:hover:border-gray-500 transition-all">
-                      <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 bg-black dark:bg-white rounded-full flex items-center justify-center transition-all duration-300 group-hover:scale-110 group-hover:rotate-6 group-hover:shadow-lg">
-                          <Truck className="w-6 h-6 text-white dark:text-black transition-transform duration-300" />
-                        </div>
-                        <div>
-                          <p className="font-semibold text-black dark:text-white">Snow Plowing</p>
-                          <p className="text-sm text-gray-500">Professional clearing</p>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="group flex items-center justify-between p-4 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-gray-400 dark:hover:border-gray-500 transition-all">
-                      <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 bg-black dark:bg-white rounded-full flex items-center justify-center transition-all duration-300 group-hover:scale-110 group-hover:rotate-6 group-hover:shadow-lg">
-                          <Truck className="w-6 h-6 text-white dark:text-black transition-transform duration-300" />
-                        </div>
-                        <div>
-                          <p className="font-semibold text-black dark:text-white">Towing</p>
-                          <p className="text-sm text-gray-500">Emergency & scheduled</p>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="group flex items-center justify-between p-4 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-gray-400 dark:hover:border-gray-500 transition-all">
-                      <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 bg-black dark:bg-white rounded-full flex items-center justify-center transition-all duration-300 group-hover:scale-110 group-hover:rotate-6 group-hover:shadow-lg">
-                          <Truck className="w-6 h-6 text-white dark:text-black transition-transform duration-300" />
-                        </div>
-                        <div>
-                          <p className="font-semibold text-black dark:text-white">Hauling</p>
-                          <p className="text-sm text-gray-500">Junk & debris removal</p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
+              </div>
             </div>
           </div>
         </div>
