@@ -54,46 +54,46 @@ function formatMetricValue(value: number | string, format?: string): string {
   }
 }
 
-const metricColors: Record<string, { bg: string; icon: string; gradient: string }> = {
+const metricColors: Record<string, { accent: string; border: string; text: string }> = {
   dailyEarnings: { 
-    bg: "bg-emerald-500/10 dark:bg-emerald-500/20", 
-    icon: "text-emerald-600 dark:text-emerald-400",
-    gradient: "from-emerald-50 to-emerald-100/50 dark:from-emerald-950/30 dark:to-emerald-900/20"
+    accent: "bg-emerald-500", 
+    border: "border-emerald-100 dark:border-emerald-900/50",
+    text: "text-emerald-600 dark:text-emerald-400"
   },
   jobsNearby: { 
-    bg: "bg-blue-500/10 dark:bg-blue-500/20", 
-    icon: "text-blue-600 dark:text-blue-400",
-    gradient: "from-blue-50 to-blue-100/50 dark:from-blue-950/30 dark:to-blue-900/20"
+    accent: "bg-blue-500", 
+    border: "border-blue-100 dark:border-blue-900/50",
+    text: "text-blue-600 dark:text-blue-400"
   },
   completedToday: { 
-    bg: "bg-purple-500/10 dark:bg-purple-500/20", 
-    icon: "text-purple-600 dark:text-purple-400",
-    gradient: "from-purple-50 to-purple-100/50 dark:from-purple-950/30 dark:to-purple-900/20"
+    accent: "bg-purple-500", 
+    border: "border-purple-100 dark:border-purple-900/50",
+    text: "text-purple-600 dark:text-purple-400"
   },
   rating: { 
-    bg: "bg-amber-500/10 dark:bg-amber-500/20", 
-    icon: "text-amber-600 dark:text-amber-400",
-    gradient: "from-amber-50 to-amber-100/50 dark:from-amber-950/30 dark:to-amber-900/20"
+    accent: "bg-amber-500", 
+    border: "border-amber-100 dark:border-amber-900/50",
+    text: "text-amber-600 dark:text-amber-400"
   },
   equipmentStatus: { 
-    bg: "bg-slate-500/10 dark:bg-slate-500/20", 
-    icon: "text-slate-600 dark:text-slate-400",
-    gradient: "from-slate-50 to-slate-100/50 dark:from-slate-950/30 dark:to-slate-900/20"
+    accent: "bg-slate-500", 
+    border: "border-slate-100 dark:border-slate-900/50",
+    text: "text-slate-600 dark:text-slate-400"
   },
   activeOperators: { 
-    bg: "bg-cyan-500/10 dark:bg-cyan-500/20", 
-    icon: "text-cyan-600 dark:text-cyan-400",
-    gradient: "from-cyan-50 to-cyan-100/50 dark:from-cyan-950/30 dark:to-cyan-900/20"
+    accent: "bg-cyan-500", 
+    border: "border-cyan-100 dark:border-cyan-900/50",
+    text: "text-cyan-600 dark:text-cyan-400"
   },
   fleetCount: { 
-    bg: "bg-orange-500/10 dark:bg-orange-500/20", 
-    icon: "text-orange-600 dark:text-orange-400",
-    gradient: "from-orange-50 to-orange-100/50 dark:from-orange-950/30 dark:to-orange-900/20"
+    accent: "bg-orange-500", 
+    border: "border-orange-100 dark:border-orange-900/50",
+    text: "text-orange-600 dark:text-orange-400"
   },
   radiusLimit: { 
-    bg: "bg-rose-500/10 dark:bg-rose-500/20", 
-    icon: "text-rose-600 dark:text-rose-400",
-    gradient: "from-rose-50 to-rose-100/50 dark:from-rose-950/30 dark:to-rose-900/20"
+    accent: "bg-rose-500", 
+    border: "border-rose-100 dark:border-rose-900/50",
+    text: "text-rose-600 dark:text-rose-400"
   },
 };
 
@@ -158,7 +158,7 @@ export function MetricsSlider({
       
       <div
         ref={scrollRef}
-        className="flex gap-4 overflow-x-auto scrollbar-hide py-3 px-1 scroll-smooth"
+        className="flex gap-3 overflow-x-auto scrollbar-hide py-2 px-1 scroll-smooth"
         style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
       >
         {metrics.map((metric) => {
@@ -171,23 +171,21 @@ export function MetricsSlider({
           return (
             <Card
               key={metric.id}
-              className={`min-w-[150px] p-4 cursor-pointer transition-all duration-300 border-0 shadow-sm hover:shadow-xl bg-gradient-to-br ${colors.gradient} hover:scale-[1.03] active:scale-[0.98] relative overflow-hidden group/card`}
+              className={`min-w-[140px] max-w-[160px] p-3.5 cursor-pointer transition-all duration-200 bg-white dark:bg-gray-800/80 border ${colors.border} shadow-sm hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0 relative overflow-hidden group/card`}
               onClick={() => handleMetricClick(metric)}
               data-testid={`metric-card-${metric.id}`}
             >
-              <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-white/20 to-transparent rounded-full -translate-x-6 -translate-y-6" />
+              <div className={`absolute top-0 left-0 w-1 h-full ${colors.accent}`} />
               
-              <div className="flex items-start justify-between mb-3">
-                <div className={`p-2.5 rounded-xl ${colors.bg} transition-transform duration-300 group-hover/card:scale-110`}>
-                  <IconComponent className={`h-5 w-5 ${colors.icon}`} />
-                </div>
+              <div className="flex items-center justify-between mb-2.5 pl-2">
+                <IconComponent className={`h-4 w-4 ${colors.text}`} />
                 <div className="flex items-center gap-1">
                   {metricData?.trend && metricData.trend !== "neutral" && (
                     <span 
-                      className={`flex items-center gap-0.5 text-xs font-semibold px-1.5 py-0.5 rounded-full ${
+                      className={`flex items-center gap-0.5 text-[10px] font-semibold ${
                         metricData.trend === "up" 
-                          ? "text-emerald-700 bg-emerald-100 dark:text-emerald-300 dark:bg-emerald-900/50" 
-                          : "text-red-700 bg-red-100 dark:text-red-300 dark:bg-red-900/50"
+                          ? "text-emerald-600 dark:text-emerald-400" 
+                          : "text-red-600 dark:text-red-400"
                       }`}
                     >
                       {metricData.trend === "up" ? (
@@ -199,15 +197,15 @@ export function MetricsSlider({
                     </span>
                   )}
                   {isClickable && (
-                    <ArrowUpRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover/card:opacity-100 transition-opacity" />
+                    <ArrowUpRight className="h-3.5 w-3.5 text-gray-400 opacity-0 group-hover/card:opacity-100 transition-opacity" />
                   )}
                 </div>
               </div>
-              <div className="space-y-1">
-                <p className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
+              <div className="space-y-0.5 pl-2">
+                <p className="text-xl font-bold tracking-tight text-gray-900 dark:text-white">
                   {formatMetricValue(value, metric.format)}
                 </p>
-                <p className="text-xs text-gray-600 dark:text-gray-400 font-medium">
+                <p className="text-[11px] text-gray-500 dark:text-gray-400 font-medium leading-tight">
                   {metric.label}
                 </p>
               </div>

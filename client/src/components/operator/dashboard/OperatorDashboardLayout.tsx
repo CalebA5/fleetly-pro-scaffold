@@ -56,17 +56,12 @@ export function OperatorDashboardLayout({ tier }: OperatorDashboardLayoutProps) 
   const operatorId = user?.operatorId;
 
   const { data: operatorData, isLoading: isLoadingOperator } = useQuery<Operator>({
-    queryKey: ["/api/operators/by-id", operatorId],
+    queryKey: [`/api/operators/by-id/${operatorId}`],
     enabled: !!operatorId,
   });
 
-  const { data: tierProfile } = useQuery<{
-    approvalStatus: string;
-    canEarn: boolean;
-  }>({
-    queryKey: ["/api/operators", operatorId, "tier-profile", tier],
-    enabled: !!operatorId,
-  });
+  const tierProfiles = operatorData?.operatorTierProfiles as Record<string, any> | null;
+  const tierProfile = tierProfiles?.[tier];
 
   const isApproved = tierProfile?.approvalStatus === "approved";
   const canGoOnline = isApproved && tierProfile?.canEarn !== false;
@@ -84,7 +79,7 @@ export function OperatorDashboardLayout({ tier }: OperatorDashboardLayoutProps) 
   }, [user?.viewTier, user?.operatorId, tier, updateUser]);
 
   const { data: metricsData = [], isLoading: isLoadingMetrics } = useQuery<MetricData[]>({
-    queryKey: ["/api/operators", operatorId, "dashboard-metrics", tier],
+    queryKey: [`/api/operators/${operatorId}/dashboard-metrics/${tier}`],
     enabled: !!operatorId,
   });
 
@@ -215,27 +210,29 @@ export function OperatorDashboardLayout({ tier }: OperatorDashboardLayoutProps) 
               </div>
             </div>
             
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
               <button
                 onClick={handleToggleOnline}
                 disabled={!canGoOnline}
-                className={`relative inline-flex h-7 w-14 items-center rounded-full transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 ${
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-orange-500 ${
                   !canGoOnline 
-                    ? "bg-gray-200 dark:bg-gray-700 cursor-not-allowed" 
+                    ? "bg-gray-200 dark:bg-gray-700 cursor-not-allowed opacity-50" 
                     : isOnline 
-                      ? "bg-green-500" 
+                      ? "bg-green-500 shadow-green-500/30 shadow-md" 
                       : "bg-gray-300 dark:bg-gray-600"
                 }`}
                 data-testid="online-toggle"
               >
                 <span
-                  className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-lg ring-0 transition-transform duration-300 ${
-                    isOnline ? "translate-x-8" : "translate-x-1"
+                  className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition-all duration-300 ${
+                    isOnline ? "translate-x-[22px]" : "translate-x-0.5"
                   }`}
                 />
-                <span className={`absolute text-[10px] font-semibold ${isOnline ? "left-1.5 text-white" : "right-1.5 text-gray-500 dark:text-gray-400"}`}>
-                  {isOnline ? "ON" : "OFF"}
-                </span>
+                {!isOnline && (
+                  <span className="absolute right-1 text-[8px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+                    off
+                  </span>
+                )}
               </button>
               
               <NotificationBell />

@@ -26,12 +26,12 @@ export default function RatingsTrend() {
   const operatorId = user?.operatorId;
 
   const { data: operatorData, isLoading: isLoadingOperator } = useQuery<Operator>({
-    queryKey: ["/api/operators/by-id", operatorId],
+    queryKey: [`/api/operators/by-id/${operatorId}`],
     enabled: !!operatorId,
   });
 
   const { data: ratingHistory = [], isLoading: isLoadingHistory } = useQuery<RatingData[]>({
-    queryKey: ["/api/operators", operatorId, "rating-history"],
+    queryKey: [`/api/operators/${operatorId}/rating-history`],
     enabled: !!operatorId,
   });
 
