@@ -6,7 +6,14 @@ Fleetly is a professional on-demand service platform connecting customers with v
 ## User Preferences
 Preferred communication style: Simple, everyday language.
 
-## Recent Changes (Nov 25, 2025)
+## Recent Changes (Nov 26, 2025)
+
+### Bug Fixes
+- **Fixed `/api/operators/by-id` route ordering** (`server/routes.ts`): Moved specific routes (`/by-id/:operatorId`, `/by-user/:email`) before the generic `/:id` route to prevent Express from matching "by-id" as an integer ID, which was causing NaN parse errors
+- **Fixed ManpowerPanel rating display** (`ManpowerPanel.tsx`): Added type checking to handle cases where `driver.rating` isn't a number before calling `.toFixed()`
+- **Fixed JobsPanel ActiveJobCard** (`JobsPanel.tsx`): Added default status handling to prevent undefined errors when job status is missing
+
+## Previous Changes (Nov 25, 2025)
 
 ### Unified Operator Dashboard Architecture
 Complete redesign of operator dashboards with a unified, tier-aware structure:

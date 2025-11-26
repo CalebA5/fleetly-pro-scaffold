@@ -1,0 +1,77 @@
+Okay I like the view of this dash board,
+
+however I will like to make some changes to the dashboards, can you make this dashboard more modern.
+
+I will like to make the icons on the metric slide clickable, lets make inner pages for them.
+
+the todays earnings should be similar to the earnings page in the previos operator dashboard, create a page for when that icon is clicked . it should show all the earnings for that day, wth time stamps.
+
+the jobs nearby page should be clickable, and should take the user to a page similar to the jobs page in the preious dashboard. That page should show a map showing a page of all the jobs that have been : accepted, quoted and pending acceptance, and also the active jobs the operator has accepted and is working on.
+
+so you can remove the active jobs icon, and inciude that information in the jobs nearby page.
+
+the completed todat should show all the jobs completed for the day, with details, and a place to leave a customer review and add some pictures. operators will have the oppurtunity to add photos 8 hours after every job. these pictures will go under the reviews of the operators operator icon on the find operator page.
+
+the face of the operators ratings icon should show the operators most recent rating, however, when clicked, it should take the user to a page that shows the trend of the operatros ratings.
+
+the equipment status can be removed from the metric slide in the professional dashboard, and the information for the equipment status can be seen in the equipment tab.
+
+the drivers active clickable button should be changed to active operators, and this should be clickable showing all operators that are online at a given time.
+
+Also the fleet icon should lead to the equipment tab. and this should show the total nuimber of vehicles in the users fleet (this is for professional teir dash board)
+
+next for the job tab, lets grant this current user access so we can see what the tabs look like when the operator is fully verified and is able to go online. I see on the jobs tab, I am able to see nearby, but the screen goes blank when i try to go to the active page and also groups.
+The jobs tab on the Dashboard Must Allow: operators to :
+View all job requests
+Grouped customer job requests
+Assign jobs to drivers
+Multi-driver scheduling (some jobs or projects might require multiple operators)
+Job performance/job status tracking
+Job audit logs
+the jobs tab should be populated with the necessary information
+
+then for the equipment page, each sub section should be properly populated, populate and optimize the add equipment page to be very dynamic. customers should be able to specify which service each equipement is needed for. Also it should work hand in hand with the service page, meaning if an operator adds a service, theuy should be promted to add the necessary equipement or tools to their profile before they are able to render that service, or before customers are able to book them for that service.
+
+Also when tools/vehicles or heavy equipemnts are added they shoud show up on the equipement tab.
+
+Also lets update the service tab to be more modern and easy to understand. I see when uers add services they are able to toggle which services they are currently providing. modify this toggle button to match the standard of the new toggle buttom (iphone standard).
+
+Also when the user makes one service active, it should show that the service is now active, customers should also be able to set fixed or variable prices or set to work with quotes depending on the type of service. they should be able to change this information by clicking the edit icon button.
+
+also can you delete the demo services that are there( I see those are the names of the current operators in the data base - can you make sure information in the data base is not being mixed up, or the routes are being missed.
+
+also when a customer adds a service from the bottom of the page, it should show up where the services are currently showing up.
+
+Then on the history tab, this part should show up at the far right side o fthe tabs. right after man power.
+
+this page should be very acurate. it should show the actual period earnings, based on the period set by the operator, and all the jobs completed, cancelled and the average ratings of all the jobs in this period. ALso I want to make ssure this shows accurate informatio. So you can delete all the demo jobs showing. Also the operator will be able to filter his history based on the services provided. Also the Avg rating should show real stats based on the ratings of the previous jobs on that history page in the selected period.
+
+also can you make sure the information on the previous jobs is showing important infrmation. and also
+ensure it is concealing sensitive custoemr information. it can show details of the job, but it should conceal sensitive customer information, or only show details of the job.
+
+also operators should still have access to give reviews and share photos, if iis less than 8 hours from when the job was completed.
+
+the man power page goes blank when i click it.
+
+also the users dont need to see the acount verification pending message, this can be a minmizable message. \also can you modify the header of the dashboards to look a little more modern. you can remove the pending verification sign at the header. also modify the offline/online toggle button to match the previous design. it was a circle toggle button in a rectangular box with rounded edges (similar to iphone toggle buttons), also this can be moved to the extreme right
+
+make= these changes simultaeneoulst in the other two dashboards, make it to fit the description of the dashboard. There are some information and changes that will be specific to specific tiers.
+
+Also lets optimize the tier toggle drop down to work as it should. it should register when the curent page is showing a particular dashbaord (with a tick) and when the operator is online on that tier(it should say online).
+
+also I want to make it easy for the operator to go home, o rto the drive and earn page, to view their profile and also see other information that is currerntl on the side bar to the left .
+
+Can we merge most of the things on the side bar, with the things that were previously on the drop down menu in the homepage. can we make this drop dynamic, such that when you are in the home page it shows all the information that is currentl there - but when you switch into the dashboard, it shows a different but similar menu in the drop down, so for example, when they are on the operator dashoard page, and they click the profile drop down menu to the right, it shows them profile, wallet, payment, help support, settings, legal and policies and also a button that takes them to the drive and earn page or then home button. come up with the best design.
+
+also I want the profile page to be dynamic yet specific. so for example, when each operator is in a specific dashboar, the profile page only shows all the informationi for that dashboard, such as:
+
+Business information
+Insurance
+Availability settings
+Radius (unlimited) -
+
+only for for that operator tier.
+
+however when they click the profile button from the drive to earn page, it shows them all the informaton for all the tiersis they have
+
+now when they click the operator profile

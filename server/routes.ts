@@ -123,22 +123,6 @@ export function registerRoutes(storage: IStorage) {
     }
   });
 
-  router.get("/api/operators/:id", async (req, res) => {
-    try {
-      const id = parseInt(req.params.id);
-      const operator = await db.query.operators.findFirst({
-        where: eq(operators.id, id)
-      });
-      if (!operator) {
-        return res.status(404).json({ message: "Operator not found" });
-      }
-      res.json(operator);
-    } catch (error) {
-      console.error("Error fetching operator:", error);
-      res.status(500).json({ message: "Failed to fetch operator" });
-    }
-  });
-
   router.get("/api/operators/by-id/:operatorId", async (req, res) => {
     try {
       const operatorId = req.params.operatorId;
@@ -193,6 +177,26 @@ export function registerRoutes(storage: IStorage) {
     } catch (error) {
       console.error("Error fetching operators by user:", error);
       res.status(500).json({ message: "Failed to fetch operators" });
+    }
+  });
+
+  // Generic operator by ID - must come AFTER more specific routes like /by-id/:operatorId
+  router.get("/api/operators/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid operator ID - must be a number" });
+      }
+      const operator = await db.query.operators.findFirst({
+        where: eq(operators.id, id)
+      });
+      if (!operator) {
+        return res.status(404).json({ message: "Operator not found" });
+      }
+      res.json(operator);
+    } catch (error) {
+      console.error("Error fetching operator:", error);
+      res.status(500).json({ message: "Failed to fetch operator" });
     }
   });
 

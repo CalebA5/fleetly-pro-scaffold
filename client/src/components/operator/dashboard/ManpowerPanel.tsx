@@ -248,6 +248,8 @@ function DriverCard({
   driver: Driver;
   onEdit: () => void;
 }) {
+  const rating = Number(driver.rating) || 0;
+  
   const getStatusBadge = (status: Driver["status"]) => {
     switch (status) {
       case "active":
@@ -317,7 +319,7 @@ function DriverCard({
             <div className="flex items-center gap-4 mt-2 text-sm">
               <span className="flex items-center gap-1">
                 <Star className="h-3 w-3 text-yellow-500" />
-                {driver.rating.toFixed(1)}
+                {rating.toFixed(1)}
               </span>
               <span className="flex items-center gap-1 text-muted-foreground">
                 <Briefcase className="h-3 w-3" />

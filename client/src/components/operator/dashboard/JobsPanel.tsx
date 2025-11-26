@@ -355,11 +355,14 @@ function ActiveJobCard({
   job: ServiceRequest;
   onView: () => void;
 }) {
+  const status = job.status || "pending";
+  
   const getStatusColor = (status: string) => {
     switch (status) {
       case "in_progress": return "bg-blue-500";
       case "assigned": return "bg-green-500";
       case "operator_accepted": return "bg-yellow-500";
+      case "pending": return "bg-orange-500";
       default: return "bg-gray-500";
     }
   };
@@ -373,15 +376,15 @@ function ActiveJobCard({
       <CardContent className="p-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className={`w-2 h-2 rounded-full ${getStatusColor(job.status)}`} />
+            <div className={`w-2 h-2 rounded-full ${getStatusColor(status)}`} />
             <div>
-              <p className="font-medium text-sm">{job.serviceType}</p>
-              <p className="text-xs text-muted-foreground">{job.location}</p>
+              <p className="font-medium text-sm">{job.serviceType || "Service"}</p>
+              <p className="text-xs text-muted-foreground">{job.location || "Location pending"}</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
             <Badge variant="outline" className="text-xs capitalize">
-              {job.status.replace(/_/g, " ")}
+              {status.replace(/_/g, " ")}
             </Badge>
             <ChevronRight className="h-4 w-4 text-muted-foreground" />
           </div>

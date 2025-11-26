@@ -6,6 +6,8 @@ export interface MetricConfig {
   icon: string;
   tiers: OperatorTier[];
   format?: "currency" | "number" | "rating" | "distance";
+  navigateTo?: string;
+  linkToTab?: string;
 }
 
 export interface TabConfig {
@@ -153,14 +155,13 @@ export const TIER_CAPABILITIES: Record<OperatorTier, TierCapabilities> = {
 };
 
 export const DASHBOARD_METRICS: MetricConfig[] = [
-  { id: "dailyEarnings", label: "Today's Earnings", icon: "DollarSign", tiers: ["manual", "equipped", "professional"], format: "currency" },
-  { id: "jobsNearby", label: "Jobs Nearby", icon: "MapPin", tiers: ["manual", "equipped", "professional"], format: "number" },
-  { id: "activeJobs", label: "Active Jobs", icon: "Briefcase", tiers: ["manual", "equipped", "professional"], format: "number" },
-  { id: "completedToday", label: "Completed Today", icon: "CheckCircle", tiers: ["manual", "equipped", "professional"], format: "number" },
-  { id: "rating", label: "Rating", icon: "Star", tiers: ["manual", "equipped", "professional"], format: "rating" },
-  { id: "equipmentStatus", label: "Equipment Status", icon: "Wrench", tiers: ["equipped", "professional"], format: "number" },
-  { id: "driversActive", label: "Drivers Active", icon: "Users", tiers: ["professional"], format: "number" },
-  { id: "fleetCount", label: "Fleet Count", icon: "Truck", tiers: ["professional"], format: "number" },
+  { id: "dailyEarnings", label: "Today's Earnings", icon: "DollarSign", tiers: ["manual", "equipped", "professional"], format: "currency", navigateTo: "/operator/earnings" },
+  { id: "jobsNearby", label: "Jobs & Active", icon: "MapPin", tiers: ["manual", "equipped", "professional"], format: "number", navigateTo: "/operator/jobs-map" },
+  { id: "completedToday", label: "Completed Today", icon: "CheckCircle", tiers: ["manual", "equipped", "professional"], format: "number", navigateTo: "/operator/completed-today" },
+  { id: "rating", label: "Rating", icon: "Star", tiers: ["manual", "equipped", "professional"], format: "rating", navigateTo: "/operator/ratings" },
+  { id: "equipmentStatus", label: "Equipment Status", icon: "Wrench", tiers: ["equipped"], format: "number", linkToTab: "equipment" },
+  { id: "activeOperators", label: "Active Operators", icon: "Users", tiers: ["professional"], format: "number", navigateTo: "/operator/active-operators" },
+  { id: "fleetCount", label: "Fleet", icon: "Truck", tiers: ["professional"], format: "number", linkToTab: "equipment" },
   { id: "radiusLimit", label: "Operating Radius", icon: "Target", tiers: ["manual"], format: "distance" },
 ];
 
@@ -168,8 +169,8 @@ export const DASHBOARD_TABS: TabConfig[] = [
   { id: "jobs", label: "Jobs", icon: "Briefcase", tiers: ["manual", "equipped", "professional"] },
   { id: "equipment", label: "Equipment", icon: "Wrench", tiers: ["manual", "equipped", "professional"] },
   { id: "services", label: "Services", icon: "Settings", tiers: ["manual", "equipped", "professional"] },
-  { id: "history", label: "History", icon: "Clock", tiers: ["manual", "equipped", "professional"] },
   { id: "manpower", label: "Manpower", icon: "Users", tiers: ["professional"] },
+  { id: "history", label: "History", icon: "Clock", tiers: ["manual", "equipped", "professional"] },
 ];
 
 export const DRAWER_MENU_ITEMS: DrawerMenuItem[] = [

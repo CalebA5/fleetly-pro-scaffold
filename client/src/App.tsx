@@ -24,6 +24,9 @@ import JobDetailsPage from "./pages/operator/JobDetailsPage";
 import { JobHistory as OperatorJobHistory } from "./pages/operator/JobHistory";
 import FleetAnalytics from "./pages/operator/FleetAnalytics";
 import TeamAnalytics from "./pages/operator/TeamAnalytics";
+import CompletedToday from "./pages/operator/CompletedToday";
+import RatingsTrend from "./pages/operator/RatingsTrend";
+import ActiveOperators from "./pages/operator/ActiveOperators";
 import { DriveEarn } from "./pages/DriveEarn";
 import { AdminPortal } from "./pages/admin/AdminPortal";
 import { HelpSupport } from "./pages/HelpSupport";
@@ -110,9 +113,29 @@ const App = () => (
                   <EarningsDetails />
                 </ProtectedRoute>
               </Route>
+              <Route path="/operator/jobs-map">
+                <ProtectedRoute requireOperator>
+                  <NearbyJobsMap />
+                </ProtectedRoute>
+              </Route>
               <Route path="/operator/nearby-jobs">
                 <ProtectedRoute requireOperator>
                   <NearbyJobsMap />
+                </ProtectedRoute>
+              </Route>
+              <Route path="/operator/completed-today">
+                <ProtectedRoute requireOperator>
+                  <CompletedToday />
+                </ProtectedRoute>
+              </Route>
+              <Route path="/operator/ratings">
+                <ProtectedRoute requireOperator>
+                  <RatingsTrend />
+                </ProtectedRoute>
+              </Route>
+              <Route path="/operator/active-operators">
+                <ProtectedRoute requireOperator>
+                  <ActiveOperators />
                 </ProtectedRoute>
               </Route>
               <Route path="/operator/jobs/:jobId">

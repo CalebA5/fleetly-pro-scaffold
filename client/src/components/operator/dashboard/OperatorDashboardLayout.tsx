@@ -4,10 +4,9 @@ import { useLocation } from "wouter";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
-import { AlertCircle, Clock } from "lucide-react";
+import { AlertCircle, X, Home } from "lucide-react";
 import { NotificationBell } from "@/components/NotificationBell";
 import { TierSwitcher } from "@/components/TierSwitcher";
 import { MetricsSlider } from "./MetricsSlider";
@@ -47,6 +46,7 @@ export function OperatorDashboardLayout({ tier }: OperatorDashboardLayoutProps) 
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
   const [quoteJobId, setQuoteJobId] = useState<string | null>(null);
   const [declineJobId, setDeclineJobId] = useState<string | null>(null);
+  const [showVerificationBanner, setShowVerificationBanner] = useState(true);
 
   const tierInfo = TIER_CAPABILITIES[tier];
   const metrics = getMetricsForTier(tier);
@@ -170,9 +170,9 @@ export function OperatorDashboardLayout({ tier }: OperatorDashboardLayoutProps) 
     return (
       <div className="min-h-screen bg-background">
         <div className="container max-w-4xl mx-auto p-4 space-y-4">
+          <Skeleton className="h-16 w-full" />
+          <Skeleton className="h-28 w-full" />
           <Skeleton className="h-12 w-full" />
-          <Skeleton className="h-24 w-full" />
-          <Skeleton className="h-10 w-full" />
           <Skeleton className="h-96 w-full" />
         </div>
       </div>
@@ -180,10 +180,10 @@ export function OperatorDashboardLayout({ tier }: OperatorDashboardLayoutProps) 
   }
 
   return (
-    <div className="min-h-screen bg-background" data-testid="operator-dashboard">
-      <header className="sticky top-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900" data-testid="operator-dashboard">
+      <header className="sticky top-0 z-50 bg-white dark:bg-gray-800 shadow-sm">
         <div className="container max-w-4xl mx-auto px-4 py-3">
-          <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-3">
               <DrawerNav
                 tier={tier}
@@ -197,33 +197,46 @@ export function OperatorDashboardLayout({ tier }: OperatorDashboardLayoutProps) 
                 onLogout={handleLogout}
                 onProfileClick={handleProfileClick}
               />
-              <div>
-                <h1 className="font-semibold text-lg leading-tight">
-                  {tierInfo.badge} {tierInfo.label}
-                </h1>
-                <div className="flex items-center gap-2">
-                  {!isApproved && (
-                    <Badge variant="outline" className="text-xs text-amber-600 border-amber-300">
-                      <Clock className="h-3 w-3 mr-1" />
-                      Pending Verification
-                    </Badge>
-                  )}
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={() => setLocation("/drive-earn")}
+                  data-testid="button-home"
+                >
+                  <Home className="h-4 w-4" />
+                </Button>
+                <div>
+                  <h1 className="font-bold text-base leading-tight text-gray-900 dark:text-white">
+                    {tierInfo.badge} {tierInfo.label.split(" ")[0]}
+                  </h1>
                 </div>
               </div>
             </div>
             
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-2">
-                <span className={`text-sm font-medium ${isOnline ? "text-green-600" : "text-muted-foreground"}`}>
-                  {isOnline ? "Online" : "Offline"}
-                </span>
-                <Switch
-                  checked={isOnline}
-                  onCheckedChange={handleToggleOnline}
-                  disabled={!canGoOnline}
-                  data-testid="online-toggle"
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleToggleOnline}
+                disabled={!canGoOnline}
+                className={`relative inline-flex h-7 w-14 items-center rounded-full transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 ${
+                  !canGoOnline 
+                    ? "bg-gray-200 dark:bg-gray-700 cursor-not-allowed" 
+                    : isOnline 
+                      ? "bg-green-500" 
+                      : "bg-gray-300 dark:bg-gray-600"
+                }`}
+                data-testid="online-toggle"
+              >
+                <span
+                  className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-lg ring-0 transition-transform duration-300 ${
+                    isOnline ? "translate-x-8" : "translate-x-1"
+                  }`}
                 />
-              </div>
+                <span className={`absolute text-[10px] font-semibold ${isOnline ? "left-1.5 text-white" : "right-1.5 text-gray-500 dark:text-gray-400"}`}>
+                  {isOnline ? "ON" : "OFF"}
+                </span>
+              </button>
               
               <NotificationBell />
               
@@ -233,19 +246,27 @@ export function OperatorDashboardLayout({ tier }: OperatorDashboardLayoutProps) 
         </div>
       </header>
 
-      <main className="container max-w-4xl mx-auto px-4 py-4 space-y-6">
-        {!isApproved && (
-          <div className="flex items-start gap-3 p-4 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800">
-            <AlertCircle className="h-5 w-5 text-amber-600 mt-0.5 shrink-0" />
-            <div>
-              <h3 className="font-medium text-amber-800 dark:text-amber-200">
-                Account Verification Pending
+      <main className="container max-w-4xl mx-auto px-4 py-4 space-y-5">
+        {!isApproved && showVerificationBanner && (
+          <div className="relative flex items-start gap-3 p-3 rounded-xl bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-950/40 dark:to-orange-950/40 border border-amber-200/50 dark:border-amber-800/50">
+            <AlertCircle className="h-5 w-5 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
+            <div className="flex-1 min-w-0">
+              <h3 className="font-semibold text-sm text-amber-800 dark:text-amber-200">
+                Verification Pending
               </h3>
-              <p className="text-sm text-amber-700 dark:text-amber-300 mt-1">
-                Your account is currently under review. You can explore the dashboard and set up your profile, 
-                but you won't be able to go online and receive job requests until your account is approved.
+              <p className="text-xs text-amber-700 dark:text-amber-300 mt-0.5 leading-relaxed">
+                You can explore the dashboard but cannot go online until approved.
               </p>
             </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-6 w-6 shrink-0 text-amber-600 hover:text-amber-800 hover:bg-amber-100 dark:text-amber-400 dark:hover:text-amber-200 dark:hover:bg-amber-900/50"
+              onClick={() => setShowVerificationBanner(false)}
+              data-testid="button-dismiss-verification"
+            >
+              <X className="h-4 w-4" />
+            </Button>
           </div>
         )}
 
@@ -256,10 +277,9 @@ export function OperatorDashboardLayout({ tier }: OperatorDashboardLayoutProps) 
             data={metricsData}
             isLoading={isLoadingMetrics}
             onMetricClick={(metricId) => {
-              if (metricId === "jobsNearby" || metricId === "activeJobs") {
-                setActiveTab("jobs");
-              }
+              console.log("Metric clicked:", metricId);
             }}
+            onTabChange={(tabId) => setActiveTab(tabId)}
           />
         </section>
 
@@ -294,13 +314,6 @@ export function OperatorDashboardLayout({ tier }: OperatorDashboardLayoutProps) 
                   operatorId={operatorId || ""}
                 />
               ),
-              history: (
-                <HistoryPanel
-                  tier={tier}
-                  operatorId={operatorId || ""}
-                  onViewJob={handleViewJob}
-                />
-              ),
               manpower: tier === "professional" ? (
                 <ManpowerPanel
                   tier={tier}
@@ -308,6 +321,13 @@ export function OperatorDashboardLayout({ tier }: OperatorDashboardLayoutProps) 
                   businessId={operatorData?.businessId || undefined}
                 />
               ) : null,
+              history: (
+                <HistoryPanel
+                  tier={tier}
+                  operatorId={operatorId || ""}
+                  onViewJob={handleViewJob}
+                />
+              ),
             }}
           </TierTabs>
         </section>
