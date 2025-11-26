@@ -25,7 +25,7 @@ The backend is an Express.js server utilizing PostgreSQL with Drizzle ORM. Zod i
 - **Multi-Driver Business Management**: Allows businesses to manage drivers and assign services.
 - **Three-Tier Operator System**: Features Professional, Skilled & Equipped, and Manual Operators with tier-specific onboarding, capabilities, and proximity-based job filtering.
 - **AI Assist Feature**: Recommends services and operators with estimated pricing.
-- **Enhanced Service Request Creation**: Dynamic forms for service types, emergency/scheduled toggles, and photo uploads.
+- **Enhanced Service Request Creation**: Dynamic forms for service types, emergency/scheduled toggles, and photo uploads. Supports **Project Mode** for multi-service bundling with pricing preferences (fixed/hourly/custom quote).
 - **Unified Map Implementation**: Uses Mapbox GL JS for interactive operator selection and filters.
 - **Real-Time Tracking**: Live operator location updates, particularly for emergency requests.
 - **Proactive Weather Alert System**: Integrates with a weather API for alerts.
@@ -36,6 +36,7 @@ The backend is an Express.js server utilizing PostgreSQL with Drizzle ORM. Zod i
 - **Operator Authentication & Verification**: Operators sign up with zero tiers and require manual approval for each tier after onboarding, with statuses stored in `operatorTierProfiles`.
 - **Account Management Pages**: Includes Wallet (balance, transactions, withdrawals), Payments (cards, bank accounts, payout preferences), Settings (appearance, notifications, privacy), and Legal (terms, privacy, liability, cookie policy).
 - **Unified Operator Dashboard**: A single, tier-aware dashboard with configurable modules (Metrics Slider, Tier Tabs, Drawer Navigation) driven by `TIER_CAPABILITIES`.
+- **Self-Service Prevention (Transparency)**: Users cannot request services from, favorite, or rate their own operator cards. A "Your Operator" badge is displayed with disabled/blurred action buttons to prevent metric gaming.
 
 ### System Design Choices
 - **Data Model**: Key entities include service requests (with `serviceType`, `isEmergency`, `description`, `location`, `status`, `details` JSONB) and operator profiles (with `operatorTier`, `isCertified`, `businessLicense`, `homeLatitude`, `homeLongitude`, `operatingRadius`).
