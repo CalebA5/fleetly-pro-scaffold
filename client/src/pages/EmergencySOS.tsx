@@ -89,6 +89,8 @@ export default function EmergencySOS() {
   const [locationPermissionDenied, setLocationPermissionDenied] = useState(false);
   const [isGeocodingAddress, setIsGeocodingAddress] = useState(false);
   const [showLocationPrompt, setShowLocationPrompt] = useState(false);
+  const [hasInitialLocationFetched, setHasInitialLocationFetched] = useState(false);
+  const [userIsEditingAddress, setUserIsEditingAddress] = useState(false);
   
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
@@ -232,9 +234,14 @@ export default function EmergencySOS() {
     markerRef.current = marker;
   }, [latitude, longitude]);
 
-  const getLocation = (showPromptOnDeny: boolean = false, fromStep?: string) => {
+  const getLocation = (showPromptOnDeny: boolean = false, fromStep?: string, isUserTriggered: boolean = false) => {
     setIsGettingLocation(true);
     setShowLocationPrompt(false);
+    
+    // If user triggered, reset the editing flag so we can update the address
+    if (isUserTriggered) {
+      setUserIsEditingAddress(false);
+    }
     
     if ("geolocation" in navigator) {
       navigator.geolocation.getCurrentPosition(
@@ -245,15 +252,19 @@ export default function EmergencySOS() {
           setLatitude(lat);
           setLongitude(lng);
           setLocationPermissionDenied(false);
+          setHasInitialLocationFetched(true);
           
-          try {
-            const response = await fetch(
-              `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`
-            );
-            const data = await response.json();
-            setLocation(data.display_name || `${lat.toFixed(6)}, ${lng.toFixed(6)}`);
-          } catch (error) {
-            setLocation(`${lat.toFixed(6)}, ${lng.toFixed(6)}`);
+          // Only update address text if user hasn't manually edited it (or if user explicitly requested location)
+          if (isUserTriggered || !userIsEditingAddress) {
+            try {
+              const response = await fetch(
+                `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`
+              );
+              const data = await response.json();
+              setLocation(data.display_name || `${lat.toFixed(6)}, ${lng.toFixed(6)}`);
+            } catch (error) {
+              setLocation(`${lat.toFixed(6)}, ${lng.toFixed(6)}`);
+            }
           }
           
           setIsGettingLocation(false);
@@ -263,14 +274,17 @@ export default function EmergencySOS() {
             setStep("service");
           }
           
-          toast({
-            title: "Location Updated",
-            description: "Your location has been updated on the map.",
-          });
+          if (isUserTriggered) {
+            toast({
+              title: "Location Updated",
+              description: "Your location has been updated on the map.",
+            });
+          }
         },
         (error) => {
           console.error("Location error:", error);
           setLocationPermissionDenied(true);
+          setHasInitialLocationFetched(true);
           
           if (showPromptOnDeny) {
             setShowLocationPrompt(true);
@@ -279,7 +293,7 @@ export default function EmergencySOS() {
               description: "Please enable location access in your browser settings, or enter your address manually.",
               variant: "destructive",
             });
-          } else {
+          } else if (isUserTriggered) {
             toast({
               title: "Location Access Needed",
               description: "Please enter your address manually to continue.",
@@ -299,11 +313,14 @@ export default function EmergencySOS() {
         }
       );
     } else {
-      toast({
-        title: "Location Not Supported",
-        description: "Please enter your address manually to continue.",
-      });
+      if (isUserTriggered) {
+        toast({
+          title: "Location Not Supported",
+          description: "Please enter your address manually to continue.",
+        });
+      }
       setLocationPermissionDenied(true);
+      setHasInitialLocationFetched(true);
       setIsGettingLocation(false);
       
       // Only advance step if we're on the initial location step
@@ -313,7 +330,7 @@ export default function EmergencySOS() {
     }
   };
 
-  // Handle "Use Current Location" button click
+  // Handle "Use Current Location" button click - user explicitly requested location
   const handleUseCurrentLocation = () => {
     if (locationPermissionDenied) {
       setShowLocationPrompt(true);
@@ -322,8 +339,10 @@ export default function EmergencySOS() {
         description: "Please enable location access in your browser settings to use this feature.",
         variant: "destructive",
       });
+      // Still try to get location in case user has enabled it
+      getLocation(true, undefined, true);
     } else {
-      getLocation(true);
+      getLocation(true, undefined, true);
     }
   };
 
@@ -601,7 +620,11 @@ export default function EmergencySOS() {
               <div className="flex gap-2">
                 <Input
                   value={location}
-                  onChange={(e) => setLocation(e.target.value)}
+                  onChange={(e) => {
+                    setLocation(e.target.value);
+                    // Mark that user is manually editing the address - prevents auto-population
+                    setUserIsEditingAddress(true);
+                  }}
                   placeholder="Enter address or use current location..."
                   className="h-10 text-sm bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 flex-1"
                   onKeyDown={(e) => {
@@ -693,7 +716,7 @@ export default function EmergencySOS() {
             </div>
             
             <Button
-              onClick={() => getLocation(false, "location")}
+              onClick={() => getLocation(false, "location", true)}
               disabled={isGettingLocation}
               className="w-full h-14 text-lg font-bold bg-gradient-to-r from-red-600 to-orange-500 hover:from-red-700 hover:to-orange-600"
               data-testid="button-enable-location"

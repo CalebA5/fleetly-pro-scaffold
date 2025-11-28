@@ -68,24 +68,25 @@ Professional and Equipped tiers now have cascading country → province → city
 - GET `/api/locations/states/:countryCode` - Returns states for a country
 - GET `/api/locations/cities/:countryCode/:stateCode` - Returns cities for a state
 
-### i18n System Status
+### i18n System Status (Updated Nov 28, 2025)
 - Uses React Context-based I18nProvider at `client/src/i18n/index.tsx`
 - 8 supported languages: English, French, Spanish, Portuguese, German, Chinese, Japanese, Korean
 - Translation files at `client/src/i18n/{lang}.ts`
 - **COMPLETED**: Major pages now use i18n:
   - Settings.tsx ✅
-  - AuthDialog.tsx ✅ (sign in/out labels, email/password fields, buttons, dialog title)
+  - AuthDialog.tsx ✅ (sign in/out labels, email/password fields, buttons, dialog title, validation messages)
   - Index.tsx ✅ (welcome, tagline, buttons, section headers)
   - SignIn.tsx ✅
   - SignUp.tsx ✅
-  - DriveEarn.tsx ✅ (hook added)
-  - Notifications.tsx ✅ (page title, description)
+  - DriveEarn.tsx ✅ (complete translations for all content - tiers, benefits, stats)
+  - Notifications.tsx ✅ (page title, description, stayUpdated)
   - Header.tsx ✅
   - MobileBottomNav.tsx ✅
+  - Help.tsx ✅ (complete translations for FAQ categories, contact support)
+  - NotFound.tsx ✅ (404 page with navigation buttons)
 - **REMAINING**: 
-  - AuthDialog validation messages in useEffect (password strength, email/name availability) - requires code restructure
-  - DriveEarn page content (hero text, tier descriptions)
-  - Other secondary pages (Profile, Help, etc.)
+  - Other secondary pages (Profile, Wallet, Payments, etc.)
+  - Service request forms and detailed job pages
 
 ### Priority Issues to Fix
 1. ~~Test account login~~ - FIXED (populated email_normalized column)
