@@ -5151,5 +5151,126 @@ Be friendly, concise, and helpful. If you cannot help with something or the user
     }
   });
 
+  // ============================================
+  // LOCATION API - Countries, States, Cities
+  // ============================================
+  
+  // Get all countries
+  router.get("/api/locations/countries", async (req, res) => {
+    try {
+      const { Country } = await import("country-state-city");
+      const countries = Country.getAllCountries();
+      
+      // Return simplified list sorted alphabetically
+      const result = countries.map(c => ({
+        isoCode: c.isoCode,
+        name: c.name,
+        phonecode: c.phonecode,
+        flag: c.flag,
+        currency: c.currency,
+      })).sort((a, b) => a.name.localeCompare(b.name));
+      
+      res.json(result);
+    } catch (error) {
+      console.error("Error fetching countries:", error);
+      res.status(500).json({ message: "Failed to fetch countries" });
+    }
+  });
+
+  // Get states/provinces for a country
+  router.get("/api/locations/states/:countryCode", async (req, res) => {
+    try {
+      const { State } = await import("country-state-city");
+      const { countryCode } = req.params;
+      
+      const states = State.getStatesOfCountry(countryCode.toUpperCase());
+      
+      const result = states.map(s => ({
+        isoCode: s.isoCode,
+        name: s.name,
+        countryCode: s.countryCode,
+        latitude: s.latitude,
+        longitude: s.longitude,
+      })).sort((a, b) => a.name.localeCompare(b.name));
+      
+      res.json(result);
+    } catch (error) {
+      console.error("Error fetching states:", error);
+      res.status(500).json({ message: "Failed to fetch states" });
+    }
+  });
+
+  // Get cities for a state
+  router.get("/api/locations/cities/:countryCode/:stateCode", async (req, res) => {
+    try {
+      const { City } = await import("country-state-city");
+      const { countryCode, stateCode } = req.params;
+      
+      const cities = City.getCitiesOfState(
+        countryCode.toUpperCase(),
+        stateCode.toUpperCase()
+      );
+      
+      const result = cities.map(c => ({
+        name: c.name,
+        stateCode: c.stateCode,
+        countryCode: c.countryCode,
+        latitude: c.latitude,
+        longitude: c.longitude,
+      })).sort((a, b) => a.name.localeCompare(b.name));
+      
+      res.json(result);
+    } catch (error) {
+      console.error("Error fetching cities:", error);
+      res.status(500).json({ message: "Failed to fetch cities" });
+    }
+  });
+
+  // Search cities globally by name
+  router.get("/api/locations/search", async (req, res) => {
+    try {
+      const { City, Country, State } = await import("country-state-city");
+      const query = (req.query.q as string || "").toLowerCase().trim();
+      const countryFilter = req.query.country as string | undefined;
+      
+      if (!query || query.length < 2) {
+        return res.json([]);
+      }
+      
+      let allCities = City.getAllCities();
+      
+      // Filter by country if specified
+      if (countryFilter) {
+        allCities = allCities.filter(c => 
+          c.countryCode.toUpperCase() === countryFilter.toUpperCase()
+        );
+      }
+      
+      // Search by city name
+      const matches = allCities
+        .filter(c => c.name.toLowerCase().includes(query))
+        .slice(0, 50) // Limit results
+        .map(c => {
+          const country = Country.getCountryByCode(c.countryCode);
+          const state = State.getStateByCodeAndCountry(c.stateCode, c.countryCode);
+          return {
+            cityName: c.name,
+            stateCode: c.stateCode,
+            stateName: state?.name || c.stateCode,
+            countryCode: c.countryCode,
+            countryName: country?.name || c.countryCode,
+            latitude: c.latitude,
+            longitude: c.longitude,
+            displayName: `${c.name}, ${state?.name || c.stateCode}, ${country?.name || c.countryCode}`,
+          };
+        });
+      
+      res.json(matches);
+    } catch (error) {
+      console.error("Error searching cities:", error);
+      res.status(500).json({ message: "Failed to search cities" });
+    }
+  });
+
   return router;
 }

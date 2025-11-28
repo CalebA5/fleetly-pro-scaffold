@@ -937,3 +937,56 @@ export const insertOperatorLiveLocationSchema = createInsertSchema(operatorLiveL
 
 export type InsertOperatorLiveLocation = z.infer<typeof insertOperatorLiveLocationSchema>;
 export type OperatorLiveLocation = typeof operatorLiveLocations.$inferSelect;
+
+// Operator Service Areas - Geographic coverage for operator matching
+export const operatorServiceAreas = pgTable("operator_service_areas", {
+  id: serial("id").primaryKey(),
+  operatorId: text("operator_id").notNull(),
+  tier: text("tier").notNull(), // Which tier this area applies to
+  countryCode: text("country_code").notNull(), // ISO2 country code (e.g., "US", "CA")
+  countryName: text("country_name").notNull(),
+  stateCode: text("state_code").notNull(), // State/Province code (e.g., "CA", "ON")
+  stateName: text("state_name").notNull(),
+  cityName: text("city_name").notNull(),
+  cityLatitude: decimal("city_latitude", { precision: 10, scale: 7 }),
+  cityLongitude: decimal("city_longitude", { precision: 10, scale: 7 }),
+  neighborhoods: text("neighborhoods").array(), // Specific neighborhoods/areas within city
+  coverageType: text("coverage_type").notNull().default("full_city"), // "full_city" | "neighborhoods_only"
+  isPrimary: integer("is_primary").notNull().default(0), // 1 if this is the operator's primary/home city
+  isActive: integer("is_active").notNull().default(1),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => ({
+  operatorTierIdx: index("idx_service_areas_operator_tier").on(table.operatorId, table.tier),
+  locationIdx: index("idx_service_areas_location").on(table.countryCode, table.stateCode, table.cityName),
+  uniqueOperatorTierCity: unique().on(table.operatorId, table.tier, table.countryCode, table.stateCode, table.cityName),
+}));
+
+export const insertOperatorServiceAreaSchema = createInsertSchema(operatorServiceAreas).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertOperatorServiceArea = z.infer<typeof insertOperatorServiceAreaSchema>;
+export type OperatorServiceArea = typeof operatorServiceAreas.$inferSelect;
+export type CoverageType = "full_city" | "neighborhoods_only";
+
+// Service area limits per tier
+export const SERVICE_AREA_LIMITS = {
+  manual: {
+    maxCities: 1, // Home city only
+    maxNeighborhoods: 3, // Up to 3 nearby neighborhoods
+    description: "Operate within your home city and up to 3 nearby neighborhoods",
+  },
+  equipped: {
+    maxCities: 3, // Up to 3 cities within same province
+    maxNeighborhoods: null, // Full city coverage
+    description: "Operate in up to 3 cities within your province/state",
+  },
+  professional: {
+    maxCities: null, // Unlimited cities within country
+    maxNeighborhoods: null, // Full coverage
+    description: "Operate anywhere within your country with no limits",
+  },
+} as const;
