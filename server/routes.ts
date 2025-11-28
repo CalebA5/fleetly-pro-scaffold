@@ -1426,6 +1426,57 @@ export function registerRoutes(storage: IStorage) {
     res.status(201).json(rating);
   });
 
+  // Get operator reviews for profile page
+  router.get("/api/operators/:operatorId/reviews", async (req, res) => {
+    try {
+      const { operatorId } = req.params;
+      
+      // Fetch ratings for this operator with customer info
+      const operatorRatings = await db.query.ratings.findMany({
+        where: eq(ratings.operatorId, operatorId),
+        orderBy: (ratings, { desc }) => [desc(ratings.createdAt)],
+        limit: 20,
+      });
+      
+      // Get customer names for each rating
+      const reviewsWithCustomerInfo = await Promise.all(
+        operatorRatings.map(async (rating) => {
+          const customer = await db.query.customers.findFirst({
+            where: eq(customers.customerId, rating.customerId),
+          });
+          return {
+            ratingId: rating.ratingId,
+            customerId: rating.customerId,
+            customerName: customer?.name || "Customer",
+            rating: rating.rating,
+            review: rating.review,
+            createdAt: rating.createdAt.toISOString(),
+          };
+        })
+      );
+      
+      res.json(reviewsWithCustomerInfo);
+    } catch (error) {
+      console.error("Error fetching operator reviews:", error);
+      res.status(500).json({ message: "Failed to fetch reviews" });
+    }
+  });
+
+  // Get operator portfolio for profile page
+  router.get("/api/operators/:operatorId/portfolio", async (req, res) => {
+    try {
+      const { operatorId } = req.params;
+      
+      // For now, return empty array as portfolio feature needs to be fully implemented
+      // This prevents 404 errors and provides proper empty state handling
+      // TODO: Add portfolio images table and storage
+      res.json([]);
+    } catch (error) {
+      console.error("Error fetching operator portfolio:", error);
+      res.status(500).json({ message: "Failed to fetch portfolio" });
+    }
+  });
+
   // Operator location tracking routes
   router.get("/api/operator-location/:operatorId", async (req, res) => {
     const location = await storage.getOperatorLocation(req.params.operatorId);

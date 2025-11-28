@@ -93,30 +93,22 @@ export const OperatorMap = () => {
     }
   }, [sheetPosition]);
 
-  // Sheet touch handlers for mobile dragging
-  const handleSheetTouchStart = useCallback((e: React.TouchEvent) => {
-    dragStartY.current = e.touches[0].clientY;
+  // Unified sheet drag handlers (supports both touch and mouse)
+  const handleDragStart = useCallback((clientY: number) => {
+    dragStartY.current = clientY;
     sheetStartHeight.current = getBaseHeight();
     setIsDragging(true);
     setDragOffset(0);
   }, [getBaseHeight]);
 
-  const handleSheetTouchMove = useCallback((e: React.TouchEvent) => {
+  const handleDragMove = useCallback((clientY: number) => {
     if (!isDragging) return;
-    const currentY = e.touches[0].clientY;
-    const diff = dragStartY.current - currentY; // Positive = dragged up
+    const diff = dragStartY.current - clientY; // Positive = dragged up
     setDragOffset(diff);
   }, [isDragging]);
 
-  const handleSheetTouchEnd = useCallback(() => {
+  const handleDragEnd = useCallback(() => {
     setIsDragging(false);
-    const vh = window.innerHeight;
-    const finalHeight = sheetStartHeight.current + dragOffset;
-    
-    // Heights: collapsed=60px, half=45vh, full=vh-120
-    const collapsedH = 60;
-    const halfH = vh * 0.45;
-    const fullH = vh - 120;
     
     // Use velocity/direction for better UX - if dragged up significantly, go to next state
     const dragThreshold = 50; // 50px drag triggers state change
@@ -136,6 +128,46 @@ export const OperatorMap = () => {
     
     setDragOffset(0);
   }, [dragOffset, sheetPosition]);
+
+  // Touch event handlers
+  const handleSheetTouchStart = useCallback((e: React.TouchEvent) => {
+    handleDragStart(e.touches[0].clientY);
+  }, [handleDragStart]);
+
+  const handleSheetTouchMove = useCallback((e: React.TouchEvent) => {
+    handleDragMove(e.touches[0].clientY);
+  }, [handleDragMove]);
+
+  const handleSheetTouchEnd = useCallback(() => {
+    handleDragEnd();
+  }, [handleDragEnd]);
+
+  // Mouse event handlers (for desktop testing and hybrid devices)
+  const handleSheetMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    handleDragStart(e.clientY);
+  }, [handleDragStart]);
+
+  // Global mouse handlers (attached to window when dragging)
+  useEffect(() => {
+    if (!isDragging) return;
+    
+    const handleMouseMove = (e: MouseEvent) => {
+      handleDragMove(e.clientY);
+    };
+    
+    const handleMouseUp = () => {
+      handleDragEnd();
+    };
+    
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+    
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isDragging, handleDragMove, handleDragEnd]);
 
   // Get sheet height with drag offset
   const getSheetStyle = useCallback(() => {
@@ -545,21 +577,39 @@ export const OperatorMap = () => {
       userLocationMarkerRef.current.remove();
     }
 
-    // Create new user location marker
+    // Create new user location marker with pulsing animation (Uber-style)
     const el = document.createElement('div');
     el.className = 'user-location-marker';
-    el.style.width = '24px';
-    el.style.height = '24px';
-    el.style.borderRadius = '50%';
-    el.style.backgroundColor = '#3B82F6';
-    el.style.border = '3px solid white';
-    el.style.boxShadow = '0 2px 4px rgba(0,0,0,0.3)';
+    el.innerHTML = `
+      <style>
+        @keyframes user-pulse {
+          0% { transform: scale(1); opacity: 0.8; }
+          50% { transform: scale(1.8); opacity: 0; }
+          100% { transform: scale(1); opacity: 0; }
+        }
+        .user-pulse-ring {
+          position: absolute;
+          width: 40px;
+          height: 40px;
+          border-radius: 50%;
+          background: rgba(59, 130, 246, 0.3);
+          animation: user-pulse 2s ease-out infinite;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+        }
+      </style>
+      <div class="relative flex items-center justify-center" style="width: 40px; height: 40px;">
+        <div class="user-pulse-ring"></div>
+        <div style="width: 20px; height: 20px; border-radius: 50%; background: #3B82F6; border: 3px solid white; box-shadow: 0 2px 8px rgba(59, 130, 246, 0.5); z-index: 1;"></div>
+      </div>
+    `;
 
-    const userMarker = new mapboxgl.Marker({ element: el })
+    const userMarker = new mapboxgl.Marker({ element: el, anchor: 'center' })
       .setLngLat([userLon, userLat])
       .setPopup(
-        new mapboxgl.Popup({ offset: 25 })
-          .setHTML(`<div class="p-2"><strong>Your Location</strong>${effectiveAddress ? `<br/><span class="text-sm text-gray-600">${effectiveAddress}</span>` : ''}</div>`)
+        new mapboxgl.Popup({ offset: 25, className: 'user-location-popup' })
+          .setHTML(`<div class="p-3 font-sans"><strong class="text-black">Your Location</strong>${effectiveAddress ? `<br/><span class="text-sm text-gray-600">${effectiveAddress}</span>` : ''}</div>`)
       )
       .addTo(mapRef.current);
 
@@ -605,22 +655,45 @@ export const OperatorMap = () => {
       let marker = currentMarkers.get(operator.operatorId);
 
       if (!marker) {
-        // Create marker element
+        // Create marker element with modern design and tier indicator
         const el = document.createElement('div');
         el.className = 'cursor-pointer relative';
-        el.innerHTML = isMoving
-          ? `<div class="relative">
-              <svg width="30" height="45" viewBox="0 0 30 45" class="animate-pulse">
-                <path d="M15 0C6.7 0 0 6.7 0 15c0 10.5 15 30 15 30s15-19.5 15-30C30 6.7 23.3 0 15 0z" fill="#ff4444" stroke="#cc0000" stroke-width="1"/>
-                <circle cx="15" cy="15" r="5" fill="white"/>
-              </svg>
-            </div>`
-          : `<svg width="30" height="45" viewBox="0 0 30 45">
-              <path d="M15 0C6.7 0 0 6.7 0 15c0 10.5 15 30 15 30s15-19.5 15-30C30 6.7 23.3 0 15 0z" fill="#3b82f6" stroke="#1e40af" stroke-width="1"/>
-              <circle cx="15" cy="15" r="5" fill="white"/>
-            </svg>`;
+        
+        // Determine colors based on tier and moving status
+        const isProfessional = operator.tierType === 'professional';
+        const markerColor = isMoving ? '#ef4444' : (isProfessional ? '#f59e0b' : '#3b82f6');
+        const strokeColor = isMoving ? '#dc2626' : (isProfessional ? '#d97706' : '#1e40af');
+        const tierLabel = isProfessional ? 'PRO' : 'SKL';
+        const tierBgColor = isProfessional ? '#f59e0b' : '#6b7280';
+        
+        el.innerHTML = `
+          <div class="relative">
+            <svg width="36" height="48" viewBox="0 0 36 48" ${isMoving ? 'class="animate-pulse"' : ''}>
+              <defs>
+                <filter id="shadow-${operator.operatorId}" x="-50%" y="-50%" width="200%" height="200%">
+                  <feDropShadow dx="0" dy="2" stdDeviation="2" flood-opacity="0.3"/>
+                </filter>
+              </defs>
+              <path d="M18 2C9.2 2 2 9.2 2 18c0 12 16 28 16 28s16-16 16-28c0-8.8-7.2-16-16-16z" 
+                    fill="${markerColor}" 
+                    stroke="${strokeColor}" 
+                    stroke-width="2"
+                    filter="url(#shadow-${operator.operatorId})"/>
+              ${operator.photo 
+                ? `<clipPath id="clip-${operator.operatorId}"><circle cx="18" cy="18" r="10"/></clipPath>
+                   <image href="${operator.photo}" x="8" y="8" width="20" height="20" clip-path="url(#clip-${operator.operatorId})" preserveAspectRatio="xMidYMid slice"/>`
+                : `<circle cx="18" cy="18" r="10" fill="white"/>
+                   <text x="18" y="22" text-anchor="middle" font-size="10" font-weight="bold" fill="${markerColor}">${operator.name.charAt(0)}</text>`
+              }
+            </svg>
+            <span style="position: absolute; top: -6px; right: -8px; background: ${tierBgColor}; color: white; font-size: 7px; font-weight: 700; padding: 2px 4px; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.3);">
+              ${tierLabel}
+            </span>
+            ${isMoving ? '<div style="position: absolute; bottom: -4px; left: 50%; transform: translateX(-50%); background: #ef4444; color: white; font-size: 8px; font-weight: 600; padding: 1px 6px; border-radius: 10px; white-space: nowrap;">En Route</div>' : ''}
+          </div>
+        `;
 
-        marker = new mapboxgl.Marker(el)
+        marker = new mapboxgl.Marker({ element: el, anchor: 'bottom' })
           .setLngLat([lng, lat])
           .addTo(map);
 
@@ -670,22 +743,43 @@ export const OperatorMap = () => {
 
         currentMarkers.set(operator.operatorId, marker);
       } else {
-        // Update existing marker position and appearance
+        // Update existing marker position smoothly
         marker.setLngLat([lng, lat]);
         
         // Update marker appearance based on moving status
         const el = marker.getElement();
-        el.innerHTML = isMoving
-          ? `<div class="relative">
-              <svg width="30" height="45" viewBox="0 0 30 45" class="animate-pulse">
-                <path d="M15 0C6.7 0 0 6.7 0 15c0 10.5 15 30 15 30s15-19.5 15-30C30 6.7 23.3 0 15 0z" fill="#ff4444" stroke="#cc0000" stroke-width="1"/>
-                <circle cx="15" cy="15" r="5" fill="white"/>
-              </svg>
-            </div>`
-          : `<svg width="30" height="45" viewBox="0 0 30 45">
-              <path d="M15 0C6.7 0 0 6.7 0 15c0 10.5 15 30 15 30s15-19.5 15-30C30 6.7 23.3 0 15 0z" fill="#3b82f6" stroke="#1e40af" stroke-width="1"/>
-              <circle cx="15" cy="15" r="5" fill="white"/>
-            </svg>`;
+        const isProfessional = operator.tierType === 'professional';
+        const markerColor = isMoving ? '#ef4444' : (isProfessional ? '#f59e0b' : '#3b82f6');
+        const strokeColor = isMoving ? '#dc2626' : (isProfessional ? '#d97706' : '#1e40af');
+        const tierLabel = isProfessional ? 'PRO' : 'SKL';
+        const tierBgColor = isProfessional ? '#f59e0b' : '#6b7280';
+        
+        el.innerHTML = `
+          <div class="relative">
+            <svg width="36" height="48" viewBox="0 0 36 48" ${isMoving ? 'class="animate-pulse"' : ''}>
+              <defs>
+                <filter id="shadow-${operator.operatorId}" x="-50%" y="-50%" width="200%" height="200%">
+                  <feDropShadow dx="0" dy="2" stdDeviation="2" flood-opacity="0.3"/>
+                </filter>
+              </defs>
+              <path d="M18 2C9.2 2 2 9.2 2 18c0 12 16 28 16 28s16-16 16-28c0-8.8-7.2-16-16-16z" 
+                    fill="${markerColor}" 
+                    stroke="${strokeColor}" 
+                    stroke-width="2"
+                    filter="url(#shadow-${operator.operatorId})"/>
+              ${operator.photo 
+                ? `<clipPath id="clip-${operator.operatorId}"><circle cx="18" cy="18" r="10"/></clipPath>
+                   <image href="${operator.photo}" x="8" y="8" width="20" height="20" clip-path="url(#clip-${operator.operatorId})" preserveAspectRatio="xMidYMid slice"/>`
+                : `<circle cx="18" cy="18" r="10" fill="white"/>
+                   <text x="18" y="22" text-anchor="middle" font-size="10" font-weight="bold" fill="${markerColor}">${operator.name.charAt(0)}</text>`
+              }
+            </svg>
+            <span style="position: absolute; top: -6px; right: -8px; background: ${tierBgColor}; color: white; font-size: 7px; font-weight: 700; padding: 2px 4px; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.3);">
+              ${tierLabel}
+            </span>
+            ${isMoving ? '<div style="position: absolute; bottom: -4px; left: 50%; transform: translateX(-50%); background: #ef4444; color: white; font-size: 8px; font-weight: 600; padding: 1px 6px; border-radius: 10px; white-space: nowrap;">En Route</div>' : ''}
+          </div>
+        `;
       }
     });
   }, [operators, operatorLocations, mapLoaded]);
@@ -1222,15 +1316,18 @@ export const OperatorMap = () => {
               paddingBottom: '64px', // Space for bottom nav
             }}
           >
-            {/* Drag Handle - Larger touch target for better UX */}
+            {/* Drag Handle - Larger touch target for better UX (supports both touch and mouse) */}
             <div 
-              className="flex flex-col items-center pt-3 pb-2 cursor-grab active:cursor-grabbing touch-none"
+              className="flex flex-col items-center pt-3 pb-2 cursor-grab active:cursor-grabbing touch-none select-none"
               onTouchStart={handleSheetTouchStart}
               onTouchMove={handleSheetTouchMove}
               onTouchEnd={handleSheetTouchEnd}
+              onMouseDown={handleSheetMouseDown}
               onClick={() => {
-                if (sheetPosition === 'collapsed') setSheetPosition('half');
-                else if (sheetPosition === 'full') setSheetPosition('half');
+                if (!isDragging) {
+                  if (sheetPosition === 'collapsed') setSheetPosition('half');
+                  else if (sheetPosition === 'full') setSheetPosition('half');
+                }
               }}
             >
               <div className="w-12 h-1.5 bg-gray-300 dark:bg-gray-600 rounded-full mb-2" />
