@@ -34,7 +34,7 @@ The backend is an Express.js server utilizing PostgreSQL with Drizzle ORM. Zod i
 - **Navigation Directions**: Operator job details page includes "Get Directions" buttons for both Google Maps and Apple Maps with deep-link support using coordinates when available.
 - **Smart Back Navigation**: BackButton component provides history-aware back navigation with fallback routes for consistent navigation experience.
 - **Proactive Weather Alert System**: Integrates with a weather API for alerts.
-- **Emergency SOS Mode**: Provides no-login emergency assistance with auto-location detection.
+- **Emergency SOS Mode**: Provides no-login emergency assistance with auto-location detection. Features a mini map with pulsing location marker (Uber-like UX), service selection cards with modern icons, and GPS coordinate confirmation.
 - **Persistent Job Tracking System**: Database-backed job persistence across sessions.
 - **Customer Groups Unlock System**: Gamified access to "Nearby Customer Groups" after completing 5 jobs per tier.
 - **User Verification & Duplicate Prevention**: Comprehensive signup verification via email and name normalization.

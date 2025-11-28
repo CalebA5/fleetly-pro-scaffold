@@ -1,12 +1,19 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useLocation } from "wouter";
-import { AlertCircle, Car, Wrench, Trash2, MapPin, Phone, User, ArrowLeft, Loader2, Snowflake, Package, Truck } from "lucide-react";
+import { AlertCircle, Car, Wrench, Trash2, MapPin, Phone, User, ArrowLeft, Loader2, Snowflake, Package, Truck, Navigation, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/contexts/AuthContext";
+import mapboxgl from "mapbox-gl";
+import "mapbox-gl/dist/mapbox-gl.css";
+
+const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN;
+if (MAPBOX_TOKEN) {
+  mapboxgl.accessToken = MAPBOX_TOKEN;
+}
 
 type ServiceType = "towing" | "roadside" | "debris" | "snow_plowing" | "hauling" | "equipment_transport";
 
@@ -80,6 +87,11 @@ export default function EmergencySOS() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isGettingLocation, setIsGettingLocation] = useState(false);
   
+  // Mini map references
+  const miniMapContainerRef = useRef<HTMLDivElement>(null);
+  const miniMapRef = useRef<mapboxgl.Map | null>(null);
+  const miniMapMarkerRef = useRef<mapboxgl.Marker | null>(null);
+  
   const handleGoHome = () => {
     navigate("/");
   };
@@ -107,6 +119,63 @@ export default function EmergencySOS() {
       getLocation();
     }
   }, [step]);
+
+  // Initialize mini map when location is detected
+  useEffect(() => {
+    if (!MAPBOX_TOKEN || !miniMapContainerRef.current || !latitude || !longitude) return;
+    
+    // Cleanup existing map
+    if (miniMapRef.current) {
+      miniMapRef.current.remove();
+      miniMapRef.current = null;
+    }
+    
+    // Create new map
+    const map = new mapboxgl.Map({
+      container: miniMapContainerRef.current,
+      style: "mapbox://styles/mapbox/streets-v12",
+      center: [longitude, latitude],
+      zoom: 15,
+      interactive: false, // Static mini map
+    });
+    
+    miniMapRef.current = map;
+    
+    // Add pulsing marker for user location
+    const markerEl = document.createElement("div");
+    markerEl.innerHTML = `
+      <div style="position: relative;">
+        <div style="width: 24px; height: 24px; background: linear-gradient(135deg, #ef4444, #f97316); border: 3px solid white; border-radius: 50%; box-shadow: 0 4px 12px rgba(239, 68, 68, 0.5);"></div>
+        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 40px; height: 40px; border: 2px solid #ef4444; border-radius: 50%; opacity: 0.5; animation: emergency-pulse 2s infinite;"></div>
+      </div>
+      <style>
+        @keyframes emergency-pulse {
+          0% { transform: translate(-50%, -50%) scale(0.5); opacity: 0.8; }
+          100% { transform: translate(-50%, -50%) scale(1.5); opacity: 0; }
+        }
+      </style>
+    `;
+    
+    const marker = new mapboxgl.Marker({
+      element: markerEl,
+      anchor: "center",
+    })
+      .setLngLat([longitude, latitude])
+      .addTo(map);
+    
+    miniMapMarkerRef.current = marker;
+    
+    return () => {
+      if (miniMapMarkerRef.current) {
+        miniMapMarkerRef.current.remove();
+        miniMapMarkerRef.current = null;
+      }
+      if (miniMapRef.current) {
+        miniMapRef.current.remove();
+        miniMapRef.current = null;
+      }
+    };
+  }, [latitude, longitude]);
 
   const getLocation = () => {
     setIsGettingLocation(true);
@@ -419,18 +488,67 @@ export default function EmergencySOS() {
                 />
               </div>
 
-              {/* Location */}
-              <div className="space-y-2">
+              {/* Location with Mini Map */}
+              <div className="space-y-3">
                 <label className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center gap-2">
                   <MapPin className="w-4 h-4" />
                   Your Location <span className="text-red-500">*</span>
                 </label>
+                
+                {/* Mini Map - Shows when location is detected */}
+                {latitude && longitude && MAPBOX_TOKEN ? (
+                  <div className="relative rounded-xl overflow-hidden border-2 border-green-200 dark:border-green-800 shadow-lg">
+                    <div 
+                      ref={miniMapContainerRef}
+                      className="h-40 w-full"
+                      data-testid="emergency-mini-map"
+                    />
+                    <div className="absolute bottom-2 left-2 right-2 bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm rounded-lg px-3 py-2 shadow-lg flex items-center gap-2">
+                      <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                      <p className="text-xs text-gray-700 dark:text-gray-300 font-medium truncate flex-1">
+                        {location || `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`}
+                      </p>
+                      <button
+                        type="button"
+                        onClick={getLocation}
+                        className="text-xs text-orange-600 hover:text-orange-700 font-semibold"
+                      >
+                        Refresh
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="relative rounded-xl overflow-hidden border-2 border-dashed border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800/50 h-40 flex items-center justify-center">
+                    {isGettingLocation ? (
+                      <div className="text-center">
+                        <Loader2 className="w-8 h-8 animate-spin text-orange-500 mx-auto mb-2" />
+                        <p className="text-sm text-gray-600 dark:text-gray-400">Detecting your location...</p>
+                      </div>
+                    ) : (
+                      <div className="text-center">
+                        <Navigation className="w-10 h-10 text-gray-400 mx-auto mb-2" />
+                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">Location not detected</p>
+                        <Button
+                          type="button"
+                          onClick={getLocation}
+                          size="sm"
+                          variant="outline"
+                          className="text-xs"
+                        >
+                          <MapPin className="w-3 h-3 mr-1" />
+                          Enable Location
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                )}
+                
+                {/* Manual Address Input */}
                 <div className="flex gap-2">
                   <Input
                     value={location}
                     onChange={(e) => setLocation(e.target.value)}
-                    placeholder="123 Main St, City, State"
-                    required
+                    placeholder="Or type your address manually..."
                     className="text-base flex-1"
                     data-testid="input-location"
                   />
@@ -439,19 +557,22 @@ export default function EmergencySOS() {
                     onClick={getLocation}
                     disabled={isGettingLocation}
                     variant="outline"
+                    className="flex-shrink-0"
                     data-testid="button-get-location"
                   >
                     {isGettingLocation ? (
                       <Loader2 className="w-4 h-4 animate-spin" />
                     ) : (
-                      <MapPin className="w-4 h-4" />
+                      <Navigation className="w-4 h-4" />
                     )}
                   </Button>
                 </div>
+                
                 {latitude && longitude && (
-                  <p className="text-xs text-green-600 dark:text-green-400">
-                    ✓ Location detected: {latitude.toFixed(6)}, {longitude.toFixed(6)}
-                  </p>
+                  <div className="flex items-center gap-2 text-xs text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20 px-3 py-2 rounded-lg">
+                    <div className="w-1.5 h-1.5 bg-green-500 rounded-full" />
+                    GPS coordinates locked: {latitude.toFixed(6)}, {longitude.toFixed(6)}
+                  </div>
                 )}
               </div>
 
@@ -472,10 +593,10 @@ export default function EmergencySOS() {
               </div>
             </div>
 
-            {/* Submit Button */}
+            {/* Submit Button - Allow submission with either GPS coords or manual address */}
             <Button
               type="submit"
-              disabled={isSubmitting || !latitude || !longitude}
+              disabled={isSubmitting || ((!latitude || !longitude) && (!location || location.trim().length < 5))}
               className="w-full h-14 text-lg font-bold bg-gradient-to-r from-red-600 to-orange-500 hover:from-red-700 hover:to-orange-600 text-white shadow-xl"
               data-testid="button-submit-emergency"
             >
