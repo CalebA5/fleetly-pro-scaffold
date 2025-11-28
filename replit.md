@@ -6,6 +6,63 @@ Fleetly is a professional on-demand service platform connecting customers with v
 ## User Preferences
 Preferred communication style: Simple, everyday language.
 
+## Current Task Status (Session Notes)
+
+### Test Accounts (Password: Test1234!)
+- **Customers**: customer.alice@fleetly.test, customer.bob@fleetly.test, customer.carol@fleetly.test, customer.david@fleetly.test
+- **Operators**: operator.emma@fleetly.test, operator.frank@fleetly.test, operator.grace@fleetly.test, operator.henry@fleetly.test
+- **Admin**: admin@fleetly.test (has is_admin=1)
+
+### Admin Portal (/admin)
+The admin portal is at `client/src/pages/admin/AdminPortal.tsx`. It allows admins to:
+1. View pending operator tier applications
+2. Approve operators for specific tiers via POST `/api/admin/operators/:operatorId/approve/:tier`
+3. Reject operators with reason via POST `/api/admin/operators/:operatorId/reject/:tier`
+4. See stats for pending reviews, total tiers awaiting, and action required counts
+
+**How to Verify Operators**:
+1. Login with admin@fleetly.test (Test1234!)
+2. Navigate to /admin
+3. You'll see a list of operators with pending tier applications
+4. Each operator card shows their tier profiles with "Approve" and "Reject" buttons
+5. Click Approve to activate a tier, or Reject (with reason) to deny
+
+### Operator Onboarding Flow (Current)
+Located at `client/src/pages/operator/OperatorOnboarding.tsx`:
+- Step 0: Tier selection (skipped if tier param in URL)
+- Step 1: Contact/Business Info
+- Step 2: Vehicle details (pro/equipped) OR Equipment (manual)
+- Step 3: Services (pro/equipped) - manual tier combines equipment + services in step 2
+- Step 4: Review & Submit
+
+**PENDING FIX**: Reorder so Services come BEFORE Equipment for all tiers.
+
+### i18n System Status
+- Uses React Context-based I18nProvider at `client/src/i18n/index.tsx`
+- 8 supported languages: English, French, Spanish, Portuguese, German, Chinese, Japanese, Korean
+- Translation files at `client/src/i18n/{lang}.ts`
+- **COMPLETED**: Major pages now use i18n:
+  - Settings.tsx ✅
+  - AuthDialog.tsx ✅ (sign in/out labels, email/password fields, buttons, dialog title)
+  - Index.tsx ✅ (welcome, tagline, buttons, section headers)
+  - SignIn.tsx ✅
+  - SignUp.tsx ✅
+  - DriveEarn.tsx ✅ (hook added)
+  - Notifications.tsx ✅ (page title, description)
+  - Header.tsx ✅
+  - MobileBottomNav.tsx ✅
+- **REMAINING**: 
+  - AuthDialog validation messages in useEffect (password strength, email/name availability) - requires code restructure
+  - DriveEarn page content (hero text, tier descriptions)
+  - Other secondary pages (Profile, Help, etc.)
+
+### Priority Issues to Fix
+1. ~~Test account login~~ - FIXED (populated email_normalized column)
+2. i18n cleanup - add translations to all pages
+3. Operator onboarding step reordering
+4. Map pin stability when zooming
+5. Emergency tracking improvements
+
 ## System Architecture
 
 ### UI/UX Decisions
@@ -42,7 +99,7 @@ The backend is an Express.js server utilizing PostgreSQL with Drizzle ORM. Zod i
 - **Account Management Pages**: Includes Wallet (balance, transactions, withdrawals), Payments (cards, bank accounts, payout preferences), Settings (appearance, notifications, privacy), and Legal (terms, privacy, liability, cookie policy).
 - **Unified Operator Dashboard**: A single, tier-aware dashboard with configurable modules (Metrics Slider, Tier Tabs, Drawer Navigation) driven by `TIER_CAPABILITIES`.
 - **Self-Service Prevention (Transparency)**: Users cannot request services from, favorite, or rate their own operator cards. A "Your Operator" badge is displayed with disabled/blurred action buttons to prevent metric gaming.
-- **Multi-Language i18n System**: Complete internationalization with 8 supported languages (English, French, Spanish, Portuguese, German, Chinese, Japanese, Korean). Uses React Context-based I18nProvider with type-safe translation keys, localStorage persistence, and browser language detection. Settings page integrates the language selector. Header and MobileBottomNav components use dedicated short-label translation keys (e.g., `browseShort`, `earnShort`) for proper localization across all languages.
+- **Multi-Language i18n System**: Complete internationalization with 8 supported languages (English, French, Spanish, Portuguese, German, Chinese, Japanese, Korean). Uses React Context-based I18nProvider with type-safe translation keys, localStorage persistence, and browser language detection.
 - **Multi-Select Service Filter**: The Find Operators page features a popover-based multi-select filter allowing users to select 15+ services simultaneously with checkbox toggles, selection count badges, and clear-all functionality.
 
 ### System Design Choices

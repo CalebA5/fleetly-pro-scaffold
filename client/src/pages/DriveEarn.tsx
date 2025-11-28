@@ -9,6 +9,7 @@ import { Header } from "@/components/Header";
 import { InfoTooltip } from "@/components/ui/info-tooltip";
 import { MobileBottomNav } from "@/components/MobileBottomNav";
 import { useAuth } from "@/contexts/AuthContext";
+import { useI18n } from "@/i18n";
 import { OPERATOR_TIER_INFO, type Operator } from "@shared/schema";
 import { 
   ArrowRight, 
@@ -38,6 +39,7 @@ export const DriveEarn = () => {
   const { user, isAuthenticated, isLoading: isAuthLoading, updateUser } = useAuth();
   const [, setLocation] = useLocation();
   const [showAuthDialog, setShowAuthDialog] = useState(false);
+  const { t } = useI18n();
 
   // Fetch operator data if user has operatorId
   const { data: operatorData, isLoading: isOperatorLoading } = useQuery<OperatorWithStats>({

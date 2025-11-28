@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { useI18n } from "@/i18n";
 import { CheckCircle2, XCircle, Loader2, Eye, EyeOff } from "lucide-react";
 
 interface AuthDialogProps {
@@ -36,6 +37,7 @@ export const AuthDialog = ({
   const [, setLocation] = useLocation();
   const { signIn, signUp } = useAuth();
   const { toast } = useToast();
+  const { t } = useI18n();
   
   // Sync activeTab with defaultTab when dialog opens
   useEffect(() => {
@@ -170,11 +172,10 @@ export const AuthDialog = ({
 
   const handleSignIn = async () => {
     try {
-      // Normalize email to lowercase for case-insensitive login
       await signIn(signinEmail.toLowerCase().trim(), signinPassword);
       toast({
-        title: "Welcome back!",
-        description: "You've successfully signed in.",
+        title: t.auth.signInSuccess,
+        description: t.home.welcome,
       });
       onOpenChange(false);
       if (onAuthSuccess) {
@@ -182,45 +183,38 @@ export const AuthDialog = ({
       }
     } catch (error) {
       toast({
-        title: "Error",
-        description: "Failed to sign in. Please try again.",
+        title: t.common.error,
+        description: t.auth.invalidCredentials,
         variant: "destructive",
       });
     }
   };
 
   const handleSignUp = async () => {
-    // Prevent signup if validation is invalid
     if (emailValidation.status === 'invalid' || nameValidation.status === 'invalid' || passwordValidation.status === 'invalid') {
       toast({
-        title: "Validation Error",
-        description: "Please resolve the errors before signing up.",
+        title: t.common.error,
+        description: t.auth.passwordsDoNotMatch,
         variant: "destructive",
       });
       return;
     }
     
     try {
-      // Normalize email to lowercase for case-insensitive signup
       await signUp(signupName, signupEmail.toLowerCase().trim(), signupPassword, signupRole);
       toast({
-        title: "Account created!",
-        description: signupRole === "operator" 
-          ? "Let's set up your operator profile."
-          : "Welcome to Fleetly!",
+        title: t.auth.signUpSuccess,
+        description: t.home.welcome,
       });
       onOpenChange(false);
       
-      // Call onAuthSuccess callback if provided (e.g., for tier registration)
       if (onAuthSuccess) {
         onAuthSuccess();
       } else if (signupRole === "operator") {
-        // Only redirect if no callback (default behavior)
         setLocation("/drive-earn");
       }
     } catch (error: any) {
-      // Handle detailed error messages from backend
-      const errorMessage = error?.message || 'Failed to create account. Please try again.';
+      const errorMessage = error?.message || t.common.error;
       const errorDetails = error?.details;
       
       let description = errorMessage;
@@ -229,7 +223,7 @@ export const AuthDialog = ({
       }
       
       toast({
-        title: "Error",
+        title: t.common.error,
         description,
         variant: "destructive",
       });
@@ -240,21 +234,21 @@ export const AuthDialog = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle className="text-2xl font-bold">Welcome to Fleetly</DialogTitle>
+          <DialogTitle className="text-2xl font-bold">{t.home.welcome}</DialogTitle>
           <DialogDescription>
-            Sign in to request services and track your jobs
+            {t.home.tagline}
           </DialogDescription>
         </DialogHeader>
         
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "signin" | "signup")}>
           <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="signin" data-testid="tab-signin">Sign in</TabsTrigger>
-            <TabsTrigger value="signup" data-testid="tab-signup">Sign up</TabsTrigger>
+            <TabsTrigger value="signin" data-testid="tab-signin">{t.auth.signIn}</TabsTrigger>
+            <TabsTrigger value="signup" data-testid="tab-signup">{t.auth.signUp}</TabsTrigger>
           </TabsList>
           
           <TabsContent value="signin" className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">{t.auth.email}</Label>
               <Input 
                 id="email" 
                 type="email" 
@@ -265,7 +259,7 @@ export const AuthDialog = ({
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password">{t.auth.password}</Label>
               <div className="relative">
                 <Input 
                   id="password" 
@@ -290,23 +284,23 @@ export const AuthDialog = ({
               onClick={handleSignIn}
               data-testid="button-signin-submit"
             >
-              Sign in
+              {t.auth.signIn}
             </Button>
             <p className="text-sm text-center text-gray-600">
-              Don't have an account?{" "}
+              {t.auth.dontHaveAccount}{" "}
               <button
                 onClick={() => setActiveTab("signup")}
                 className="text-black font-semibold hover:underline"
                 data-testid="link-switch-signup"
               >
-                Sign up
+                {t.auth.signUp}
               </button>
             </p>
           </TabsContent>
           
           <TabsContent value="signup" className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="name">Full name</Label>
+              <Label htmlFor="name">{t.auth.fullName}</Label>
               <div className="relative">
                 <Input 
                   id="name" 
@@ -341,7 +335,7 @@ export const AuthDialog = ({
               )}
             </div>
             <div className="space-y-2">
-              <Label htmlFor="signup-email">Email</Label>
+              <Label htmlFor="signup-email">{t.auth.email}</Label>
               <div className="relative">
                 <Input 
                   id="signup-email" 
@@ -377,7 +371,7 @@ export const AuthDialog = ({
               )}
             </div>
             <div className="space-y-2">
-              <Label htmlFor="signup-password">Password</Label>
+              <Label htmlFor="signup-password">{t.auth.password}</Label>
               <div className="relative">
                 <Input 
                   id="signup-password" 
@@ -408,7 +402,7 @@ export const AuthDialog = ({
                 </p>
               )}
               <p className="text-xs text-gray-500 dark:text-gray-400">
-                Must be at least 8 characters with letters and numbers
+                {t.auth.passwordMinLength}
               </p>
             </div>
             <Button 
@@ -424,16 +418,16 @@ export const AuthDialog = ({
               }
               data-testid="button-signup-submit"
             >
-              {signupRole === "operator" ? "Sign up as Operator" : "Create account"}
+              {t.auth.createAccount}
             </Button>
             <p className="text-sm text-center text-gray-600">
-              Already have an account?{" "}
+              {t.auth.alreadyHaveAccount}{" "}
               <button
                 onClick={() => setActiveTab("signin")}
                 className="text-black font-semibold hover:underline"
                 data-testid="link-switch-signin"
               >
-                Sign in
+                {t.auth.signIn}
               </button>
             </p>
           </TabsContent>

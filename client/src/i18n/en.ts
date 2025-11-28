@@ -70,6 +70,10 @@ export const en = {
     emailRequired: "Email is required",
     passwordRequired: "Password is required",
     passwordMinLength: "Password must be at least 8 characters",
+    passwordRequiresLettersNumbers: "Password must contain both letters and numbers",
+    passwordStrong: "Password is strong",
+    emailAvailable: "Email is available",
+    nameAvailable: "Name is available",
     passwordsDoNotMatch: "Passwords do not match",
     signInSuccess: "Signed in successfully",
     signOutSuccess: "Signed out successfully",
@@ -377,6 +381,7 @@ export const en = {
   },
   notifications: {
     notifications: "Notifications",
+    stayUpdated: "Stay updated on job requests and weather conditions",
     markAllRead: "Mark All Read",
     clearAll: "Clear All",
     noNotifications: "No notifications",

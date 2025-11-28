@@ -15,6 +15,7 @@ import { LocationPermissionModal } from "@/components/LocationPermissionModal";
 import { ServiceSelector } from "@/components/ServiceSelector";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserLocation } from "@/contexts/LocationContext";
+import { useI18n } from "@/i18n";
 import { MapPin, ArrowRight, Truck, Clock, Shield, Star, Search, Loader2, X, Wrench } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import type { GeocodingResult } from "@/lib/geocoding";
@@ -34,6 +35,7 @@ const Index = () => {
   const [showLocationPermission, setShowLocationPermission] = useState(false);
   const { isAuthenticated, user, isLoading: isAuthLoading } = useAuth();
   const { toast } = useToast();
+  const { t } = useI18n();
   const { setFormattedAddress, formattedAddress, location, permissionStatus, refreshLocation } = useUserLocation();
 
   // Fetch nearby operators when location is available
@@ -411,10 +413,10 @@ const Index = () => {
           {/* Heading - Above the grid */}
           <div className="mb-8 lg:mb-12">
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-black dark:text-white leading-tight mb-4">
-              Get the service you need, when you need it
+              {t.home.welcome}
             </h1>
             <p className="text-lg md:text-xl text-gray-600 dark:text-gray-400">
-              Professional snow plowing, towing, hauling, and courier services. Available 24/7.
+              {t.home.tagline}
             </p>
           </div>
 
@@ -461,7 +463,7 @@ const Index = () => {
                   data-testid="button-search-services"
                 >
                   <Search className="mr-2 w-5 h-5" />
-                  See available operators
+                  {t.home.viewOperators}
                 </Button>
               </div>
             </div>
@@ -470,7 +472,7 @@ const Index = () => {
             <div className="relative order-1 lg:order-2">
               <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-6 md:p-8 shadow-lg border border-gray-200 dark:border-gray-700">
                 <h3 className="text-xl md:text-2xl font-bold text-black dark:text-white mb-6">
-                  {selectedServices.length > 0 && proximityOperators.length > 0 ? "Available Operators" : "Our Services"}
+                  {selectedServices.length > 0 && proximityOperators.length > 0 ? t.operators.nearbyOperators : t.home.quickServices}
                 </h3>
                 <div className="space-y-3">
                   {selectedServices.length > 0 && proximityOperators.length > 0 ? (

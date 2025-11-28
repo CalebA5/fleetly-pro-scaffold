@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useNotifications } from "@/hooks/useNotifications";
 import { useUserLocation } from "@/contexts/LocationContext";
+import { useI18n } from "@/i18n";
 import { formatDistanceToNow } from "date-fns";
 import { Bell, CloudSnow, AlertTriangle, CheckCheck } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -18,6 +19,7 @@ export default function Notifications() {
   const { notifications, unreadNotifications, markAsRead } = useNotifications();
   const { location: userLocation } = useUserLocation();
   const [, setLocation] = useLocation();
+  const { t } = useI18n();
 
   // Fetch weather alerts for user's location
   const { data: weatherAlerts = [] } = useQuery<any[]>({
@@ -78,10 +80,10 @@ export default function Notifications() {
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-              Notifications & Alerts
+              {t.nav.notifications}
             </h1>
             <p className="text-gray-600 dark:text-gray-400 mt-1">
-              Stay updated on job requests and weather conditions
+              {t.notifications.stayUpdated}
             </p>
           </div>
           
