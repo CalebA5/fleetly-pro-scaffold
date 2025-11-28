@@ -50,6 +50,24 @@ Located at `client/src/pages/operator/OperatorOnboarding.tsx`:
 - Step 3: Equipment & Area (select equipment, hours, photos, operating radius info)
 - Step 4: Complete (review and finish)
 
+### Advanced Service Area Selection (Added Nov 28, 2025)
+Professional and Equipped tiers now have cascading country → province → city selection for defining service areas.
+
+**Tier-Based Limits** (defined in `SERVICE_AREA_LIMITS` in schema.ts):
+- **Manual Tier**: 1 city max, 5km radius from home
+- **Equipped Tier**: 3 cities max, same province required, 15km radius per city
+- **Professional Tier**: Unlimited cities within country, no radius limit
+
+**Implementation:**
+- Frontend: `client/src/pages/operator/OperatorOnboarding.tsx` - uses `country-state-city` npm package for local data
+- Backend validation: `server/routes.ts` - Zod schema validates serviceAreas, enforces tier limits
+- Database: `operator_service_areas` table stores geographic coverage per operator/tier
+
+**Location APIs:**
+- GET `/api/locations/countries` - Returns all countries
+- GET `/api/locations/states/:countryCode` - Returns states for a country
+- GET `/api/locations/cities/:countryCode/:stateCode` - Returns cities for a state
+
 ### i18n System Status
 - Uses React Context-based I18nProvider at `client/src/i18n/index.tsx`
 - 8 supported languages: English, French, Spanish, Portuguese, German, Chinese, Japanese, Korean

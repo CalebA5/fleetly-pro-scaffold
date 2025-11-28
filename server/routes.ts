@@ -20,6 +20,18 @@ const updateEquipmentSchema = z.object({
   primaryVehicleImage: z.string().nullable().optional()
 });
 
+// Service area schema for operator onboarding
+const serviceAreaSchema = z.object({
+  countryCode: z.string().min(2).max(3),
+  countryName: z.string().min(1),
+  stateCode: z.string().min(1),
+  stateName: z.string().min(1),
+  cityName: z.string().min(1),
+  isPrimary: z.boolean()
+});
+
+const serviceAreasArraySchema = z.array(serviceAreaSchema).optional();
+
 // Helper function to calculate distance between two points (Haversine formula)
 function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
   const R = 6371; // Earth's radius in kilometers
@@ -665,15 +677,9 @@ export function registerRoutes(storage: IStorage) {
         }
       }
       
-      // SERVICE AREA VALIDATION: Enforce tier-based constraints
-      const serviceAreas = (req.body as any).serviceAreas as Array<{
-        countryCode: string;
-        countryName: string;
-        stateCode: string;
-        stateName: string;
-        cityName: string;
-        isPrimary: boolean;
-      }> | undefined;
+      // SERVICE AREA VALIDATION: Enforce tier-based constraints with Zod validation
+      const serviceAreasResult = serviceAreasArraySchema.safeParse((req.body as any).serviceAreas);
+      const serviceAreas = serviceAreasResult.success ? serviceAreasResult.data : undefined;
       
       if (serviceAreas && serviceAreas.length > 0) {
         const limits = SERVICE_AREA_LIMITS[tier as keyof typeof SERVICE_AREA_LIMITS];
