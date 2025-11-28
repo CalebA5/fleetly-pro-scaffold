@@ -8,6 +8,7 @@ import { TierSwitcher } from "@/components/TierSwitcher";
 import { ThemeSelector } from "@/components/ThemeSelector";
 import { NotificationBell } from "@/components/NotificationBell";
 import { useAuth } from "@/contexts/AuthContext";
+import { useI18n } from "@/i18n";
 import { Truck, Sparkles } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -21,6 +22,7 @@ export const Header = ({ onSignIn, onSignUp, onDriveAndEarn }: HeaderProps) => {
   const { isAuthenticated, user } = useAuth();
   const [location, setLocation] = useLocation();
   const { toast } = useToast();
+  const { t } = useI18n();
 
   // Fetch severe weather alerts count for badge
   const { data: alerts = [] } = useQuery<Array<{ status: string }>>({
@@ -89,7 +91,7 @@ export const Header = ({ onSignIn, onSignUp, onDriveAndEarn }: HeaderProps) => {
             {/* Browse Operators - Hide on small mobile */}
             <Link href="/customer/operator-map" className="hidden sm:inline">
               <Button variant="ghost" size="sm" className="text-gray-700 dark:text-gray-300" data-testid="link-browse-operators">
-                Browse Operators
+                {t.nav.browseOperators}
               </Button>
             </Link>
 
@@ -101,7 +103,7 @@ export const Header = ({ onSignIn, onSignUp, onDriveAndEarn }: HeaderProps) => {
               className="hidden md:inline-flex text-gray-700 dark:text-gray-300"
               data-testid="button-earn"
             >
-              Drive & Earn
+              {t.nav.driveAndEarn}
             </Button>
 
             {/* Seasonal Theme Selector - Hide on very small screens */}
@@ -119,7 +121,7 @@ export const Header = ({ onSignIn, onSignUp, onDriveAndEarn }: HeaderProps) => {
                   className="hidden md:inline-flex"
                   data-testid="button-sign-in"
                 >
-                  Sign in
+                  {t.auth.signIn}
                 </Button>
                 <Button 
                   size="sm"
@@ -127,7 +129,7 @@ export const Header = ({ onSignIn, onSignUp, onDriveAndEarn }: HeaderProps) => {
                   onClick={onSignUp}
                   data-testid="button-sign-up"
                 >
-                  Sign up
+                  {t.auth.signUp}
                 </Button>
               </>
             ) : (

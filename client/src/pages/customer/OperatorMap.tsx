@@ -11,8 +11,11 @@ import { Header } from "@/components/Header";
 import { MobileBottomNav } from "@/components/MobileBottomNav";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Checkbox } from "@/components/ui/checkbox";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, MapPin, Star, Truck, Filter, Heart, ChevronLeft, ChevronRight, List, Map as MapIcon, Target, GripHorizontal, ChevronUp, ChevronDown, Layers, PanelLeftClose, PanelLeft, Building2, User } from "lucide-react";
+import { ArrowLeft, MapPin, Star, Truck, Filter, Heart, ChevronLeft, ChevronRight, List, Map as MapIcon, Target, GripHorizontal, ChevronUp, ChevronDown, Layers, PanelLeftClose, PanelLeft, Building2, User, X, Check } from "lucide-react";
 import type { Operator, InsertServiceRequest, Favorite } from "@shared/schema";
 import { OPERATOR_TIER_INFO } from "@shared/schema";
 import { TIER_SERVICES } from "@shared/tierCapabilities";
@@ -50,7 +53,8 @@ export const OperatorMap = () => {
   const [authTab, setAuthTab] = useState<"signin" | "signup">("signin");
   const [selectedOperator, setSelectedOperator] = useState<{cardId: string; operatorId: string; name: string; [key: string]: any} | null>(null);
   const [mapStyle, setMapStyle] = useState<'streets' | 'satellite'>('streets');
-  const [selectedService, setSelectedService] = useState<string>("");
+  const [selectedServices, setSelectedServices] = useState<string[]>([]);
+  const [filterPopoverOpen, setFilterPopoverOpen] = useState(false);
   const { activeTheme } = useSeasonalTheme();
   const isDarkMode = activeTheme.mode === 'dark';
   const [showRatingDialog, setShowRatingDialog] = useState(false);
@@ -450,16 +454,15 @@ export const OperatorMap = () => {
     return user?.operatorId && operatorId === user.operatorId;
   };
 
-  // Filter operators by selected service AND favorites AND radius (show self but disable service requests)
+  // Filter operators by selected services AND favorites AND radius (show self but disable service requests)
   const operators = allOperators?.filter(op => {
-    // Filter by service - support multiple pre-selected services from home page
-    // If preSelectedServices has items, filter by ALL of them; if just selectedService, use that
+    // Filter by services - support multiple selected services (up to 15+)
+    // Combines preSelectedServices from home page with selectedServices from filter dropdown
     let matchesService = true;
-    if (preSelectedServices.length > 0) {
-      // Show operators that offer ANY of the pre-selected services
-      matchesService = preSelectedServices.some(service => op.services?.includes(service));
-    } else if (selectedService) {
-      matchesService = op.services?.includes(selectedService);
+    const allSelectedServices = [...preSelectedServices, ...selectedServices].filter((v, i, a) => a.indexOf(v) === i);
+    if (allSelectedServices.length > 0) {
+      // Show operators that offer ANY of the selected services
+      matchesService = allSelectedServices.some(service => op.services?.includes(service));
     }
     
     // Filter by favorites if enabled
@@ -981,61 +984,112 @@ export const OperatorMap = () => {
           
           {/* Right side: Filter button and Map Style Toggle */}
           <div className="flex items-center gap-2">
-            {/* Filter Dropdown Button */}
-            <Select
-              value={`${selectedService || 'all'}_${proximityRadius}`}
-              onValueChange={(value) => {
-                // Parse combined value
-                const parts = value.split('_');
-                if (parts.length >= 2) {
-                  const svc = parts.slice(0, -1).join('_');
-                  const rad = parseInt(parts[parts.length - 1]);
-                  setSelectedService(svc === 'all' ? '' : svc);
-                  if (!isNaN(rad)) setProximityRadius(rad);
-                }
-              }}
-            >
-              <SelectTrigger className="w-auto border-0 shadow-none p-0 h-auto focus:ring-0 focus:ring-offset-0 focus:outline-none" data-testid="button-filter-menu">
-                <div className="flex items-center gap-1 px-3 py-1.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-full hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+            {/* Multi-Select Filter Popover */}
+            <Popover open={filterPopoverOpen} onOpenChange={setFilterPopoverOpen}>
+              <PopoverTrigger asChild>
+                <button 
+                  className="flex items-center gap-1 px-3 py-1.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-full hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                  data-testid="button-filter-menu"
+                >
                   <Filter className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Filters</span>
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Filters
+                    {(selectedServices.length > 0 || proximityRadius !== 50) && (
+                      <span className="ml-1 px-1.5 py-0.5 bg-orange-500 text-white text-xs rounded-full">
+                        {selectedServices.length + (proximityRadius !== 50 ? 1 : 0)}
+                      </span>
+                    )}
+                  </span>
+                </button>
+              </PopoverTrigger>
+              <PopoverContent align="end" className="w-72 p-0" sideOffset={8}>
+                <div className="p-3 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
+                  <p className="text-sm font-semibold text-gray-900 dark:text-white">Filter Operators</p>
+                  {(selectedServices.length > 0 || proximityRadius !== 50) && (
+                    <button 
+                      onClick={() => {
+                        setSelectedServices([]);
+                        setProximityRadius(50);
+                      }}
+                      className="text-xs text-orange-600 hover:text-orange-700 font-medium"
+                    >
+                      Clear all
+                    </button>
+                  )}
                 </div>
-              </SelectTrigger>
-              <SelectContent align="end" className="w-56">
-                <div className="px-3 py-2 border-b border-gray-100 dark:border-gray-700">
-                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Service Type</p>
-                </div>
-                {services.map((service) => (
-                  <SelectItem 
-                    key={service} 
-                    value={`${service === "All" ? "all" : service}_${proximityRadius}`}
-                    className="cursor-pointer"
-                  >
-                    {service}
-                  </SelectItem>
-                ))}
-                {userLat !== null && userLon !== null && (
-                  <>
-                    <div className="px-3 py-2 border-t border-b border-gray-100 dark:border-gray-700 mt-1">
-                      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Distance</p>
+                
+                {/* Services Multi-Select */}
+                <div className="p-3 border-b border-gray-100 dark:border-gray-700">
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Services ({selectedServices.length} selected)</p>
+                  <ScrollArea className="h-64">
+                    <div className="space-y-1 pr-3">
+                      {services.filter(s => s !== "All").map((service) => (
+                        <label 
+                          key={service}
+                          className="flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer transition-colors"
+                        >
+                          <Checkbox
+                            checked={selectedServices.includes(service)}
+                            onCheckedChange={(checked) => {
+                              if (checked) {
+                                setSelectedServices([...selectedServices, service]);
+                              } else {
+                                setSelectedServices(selectedServices.filter(s => s !== service));
+                              }
+                            }}
+                            className="border-gray-300 dark:border-gray-600"
+                          />
+                          <span className="text-sm text-gray-700 dark:text-gray-300 flex-1">{service}</span>
+                          {selectedServices.includes(service) && (
+                            <Check className="w-4 h-4 text-orange-500" />
+                          )}
+                        </label>
+                      ))}
                     </div>
-                    {[10, 25, 50, 75, 100].map((distance) => (
-                      <SelectItem 
-                        key={`dist-${distance}`} 
-                        value={`${selectedService || 'all'}_${distance}`}
-                        className="cursor-pointer"
-                      >
-                        <div className="flex items-center gap-2">
-                          <Target className="w-3 h-3 text-teal-600" />
-                          Within {distance} km
-                          {proximityRadius === distance && <span className="ml-auto text-teal-600">✓</span>}
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </>
+                  </ScrollArea>
+                </div>
+                
+                {/* Distance Filter */}
+                {userLat !== null && userLon !== null && (
+                  <div className="p-3">
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Distance</p>
+                    <div className="space-y-1">
+                      {[10, 25, 50, 75, 100].map((distance) => (
+                        <label 
+                          key={`dist-${distance}`}
+                          className="flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer transition-colors"
+                        >
+                          <Checkbox
+                            checked={proximityRadius === distance}
+                            onCheckedChange={(checked) => {
+                              if (checked) setProximityRadius(distance);
+                            }}
+                            className="border-gray-300 dark:border-gray-600 rounded-full"
+                          />
+                          <div className="flex items-center gap-2 flex-1">
+                            <Target className="w-3 h-3 text-teal-600" />
+                            <span className="text-sm text-gray-700 dark:text-gray-300">Within {distance} km</span>
+                          </div>
+                          {proximityRadius === distance && (
+                            <Check className="w-4 h-4 text-teal-600" />
+                          )}
+                        </label>
+                      ))}
+                    </div>
+                  </div>
                 )}
-              </SelectContent>
-            </Select>
+                
+                {/* Apply Button */}
+                <div className="p-3 border-t border-gray-100 dark:border-gray-700">
+                  <Button 
+                    onClick={() => setFilterPopoverOpen(false)}
+                    className="w-full bg-orange-500 hover:bg-orange-600 text-white"
+                  >
+                    Apply Filters
+                  </Button>
+                </div>
+              </PopoverContent>
+            </Popover>
             
             {/* Map Style Toggle - Compact icon-only buttons next to filter */}
             <div className="flex gap-0.5 p-0.5 bg-gray-100 dark:bg-gray-800 rounded-md">
@@ -1068,40 +1122,27 @@ export const OperatorMap = () => {
         </div>
         
         {/* Active Filters Display */}
-        {(preSelectedServices.length > 0 || selectedService || showFavoritesOnly || (userLat && proximityRadius !== 50)) && (
+        {(preSelectedServices.length > 0 || selectedServices.length > 0 || showFavoritesOnly || (userLat && proximityRadius !== 50)) && (
           <div className="flex flex-wrap gap-2 mt-3">
             {/* Show pre-selected services from home page */}
-            {preSelectedServices.length > 0 ? (
-              <>
-                {preSelectedServices.map((service, idx) => (
-                  <span key={idx} className="inline-flex items-center gap-1 px-2 py-1 bg-teal-50 dark:bg-teal-900/30 text-teal-700 dark:text-teal-400 rounded-full text-xs font-medium">
-                    {service}
-                    <button onClick={() => setPreSelectedServices(preSelectedServices.filter(s => s !== service))} className="hover:text-teal-900">×</button>
-                  </span>
-                ))}
-                {preSelectedServices.length > 1 && (
-                  <button 
-                    onClick={() => {
-                      setPreSelectedServices([]);
-                      setSelectedService('');
-                    }} 
-                    className="text-xs text-gray-500 hover:text-gray-700 underline"
-                  >
-                    Clear all
-                  </button>
-                )}
-              </>
-            ) : selectedService && (
-              <span className="inline-flex items-center gap-1 px-2 py-1 bg-teal-50 dark:bg-teal-900/30 text-teal-700 dark:text-teal-400 rounded-full text-xs font-medium">
-                {selectedService}
-                <button onClick={() => setSelectedService('')} className="hover:text-teal-900">×</button>
+            {preSelectedServices.map((service, idx) => (
+              <span key={`pre-${idx}`} className="inline-flex items-center gap-1 px-2 py-1 bg-teal-50 dark:bg-teal-900/30 text-teal-700 dark:text-teal-400 rounded-full text-xs font-medium">
+                {service}
+                <button onClick={() => setPreSelectedServices(preSelectedServices.filter(s => s !== service))} className="hover:text-teal-900">×</button>
               </span>
-            )}
+            ))}
+            {/* Show selected services from filter dropdown */}
+            {selectedServices.map((service, idx) => (
+              <span key={`sel-${idx}`} className="inline-flex items-center gap-1 px-2 py-1 bg-orange-50 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 rounded-full text-xs font-medium">
+                {service}
+                <button onClick={() => setSelectedServices(selectedServices.filter(s => s !== service))} className="hover:text-orange-900">×</button>
+              </span>
+            ))}
             {userLat && proximityRadius !== 50 && (
-              <span className="inline-flex items-center gap-1 px-2 py-1 bg-orange-50 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 rounded-full text-xs font-medium">
+              <span className="inline-flex items-center gap-1 px-2 py-1 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded-full text-xs font-medium">
                 <Target className="w-3 h-3" />
                 {proximityRadius} km
-                <button onClick={() => setProximityRadius(50)} className="hover:text-orange-900">×</button>
+                <button onClick={() => setProximityRadius(50)} className="hover:text-blue-900">×</button>
               </span>
             )}
             {showFavoritesOnly && (
@@ -1110,6 +1151,20 @@ export const OperatorMap = () => {
                 Favorites
                 <button onClick={() => setShowFavoritesOnly(false)} className="hover:text-red-900">×</button>
               </span>
+            )}
+            {/* Clear all button if multiple filters active */}
+            {(preSelectedServices.length + selectedServices.length > 1 || (preSelectedServices.length + selectedServices.length >= 1 && (proximityRadius !== 50 || showFavoritesOnly))) && (
+              <button 
+                onClick={() => {
+                  setPreSelectedServices([]);
+                  setSelectedServices([]);
+                  setProximityRadius(50);
+                  setShowFavoritesOnly(false);
+                }} 
+                className="text-xs text-gray-500 hover:text-gray-700 underline"
+              >
+                Clear all
+              </button>
             )}
           </div>
         )}
@@ -1375,31 +1430,6 @@ export const OperatorMap = () => {
               className={`overflow-y-auto px-4 ${sheetPosition === 'collapsed' && !isDragging ? 'hidden' : ''}`} 
               style={{ height: 'calc(100% - 60px)', opacity: sheetPosition === 'collapsed' && !isDragging ? 0 : 1 }}
             >
-              {/* Quick filters as horizontal scroll chips */}
-              <div className="flex gap-2 overflow-x-auto pb-3 mb-3 scrollbar-hide">
-                <button
-                  onClick={() => setSelectedService('')}
-                  className={`flex-shrink-0 px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
-                    !selectedService ? 'bg-black text-white dark:bg-white dark:text-black' : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300'
-                  }`}
-                  data-testid="filter-chip-all"
-                >
-                  All
-                </button>
-                {services.slice(1).map(service => (
-                  <button
-                    key={service}
-                    onClick={() => setSelectedService(service)}
-                    className={`flex-shrink-0 px-3 py-1.5 rounded-full text-sm font-medium transition-colors whitespace-nowrap ${
-                      selectedService === service ? 'bg-black text-white dark:bg-white dark:text-black' : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300'
-                    }`}
-                    data-testid={`filter-chip-${service.toLowerCase().replace(/\s+/g, '-')}`}
-                  >
-                    {service}
-                  </button>
-                ))}
-              </div>
-
               {/* Operator Cards - Mobile optimized */}
               <div className="space-y-3 pb-4">
                 {operators?.length === 0 ? (
@@ -1411,7 +1441,8 @@ export const OperatorMap = () => {
                       size="sm" 
                       className="mt-3"
                       onClick={() => {
-                        setSelectedService('');
+                        setSelectedServices([]);
+                        setPreSelectedServices([]);
                         setProximityRadius(100);
                       }}
                     >

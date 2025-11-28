@@ -3,6 +3,7 @@ import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
 import { useState, useEffect, useRef, useMemo } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useI18n } from "@/i18n";
 
 interface MobileBottomNavProps {
   context?: "customer" | "operator";
@@ -28,6 +29,7 @@ const CUSTOMER_ONLY_PAGES = [
 export function MobileBottomNav({ context = "customer" }: MobileBottomNavProps) {
   const [location] = useLocation();
   const { user } = useAuth();
+  const { t } = useI18n();
   const [isVisible, setIsVisible] = useState(true);
   const lastScrollY = useRef(0);
   
@@ -101,31 +103,31 @@ export function MobileBottomNav({ context = "customer" }: MobileBottomNavProps) 
   const operatorNavItems = [
     {
       icon: LayoutDashboard,
-      label: "Dashboard",
+      label: t.nav.dashboard,
       path: "/operator",
       testId: "nav-operator-dashboard"
     },
     {
       icon: MapPin,
-      label: "Jobs",
+      label: t.nav.jobs,
       path: "/operator/nearby-jobs",
       testId: "nav-operator-jobs"
     },
     {
       icon: Wallet,
-      label: "Wallet",
+      label: t.nav.wallet,
       path: walletPath,
       testId: "nav-operator-wallet"
     },
     {
       icon: Truck,
-      label: "Earn",
+      label: t.nav.driveAndEarn.split(' ')[0], // "Drive" or equivalent
       path: "/drive-earn",
       testId: "nav-operator-drive"
     },
     {
       icon: CircleUser,
-      label: "Profile",
+      label: t.nav.profile,
       path: "/profile",
       testId: "nav-operator-profile"
     }
@@ -134,62 +136,62 @@ export function MobileBottomNav({ context = "customer" }: MobileBottomNavProps) 
   const customerNavItems = user ? [
     {
       icon: Home,
-      label: "Home",
+      label: t.nav.home,
       path: "/",
       testId: "nav-home"
     },
     {
       icon: Search,
-      label: "Browse",
+      label: t.nav.browseOperators.split(' ')[0], // "Browse" or equivalent
       path: "/customer/operators",
       testId: "nav-browse"
     },
     {
       icon: ClipboardList,
-      label: "Requests",
+      label: t.nav.requests,
       path: "/customer/requests",
       testId: "nav-requests"
     },
     {
       icon: Heart,
-      label: "Favorites",
+      label: t.nav.favorites,
       path: `/customer/favorites?from=${encodeURIComponent(location)}`,
       testId: "nav-favorites"
     },
     {
       icon: CircleUser,
-      label: "Profile",
+      label: t.nav.profile,
       path: "/profile",
       testId: "nav-profile"
     }
   ] : [
     {
       icon: Home,
-      label: "Home",
+      label: t.nav.home,
       path: "/",
       testId: "nav-home"
     },
     {
       icon: Search,
-      label: "Browse",
+      label: t.nav.browseOperators.split(' ')[0], // "Browse" or equivalent
       path: "/customer/operators",
       testId: "nav-browse"
     },
     {
       icon: Truck,
-      label: "Earn",
+      label: t.nav.driveAndEarn.split(' ')[0], // "Drive" or equivalent
       path: "/drive-earn",
       testId: "nav-drive-earn"
     },
     {
       icon: LogIn,
-      label: "Sign In",
+      label: t.auth.signIn,
       path: "/signin",
       testId: "nav-signin"
     },
     {
       icon: UserPlus,
-      label: "Sign Up",
+      label: t.auth.signUp,
       path: "/signup",
       testId: "nav-signup"
     }
