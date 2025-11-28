@@ -4,7 +4,7 @@ import { db } from "./db";
 import { operators, customers, users, favorites, operatorTierStats, weatherAlerts, insertWeatherAlertSchema, emergencyRequests, dispatchQueue, insertEmergencyRequestSchema, insertDispatchQueueSchema, businesses, serviceRequests, operatorDailyEarnings, operatorMonthlyEarnings, acceptedJobs, operatorPricingConfigs, operatorQuotes, insertOperatorPricingConfigSchema, insertOperatorQuoteSchema, notifications, jobMessages, operatorLiveLocations, insertJobMessageSchema, insertOperatorLiveLocationSchema, ratings } from "@shared/schema";
 import { notificationService } from "./notificationService";
 import { eq, sql, and, gte, or, desc, asc } from "drizzle-orm";
-import { insertJobSchema, insertServiceRequestSchema, insertCustomerSchema, insertOperatorSchema, insertRatingSchema, insertFavoriteSchema, insertOperatorLocationSchema, insertCustomerServiceHistorySchema, OPERATOR_TIER_INFO } from "@shared/schema";
+import { insertJobSchema, insertServiceRequestSchema, insertCustomerSchema, insertOperatorSchema, insertRatingSchema, insertFavoriteSchema, insertOperatorLocationSchema, insertCustomerServiceHistorySchema, OPERATOR_TIER_INFO, SERVICE_AREA_LIMITS, operatorServiceAreas } from "@shared/schema";
 import { isWithinRadius } from "./utils/distance";
 import { getServiceRelevantAlerts } from "./services/weatherService";
 import { z } from "zod";
@@ -665,6 +665,45 @@ export function registerRoutes(storage: IStorage) {
         }
       }
       
+      // SERVICE AREA VALIDATION: Enforce tier-based constraints
+      const serviceAreas = (req.body as any).serviceAreas as Array<{
+        countryCode: string;
+        countryName: string;
+        stateCode: string;
+        stateName: string;
+        cityName: string;
+        isPrimary: boolean;
+      }> | undefined;
+      
+      if (serviceAreas && serviceAreas.length > 0) {
+        const limits = SERVICE_AREA_LIMITS[tier as keyof typeof SERVICE_AREA_LIMITS];
+        
+        // Validate max cities
+        if (limits.maxCities && serviceAreas.length > limits.maxCities) {
+          return res.status(400).json({
+            message: `${OPERATOR_TIER_INFO[tier as keyof typeof OPERATOR_TIER_INFO].label} operators can only select up to ${limits.maxCities} city(s).`,
+            field: "serviceAreas",
+            limit: limits.maxCities,
+            received: serviceAreas.length
+          });
+        }
+        
+        // Validate same-province requirement for tiers that require it
+        if (limits.requireSameProvince && serviceAreas.length > 1) {
+          const firstCity = serviceAreas[0];
+          const hasDifferentProvince = serviceAreas.some(
+            area => area.stateCode !== firstCity.stateCode || area.countryCode !== firstCity.countryCode
+          );
+          
+          if (hasDifferentProvince) {
+            return res.status(400).json({
+              message: `${OPERATOR_TIER_INFO[tier as keyof typeof OPERATOR_TIER_INFO].label} operators must select cities within the same province/state.`,
+              field: "serviceAreas"
+            });
+          }
+        }
+      }
+      
       // PHASE 1: Create operator tier profiles with PENDING approval status
       // All new operators must be verified before they can earn
       const tierProfiles: Record<string, any> = {};
@@ -752,6 +791,24 @@ export function registerRoutes(storage: IStorage) {
       }));
 
       await db.insert(operatorTierStats).values(tierStatsToCreate);
+      
+      // Persist service areas if provided
+      if (serviceAreas && serviceAreas.length > 0) {
+        const serviceAreasToCreate = serviceAreas.map(area => ({
+          operatorId: result.data.operatorId,
+          tier,
+          countryCode: area.countryCode,
+          countryName: area.countryName,
+          stateCode: area.stateCode,
+          stateName: area.stateName,
+          cityName: area.cityName,
+          coverageType: "full_city" as const,
+          isPrimary: area.isPrimary ? 1 : 0,
+          isActive: 1
+        }));
+        
+        await db.insert(operatorServiceAreas).values(serviceAreasToCreate);
+      }
       
       res.status(201).json(operator);
     } catch (error: any) {
