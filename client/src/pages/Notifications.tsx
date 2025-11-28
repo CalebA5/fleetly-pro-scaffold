@@ -15,7 +15,7 @@ import { useLocation } from "wouter";
 
 export default function Notifications() {
   const { user } = useAuth();
-  const { allNotifications, unreadNotifications, markAsRead, markAllAsRead } = useNotifications();
+  const { notifications, unreadNotifications, markAsRead } = useNotifications();
   const { location: userLocation } = useUserLocation();
   const [, setLocation] = useLocation();
 
@@ -87,7 +87,9 @@ export default function Notifications() {
           
           {unreadNotifications.length > 0 && (
             <Button 
-              onClick={markAllAsRead}
+              onClick={() => {
+                unreadNotifications.forEach(n => markAsRead(n.notificationId));
+              }}
               variant="outline"
               size="sm"
               data-testid="button-mark-all-read"
@@ -128,7 +130,7 @@ export default function Notifications() {
 
           {/* All Tab */}
           <TabsContent value="all" className="space-y-4">
-            {localWeatherAlerts.length === 0 && allNotifications.length === 0 ? (
+            {localWeatherAlerts.length === 0 && notifications.length === 0 ? (
               <Card>
                 <CardContent className="flex flex-col items-center justify-center py-16">
                   <Bell className="h-16 w-16 text-muted-foreground/50 mb-4" />
@@ -184,7 +186,7 @@ export default function Notifications() {
                 ))}
 
                 {/* Regular Notifications */}
-                {allNotifications.map((notification) => (
+                {notifications.map((notification) => (
                   <Card
                     key={notification.notificationId}
                     className={`cursor-pointer transition-all hover:shadow-md ${
@@ -222,7 +224,7 @@ export default function Notifications() {
 
           {/* Notifications Only Tab */}
           <TabsContent value="notifications" className="space-y-4">
-            {allNotifications.length === 0 ? (
+            {notifications.length === 0 ? (
               <Card>
                 <CardContent className="flex flex-col items-center justify-center py-16">
                   <Bell className="h-16 w-16 text-muted-foreground/50 mb-4" />
@@ -235,7 +237,7 @@ export default function Notifications() {
                 </CardContent>
               </Card>
             ) : (
-              allNotifications.map((notification) => (
+              notifications.map((notification) => (
                 <Card
                   key={notification.notificationId}
                   className={`cursor-pointer transition-all hover:shadow-md ${
