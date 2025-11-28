@@ -31,6 +31,33 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
+const SUPPORTED_LANGUAGES = [
+  { code: "en", name: "English", nativeName: "English" },
+  { code: "fr", name: "French", nativeName: "Français" },
+  { code: "es", name: "Spanish", nativeName: "Español" },
+  { code: "zh", name: "Chinese", nativeName: "中文" },
+  { code: "hi", name: "Hindi", nativeName: "हिन्दी" },
+  { code: "ar", name: "Arabic", nativeName: "العربية" },
+  { code: "pt", name: "Portuguese", nativeName: "Português" },
+  { code: "de", name: "German", nativeName: "Deutsch" },
+];
+
+const getStoredLanguage = () => {
+  try {
+    return localStorage.getItem("fleetly_language") || "en";
+  } catch {
+    return "en";
+  }
+};
+
+const setStoredLanguage = (lang: string) => {
+  try {
+    localStorage.setItem("fleetly_language", lang);
+    document.documentElement.lang = lang;
+  } catch {
+  }
+};
+
 export default function Settings() {
   const { user, signOut } = useAuth();
   const [location] = useLocation();
@@ -38,6 +65,7 @@ export default function Settings() {
   const { location: userLocation, permissionStatus, formattedAddress, refreshLocation, clearLocation } = useUserLocation();
   
   const [isLoading] = useState(false);
+  const [currentLanguage, setCurrentLanguage] = useState(getStoredLanguage());
   const [notifications, setNotifications] = useState({
     push: true,
     email: true,
@@ -45,6 +73,16 @@ export default function Settings() {
     jobAlerts: true,
     promotions: false,
   });
+  
+  const handleLanguageChange = (lang: string) => {
+    setCurrentLanguage(lang);
+    setStoredLanguage(lang);
+    const langInfo = SUPPORTED_LANGUAGES.find(l => l.code === lang);
+    toast({
+      title: "Language Updated",
+      description: `App language set to ${langInfo?.nativeName || lang}`,
+    });
+  };
   
   const [showPasswordDialog, setShowPasswordDialog] = useState(false);
   const [showPrivacyDialog, setShowPrivacyDialog] = useState(false);
@@ -217,14 +255,16 @@ export default function Settings() {
                     <p className="text-xs text-gray-500">App language</p>
                   </div>
                 </div>
-                <Select defaultValue="en">
-                  <SelectTrigger className="w-[120px] h-9 border-gray-200 dark:border-gray-700" data-testid="select-language">
+                <Select value={currentLanguage} onValueChange={handleLanguageChange}>
+                  <SelectTrigger className="w-[140px] h-9 border-gray-200 dark:border-gray-700" data-testid="select-language">
                     <SelectValue placeholder="Language" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="en">English</SelectItem>
-                    <SelectItem value="fr">Français</SelectItem>
-                    <SelectItem value="es">Español</SelectItem>
+                    {SUPPORTED_LANGUAGES.map((lang) => (
+                      <SelectItem key={lang.code} value={lang.code}>
+                        {lang.nativeName}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
