@@ -1145,20 +1145,47 @@ export function registerRoutes(storage: IStorage) {
       const serviceNameMappings: Record<string, string> = {
         "urgent_hauling": "hauling",
         "courier_services": "courier",
+        "courier_service": "courier",
         "electrician_services": "electrician",
+        "electrician_service": "electrician",
+        "electrical": "electrician",
         "licensed_plumbing": "light_plumbing",
         "licensed_electrical": "electrician",
         "basic_home_repairs": "basic_home_repairs",
+        "home_repairs": "basic_home_repairs",
         "equipment_transport": "hauling",
+        "heavy_duty_hauling": "heavy_hauling",
+        "heavyduty_hauling": "heavy_hauling",
         "emergency_services": "towing",
+        "emergency_towing": "towing",
         "roadside": "towing",
-        "roadside_assistance": "towing"
+        "roadside_assistance": "towing",
+        "roadside_assistance_urgent": "towing",
+        "tow_truck": "towing",
+        "towtruck": "towing",
+        "snow_removal": "snow_plowing",
+        "snowplowing": "snow_plowing",
+        "snowshoveling": "snow_shoveling",
+        "lawn_care": "lawn_maintenance",
+        "lawncare": "lawn_maintenance",
+        "yard_work": "yard_cleanup",
+        "yardwork": "yard_cleanup",
+        "window_wash": "window_cleaning",
+        "windowcleaning": "window_cleaning",
+        "debris_cleanup": "debris_removal",
+        "junk_removal": "debris_removal"
       };
       
       const normalizeServiceType = (serviceType: string | null | undefined): string => {
         if (!serviceType) return "";
-        const slug = serviceType.toLowerCase().replace(/\s+/g, '_').replace(/-/g, '_');
-        return serviceNameMappings[slug] || slug;
+        // Remove all punctuation (parentheses, slashes, ampersands, etc.) and extra whitespace
+        const cleaned = serviceType
+          .toLowerCase()
+          .replace(/[()\/&,.'"\-]+/g, ' ')  // Replace punctuation with spaces
+          .replace(/\s+/g, '_')              // Replace spaces with underscores
+          .replace(/_+/g, '_')               // Collapse multiple underscores
+          .replace(/^_|_$/g, '');            // Trim leading/trailing underscores
+        return serviceNameMappings[cleaned] || cleaned;
       };
       
       // Define canonical service IDs for each tier (derived from TIER_SERVICES)
