@@ -47,6 +47,7 @@ export const CreateServiceRequest = () => {
   const prefilledDescription = params.get("description") || "";
   const prefilledOperatorId = params.get("operatorId") || "";
   const prefilledOperatorName = params.get("operatorName") || "";
+  const prefilledLocation = params.get("location") || "";
 
   // Basic Fields
   const [serviceType, setServiceType] = useState(prefilledService);
@@ -57,7 +58,7 @@ export const CreateServiceRequest = () => {
   const [urgencyLevel, setUrgencyLevel] = useState<"low" | "medium" | "high" | "emergency">("medium");
   const [showScheduleFields, setShowScheduleFields] = useState(false);
   const [jobDescription, setJobDescription] = useState(prefilledDescription);
-  const [locationAddress, setLocationAddress] = useState("");
+  const [locationAddress, setLocationAddress] = useState(prefilledLocation);
   const [preferredDate, setPreferredDate] = useState("");
   const [preferredTime, setPreferredTime] = useState("");
   const [timeFlexibility, setTimeFlexibility] = useState("flexible");
@@ -314,6 +315,39 @@ export const CreateServiceRequest = () => {
             Provide detailed information so operators can give you accurate quotes and service
           </p>
         </div>
+
+        {/* Prefilled Location Banner */}
+        {prefilledLocation && (
+          <Card className="mb-6 border-orange-200 dark:border-orange-800 bg-gradient-to-r from-orange-50 to-amber-50 dark:from-orange-900/10 dark:to-amber-900/10">
+            <CardContent className="py-4">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-full bg-orange-500 dark:bg-orange-600 flex items-center justify-center text-white">
+                    <MapPin className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-black dark:text-white">Service at your home address</h3>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 max-w-md truncate">
+                      {prefilledLocation}
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setLocationAddress("");
+                    window.history.replaceState({}, '', '/customer/create-request');
+                  }}
+                  className="whitespace-nowrap"
+                  data-testid="button-change-location"
+                >
+                  Change Location
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Prefilled Operator Info Banner */}
         {selectedOperatorName && (

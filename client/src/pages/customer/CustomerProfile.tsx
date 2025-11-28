@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { Link } from "wouter";
+import { useState, useEffect, useRef } from "react";
+import { Link, useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -14,10 +14,13 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { Header } from "@/components/Header";
 import { MobileBottomNav } from "@/components/MobileBottomNav";
-import { ArrowLeft, User, Mail, Phone, MapPin, Edit, Save, X, Calendar, Star, Heart, TrendingUp } from "lucide-react";
+import { ArrowLeft, User, Mail, Phone, MapPin, Edit, Save, X, Calendar, Star, Heart, TrendingUp, Home, Navigation, Plus, Zap } from "lucide-react";
 import type { Customer, ServiceRequest, Favorite } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/contexts/AuthContext";
+import { useSeasonalTheme } from "@/contexts/SeasonalThemeContext";
+import mapboxgl from "mapbox-gl";
+import "mapbox-gl/dist/mapbox-gl.css";
 
 const profileFormSchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -35,7 +38,14 @@ export const CustomerProfile = () => {
   const [isEditing, setIsEditing] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
+  const { activeTheme } = useSeasonalTheme();
+  const [, navigate] = useLocation();
   const customerId = user?.id || "CUST-001";
+  
+  const homeMapRef = useRef<mapboxgl.Map | null>(null);
+  const homeMapContainerRef = useRef<HTMLDivElement | null>(null);
+  const homeMarkerRef = useRef<mapboxgl.Marker | null>(null);
+  const [homeCoordinates, setHomeCoordinates] = useState<{lat: number, lng: number} | null>(null);
 
   const { data: customer, isLoading } = useQuery<Customer>({
     queryKey: [`/api/customers/${customerId}`],
@@ -104,6 +114,111 @@ export const CustomerProfile = () => {
       });
     }
   }, [customer, form]);
+
+  // Geocode home address when customer data loads
+  useEffect(() => {
+    if (!customer?.address || !customer?.city || !customer?.state) return;
+    
+    const fullAddress = `${customer.address}, ${customer.city}, ${customer.state} ${customer.zipCode || ''}`.trim();
+    
+    fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(fullAddress)}`)
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.length > 0) {
+          setHomeCoordinates({
+            lat: parseFloat(data[0].lat),
+            lng: parseFloat(data[0].lon)
+          });
+        }
+      })
+      .catch(err => console.error('Geocoding error:', err));
+  }, [customer?.address, customer?.city, customer?.state, customer?.zipCode]);
+
+  // Initialize home address map
+  useEffect(() => {
+    if (!homeCoordinates || !homeMapContainerRef.current) return;
+
+    const mapStyle = activeTheme.mode === 'dark' 
+      ? 'mapbox://styles/mapbox/dark-v11'
+      : 'mapbox://styles/mapbox/light-v11';
+
+    mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_TOKEN || '';
+    
+    // Clean up existing map if coordinates or theme changed
+    if (homeMarkerRef.current) {
+      homeMarkerRef.current.remove();
+      homeMarkerRef.current = null;
+    }
+    if (homeMapRef.current) {
+      homeMapRef.current.remove();
+      homeMapRef.current = null;
+    }
+    
+    const map = new mapboxgl.Map({
+      container: homeMapContainerRef.current,
+      style: mapStyle,
+      center: [homeCoordinates.lng, homeCoordinates.lat],
+      zoom: 15,
+      interactive: false,
+    });
+
+    map.on('load', () => {
+      const markerEl = document.createElement('div');
+      markerEl.className = 'home-marker';
+      markerEl.innerHTML = `
+        <div style="
+          width: 40px;
+          height: 40px;
+          background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+          border-radius: 50% 50% 50% 0;
+          transform: rotate(-45deg);
+          border: 3px solid white;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        ">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="white" stroke="white" stroke-width="0" style="transform: rotate(45deg);">
+            <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+            <polyline points="9 22 9 12 15 12 15 22"></polyline>
+          </svg>
+        </div>
+      `;
+
+      const marker = new mapboxgl.Marker({ element: markerEl, anchor: 'bottom' })
+        .setLngLat([homeCoordinates.lng, homeCoordinates.lat])
+        .addTo(map);
+      
+      homeMarkerRef.current = marker;
+    });
+
+    homeMapRef.current = map;
+
+    return () => {
+      if (homeMarkerRef.current) {
+        homeMarkerRef.current.remove();
+        homeMarkerRef.current = null;
+      }
+      if (homeMapRef.current) {
+        homeMapRef.current.remove();
+        homeMapRef.current = null;
+      }
+    };
+  }, [homeCoordinates, activeTheme.mode]);
+
+  // Build full home address string
+  const getFullHomeAddress = () => {
+    if (!customer) return '';
+    const parts = [customer.address, customer.city, customer.state, customer.zipCode].filter(Boolean);
+    return parts.join(', ');
+  };
+
+  const handleQuickRequest = () => {
+    const fullAddress = getFullHomeAddress();
+    const params = new URLSearchParams();
+    if (fullAddress) params.set('location', fullAddress);
+    navigate(`/customer/create-request?${params.toString()}`);
+  };
 
   const onSubmit = (data: ProfileFormValues) => {
     updateMutation.mutate(data);
@@ -263,6 +378,83 @@ export const CustomerProfile = () => {
             </CardContent>
           </Card>
         </div>
+
+        {/* Home Address Quick Request Card */}
+        <Card className="mb-8 shadow-lg overflow-hidden border-0">
+          <CardHeader className="bg-gradient-to-r from-orange-500 via-orange-600 to-red-600 text-white pb-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
+                  <Home className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <CardTitle className="text-white text-lg">Home Address</CardTitle>
+                  <CardDescription className="text-white/80 text-sm">
+                    Quick request services at your home
+                  </CardDescription>
+                </div>
+              </div>
+              {customer?.address && (
+                <Button
+                  onClick={handleQuickRequest}
+                  className="bg-white text-orange-600 hover:bg-white/90 shadow-lg"
+                  data-testid="button-quick-request"
+                >
+                  <Zap className="w-4 h-4 mr-2" />
+                  Quick Request
+                </Button>
+              )}
+            </div>
+          </CardHeader>
+          <CardContent className="p-0">
+            {customer?.address && homeCoordinates ? (
+              <div className="relative">
+                <div 
+                  ref={homeMapContainerRef}
+                  className="w-full h-48 md:h-56"
+                  data-testid="map-home-address"
+                />
+                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-white">
+                      <MapPin className="w-4 h-4" />
+                      <span className="text-sm font-medium">{getFullHomeAddress()}</span>
+                    </div>
+                    <a
+                      href={`https://www.google.com/maps/dir/?api=1&destination=${homeCoordinates.lat},${homeCoordinates.lng}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-1 text-white/80 hover:text-white text-sm transition-colors"
+                    >
+                      <Navigation className="w-3 h-3" />
+                      Directions
+                    </a>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="p-6 text-center">
+                <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
+                  <MapPin className="w-8 h-8 text-gray-400" />
+                </div>
+                <p className="text-gray-600 dark:text-gray-400 mb-4">
+                  {customer?.address ? 'Locating your address on the map...' : 'Add your home address to enable quick service requests'}
+                </p>
+                {!customer?.address && (
+                  <Button
+                    variant="outline"
+                    onClick={() => setIsEditing(true)}
+                    className="border-orange-500 text-orange-600 hover:bg-orange-50"
+                    data-testid="button-add-address"
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add Home Address
+                  </Button>
+                )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
         {/* Personal Information Card */}
         <Card className="shadow-lg">
