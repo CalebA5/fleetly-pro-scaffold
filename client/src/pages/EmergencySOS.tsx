@@ -86,6 +86,9 @@ export default function EmergencySOS() {
   const [selectedService, setSelectedService] = useState<ServiceType | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isGettingLocation, setIsGettingLocation] = useState(false);
+  const [locationPermissionDenied, setLocationPermissionDenied] = useState(false);
+  const [isGeocodingAddress, setIsGeocodingAddress] = useState(false);
+  const [showLocationPrompt, setShowLocationPrompt] = useState(false);
   
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
@@ -229,8 +232,9 @@ export default function EmergencySOS() {
     markerRef.current = marker;
   }, [latitude, longitude]);
 
-  const getLocation = () => {
+  const getLocation = (showPromptOnDeny: boolean = false) => {
     setIsGettingLocation(true);
+    setShowLocationPrompt(false);
     
     if ("geolocation" in navigator) {
       navigator.geolocation.getCurrentPosition(
@@ -240,6 +244,7 @@ export default function EmergencySOS() {
           
           setLatitude(lat);
           setLongitude(lng);
+          setLocationPermissionDenied(false);
           
           try {
             const response = await fetch(
@@ -256,10 +261,21 @@ export default function EmergencySOS() {
         },
         (error) => {
           console.error("Location error:", error);
-          toast({
-            title: "Location Access Needed",
-            description: "Please enter your address manually to continue.",
-          });
+          setLocationPermissionDenied(true);
+          
+          if (showPromptOnDeny) {
+            setShowLocationPrompt(true);
+            toast({
+              title: "Location Permission Required",
+              description: "Please enable location access in your browser settings, or enter your address manually.",
+              variant: "destructive",
+            });
+          } else {
+            toast({
+              title: "Location Access Needed",
+              description: "Please enter your address manually to continue.",
+            });
+          }
           setIsGettingLocation(false);
           setSelectedService(null);
           setStep("service");
@@ -275,9 +291,73 @@ export default function EmergencySOS() {
         title: "Location Not Supported",
         description: "Please enter your address manually to continue.",
       });
+      setLocationPermissionDenied(true);
       setIsGettingLocation(false);
       setSelectedService(null);
       setStep("service");
+    }
+  };
+
+  // Handle "Use Current Location" button click
+  const handleUseCurrentLocation = () => {
+    if (locationPermissionDenied) {
+      setShowLocationPrompt(true);
+      toast({
+        title: "Location Permission Required",
+        description: "Please enable location access in your browser settings to use this feature.",
+        variant: "destructive",
+      });
+    } else {
+      getLocation(true);
+    }
+  };
+
+  // Geocode manual address and update map
+  const geocodeManualAddress = async () => {
+    if (!location || location.trim().length < 5) {
+      toast({
+        title: "Address Required",
+        description: "Please enter a valid address.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    setIsGeocodingAddress(true);
+    
+    try {
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(location)}&format=json&limit=1`
+      );
+      const data = await response.json();
+      
+      if (data && data.length > 0) {
+        const lat = parseFloat(data[0].lat);
+        const lng = parseFloat(data[0].lon);
+        setLatitude(lat);
+        setLongitude(lng);
+        setLocation(data[0].display_name || location);
+        
+        toast({
+          title: "Address Found",
+          description: "Your location has been updated on the map.",
+        });
+      } else {
+        toast({
+          title: "Address Not Found",
+          description: "We couldn't find that address. Please try a more specific address.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Geocoding error:", error);
+      toast({
+        title: "Error Finding Address",
+        description: "Please try again or use a different address.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsGeocodingAddress(false);
     }
   };
 
@@ -464,27 +544,101 @@ export default function EmergencySOS() {
       </div>
       
       {/* Location Status Card - Floating on map */}
-      {latitude && longitude && step !== "finding" && (
+      {step !== "finding" && step !== "location" && (
         <div className="absolute top-36 left-4 right-4 z-10">
           <div className="bg-white/95 dark:bg-gray-900/95 backdrop-blur-lg rounded-xl p-4 shadow-xl border border-gray-200 dark:border-gray-700">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-green-100 dark:bg-green-900/50 flex items-center justify-center">
-                <MapPin className="w-5 h-5 text-green-600 dark:text-green-400" />
+            {/* Location header */}
+            <div className="flex items-center gap-3 mb-3">
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                latitude && longitude 
+                  ? "bg-green-100 dark:bg-green-900/50" 
+                  : "bg-orange-100 dark:bg-orange-900/50"
+              }`}>
+                <MapPin className={`w-5 h-5 ${
+                  latitude && longitude 
+                    ? "text-green-600 dark:text-green-400" 
+                    : "text-orange-600 dark:text-orange-400"
+                }`} />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-xs text-green-600 dark:text-green-400 font-semibold uppercase tracking-wide">Your Location</p>
-                <p className="text-sm text-gray-900 dark:text-white font-medium truncate">
-                  {location || `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`}
+                <p className={`text-xs font-semibold uppercase tracking-wide ${
+                  latitude && longitude 
+                    ? "text-green-600 dark:text-green-400" 
+                    : "text-orange-600 dark:text-orange-400"
+                }`}>
+                  {latitude && longitude ? "Your Location" : "Enter Your Location"}
                 </p>
               </div>
               <button
-                onClick={getLocation}
+                onClick={handleUseCurrentLocation}
                 disabled={isGettingLocation}
-                className="px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 text-xs font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-100 dark:bg-blue-900/50 text-xs font-semibold text-blue-700 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-800/50 transition-colors"
+                data-testid="button-use-current-location"
               >
-                {isGettingLocation ? "..." : "Refresh"}
+                <Navigation className="w-3.5 h-3.5" />
+                {isGettingLocation ? "Detecting..." : "Use My Location"}
               </button>
             </div>
+            
+            {/* Address input */}
+            <div className="space-y-2">
+              <div className="flex gap-2">
+                <Input
+                  value={location}
+                  onChange={(e) => setLocation(e.target.value)}
+                  placeholder="Enter address or use current location..."
+                  className="h-10 text-sm bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 flex-1"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      geocodeManualAddress();
+                    }
+                  }}
+                  data-testid="input-custom-address"
+                />
+                <Button
+                  type="button"
+                  onClick={geocodeManualAddress}
+                  disabled={isGeocodingAddress || !location || location.trim().length < 5}
+                  variant="outline"
+                  className="h-10 px-3"
+                  data-testid="button-confirm-address"
+                >
+                  {isGeocodingAddress ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    "Confirm"
+                  )}
+                </Button>
+              </div>
+              
+              {latitude && longitude && (
+                <p className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
+                  Location confirmed on map
+                </p>
+              )}
+              
+              {!latitude && !longitude && (
+                <p className="text-xs text-orange-600 dark:text-orange-400">
+                  Type an address and click Confirm, or use your current location
+                </p>
+              )}
+            </div>
+            
+            {/* Location Permission Prompt */}
+            {showLocationPrompt && (
+              <div className="mt-3 p-3 rounded-lg bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800">
+                <p className="text-xs text-yellow-800 dark:text-yellow-200 font-medium">
+                  Location access was denied. To use your current location:
+                </p>
+                <ol className="text-xs text-yellow-700 dark:text-yellow-300 mt-1 ml-4 list-decimal">
+                  <li>Click the lock/location icon in your browser's address bar</li>
+                  <li>Allow location access for this site</li>
+                  <li>Click "Use My Location" again</li>
+                </ol>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -523,7 +677,7 @@ export default function EmergencySOS() {
             </div>
             
             <Button
-              onClick={getLocation}
+              onClick={() => getLocation()}
               disabled={isGettingLocation}
               className="w-full h-14 text-lg font-bold bg-gradient-to-r from-red-600 to-orange-500 hover:from-red-700 hover:to-orange-600"
               data-testid="button-enable-location"
@@ -544,23 +698,10 @@ export default function EmergencySOS() {
         )}
         
         {step === "service" && (
-          <div className="bg-white dark:bg-gray-900 rounded-t-3xl shadow-2xl safe-area-bottom max-h-[70vh] overflow-hidden flex flex-col">
+          <div className="bg-white dark:bg-gray-900 rounded-t-3xl shadow-2xl safe-area-bottom max-h-[55vh] overflow-hidden flex flex-col mt-auto">
             <div className="p-4 border-b border-gray-100 dark:border-gray-800">
               <div className="w-12 h-1 bg-gray-300 dark:bg-gray-700 rounded-full mx-auto mb-4" />
               <h2 className="text-xl font-bold text-gray-900 dark:text-white text-center">What do you need help with?</h2>
-              
-              {!latitude && !longitude && (
-                <div className="mt-3">
-                  <Input
-                    value={location}
-                    onChange={(e) => setLocation(e.target.value)}
-                    placeholder="Enter your address..."
-                    className="h-12 text-base bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700"
-                    data-testid="input-manual-address"
-                  />
-                  <p className="text-xs text-gray-500 mt-1 text-center">We'll use this address for your request</p>
-                </div>
-              )}
             </div>
             
             <div className="overflow-y-auto flex-1 p-4 space-y-4">
