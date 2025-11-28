@@ -1,9 +1,9 @@
 import { useState, useRef, useEffect } from "react";
-import { Check, ChevronDown, Wrench, Truck, Home, X } from "lucide-react";
+import { Check, ChevronDown, Wrench, Truck, Home, X, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Drawer, DrawerContent, DrawerTrigger } from "@/components/ui/drawer";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { TIER_SERVICES } from "@shared/tierCapabilities";
 
@@ -42,11 +42,11 @@ const SERVICE_CATEGORIES = {
 function ServiceList({
   selectedServices,
   onServicesChange,
-  onDone,
+  searchQuery,
 }: {
   selectedServices: string[];
   onServicesChange: (services: string[]) => void;
-  onDone: () => void;
+  searchQuery: string;
 }) {
   const groupedServices = TIER_SERVICES.reduce((acc, service) => {
     if (!acc[service.category]) {
@@ -64,17 +64,30 @@ function ServiceList({
     }
   };
 
+  const filteredGroupedServices = Object.entries(groupedServices).reduce((acc, [category, services]) => {
+    const filtered = services.filter(service => 
+      service.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      service.id.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+    if (filtered.length > 0) {
+      acc[category] = filtered;
+    }
+    return acc;
+  }, {} as Record<string, typeof TIER_SERVICES>);
+
   return (
-    <div className="max-h-[60vh] overflow-y-auto">
+    <div className="flex-1 overflow-y-auto overscroll-contain">
       {(["micro", "standard", "professional"] as const).map((category) => {
         const categoryConfig = SERVICE_CATEGORIES[category];
-        const services = groupedServices[category] || [];
+        const services = filteredGroupedServices[category] || [];
         const CategoryIcon = categoryConfig.icon;
+
+        if (services.length === 0) return null;
 
         return (
           <div key={category} className="border-b border-gray-100 dark:border-gray-800 last:border-0">
             <div className={cn(
-              "sticky top-0 px-4 py-2 flex items-center gap-2",
+              "sticky top-0 px-4 py-3 flex items-center gap-2 z-10",
               categoryConfig.bgColor,
               "backdrop-blur-sm"
             )}>
@@ -86,7 +99,7 @@ function ServiceList({
                 ({services.length})
               </span>
             </div>
-            <div className="p-2 grid grid-cols-2 gap-1">
+            <div className="p-3 grid grid-cols-2 gap-2">
               {services.map((service) => {
                 const isSelected = selectedServices.includes(service.id);
                 return (
@@ -94,22 +107,22 @@ function ServiceList({
                     key={service.id}
                     onClick={() => toggleService(service.id)}
                     className={cn(
-                      "flex items-center gap-2 px-3 py-2 rounded-lg text-left text-sm transition-all",
+                      "flex items-center gap-2 px-3 py-2.5 rounded-xl text-left text-sm transition-all",
                       isSelected
-                        ? "bg-black dark:bg-white text-white dark:text-black"
-                        : "hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
+                        ? "bg-black dark:bg-white text-white dark:text-black shadow-md"
+                        : "bg-gray-50 dark:bg-gray-800/50 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700"
                     )}
                     data-testid={`service-option-${service.id}`}
                   >
                     <div className={cn(
-                      "w-4 h-4 rounded border flex items-center justify-center flex-shrink-0",
+                      "w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all",
                       isSelected
                         ? "bg-white dark:bg-black border-white dark:border-black"
                         : "border-gray-300 dark:border-gray-600"
                     )}>
                       {isSelected && <Check className="w-3 h-3 text-black dark:text-white" />}
                     </div>
-                    <span className="truncate">{service.name}</span>
+                    <span className="truncate font-medium">{service.name}</span>
                   </button>
                 );
               })}
@@ -117,16 +130,9 @@ function ServiceList({
           </div>
         );
       })}
-      
-      {selectedServices.length > 0 && (
-        <div className="sticky bottom-0 p-3 bg-gray-50 dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700">
-          <Button 
-            onClick={onDone}
-            className="w-full bg-black dark:bg-white text-white dark:text-black"
-            data-testid="button-done-services"
-          >
-            Done ({selectedServices.length} selected)
-          </Button>
+      {Object.keys(filteredGroupedServices).length === 0 && (
+        <div className="p-8 text-center text-gray-500 dark:text-gray-400">
+          No services found matching "{searchQuery}"
         </div>
       )}
     </div>
@@ -168,12 +174,12 @@ function TriggerContent({
           <div className="flex items-center gap-2 flex-wrap">
             {selectedServices.length <= 2 ? (
               getSelectedServiceNames().map((name, i) => (
-                <Badge key={i} variant="secondary" className="text-xs">
+                <Badge key={i} variant="secondary" className="text-xs bg-black/10 dark:bg-white/10">
                   {name}
                 </Badge>
               ))
             ) : (
-              <Badge variant="secondary" className="text-xs">
+              <Badge variant="secondary" className="text-xs bg-black/10 dark:bg-white/10">
                 {selectedServices.length} services selected
               </Badge>
             )}
@@ -185,14 +191,14 @@ function TriggerContent({
           <button
             type="button"
             onClick={onClear}
-            className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full transition-colors"
+            className="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full transition-colors"
             data-testid="button-clear-services"
           >
             <X className="w-4 h-4 text-gray-500" />
           </button>
         )}
         <ChevronDown className={cn(
-          "w-5 h-5 text-gray-400 transition-transform",
+          "w-5 h-5 text-gray-400 transition-transform duration-200",
           isOpen && "rotate-180"
         )} />
       </div>
@@ -208,34 +214,8 @@ export function ServiceSelector({
   disabled = false,
 }: ServiceSelectorProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
   const triggerRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const checkMobile = () => setIsMobile(window.innerWidth < 768);
-    checkMobile();
-    window.addEventListener("resize", checkMobile);
-    return () => window.removeEventListener("resize", checkMobile);
-  }, []);
-
-  // Close popover when scrolling to prevent it from floating away
-  useEffect(() => {
-    if (!isOpen) return;
-    
-    const handleScroll = () => {
-      setIsOpen(false);
-    };
-    
-    // Listen to scroll events at the capture phase to catch all scrollable ancestors
-    // Using capture phase ensures we catch scroll events before they reach their targets
-    document.addEventListener('scroll', handleScroll, { passive: true, capture: true });
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    
-    return () => {
-      document.removeEventListener('scroll', handleScroll, { capture: true });
-      window.removeEventListener('scroll', handleScroll);
-    };
-  }, [isOpen]);
 
   const clearAll = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -245,6 +225,13 @@ export function ServiceSelector({
 
   const handleDone = () => {
     setIsOpen(false);
+    setSearchQuery("");
+  };
+
+  const handleOpen = () => {
+    if (!disabled) {
+      setIsOpen(true);
+    }
   };
 
   if (disabled) {
@@ -261,70 +248,59 @@ export function ServiceSelector({
     );
   }
 
-  if (isMobile) {
-    return (
-      <div ref={triggerRef} className={cn("relative", className)}>
-        <Popover open={isOpen} onOpenChange={setIsOpen}>
-          <PopoverTrigger asChild>
-            <div data-testid="button-service-selector">
-              <TriggerContent
-                selectedServices={selectedServices}
-                placeholder={placeholder}
-                disabled={disabled}
-                onClear={clearAll}
-                isOpen={isOpen}
+  return (
+    <>
+      <div 
+        ref={triggerRef} 
+        className={cn("relative", className)}
+        onClick={handleOpen}
+        data-testid="button-service-selector"
+      >
+        <TriggerContent
+          selectedServices={selectedServices}
+          placeholder={placeholder}
+          disabled={disabled}
+          onClear={clearAll}
+          isOpen={isOpen}
+        />
+      </div>
+
+      <Dialog open={isOpen} onOpenChange={(open) => {
+        setIsOpen(open);
+        if (!open) setSearchQuery("");
+      }}>
+        <DialogContent className="max-w-lg w-[95vw] md:w-full h-[80vh] md:h-[70vh] max-h-[600px] p-0 flex flex-col gap-0 rounded-2xl overflow-hidden">
+          <DialogHeader className="px-4 pt-4 pb-3 border-b border-gray-100 dark:border-gray-800 flex-shrink-0">
+            <DialogTitle className="text-center text-lg font-semibold">Select Services</DialogTitle>
+            <div className="relative mt-3">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <Input
+                placeholder="Search services..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9 h-10 rounded-xl bg-gray-100 dark:bg-gray-800 border-0"
+                data-testid="input-search-services"
               />
             </div>
-          </PopoverTrigger>
-          <PopoverContent 
-            className="w-[calc(100vw-32px)] max-w-[400px] p-0 max-h-[50vh] overflow-hidden"
-            align="start"
-            side="bottom"
-            sideOffset={4}
-            style={{ zIndex: 99999 }}
-          >
-            <div className="px-3 py-2 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 sticky top-0">
-              <h3 className="text-sm font-semibold text-center text-black dark:text-white">Select Services</h3>
-            </div>
-            <ServiceList
-              selectedServices={selectedServices}
-              onServicesChange={onServicesChange}
-              onDone={handleDone}
-            />
-          </PopoverContent>
-        </Popover>
-      </div>
-    );
-  }
-
-  return (
-    <div ref={triggerRef} className={cn("relative", className)}>
-      <Popover open={isOpen} onOpenChange={setIsOpen}>
-        <PopoverTrigger asChild>
-          <div data-testid="button-service-selector">
-            <TriggerContent
-              selectedServices={selectedServices}
-              placeholder={placeholder}
-              disabled={disabled}
-              onClear={clearAll}
-              isOpen={isOpen}
-            />
-          </div>
-        </PopoverTrigger>
-        <PopoverContent 
-          className="w-[var(--radix-popover-trigger-width)] min-w-[320px] max-w-[500px] p-0"
-          align="start"
-          side="bottom"
-          sideOffset={4}
-          style={{ zIndex: 99999 }}
-        >
+          </DialogHeader>
+          
           <ServiceList
             selectedServices={selectedServices}
             onServicesChange={onServicesChange}
-            onDone={handleDone}
+            searchQuery={searchQuery}
           />
-        </PopoverContent>
-      </Popover>
-    </div>
+          
+          <div className="flex-shrink-0 p-4 bg-white dark:bg-gray-900 border-t border-gray-100 dark:border-gray-800">
+            <Button 
+              onClick={handleDone}
+              className="w-full h-12 rounded-xl bg-black dark:bg-white text-white dark:text-black font-semibold text-base hover:bg-gray-800 dark:hover:bg-gray-100"
+              data-testid="button-done-services"
+            >
+              {selectedServices.length > 0 ? `Done (${selectedServices.length} selected)` : 'Done'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
