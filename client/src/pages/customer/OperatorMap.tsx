@@ -630,6 +630,8 @@ export const OperatorMap = () => {
 
 
   // Create and update markers for operators
+  // CRITICAL: Use database coordinates ONLY for static positioning
+  // operatorLocations is only used for active live tracking mode (when an operator is en-route)
   useEffect(() => {
     if (!mapRef.current || !mapLoaded || !operators) return;
 
@@ -647,10 +649,19 @@ export const OperatorMap = () => {
 
     // Add or update markers for each operator
     operators.forEach((operator) => {
-      const location = operatorLocations.get(operator.operatorId);
-      const lat = location ? location.lat : parseFloat(operator.latitude as string);
-      const lng = location ? location.lng : parseFloat(operator.longitude as string);
-      const isMoving = location?.isMoving || false;
+      // FIXED: Always use database coordinates for static positioning
+      // Only use operatorLocations for ACTIVE live tracking when isMoving is true
+      const liveLocation = operatorLocations.get(operator.operatorId);
+      const isActivelyMoving = liveLocation?.isMoving === true;
+      
+      // Use the stored database coordinates (latitude/longitude columns)
+      const dbLat = parseFloat(operator.latitude as string) || 0;
+      const dbLng = parseFloat(operator.longitude as string) || 0;
+      
+      // Only use live location if actively moving, otherwise always use database coordinates
+      const lat = isActivelyMoving && liveLocation ? liveLocation.lat : dbLat;
+      const lng = isActivelyMoving && liveLocation ? liveLocation.lng : dbLng;
+      const isMoving = isActivelyMoving;
 
       let marker = currentMarkers.get(operator.operatorId);
 
@@ -788,9 +799,15 @@ export const OperatorMap = () => {
   const panToOperator = (operatorCard: any) => {
     if (!mapRef.current) return;
     
-    const location = operatorLocations.get(operatorCard.operatorId);
-    const lat = location ? location.lat : parseFloat(operatorCard.latitude as string);
-    const lng = location ? location.lng : parseFloat(operatorCard.longitude as string);
+    // FIXED: Always use database coordinates for static positioning
+    const liveLocation = operatorLocations.get(operatorCard.operatorId);
+    const isActivelyMoving = liveLocation?.isMoving === true;
+    
+    const dbLat = parseFloat(operatorCard.latitude as string) || 0;
+    const dbLng = parseFloat(operatorCard.longitude as string) || 0;
+    
+    const lat = isActivelyMoving && liveLocation ? liveLocation.lat : dbLat;
+    const lng = isActivelyMoving && liveLocation ? liveLocation.lng : dbLng;
     
     mapRef.current.flyTo({
       center: [lng, lat],
