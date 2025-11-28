@@ -27,15 +27,28 @@ The admin portal is at `client/src/pages/admin/AdminPortal.tsx`. It allows admin
 4. Each operator card shows their tier profiles with "Approve" and "Reject" buttons
 5. Click Approve to activate a tier, or Reject (with reason) to deny
 
-### Operator Onboarding Flow (Current)
+### Operator Onboarding Flow (Updated Nov 28, 2025)
 Located at `client/src/pages/operator/OperatorOnboarding.tsx`:
-- Step 0: Tier selection (skipped if tier param in URL)
-- Step 1: Contact/Business Info
-- Step 2: Vehicle details (pro/equipped) OR Equipment (manual)
-- Step 3: Services (pro/equipped) - manual tier combines equipment + services in step 2
-- Step 4: Review & Submit
 
-**PENDING FIX**: Reorder so Services come BEFORE Equipment for all tiers.
+**All tiers now have 4 steps with Services BEFORE Equipment/Vehicle:**
+
+**Professional Tier:**
+- Step 1: Business Info (business name, license, contact details, address)
+- Step 2: Services & Area (service selection, operating area, emergency availability)
+- Step 3: Vehicle Details (type, make, model, year, plate)
+- Step 4: Documents (optional uploads for verification)
+
+**Equipped Tier:**
+- Step 1: Contact Info (name, phone, email, address)
+- Step 2: Services & Area (service selection, operating area, emergency availability)
+- Step 3: Vehicle Details (type, make, model, year, plate)
+- Step 4: Complete (review and finish)
+
+**Manual Tier:**
+- Step 1: Contact Info (name, phone, email, home address)
+- Step 2: Services (select services, emergency availability toggle)
+- Step 3: Equipment & Area (select equipment, hours, photos, operating radius info)
+- Step 4: Complete (review and finish)
 
 ### i18n System Status
 - Uses React Context-based I18nProvider at `client/src/i18n/index.tsx`
@@ -59,7 +72,7 @@ Located at `client/src/pages/operator/OperatorOnboarding.tsx`:
 ### Priority Issues to Fix
 1. ~~Test account login~~ - FIXED (populated email_normalized column)
 2. i18n cleanup - add translations to all pages
-3. Operator onboarding step reordering
+3. ~~Operator onboarding step reordering~~ - FIXED (Nov 28, 2025 - Services now before Equipment/Vehicle)
 4. Map pin stability when zooming
 5. Emergency tracking improvements
 

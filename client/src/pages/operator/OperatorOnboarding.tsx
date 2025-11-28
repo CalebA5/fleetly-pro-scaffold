@@ -268,8 +268,16 @@ export const OperatorOnboarding = () => {
       }
     }
 
-    // Step 2: Vehicle Details validation (professional/equipped) or Equipment (manual)
+    // Step 2: Services validation (all tiers now have services in step 2)
     if (currentStep === 2) {
+      if (formData.services.length === 0) {
+        toast({ title: "Services Required", description: "Please select at least one service you can offer.", variant: "destructive" });
+        return false;
+      }
+    }
+
+    // Step 3: Vehicle Details validation (professional/equipped) or Equipment (manual)
+    if (currentStep === 3) {
       if (selectedTier === "professional" || selectedTier === "equipped") {
         if (!formData.vehicleType?.trim()) {
           toast({ title: "Vehicle Type Required", description: "Please select your vehicle type.", variant: "destructive" });
@@ -298,18 +306,6 @@ export const OperatorOnboarding = () => {
           toast({ title: "Equipment Required", description: "Please select at least one piece of equipment you have.", variant: "destructive" });
           return false;
         }
-        if (formData.services.length === 0) {
-          toast({ title: "Services Required", description: "Please select at least one service you can provide.", variant: "destructive" });
-          return false;
-        }
-      }
-    }
-
-    // Step 3: Services validation (professional/equipped)
-    if (currentStep === 3 && (selectedTier === "professional" || selectedTier === "equipped")) {
-      if (formData.services.length === 0) {
-        toast({ title: "Services Required", description: "Please select at least one service you can offer.", variant: "destructive" });
-        return false;
       }
     }
 
@@ -317,7 +313,7 @@ export const OperatorOnboarding = () => {
   };
 
   const nextStep = async () => {
-    const maxSteps = selectedTier === "manual" ? 3 : 4;
+    const maxSteps = 4; // All tiers now have 4 steps
     
     // Validate current step before proceeding
     const isValid = await validateStep();
@@ -967,22 +963,23 @@ export const OperatorOnboarding = () => {
     if (selectedTier === "professional") {
       return [
         { number: 1, title: "Business Info", icon: FileText },
-        { number: 2, title: "Vehicle Details", icon: Truck },
-        { number: 3, title: "Services & Area", icon: Shield },
+        { number: 2, title: "Services & Area", icon: Shield },
+        { number: 3, title: "Vehicle Details", icon: Truck },
         { number: 4, title: "Documents", icon: CheckCircle },
       ];
     } else if (selectedTier === "equipped") {
       return [
         { number: 1, title: "Contact Info", icon: FileText },
-        { number: 2, title: "Vehicle Details", icon: Truck },
-        { number: 3, title: "Services & Area", icon: Shield },
+        { number: 2, title: "Services & Area", icon: Shield },
+        { number: 3, title: "Vehicle Details", icon: Truck },
         { number: 4, title: "Complete", icon: CheckCircle },
       ];
     } else {
       return [
         { number: 1, title: "Contact Info", icon: FileText },
-        { number: 2, title: "Equipment & Area", icon: Wrench },
-        { number: 3, title: "Complete", icon: CheckCircle },
+        { number: 2, title: "Services", icon: Shield },
+        { number: 3, title: "Equipment & Area", icon: Wrench },
+        { number: 4, title: "Complete", icon: CheckCircle },
       ];
     }
   };
@@ -1073,16 +1070,17 @@ export const OperatorOnboarding = () => {
               </CardTitle>
               <CardDescription className="text-gray-600 dark:text-gray-400">
                 {selectedTier === "professional" && currentStep === 1 && "Enter your business information"}
-                {selectedTier === "professional" && currentStep === 2 && "Tell us about your vehicle"}
-                {selectedTier === "professional" && currentStep === 3 && "Select services and operating area"}
+                {selectedTier === "professional" && currentStep === 2 && "Select services and operating area"}
+                {selectedTier === "professional" && currentStep === 3 && "Tell us about your vehicle"}
                 {selectedTier === "professional" && currentStep === 4 && "Upload required documents"}
                 {selectedTier === "equipped" && currentStep === 1 && "Enter your contact information"}
-                {selectedTier === "equipped" && currentStep === 2 && "Tell us about your vehicle"}
-                {selectedTier === "equipped" && currentStep === 3 && "Select services and operating area"}
+                {selectedTier === "equipped" && currentStep === 2 && "Select services and operating area"}
+                {selectedTier === "equipped" && currentStep === 3 && "Tell us about your vehicle"}
                 {selectedTier === "equipped" && currentStep === 4 && "Review and complete your profile"}
                 {selectedTier === "manual" && currentStep === 1 && "Enter your contact information"}
-                {selectedTier === "manual" && currentStep === 2 && "Select equipment and set your operating area"}
-                {selectedTier === "manual" && currentStep === 3 && "Review and complete your profile"}
+                {selectedTier === "manual" && currentStep === 2 && "Select the services you will offer"}
+                {selectedTier === "manual" && currentStep === 3 && "Select equipment and set your operating area"}
+                {selectedTier === "manual" && currentStep === 4 && "Review and complete your profile"}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -1221,8 +1219,54 @@ export const OperatorOnboarding = () => {
                 </div>
               )}
 
-              {/* Professional/Equipped - Step 2: Vehicle Details */}
-              {(selectedTier === "professional" || selectedTier === "equipped") && currentStep === 2 && (
+              {/* Manual - Step 2: Services Only */}
+              {selectedTier === "manual" && currentStep === 2 && (
+                <div className="space-y-6">
+                  <div>
+                    <Label>Services You'll Provide *</Label>
+                    <p className="text-sm text-gray-500 dark:text-gray-500 mb-3">
+                      Select all services you can offer
+                    </p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {serviceTypes.map((service) => (
+                        <div 
+                          key={service}
+                          className="flex items-center space-x-2"
+                        >
+                          <Checkbox
+                            variant="circular"
+                            id={`manual-service-${service}`}
+                            checked={formData.services.includes(service)}
+                            onCheckedChange={() => handleServiceToggle(service)}
+                            data-testid={`checkbox-service-${service.toLowerCase().replace(/\s+/g, '-')}`}
+                          />
+                          <label
+                            htmlFor={`manual-service-${service}`}
+                            className="text-sm text-black dark:text-white cursor-pointer"
+                          >
+                            {service}
+                          </label>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center space-x-2">
+                    <Switch
+                      id="emergencyAvailable"
+                      checked={formData.emergencyAvailable}
+                      onCheckedChange={(checked) => handleInputChange("emergencyAvailable", checked)}
+                      data-testid="switch-emergency"
+                    />
+                    <Label htmlFor="emergencyAvailable" className="cursor-pointer">
+                      Available for emergency calls
+                    </Label>
+                  </div>
+                </div>
+              )}
+
+              {/* Professional/Equipped - Step 3: Vehicle Details */}
+              {(selectedTier === "professional" || selectedTier === "equipped") && currentStep === 3 && (
                 <div className="space-y-4">
                   <div>
                     <Label htmlFor="vehicleType">Vehicle Type *</Label>
@@ -1287,8 +1331,8 @@ export const OperatorOnboarding = () => {
                 </div>
               )}
 
-              {/* Manual - Step 2: Equipment, Services & Area */}
-              {selectedTier === "manual" && currentStep === 2 && (
+              {/* Manual - Step 3: Equipment & Area */}
+              {selectedTier === "manual" && currentStep === 3 && (
                 <div className="space-y-6">
                   <div>
                     <Label>Your Equipment *</Label>
@@ -1313,35 +1357,6 @@ export const OperatorOnboarding = () => {
                             className="text-sm text-black dark:text-white cursor-pointer"
                           >
                             {equipment}
-                          </label>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <Label>Services You'll Provide *</Label>
-                    <p className="text-sm text-gray-500 dark:text-gray-500 mb-3">
-                      Select all services you can offer
-                    </p>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      {serviceTypes.map((service) => (
-                        <div 
-                          key={service}
-                          className="flex items-center space-x-2"
-                        >
-                          <Checkbox
-                            variant="circular"
-                            id={`manual-${service}`}
-                            checked={formData.services.includes(service)}
-                            onCheckedChange={() => handleServiceToggle(service)}
-                            data-testid={`checkbox-service-${service.toLowerCase().replace(/\s+/g, '-')}`}
-                          />
-                          <label
-                            htmlFor={`manual-${service}`}
-                            className="text-sm text-black dark:text-white cursor-pointer"
-                          >
-                            {service}
                           </label>
                         </div>
                       ))}
@@ -1403,8 +1418,8 @@ export const OperatorOnboarding = () => {
                 </div>
               )}
 
-              {/* Professional/Equipped - Step 3: Services */}
-              {(selectedTier === "professional" || selectedTier === "equipped") && currentStep === 3 && (
+              {/* Professional/Equipped - Step 2: Services */}
+              {(selectedTier === "professional" || selectedTier === "equipped") && currentStep === 2 && (
                 <div className="space-y-4">
                   <div>
                     <Label>Services Offered *</Label>
@@ -1675,7 +1690,7 @@ export const OperatorOnboarding = () => {
               )}
 
               {/* Completion screens */}
-              {((selectedTier === "equipped" && currentStep === 4) || (selectedTier === "manual" && currentStep === 3)) && (
+              {((selectedTier === "equipped" && currentStep === 4) || (selectedTier === "manual" && currentStep === 4)) && (
                 <div className="space-y-6 text-center py-8">
                   <div className="w-20 h-20 bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center mx-auto">
                     <CheckCircle className="w-10 h-10 text-green-600 dark:text-green-400" />
