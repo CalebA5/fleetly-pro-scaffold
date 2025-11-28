@@ -211,10 +211,6 @@ export const OperatorMap = () => {
     if (urlServices) {
       const servicesArray = urlServices.split(',').map(s => s.trim()).filter(Boolean);
       setPreSelectedServices(servicesArray);
-      // Set the first service as the active filter
-      if (servicesArray.length > 0) {
-        setSelectedService(servicesArray[0]);
-      }
     }
   }, []);
   
@@ -1208,7 +1204,7 @@ export const OperatorMap = () => {
                         variant="outline" 
                         size="sm"
                         onClick={() => {
-                          setSelectedService("");
+                          setSelectedServices([]);
                           setProximityRadius(100);
                         }}
                       >
