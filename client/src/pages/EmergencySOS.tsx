@@ -232,7 +232,7 @@ export default function EmergencySOS() {
     markerRef.current = marker;
   }, [latitude, longitude]);
 
-  const getLocation = (showPromptOnDeny: boolean = false) => {
+  const getLocation = (showPromptOnDeny: boolean = false, fromStep?: string) => {
     setIsGettingLocation(true);
     setShowLocationPrompt(false);
     
@@ -257,7 +257,16 @@ export default function EmergencySOS() {
           }
           
           setIsGettingLocation(false);
-          setStep("service");
+          
+          // Only advance step if we're on the initial location step
+          if (fromStep === "location" || step === "location") {
+            setStep("service");
+          }
+          
+          toast({
+            title: "Location Updated",
+            description: "Your location has been updated on the map.",
+          });
         },
         (error) => {
           console.error("Location error:", error);
@@ -277,8 +286,11 @@ export default function EmergencySOS() {
             });
           }
           setIsGettingLocation(false);
-          setSelectedService(null);
-          setStep("service");
+          
+          // Only advance step if we're on the initial location step - don't clear service selection
+          if (fromStep === "location" || step === "location") {
+            setStep("service");
+          }
         },
         {
           enableHighAccuracy: true,
@@ -293,8 +305,11 @@ export default function EmergencySOS() {
       });
       setLocationPermissionDenied(true);
       setIsGettingLocation(false);
-      setSelectedService(null);
-      setStep("service");
+      
+      // Only advance step if we're on the initial location step
+      if (fromStep === "location" || step === "location") {
+        setStep("service");
+      }
     }
   };
 
@@ -362,7 +377,8 @@ export default function EmergencySOS() {
   };
 
   useEffect(() => {
-    getLocation();
+    // On mount, attempt to get location (starting from "location" step)
+    getLocation(false, "location");
   }, []);
 
   const handleServiceSelect = (type: ServiceType) => {
@@ -677,7 +693,7 @@ export default function EmergencySOS() {
             </div>
             
             <Button
-              onClick={() => getLocation()}
+              onClick={() => getLocation(false, "location")}
               disabled={isGettingLocation}
               className="w-full h-14 text-lg font-bold bg-gradient-to-r from-red-600 to-orange-500 hover:from-red-700 hover:to-orange-600"
               data-testid="button-enable-location"
