@@ -205,10 +205,41 @@ export default function Settings() {
   if (!user) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pb-20 md:pb-0">
-        <div className="container mx-auto px-4 py-8">
+        <div className="container mx-auto px-4 py-4 md:py-8 max-w-2xl">
+          <div className="flex items-center gap-4 mb-6">
+            <Button 
+              variant="ghost" 
+              size="icon"
+              className="rounded-full"
+              onClick={() => {
+                if (window.history.length > 2) {
+                  window.history.back();
+                } else {
+                  window.location.href = "/";
+                }
+              }}
+              data-testid="button-back"
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+            <div>
+              <h1 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">
+                Settings
+              </h1>
+              <p className="text-xs text-gray-500 dark:text-gray-400">Manage your preferences</p>
+            </div>
+          </div>
           <Card>
             <CardContent className="pt-6">
               <p className="text-center text-muted-foreground">Please sign in to access settings</p>
+              <div className="flex justify-center mt-4">
+                <Button 
+                  onClick={() => window.location.href = "/auth"}
+                  data-testid="button-sign-in"
+                >
+                  Sign In
+                </Button>
+              </div>
             </CardContent>
           </Card>
         </div>
