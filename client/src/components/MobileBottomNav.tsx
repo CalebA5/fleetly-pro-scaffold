@@ -121,7 +121,7 @@ export function MobileBottomNav({ context = "customer" }: MobileBottomNavProps) 
     },
     {
       icon: Truck,
-      label: t.nav.driveAndEarn.split(' ')[0], // "Drive" or equivalent
+      label: t.nav.earnShort,
       path: "/drive-earn",
       testId: "nav-operator-drive"
     },
@@ -142,7 +142,7 @@ export function MobileBottomNav({ context = "customer" }: MobileBottomNavProps) 
     },
     {
       icon: Search,
-      label: t.nav.browseOperators.split(' ')[0], // "Browse" or equivalent
+      label: t.nav.browseShort,
       path: "/customer/operators",
       testId: "nav-browse"
     },
@@ -173,13 +173,13 @@ export function MobileBottomNav({ context = "customer" }: MobileBottomNavProps) 
     },
     {
       icon: Search,
-      label: t.nav.browseOperators.split(' ')[0], // "Browse" or equivalent
+      label: t.nav.browseShort,
       path: "/customer/operators",
       testId: "nav-browse"
     },
     {
       icon: Truck,
-      label: t.nav.driveAndEarn.split(' ')[0], // "Drive" or equivalent
+      label: t.nav.earnShort,
       path: "/drive-earn",
       testId: "nav-drive-earn"
     },
