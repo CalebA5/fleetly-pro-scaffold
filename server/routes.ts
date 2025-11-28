@@ -929,8 +929,8 @@ export function registerRoutes(storage: IStorage) {
         return res.status(404).json({ message: "Operator not found" });
       }
 
-      // Return operator services - stored as operatorServices in jsonb
-      const operatorServices = (operator as any).operatorServices || [];
+      // Return operator services - stored as services jsonb column
+      const operatorServices = (operator.services as any[]) || [];
       res.json(operatorServices);
     } catch (error) {
       console.error("Error fetching operator services:", error);
@@ -957,11 +957,11 @@ export function registerRoutes(storage: IStorage) {
         id: `svc-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
       };
       
-      const currentServices = (existing as any).operatorServices || [];
+      const currentServices = (existing.services as any[]) || [];
       const updatedServices = [...currentServices, serviceWithId];
       
       await db.update(operators)
-        .set({ operatorServices: updatedServices } as any)
+        .set({ services: updatedServices })
         .where(eq(operators.operatorId, operatorId));
       
       res.json(serviceWithId);
@@ -984,13 +984,13 @@ export function registerRoutes(storage: IStorage) {
         return res.status(404).json({ message: "Operator not found" });
       }
       
-      const currentServices = (existing as any).operatorServices || [];
+      const currentServices = (existing.services as any[]) || [];
       const updatedServices = currentServices.map((svc: any) => 
         svc.id === serviceId ? { ...svc, ...updates } : svc
       );
       
       await db.update(operators)
-        .set({ operatorServices: updatedServices } as any)
+        .set({ services: updatedServices })
         .where(eq(operators.operatorId, operatorId));
       
       const updatedService = updatedServices.find((s: any) => s.id === serviceId);
@@ -1013,11 +1013,11 @@ export function registerRoutes(storage: IStorage) {
         return res.status(404).json({ message: "Operator not found" });
       }
       
-      const currentServices = (existing as any).operatorServices || [];
+      const currentServices = (existing.services as any[]) || [];
       const updatedServices = currentServices.filter((svc: any) => svc.id !== serviceId);
       
       await db.update(operators)
-        .set({ operatorServices: updatedServices } as any)
+        .set({ services: updatedServices })
         .where(eq(operators.operatorId, operatorId));
       
       res.json({ success: true });
