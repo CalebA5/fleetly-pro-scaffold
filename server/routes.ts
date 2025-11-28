@@ -1113,16 +1113,16 @@ export function registerRoutes(storage: IStorage) {
         return res.status(404).json({ message: "Operator not found" });
       }
       
-      // SECURITY FIX: Only show requests if operator is online with an active tier
-      // This prevents offline operators or those without a tier from seeing requests
-      if (!operator.isOnline || !operator.activeTier) {
+      // Use viewTier if set (for browsing other tier jobs), fallback to activeTier
+      const effectiveTier = operator.viewTier || operator.activeTier;
+      
+      // Only require active tier if not viewing another tier
+      if (!effectiveTier) {
         return res.json([]);
       }
       
-      // CRITICAL SECURITY FIX: Use activeTier (which tier they're currently online in)
-      // instead of operatorTier (their primary tier)
-      // This ensures Manual dashboard only shows manual requests, Equipped only shows equipped, etc.
-      const tierInfo = OPERATOR_TIER_INFO[operator.activeTier as keyof typeof OPERATOR_TIER_INFO];
+      // Use the effective tier (viewTier or activeTier) for filtering
+      const tierInfo = OPERATOR_TIER_INFO[effectiveTier as keyof typeof OPERATOR_TIER_INFO];
       if (!tierInfo) {
         return res.status(400).json({ message: "Invalid active tier" });
       }
@@ -1140,22 +1140,68 @@ export function registerRoutes(storage: IStorage) {
         !req.operatorId || req.operatorId === operatorId
       );
       
-      // CRITICAL SECURITY: Filter broadcast requests by operator's service capabilities
-      // Operators should only see requests for services they can actually perform
-      const operatorServices = operator.services as string[];
+      // Helper to normalize service names to a canonical slug form
+      // Also maps marketing names to canonical service IDs
+      const serviceNameMappings: Record<string, string> = {
+        "urgent_hauling": "hauling",
+        "courier_services": "courier",
+        "electrician_services": "electrician",
+        "licensed_plumbing": "light_plumbing",
+        "licensed_electrical": "electrician",
+        "basic_home_repairs": "basic_home_repairs",
+        "equipment_transport": "hauling",
+        "emergency_services": "towing",
+        "roadside": "towing",
+        "roadside_assistance": "towing"
+      };
+      
+      const normalizeServiceType = (serviceType: string | null | undefined): string => {
+        if (!serviceType) return "";
+        const slug = serviceType.toLowerCase().replace(/\s+/g, '_').replace(/-/g, '_');
+        return serviceNameMappings[slug] || slug;
+      };
+      
+      // Define canonical service IDs for each tier (derived from TIER_SERVICES)
+      const tierServicesAllowed: Record<string, Set<string>> = {
+        manual: new Set(["snow_shoveling", "lawn_maintenance", "window_cleaning", "yard_cleanup", "debris_removal", "handyman"]),
+        equipped: new Set([
+          "snow_shoveling", "lawn_maintenance", "window_cleaning", "yard_cleanup", "debris_removal", "handyman",
+          "snow_plowing", "towing", "hauling", "courier", "drywall", "framing", "basic_home_repairs", "carpentry", "light_plumbing", "electrician"
+        ]),
+        professional: new Set([
+          "snow_shoveling", "lawn_maintenance", "window_cleaning", "yard_cleanup", "debris_removal", "handyman",
+          "snow_plowing", "towing", "hauling", "courier", "drywall", "framing", "basic_home_repairs", "carpentry", "light_plumbing", "electrician",
+          "roofing", "licensed_plumbing", "licensed_electrical", "welding", "restoration", "full_construction", "heavy_hauling"
+        ])
+      };
+      
+      // Get allowed services for the effective tier
+      const allowedServices = tierServicesAllowed[effectiveTier] || new Set();
+      const operatorServices = operator.services as any[] || [];
+      
+      // CRITICAL SECURITY: Filter by BOTH tier-allowed services AND operator's configured services
       filteredRequests = filteredRequests.filter(req => {
         // If operatorId is set (targeted request), always include it
         if (req.operatorId) return true;
         
-        // For broadcast requests, check if operator can handle this service type
-        return operatorServices && operatorServices.includes(req.serviceType);
+        // Normalize the incoming service type to canonical slug
+        const normalizedServiceType = normalizeServiceType(req.serviceType);
+        
+        // Check if service is allowed for this tier
+        const tierAllowed = allowedServices.has(normalizedServiceType);
+        
+        // Check if operator has this service configured (empty = accepts all tier-allowed)
+        const operatorHasService = operatorServices.length === 0 || 
+          operatorServices.some(s => {
+            if (typeof s === 'string') {
+              return normalizeServiceType(s) === normalizedServiceType;
+            }
+            return normalizeServiceType(s?.serviceId) === normalizedServiceType || 
+                   normalizeServiceType(s?.name) === normalizedServiceType;
+          });
+        
+        return tierAllowed && operatorHasService;
       });
-      
-      // Additional tier-specific filtering for manual operators
-      if (operator.activeTier === "manual") {
-        // Manual operators only see snow plowing jobs
-        filteredRequests = filteredRequests.filter(req => req.serviceType === "Snow Plowing");
-      }
       
       // Filter by radius if operator has location and tier has radius restriction
       if (operator.homeLatitude && operator.homeLongitude && tierInfo.radiusKm !== null) {
@@ -1944,6 +1990,31 @@ export function registerRoutes(storage: IStorage) {
         totalRatings: 0,
         lastActiveAt: null
       });
+      
+      // AUTO-POPULATE SERVICES: Convert onboarding service selections to proper service entries
+      // This ensures the dashboard "Services" section is automatically filled
+      const onboardingServices = details?.services || [];
+      if (onboardingServices.length > 0) {
+        const serviceEntries = onboardingServices.map((serviceName: string) => ({
+          id: `svc-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          serviceId: serviceName.toLowerCase().replace(/\s+/g, '_'),
+          name: serviceName,
+          description: `Professional ${serviceName} service`,
+          isActive: true,
+          skillLevel: "intermediate",
+          basePrice: 0,
+          priceType: "quote",
+          certificationUploaded: false,
+          certificationVerified: false,
+          toolPhotosUploaded: false,
+          tier: tier
+        }));
+        
+        // Update operator with properly formatted services
+        await db.update(operators)
+          .set({ services: serviceEntries })
+          .where(eq(operators.operatorId, operatorId));
+      }
       
       res.json({ 
         message: "Tier added successfully",

@@ -1,0 +1,75 @@
+Okay I have noticed lots of issues with the website the service drop down does not work as should, once you start scrollling on the drop down it dissapears, this is for the full screen and mobile version. can you uoptimize the drop down, i want it to stick with the service tab regardles of how the page is scrolled, or the screen size. also on the phone version i want the drop down list to be modified so it stays at the center of the page, not moving slightly to the right.
+
+Also I want to optimze the mao page, I want to imrove the night mode of the maps, it looks to basic or not the best to navigate, can you improve this. Also the operator pins are not showing in the right addresses on the map. the pins are not stable, they move as you zoom in and out of the map. I want it to be similar to the users pin(circle) on the map, it does not move when you zoom in or out, r move the map.
+
+Also can you optimize the profile page of the operators when you click their operator card.
+
+there should be a way to se or read their reviews,
+
+or have a portfolio that shows their previous work. and they will have the option to post one 2 pictures from each service they do, then they will be able to post 3 pictures fom 3 jobs they completed from the app, every month.
+
+come up with something creativ and modern. also the operator cards look good, however can you modify them to look a lot more modern. I also want you to modify the desktop version of the operator page, make this more modern and improve the UI/UX. i want you to make the minimize button for the operator list a lor sleeker.
+
+Als I am not able to drag up the operator list with my cursor, on the phone version.
+
+can you also improve the filter on the operators tab (the one that slies down), lets make this look a lot sleeker.
+
+also the emergency page on the phone version. Can you improve the header of this page. make it more modern and appealing to the eye.
+
+also the user while making an emergency service should be able to choose the emergency service they want. incoporate this without making it too conspicious .
+
+also I want you to put a mini map on the emergency page. maybe joint to the emergency details section. Or, the finding operator near me can load on top of the map, with the map slightly in the background, and then once the operator is found, the operators ETA and route shows on the map. almost like uber.
+
+I want you to also modify the size of the icons, and do some research on what services would be hight prioty or emergenecy services.
+
+also I recently made an emergency service, for a new user, but i did not see it in their request page, can you ensure this change was dynamic for both old, new and current users.
+Also on the requests page the user should have the option to cancel the service.
+
+Also the emergency service system should be synchronized, such that if a user clicks emergency service while requesting for a regular service, it registers as an emergency and treats it the same way.
+
+mpving unto the pages in the drop down menu at the top right, the settings page is looking good, however the seasonal theme is not to my liking, it is currently snowing where I am, but I do not feel the seasonal theme is catchign the winter vibe.
+
+also the language setting should be fully optimized. if the user switchies the settings to a different langauge, the system should remember that, and swtich all the pages on the app to the selected language, till the user decides to change it. make this experience smooth, where users can change back to english smoothly.
+
+put other relevant settings and make sure to create ALL the necessary inner pages.
+
+also in the my profile page, the iser should be able to add their home addrress in the primary card. users will be made known that the security of their information is priority, and also the home address will majorly be to personalize the app, such that this address will show up on the map with a home icon, and users will be able to tap the home icon on the map to request services instantly to their homes.
+
+Now we are going to modify two very important pages,
+
+the request service page and the onboarding pages for all tiers.
+
+for the request service page, I want you to improve the design and feel of the page. make it more modern and fucntionally practical.
+
+one the page should be so dynamic that, even though when they click request service from a particular operators, operator icon card on the find operators page, they should be able to clear that and manually search for operators.
+also make it such that the service selection process is seamless, for the regularr requests and the project requests.
+
+also i want you to modify the process of requesting for projects with multiple services. it could be a case where if the user selects request from a specific operator, the request serivice page automatically fills the content of the page with the information of that operator and the service the user(customer) deided to request. but the user will be able to select multiple services which that specific operator offers (for example, they originally selected snow plowing, but the operator also offers towing and hauling) they will be able to select other services they want, and if they decide to request more than 4 at a time, this can become a project, AND/OR if they decide to select services that this operator does not offer, it can become a project, and the system will automatically provife the user with operators who can perform the extra services(pritoitizing them based on the users that are onl, closest proxiity and cheapest, quickets response times, etc other relevant back end criterias)
+
+also the notification tab isnt getting populated with real time alers for the weather, I only see them pop up when I open the app for the first time or restart it. can you make this communicate with real time data and news pages of the city of the user, this feature will only be available after the user shares their location.
+
+also for the drop down menu on the operators page, male this have the sign out button as well. next optimize the theme selection for the drop down menu, its nice, but I feel its taking too much space,
+
+now for the operator dash board, I dont see the services adding into the service section (that says no services added). this section should be automatically populated with which ever service(s) the user chooses during onboarding for that tier. and if they decide to add extra services, they will have the option to.
+
+once they add one service to the list, it should delete from Available services for your teir,
+
+Aslo I want you to personalize the dashboard, with things like welcome (user), or the user can choose a nickname, and this will make the app mpre personal
+
+next for the onboarding page, for all tiers, can you make this more dynamic, and modern. So i realized the flow of the onboarding process still screams trucking and only snow plowing, however lets make it such that operators can choose services during the onboarding, and they will be required to provide documents after that page, or input their vehicles or add equipment (they can decide to skip that and add it later), however the user should be prompted on what information to provide based on what service they choose. for example, if they choose snow plowing, they will be required to add vehicles or equipment or tools, and if they also choose towing , they will be required to add a truck or a vehicle. (however its possible for a user to use one vehicle for multiple services, so make this very dynamic).
+
+and if they choose plumbing or electrician, they will be required to provide certification. and also things like restoration.
+
+also make the business license dynamic, such that if the extra services have different business licence they can add this information.
+
+and then make sure if you are creating brand new pages , delete the old ones, and make sure the routing is top notch! this is a world class app.
+
+also i noticed the jobs nearby page and the jobs nearby icon face on the operator dashboard are not in synch. it is not displaying accurate data. for the manual operator of the current user CA@gmail.com, it shows 1 job, and no jo shows on the ejobs nearby page when you click it, or on the map.
+
+and also on the skilled and equipped, it shows 5 but no jobs are shown in the jobs nearby page.
+
+can you fix this and make it unique to each user(operator).
+
+meaning it will be tracking it based on real jobs in real time.(requests they get, emergency requests, pending jobs, active jobs)
+
+make sure all this modifications are being made on both mobile and web versions accordingly and as I have asked. take your time with this request and come up with a world class standard of the best
