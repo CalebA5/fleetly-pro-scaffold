@@ -42,6 +42,7 @@ The backend is an Express.js server utilizing PostgreSQL with Drizzle ORM. Zod i
 - **Account Management Pages**: Includes Wallet (balance, transactions, withdrawals), Payments (cards, bank accounts, payout preferences), Settings (appearance, notifications, privacy), and Legal (terms, privacy, liability, cookie policy).
 - **Unified Operator Dashboard**: A single, tier-aware dashboard with configurable modules (Metrics Slider, Tier Tabs, Drawer Navigation) driven by `TIER_CAPABILITIES`.
 - **Self-Service Prevention (Transparency)**: Users cannot request services from, favorite, or rate their own operator cards. A "Your Operator" badge is displayed with disabled/blurred action buttons to prevent metric gaming.
+- **Multi-Language i18n System**: Complete internationalization with 8 supported languages (English, French, Spanish, Portuguese, German, Chinese, Japanese, Korean). Uses React Context-based I18nProvider with type-safe translation keys, localStorage persistence, and browser language detection. Settings page integrates the language selector.
 
 ### System Design Choices
 - **Data Model**: Key entities include service requests (with `serviceType`, `isEmergency`, `description`, `location`, `status`, `details` JSONB) and operator profiles (with `operatorTier`, `isCertified`, `businessLicense`, `homeLatitude`, `homeLongitude`, `operatingRadius`).

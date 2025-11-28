@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserLocation } from "@/contexts/LocationContext";
+import { useI18n, LANGUAGE_OPTIONS, type SupportedLanguage } from "@/i18n";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -31,41 +32,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-const SUPPORTED_LANGUAGES = [
-  { code: "en", name: "English", nativeName: "English" },
-  { code: "fr", name: "French", nativeName: "Français" },
-  { code: "es", name: "Spanish", nativeName: "Español" },
-  { code: "zh", name: "Chinese", nativeName: "中文" },
-  { code: "hi", name: "Hindi", nativeName: "हिन्दी" },
-  { code: "ar", name: "Arabic", nativeName: "العربية" },
-  { code: "pt", name: "Portuguese", nativeName: "Português" },
-  { code: "de", name: "German", nativeName: "Deutsch" },
-];
-
-const getStoredLanguage = () => {
-  try {
-    return localStorage.getItem("fleetly_language") || "en";
-  } catch {
-    return "en";
-  }
-};
-
-const setStoredLanguage = (lang: string) => {
-  try {
-    localStorage.setItem("fleetly_language", lang);
-    document.documentElement.lang = lang;
-  } catch {
-  }
-};
-
 export default function Settings() {
   const { user, signOut } = useAuth();
   const [location] = useLocation();
   const { toast } = useToast();
   const { location: userLocation, permissionStatus, formattedAddress, refreshLocation, clearLocation } = useUserLocation();
+  const { language, setLanguage, t } = useI18n();
   
   const [isLoading] = useState(false);
-  const [currentLanguage, setCurrentLanguage] = useState(getStoredLanguage());
   const [notifications, setNotifications] = useState({
     push: true,
     email: true,
@@ -75,12 +49,11 @@ export default function Settings() {
   });
   
   const handleLanguageChange = (lang: string) => {
-    setCurrentLanguage(lang);
-    setStoredLanguage(lang);
-    const langInfo = SUPPORTED_LANGUAGES.find(l => l.code === lang);
+    setLanguage(lang as SupportedLanguage);
+    const langInfo = LANGUAGE_OPTIONS.find(l => l.code === lang);
     toast({
-      title: "Language Updated",
-      description: `App language set to ${langInfo?.nativeName || lang}`,
+      title: t.settings.languageUpdated,
+      description: `${t.settings.appLanguageSetTo} ${langInfo?.nativeName || lang}`,
     });
   };
   
@@ -224,20 +197,20 @@ export default function Settings() {
             </Button>
             <div>
               <h1 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">
-                Settings
+                {t.settings.settings}
               </h1>
-              <p className="text-xs text-gray-500 dark:text-gray-400">Manage your preferences</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">{t.settings.appearance}</p>
             </div>
           </div>
           <Card>
             <CardContent className="pt-6">
-              <p className="text-center text-muted-foreground">Please sign in to access settings</p>
+              <p className="text-center text-muted-foreground">{t.auth.signIn}</p>
               <div className="flex justify-center mt-4">
                 <Button 
-                  onClick={() => window.location.href = "/auth"}
+                  onClick={() => window.location.href = "/signin"}
                   data-testid="button-sign-in"
                 >
-                  Sign In
+                  {t.auth.signIn}
                 </Button>
               </div>
             </CardContent>
@@ -263,9 +236,9 @@ export default function Settings() {
           </Button>
           <div>
             <h1 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white" data-testid="text-page-title">
-              Settings
+              {t.settings.settings}
             </h1>
-            <p className="text-xs text-gray-500 dark:text-gray-400">Manage your preferences</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">{t.settings.appearance}</p>
           </div>
         </div>
 
@@ -282,16 +255,16 @@ export default function Settings() {
                     <Globe className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                   </div>
                   <div>
-                    <p className="font-medium text-gray-900 dark:text-white">Language</p>
-                    <p className="text-xs text-gray-500">App language</p>
+                    <p className="font-medium text-gray-900 dark:text-white">{t.settings.language}</p>
+                    <p className="text-xs text-gray-500">{t.settings.selectLanguage}</p>
                   </div>
                 </div>
-                <Select value={currentLanguage} onValueChange={handleLanguageChange}>
+                <Select value={language} onValueChange={handleLanguageChange}>
                   <SelectTrigger className="w-[140px] h-9 border-gray-200 dark:border-gray-700" data-testid="select-language">
-                    <SelectValue placeholder="Language" />
+                    <SelectValue placeholder={t.settings.language} />
                   </SelectTrigger>
                   <SelectContent>
-                    {SUPPORTED_LANGUAGES.map((lang) => (
+                    {LANGUAGE_OPTIONS.map((lang) => (
                       <SelectItem key={lang.code} value={lang.code}>
                         {lang.nativeName}
                       </SelectItem>
@@ -309,14 +282,14 @@ export default function Settings() {
                 <div className="w-10 h-10 rounded-xl bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center">
                   <Bell className="h-5 w-5 text-orange-600 dark:text-orange-400" />
                 </div>
-                <CardTitle className="text-base font-semibold">Notifications</CardTitle>
+                <CardTitle className="text-base font-semibold">{t.settings.notifications}</CardTitle>
               </div>
             </CardHeader>
             <CardContent className="px-4 pb-4 space-y-3">
               <div className="flex items-center justify-between py-2">
                 <div className="flex items-center gap-3">
                   <Smartphone className="h-4 w-4 text-gray-400" />
-                  <span className="text-sm text-gray-700 dark:text-gray-300">Push Notifications</span>
+                  <span className="text-sm text-gray-700 dark:text-gray-300">{t.settings.pushNotifications}</span>
                 </div>
                 <Switch 
                   checked={notifications.push}
@@ -328,7 +301,7 @@ export default function Settings() {
               <div className="flex items-center justify-between py-2">
                 <div className="flex items-center gap-3">
                   <Mail className="h-4 w-4 text-gray-400" />
-                  <span className="text-sm text-gray-700 dark:text-gray-300">Email Updates</span>
+                  <span className="text-sm text-gray-700 dark:text-gray-300">{t.settings.emailNotifications}</span>
                 </div>
                 <Switch 
                   checked={notifications.email}
@@ -343,7 +316,7 @@ export default function Settings() {
                   <div className="flex items-center justify-between py-2">
                     <div className="flex items-center gap-3">
                       <Volume2 className="h-4 w-4 text-gray-400" />
-                      <span className="text-sm text-gray-700 dark:text-gray-300">Job Alerts</span>
+                      <span className="text-sm text-gray-700 dark:text-gray-300">{t.settings.jobAlerts}</span>
                     </div>
                     <Switch 
                       checked={notifications.jobAlerts}
@@ -363,7 +336,7 @@ export default function Settings() {
                 <div className="w-10 h-10 rounded-xl bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
                   <Shield className="h-5 w-5 text-green-600 dark:text-green-400" />
                 </div>
-                <CardTitle className="text-base font-semibold">Privacy & Security</CardTitle>
+                <CardTitle className="text-base font-semibold">{t.settings.privacy}</CardTitle>
               </div>
             </CardHeader>
             <CardContent className="px-4 pb-4 space-y-1">
@@ -374,7 +347,7 @@ export default function Settings() {
               >
                 <div className="flex items-center gap-3">
                   <Lock className="h-4 w-4 text-gray-400" />
-                  <span className="text-sm text-gray-700 dark:text-gray-300">Change Password</span>
+                  <span className="text-sm text-gray-700 dark:text-gray-300">{t.settings.changePassword}</span>
                 </div>
                 <ChevronRight className="h-4 w-4 text-gray-400" />
               </button>
@@ -385,7 +358,7 @@ export default function Settings() {
               >
                 <div className="flex items-center gap-3">
                   <Eye className="h-4 w-4 text-gray-400" />
-                  <span className="text-sm text-gray-700 dark:text-gray-300">Privacy Settings</span>
+                  <span className="text-sm text-gray-700 dark:text-gray-300">{t.settings.privacySettings}</span>
                 </div>
                 <ChevronRight className="h-4 w-4 text-gray-400" />
               </button>
@@ -396,7 +369,7 @@ export default function Settings() {
               >
                 <div className="flex items-center gap-3">
                   <MapPin className="h-4 w-4 text-gray-400" />
-                  <span className="text-sm text-gray-700 dark:text-gray-300">Location Settings</span>
+                  <span className="text-sm text-gray-700 dark:text-gray-300">{t.settings.locationServices}</span>
                 </div>
                 <ChevronRight className="h-4 w-4 text-gray-400" />
               </button>
@@ -413,7 +386,7 @@ export default function Settings() {
                 data-testid="button-sign-out"
               >
                 <LogOut className="mr-3 h-4 w-4" />
-                Sign out
+                {t.settings.signOut}
               </Button>
             </CardContent>
           </Card>
@@ -426,53 +399,53 @@ export default function Settings() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Lock className="h-5 w-5" />
-              Change Password
+              {t.settings.changePassword}
             </DialogTitle>
             <DialogDescription>
-              Enter your current password and choose a new one.
+              {t.settings.currentPassword}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="current-password">Current Password</Label>
+              <Label htmlFor="current-password">{t.settings.currentPassword}</Label>
               <Input 
                 id="current-password"
                 type="password"
                 value={passwordForm.currentPassword}
                 onChange={(e) => setPasswordForm({...passwordForm, currentPassword: e.target.value})}
-                placeholder="Enter current password"
+                placeholder={t.settings.currentPassword}
                 data-testid="input-current-password"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="new-password">New Password</Label>
+              <Label htmlFor="new-password">{t.settings.newPassword}</Label>
               <Input 
                 id="new-password"
                 type="password"
                 value={passwordForm.newPassword}
                 onChange={(e) => setPasswordForm({...passwordForm, newPassword: e.target.value})}
-                placeholder="Enter new password"
+                placeholder={t.settings.newPassword}
                 data-testid="input-new-password"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="confirm-password">Confirm New Password</Label>
+              <Label htmlFor="confirm-password">{t.settings.confirmPassword}</Label>
               <Input 
                 id="confirm-password"
                 type="password"
                 value={passwordForm.confirmPassword}
                 onChange={(e) => setPasswordForm({...passwordForm, confirmPassword: e.target.value})}
-                placeholder="Confirm new password"
+                placeholder={t.settings.confirmPassword}
                 data-testid="input-confirm-password"
               />
             </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowPasswordDialog(false)}>
-              Cancel
+              {t.common.cancel}
             </Button>
             <Button onClick={handlePasswordChange} data-testid="button-save-password">
-              Update Password
+              {t.settings.changePassword}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -484,17 +457,17 @@ export default function Settings() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Eye className="h-5 w-5" />
-              Privacy Settings
+              {t.settings.privacySettings}
             </DialogTitle>
             <DialogDescription>
-              Control your profile visibility and data sharing.
+              {t.settings.privacy}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium">Profile Visibility</p>
-                <p className="text-xs text-gray-500">Allow others to see your profile</p>
+                <p className="text-sm font-medium">{t.settings.profileVisible}</p>
+                <p className="text-xs text-gray-500">{t.settings.privacy}</p>
               </div>
               <Switch 
                 checked={privacySettings.profileVisible}
@@ -505,8 +478,8 @@ export default function Settings() {
             <Separator />
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium">Show Rating</p>
-                <p className="text-xs text-gray-500">Display your rating to others</p>
+                <p className="text-sm font-medium">{t.settings.showRating}</p>
+                <p className="text-xs text-gray-500">{t.settings.privacy}</p>
               </div>
               <Switch 
                 checked={privacySettings.showRating}
@@ -517,8 +490,8 @@ export default function Settings() {
             <Separator />
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium">Analytics</p>
-                <p className="text-xs text-gray-500">Help improve the app with usage data</p>
+                <p className="text-sm font-medium">{t.settings.allowAnalytics}</p>
+                <p className="text-xs text-gray-500">{t.settings.privacy}</p>
               </div>
               <Switch 
                 checked={privacySettings.allowAnalytics}
@@ -530,9 +503,9 @@ export default function Settings() {
           <DialogFooter>
             <Button onClick={() => {
               setShowPrivacyDialog(false);
-              toast({ title: "Privacy settings saved" });
+              toast({ title: t.common.success });
             }} data-testid="button-save-privacy">
-              Save Changes
+              {t.common.save}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -544,10 +517,10 @@ export default function Settings() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <MapPin className="h-5 w-5" />
-              Location Settings
+              {t.settings.locationServices}
             </DialogTitle>
             <DialogDescription>
-              Manage your location preferences and permissions.
+              {t.settings.locationPermission}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
@@ -555,9 +528,9 @@ export default function Settings() {
               <div className="flex items-center gap-3 mb-2">
                 <div className={`w-3 h-3 rounded-full ${permissionStatus === 'granted' ? 'bg-green-500' : permissionStatus === 'denied' ? 'bg-red-500' : 'bg-yellow-500'}`}></div>
                 <span className="text-sm font-medium">
-                  {permissionStatus === 'granted' ? 'Location Access Granted' : 
-                   permissionStatus === 'denied' ? 'Location Access Denied' : 
-                   'Location Permission Pending'}
+                  {permissionStatus === 'granted' ? t.settings.locationGranted : 
+                   permissionStatus === 'denied' ? t.settings.locationDenied : 
+                   t.settings.locationPermission}
                 </span>
               </div>
               {formattedAddress && (
@@ -578,7 +551,7 @@ export default function Settings() {
                 data-testid="button-refresh-location"
               >
                 <Navigation className="h-4 w-4 mr-2" />
-                Refresh
+                {t.settings.updateLocation}
               </Button>
               <Button 
                 variant="outline" 
@@ -587,18 +560,17 @@ export default function Settings() {
                 data-testid="button-clear-location"
               >
                 <X className="h-4 w-4 mr-2" />
-                Clear
+                {t.settings.clearLocation}
               </Button>
             </div>
             
             <p className="text-xs text-gray-500">
-              Your location is used to find nearby operators and provide accurate service estimates. 
-              Location data is stored locally on your device.
+              {t.settings.shareLocation}
             </p>
           </div>
           <DialogFooter>
             <Button onClick={() => setShowLocationDialog(false)}>
-              Done
+              {t.common.close}
             </Button>
           </DialogFooter>
         </DialogContent>

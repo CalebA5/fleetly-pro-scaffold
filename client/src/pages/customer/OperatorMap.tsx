@@ -969,8 +969,8 @@ export const OperatorMap = () => {
       
       {/* Mobile-First Page Header - Sticky so it stays visible while scrolling */}
       <div className="sticky top-0 z-40 border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 px-4 py-3">
-        {/* Top Row: Title, Count, Filter Button */}
-        <div className="flex items-center justify-between mb-3">
+        {/* Top Row: Title, Count, Filter Button, Map Toggle */}
+        <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <h1 className="text-lg font-bold text-black dark:text-white">Find Operators</h1>
             <span className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded-full">
@@ -979,89 +979,92 @@ export const OperatorMap = () => {
             </span>
           </div>
           
-          {/* Filter Dropdown Button */}
-          <Select
-            value={`${selectedService || 'all'}_${proximityRadius}`}
-            onValueChange={(value) => {
-              // Parse combined value
-              const parts = value.split('_');
-              if (parts.length >= 2) {
-                const svc = parts.slice(0, -1).join('_');
-                const rad = parseInt(parts[parts.length - 1]);
-                setSelectedService(svc === 'all' ? '' : svc);
-                if (!isNaN(rad)) setProximityRadius(rad);
-              }
-            }}
-          >
-            <SelectTrigger className="w-auto border-0 shadow-none p-0 h-auto focus:ring-0 focus:ring-offset-0 focus:outline-none" data-testid="button-filter-menu">
-              <div className="flex items-center gap-1 px-3 py-1.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-full hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
-                <Filter className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Filters</span>
-              </div>
-            </SelectTrigger>
-            <SelectContent align="end" className="w-56">
-              <div className="px-3 py-2 border-b border-gray-100 dark:border-gray-700">
-                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Service Type</p>
-              </div>
-              {services.map((service) => (
-                <SelectItem 
-                  key={service} 
-                  value={`${service === "All" ? "all" : service}_${proximityRadius}`}
-                  className="cursor-pointer"
-                >
-                  {service}
-                </SelectItem>
-              ))}
-              {userLat !== null && userLon !== null && (
-                <>
-                  <div className="px-3 py-2 border-t border-b border-gray-100 dark:border-gray-700 mt-1">
-                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Distance</p>
-                  </div>
-                  {[10, 25, 50, 75, 100].map((distance) => (
-                    <SelectItem 
-                      key={`dist-${distance}`} 
-                      value={`${selectedService || 'all'}_${distance}`}
-                      className="cursor-pointer"
-                    >
-                      <div className="flex items-center gap-2">
-                        <Target className="w-3 h-3 text-teal-600" />
-                        Within {distance} km
-                        {proximityRadius === distance && <span className="ml-auto text-teal-600">✓</span>}
-                      </div>
-                    </SelectItem>
-                  ))}
-                </>
-              )}
-            </SelectContent>
-          </Select>
-        </div>
-        
-        {/* Map Style Toggle - Compact icon-only buttons */}
-        <div className="hidden md:flex gap-0.5 p-0.5 bg-gray-100 dark:bg-gray-800 rounded-md">
-          <button
-            onClick={() => setMapStyle('streets')}
-            className={`flex items-center justify-center p-1.5 rounded transition-all ${
-              mapStyle === 'streets' 
-                ? 'bg-white dark:bg-gray-700 text-black dark:text-white shadow-sm' 
-                : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
-            }`}
-            data-testid="button-map-style-streets"
-            title="Map view"
-          >
-            <MapIcon className="w-4 h-4" />
-          </button>
-          <button
-            onClick={() => setMapStyle('satellite')}
-            className={`flex items-center justify-center p-1.5 rounded transition-all ${
-              mapStyle === 'satellite' 
-                ? 'bg-white dark:bg-gray-700 text-black dark:text-white shadow-sm' 
-                : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
-            }`}
-            data-testid="button-map-style-satellite"
-            title="Satellite view"
-          >
-            <Layers className="w-4 h-4" />
-          </button>
+          {/* Right side: Filter button and Map Style Toggle */}
+          <div className="flex items-center gap-2">
+            {/* Filter Dropdown Button */}
+            <Select
+              value={`${selectedService || 'all'}_${proximityRadius}`}
+              onValueChange={(value) => {
+                // Parse combined value
+                const parts = value.split('_');
+                if (parts.length >= 2) {
+                  const svc = parts.slice(0, -1).join('_');
+                  const rad = parseInt(parts[parts.length - 1]);
+                  setSelectedService(svc === 'all' ? '' : svc);
+                  if (!isNaN(rad)) setProximityRadius(rad);
+                }
+              }}
+            >
+              <SelectTrigger className="w-auto border-0 shadow-none p-0 h-auto focus:ring-0 focus:ring-offset-0 focus:outline-none" data-testid="button-filter-menu">
+                <div className="flex items-center gap-1 px-3 py-1.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-full hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                  <Filter className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Filters</span>
+                </div>
+              </SelectTrigger>
+              <SelectContent align="end" className="w-56">
+                <div className="px-3 py-2 border-b border-gray-100 dark:border-gray-700">
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Service Type</p>
+                </div>
+                {services.map((service) => (
+                  <SelectItem 
+                    key={service} 
+                    value={`${service === "All" ? "all" : service}_${proximityRadius}`}
+                    className="cursor-pointer"
+                  >
+                    {service}
+                  </SelectItem>
+                ))}
+                {userLat !== null && userLon !== null && (
+                  <>
+                    <div className="px-3 py-2 border-t border-b border-gray-100 dark:border-gray-700 mt-1">
+                      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Distance</p>
+                    </div>
+                    {[10, 25, 50, 75, 100].map((distance) => (
+                      <SelectItem 
+                        key={`dist-${distance}`} 
+                        value={`${selectedService || 'all'}_${distance}`}
+                        className="cursor-pointer"
+                      >
+                        <div className="flex items-center gap-2">
+                          <Target className="w-3 h-3 text-teal-600" />
+                          Within {distance} km
+                          {proximityRadius === distance && <span className="ml-auto text-teal-600">✓</span>}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </>
+                )}
+              </SelectContent>
+            </Select>
+            
+            {/* Map Style Toggle - Compact icon-only buttons next to filter */}
+            <div className="flex gap-0.5 p-0.5 bg-gray-100 dark:bg-gray-800 rounded-md">
+              <button
+                onClick={() => setMapStyle('streets')}
+                className={`flex items-center justify-center p-1.5 rounded transition-all ${
+                  mapStyle === 'streets' 
+                    ? 'bg-white dark:bg-gray-700 text-black dark:text-white shadow-sm' 
+                    : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+                }`}
+                data-testid="button-map-style-streets"
+                title="Map view"
+              >
+                <MapIcon className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => setMapStyle('satellite')}
+                className={`flex items-center justify-center p-1.5 rounded transition-all ${
+                  mapStyle === 'satellite' 
+                    ? 'bg-white dark:bg-gray-700 text-black dark:text-white shadow-sm' 
+                    : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+                }`}
+                data-testid="button-map-style-satellite"
+                title="Satellite view"
+              >
+                <Layers className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
         </div>
         
         {/* Active Filters Display */}

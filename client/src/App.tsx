@@ -53,15 +53,17 @@ import { queryClient } from "@/lib/queryClient";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { LocationProvider } from "@/contexts/LocationContext";
 import { SeasonalThemeProvider } from "@/contexts/SeasonalThemeContext";
+import { I18nProvider } from "@/i18n";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { MobileBottomNav } from "@/components/MobileBottomNav";
 
 const App = () => (
   <SeasonalThemeProvider>
-    <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <LocationProvider>
-          <TooltipProvider>
+    <I18nProvider>
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>
+          <LocationProvider>
+            <TooltipProvider>
             <Toaster />
             <Sonner />
             <Switch>
@@ -180,6 +182,7 @@ const App = () => (
         </LocationProvider>
       </AuthProvider>
     </QueryClientProvider>
+  </I18nProvider>
   </SeasonalThemeProvider>
 );
 
