@@ -976,17 +976,20 @@ export type CoverageType = "full_city" | "neighborhoods_only";
 export const SERVICE_AREA_LIMITS = {
   manual: {
     maxCities: 1, // Home city only
-    maxNeighborhoods: 3, // Up to 3 nearby neighborhoods
-    description: "Operate within your home city and up to 3 nearby neighborhoods",
+    requireSameProvince: true, // Must stay in home province
+    radiusKm: 5, // 5km radius from home location
+    description: "Operate within 5km of your home location",
   },
   equipped: {
     maxCities: 3, // Up to 3 cities within same province
-    maxNeighborhoods: null, // Full city coverage
+    requireSameProvince: true, // All cities must be in same province
+    radiusKm: 15, // 15km radius per city
     description: "Operate in up to 3 cities within your province/state",
   },
   professional: {
     maxCities: null, // Unlimited cities within country
-    maxNeighborhoods: null, // Full coverage
+    requireSameProvince: false, // Can operate across provinces
+    radiusKm: null, // Unlimited within selected cities
     description: "Operate anywhere within your country with no limits",
   },
 } as const;

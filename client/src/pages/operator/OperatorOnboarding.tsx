@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { Link, useLocation } from "wouter";
+import { useState, useEffect } from "react";
+import { useLocation } from "wouter";
 import { Button } from "@/components/ui/enhanced-button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -8,16 +8,38 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
-import { ArrowLeft, Upload, Truck, FileText, Shield, CheckCircle, Award, Wrench, Users, Star, TrendingUp, UserCircle, Sparkles, AlertCircle } from "lucide-react";
-import { format } from "date-fns";
+import { Badge } from "@/components/ui/badge";
+import { 
+  ArrowLeft, 
+  ArrowRight,
+  Upload, 
+  Truck, 
+  FileText, 
+  Shield, 
+  CheckCircle, 
+  Wrench, 
+  MapPin,
+  Building2,
+  User,
+  Phone,
+  Mail,
+  Globe,
+  Clock,
+  Zap,
+  AlertCircle,
+  Sparkles,
+  Camera,
+  X
+} from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
-import { OPERATOR_TIER_INFO, type OperatorTier, type Operator } from "@shared/schema";
+import { OPERATOR_TIER_INFO, SERVICE_AREA_LIMITS, type OperatorTier, type Operator } from "@shared/schema";
 import { AuthDialog } from "@/components/AuthDialog";
 import { useQuery } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { geocodeAddress } from "@/lib/geocoding";
-import { getServicesForTier, type ServiceConfig } from "@shared/tierCapabilities";
+import { getServicesForTier } from "@shared/tierCapabilities";
+import { cn } from "@/lib/utils";
 
 const vehicleTypes = [
   "Pickup Truck",
@@ -39,7 +61,6 @@ const manualEquipment = [
   "De-icing Tools",
 ];
 
-// Static service types are now deprecated - use getServicesForTier() for dynamic tier-based services
 const serviceTypes = [
   "Snow Plowing",
   "Towing",
@@ -50,32 +71,97 @@ const serviceTypes = [
   "Emergency Services",
 ];
 
+// Types for location data
+type Country = {
+  isoCode: string;
+  name: string;
+  flag?: string;
+};
+
+type StateProvince = {
+  isoCode: string;
+  name: string;
+  countryCode: string;
+};
+
+type City = {
+  name: string;
+  stateCode: string;
+  countryCode: string;
+  latitude?: string;
+  longitude?: string;
+};
+
+type SelectedCity = {
+  cityName: string;
+  stateCode: string;
+  stateName: string;
+  countryCode: string;
+  countryName: string;
+  isPrimary?: boolean;
+};
+
 export const OperatorOnboarding = () => {
   const { toast } = useToast();
-  const { user, isAuthenticated, updateUser, refetchUser } = useAuth();
+  const { user, refetchUser } = useAuth();
   const [, setLocation] = useLocation();
   const [selectedTier, setSelectedTier] = useState<OperatorTier | null>(null);
-  const [currentStep, setCurrentStep] = useState(0); // 0 = tier selection
+  const [currentStep, setCurrentStep] = useState(0);
   const [showAuthDialog, setShowAuthDialog] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Read tier from URL parameter and auto-select it
-  // If no tier is provided, redirect to Drive & Earn page to select one
-  React.useEffect(() => {
+  // Location state
+  const [countries, setCountries] = useState<Country[]>([]);
+  const [states, setStates] = useState<StateProvince[]>([]);
+  const [cities, setCities] = useState<City[]>([]);
+  const [selectedCountry, setSelectedCountry] = useState<string>("");
+  const [selectedState, setSelectedState] = useState<string>("");
+  const [selectedCities, setSelectedCities] = useState<SelectedCity[]>([]);
+  const [isLoadingLocations, setIsLoadingLocations] = useState(false);
+
+  // Form state
+  const [formData, setFormData] = useState({
+    // Contact/Business Info
+    businessName: "",
+    licenseNumber: "",
+    contactName: "",
+    phone: "",
+    email: "",
+    address: "",
+    homeAddress: "",
+    insuranceProvider: "",
+    
+    // Vehicle Details
+    vehicleType: "",
+    vehicleMake: "",
+    vehicleModel: "",
+    vehicleYear: "",
+    licensePlate: "",
+    
+    // Services
+    services: [] as string[],
+    serviceArea: "",
+    emergencyAvailable: false,
+    
+    // Equipment (Manual tier)
+    equipment: [] as string[],
+    availableHours: "",
+  });
+
+  // Read tier from URL parameter
+  useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const tierParam = params.get('tier') as OperatorTier | null;
     
     if (tierParam && ['professional', 'equipped', 'manual'].includes(tierParam)) {
       setSelectedTier(tierParam);
-      setCurrentStep(1); // Skip tier selection, go straight to form
+      setCurrentStep(1);
     } else {
-      // No tier selected - redirect to Drive & Earn page
       setLocation('/drive-earn');
     }
   }, [setLocation]);
-  
+
   // Fetch operator data if user has operatorId
-  // Type for operator with tier stats
   type OperatorWithTierStats = Operator & {
     tierStats?: Record<string, {
       jobsCompleted: number;
@@ -88,90 +174,95 @@ export const OperatorOnboarding = () => {
 
   const { data: operatorData, isLoading: isLoadingOperator } = useQuery<OperatorWithTierStats>({
     queryKey: [`/api/operators/by-id/${user?.operatorId}`],
-    enabled: !!user?.operatorId, // Only fetch if user has operatorId
+    enabled: !!user?.operatorId,
   });
 
-  // Define all available tiers in order
-  const ALL_TIERS: OperatorTier[] = ["professional", "equipped", "manual"];
+  // Load countries on mount
+  useEffect(() => {
+    const loadCountries = async () => {
+      try {
+        const response = await fetch('/api/locations/countries');
+        const data = await response.json();
+        setCountries(data);
+      } catch (error) {
+        console.error('Failed to load countries:', error);
+      }
+    };
+    loadCountries();
+  }, []);
 
-  // Hard-coded feature map for each tier (since OPERATOR_TIER_INFO doesn't include these)
-  const tierFeatureMap: Record<OperatorTier, {
-    features: string[];
-    rateMultiplier: string;
-    serviceRadius: string;
-    requirements: string;
-  }> = {
-    professional: {
-      features: [
-        "All services available",
-        "City-wide operation",
-        "Premium customer access",
-        "Priority job assignment"
-      ],
-      rateMultiplier: "1.5x",
-      serviceRadius: "City-wide",
-      requirements: "Business license, certification"
-    },
-    equipped: {
-      features: [
-        "Most services available",
-        "15km operation radius",
-        "Flexible scheduling",
-        "Equipment discounts"
-      ],
-      rateMultiplier: "1.0x",
-      serviceRadius: "15km radius",
-      requirements: "Vehicle/truck ownership"
-    },
-    manual: {
-      features: [
-        "Snow plowing focus",
-        "5km radius from home",
-        "Easy to start earning",
-        "Perfect for side income"
-      ],
-      rateMultiplier: "0.6x",
-      serviceRadius: "5km from home",
-      requirements: "Basic snow equipment"
+  // Load states when country changes
+  useEffect(() => {
+    const loadStates = async () => {
+      if (!selectedCountry) {
+        setStates([]);
+        return;
+      }
+      setIsLoadingLocations(true);
+      try {
+        const response = await fetch(`/api/locations/states/${selectedCountry}`);
+        const data = await response.json();
+        setStates(data);
+      } catch (error) {
+        console.error('Failed to load states:', error);
+      }
+      setIsLoadingLocations(false);
+    };
+    loadStates();
+    setSelectedState("");
+    setCities([]);
+  }, [selectedCountry]);
+
+  // Load cities when state changes
+  useEffect(() => {
+    const loadCities = async () => {
+      if (!selectedCountry || !selectedState) {
+        setCities([]);
+        return;
+      }
+      setIsLoadingLocations(true);
+      try {
+        const response = await fetch(`/api/locations/cities/${selectedCountry}/${selectedState}`);
+        const data = await response.json();
+        setCities(data);
+      } catch (error) {
+        console.error('Failed to load cities:', error);
+      }
+      setIsLoadingLocations(false);
+    };
+    loadCities();
+  }, [selectedCountry, selectedState]);
+
+  // Get step configuration based on tier
+  const getSteps = () => {
+    if (selectedTier === "professional") {
+      return [
+        { number: 1, title: "Business Info", subtitle: "Your company details", icon: Building2 },
+        { number: 2, title: "Service Area", subtitle: "Where you operate", icon: MapPin },
+        { number: 3, title: "Vehicle", subtitle: "Your equipment", icon: Truck },
+        { number: 4, title: "Documents", subtitle: "Verification", icon: FileText },
+      ];
+    } else if (selectedTier === "equipped") {
+      return [
+        { number: 1, title: "Contact Info", subtitle: "Your details", icon: User },
+        { number: 2, title: "Service Area", subtitle: "Where you operate", icon: MapPin },
+        { number: 3, title: "Vehicle", subtitle: "Your equipment", icon: Truck },
+        { number: 4, title: "Complete", subtitle: "You're ready!", icon: CheckCircle },
+      ];
+    } else {
+      return [
+        { number: 1, title: "Contact Info", subtitle: "Your details", icon: User },
+        { number: 2, title: "Services", subtitle: "What you offer", icon: Shield },
+        { number: 3, title: "Equipment", subtitle: "Your tools", icon: Wrench },
+        { number: 4, title: "Complete", subtitle: "You're ready!", icon: CheckCircle },
+      ];
     }
   };
 
-  // Derive subscribed and available tiers with null guards
-  const subscribedTierSet = new Set(operatorData?.subscribedTiers ?? []);
-  const subscribedTiers = ALL_TIERS.filter(t => subscribedTierSet.has(t));
-  const availableTiers = ALL_TIERS.filter(t => !subscribedTierSet.has(t));
-  const hasSubscribedTiers = subscribedTiers.length > 0;
-  
-  const [formData, setFormData] = useState({
-    // Common fields
-    contactName: "",
-    phone: "",
-    email: "",
-    address: "",
-    
-    // Professional tier
-    businessName: "",
-    licenseNumber: "",
-    insuranceProvider: "",
-    
-    // Equipped & Professional
-    vehicleType: "",
-    vehicleMake: "",
-    vehicleModel: "",
-    vehicleYear: "",
-    licensePlate: "",
-    
-    // Manual tier
-    equipment: [] as string[],
-    homeAddress: "",
-    availableHours: "",
-    
-    // Services
-    services: [] as string[],
-    serviceArea: "",
-    emergencyAvailable: false,
-  });
+  const steps = getSteps();
+  const totalSteps = steps.length;
 
+  // Input handlers
   const handleInputChange = (field: string, value: string | boolean) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
@@ -194,28 +285,70 @@ export const OperatorOnboarding = () => {
     }));
   };
 
-  const handleFileUpload = (type: string) => {
-    toast({
-      title: "File uploaded",
-      description: `${type} document uploaded successfully`,
+  // City selection handler with tier-based constraints
+  const handleCitySelect = (cityName: string) => {
+    const country = countries.find(c => c.isoCode === selectedCountry);
+    const state = states.find(s => s.isoCode === selectedState);
+    const city = cities.find(c => c.name === cityName);
+    
+    if (!country || !state || !city) return;
+
+    // Check tier limits
+    const limits = SERVICE_AREA_LIMITS[selectedTier!];
+    
+    // Check max cities limit
+    if (limits.maxCities && selectedCities.length >= limits.maxCities) {
+      toast({
+        title: "City limit reached",
+        description: `${OPERATOR_TIER_INFO[selectedTier!].label} operators can select up to ${limits.maxCities} city(s).`,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Equipped tier: Enforce same province/state restriction
+    if (selectedTier === "equipped" && selectedCities.length > 0) {
+      const firstCity = selectedCities[0];
+      if (firstCity.stateCode !== selectedState || firstCity.countryCode !== selectedCountry) {
+        toast({
+          title: "Same province required",
+          description: "Equipped operators can only select cities within the same province/state.",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
+    // Check if already selected
+    if (selectedCities.some(c => c.cityName === cityName && c.stateCode === selectedState)) {
+      return;
+    }
+
+    const newCity: SelectedCity = {
+      cityName,
+      stateCode: selectedState,
+      stateName: state.name,
+      countryCode: selectedCountry,
+      countryName: country.name,
+      isPrimary: selectedCities.length === 0,
+    };
+
+    setSelectedCities(prev => [...prev, newCity]);
+  };
+
+  const handleRemoveCity = (cityName: string, stateCode: string) => {
+    setSelectedCities(prev => {
+      const filtered = prev.filter(c => !(c.cityName === cityName && c.stateCode === stateCode));
+      // If we removed the primary, make the first remaining one primary
+      if (filtered.length > 0 && !filtered.some(c => c.isPrimary)) {
+        filtered[0].isPrimary = true;
+      }
+      return filtered;
     });
   };
 
-  const handleTierSelection = (tier: OperatorTier) => {
-    // If user is already subscribed to this tier, redirect to unified dashboard
-    if (operatorData?.subscribedTiers?.includes(tier)) {
-      setLocation(`/operator?tier=${tier}`);
-      return;
-    }
-    
-    // New tier - show onboarding form
-    setSelectedTier(tier);
-    setCurrentStep(1);
-  };
-
-  // Per-step validation - validate before moving to next step
+  // Step validation
   const validateStep = async (): Promise<boolean> => {
-    // Step 1: Contact/Business Info validation
     if (currentStep === 1) {
       if (selectedTier === "professional") {
         if (!formData.businessName?.trim()) {
@@ -243,40 +376,27 @@ export const OperatorOnboarding = () => {
         toast({ title: "Address Required", description: "Please enter your address.", variant: "destructive" });
         return false;
       }
-      
-      // Validate address can be geocoded for manual/equipped tiers
-      const addressToValidate = formData.homeAddress || formData.address || "";
-      if ((selectedTier === "manual" || selectedTier === "equipped") && addressToValidate.trim()) {
-        try {
-          const geocoded = await geocodeAddress(addressToValidate);
-          if (!geocoded) {
-            toast({ 
-              title: "Invalid Address", 
-              description: "We couldn't verify this address. Please enter a valid street address, city, and state/province.",
-              variant: "destructive" 
-            });
-            return false;
-          }
-        } catch (error) {
-          toast({ 
-            title: "Address Verification Failed", 
-            description: "Unable to verify your address. Please check your connection and try again.",
-            variant: "destructive" 
-          });
+    }
+
+    if (currentStep === 2) {
+      if (selectedTier === "manual") {
+        if (formData.services.length === 0) {
+          toast({ title: "Services Required", description: "Please select at least one service.", variant: "destructive" });
+          return false;
+        }
+      } else {
+        // Professional/Equipped - service area validation
+        if (selectedCities.length === 0) {
+          toast({ title: "Service Area Required", description: "Please select at least one city where you operate.", variant: "destructive" });
+          return false;
+        }
+        if (formData.services.length === 0) {
+          toast({ title: "Services Required", description: "Please select at least one service.", variant: "destructive" });
           return false;
         }
       }
     }
 
-    // Step 2: Services validation (all tiers now have services in step 2)
-    if (currentStep === 2) {
-      if (formData.services.length === 0) {
-        toast({ title: "Services Required", description: "Please select at least one service you can offer.", variant: "destructive" });
-        return false;
-      }
-    }
-
-    // Step 3: Vehicle Details validation (professional/equipped) or Equipment (manual)
     if (currentStep === 3) {
       if (selectedTier === "professional" || selectedTier === "equipped") {
         if (!formData.vehicleType?.trim()) {
@@ -291,19 +411,10 @@ export const OperatorOnboarding = () => {
           toast({ title: "Vehicle Model Required", description: "Please enter your vehicle model.", variant: "destructive" });
           return false;
         }
-        if (!formData.vehicleYear?.trim()) {
-          toast({ title: "Vehicle Year Required", description: "Please enter your vehicle year.", variant: "destructive" });
-          return false;
-        }
-        if (!formData.licensePlate?.trim()) {
-          toast({ title: "License Plate Required", description: "Please enter your license plate number.", variant: "destructive" });
-          return false;
-        }
       }
-      
       if (selectedTier === "manual") {
         if (formData.equipment.length === 0) {
-          toast({ title: "Equipment Required", description: "Please select at least one piece of equipment you have.", variant: "destructive" });
+          toast({ title: "Equipment Required", description: "Please select at least one piece of equipment.", variant: "destructive" });
           return false;
         }
       }
@@ -313,13 +424,10 @@ export const OperatorOnboarding = () => {
   };
 
   const nextStep = async () => {
-    const maxSteps = 4; // All tiers now have 4 steps
-    
-    // Validate current step before proceeding
     const isValid = await validateStep();
     if (!isValid) return;
     
-    if (currentStep < maxSteps) {
+    if (currentStep < totalSteps) {
       setCurrentStep(currentStep + 1);
     }
   };
@@ -327,78 +435,47 @@ export const OperatorOnboarding = () => {
   const prevStep = () => {
     if (currentStep > 1) {
       setCurrentStep(currentStep - 1);
-    } else if (currentStep === 1) {
-      // Go back to Drive & Earn page instead of step 0
+    } else {
       setLocation('/drive-earn');
     }
   };
 
-  const submitTierRegistration = async () => {
-    if (!user || isSubmitting) return;
-    
-    // If user has operatorId, we need to wait for operator data to load
-    if (user.operatorId && isLoadingOperator) {
-      toast({
-        title: "Loading...",
-        description: "Please wait while we load your operator profile.",
-      });
+  // Handle form submission
+  const handleSubmit = async () => {
+    if (!user) {
+      setShowAuthDialog(true);
       return;
     }
     
     setIsSubmitting(true);
     
     try {
-      // Check if user is adding a tier to existing operator or creating new operator
+      // Geocode address
+      const addressToGeocode = formData.homeAddress || formData.address || "";
+      let homeLatitude = null;
+      let homeLongitude = null;
+      
+      if (addressToGeocode.trim()) {
+        const geocoded = await geocodeAddress(addressToGeocode);
+        if (geocoded) {
+          homeLatitude = geocoded.lat;
+          homeLongitude = geocoded.lon;
+        }
+      }
+
+      // Prepare service areas from selected cities
+      const serviceAreas = selectedCities.map(city => ({
+        countryCode: city.countryCode,
+        countryName: city.countryName,
+        stateCode: city.stateCode,
+        stateName: city.stateName,
+        cityName: city.cityName,
+        isPrimary: city.isPrimary,
+      }));
+
+      // Submit registration
       if (user.operatorId && operatorData) {
-        // User already has operator profile - add new tier
-        // Geocode address if adding manual/equipped tier
-        const requiresAddress = selectedTier === 'manual' || selectedTier === 'equipped';
-        const addressToGeocode = formData.homeAddress || formData.address || "";
-        
-        if (requiresAddress && !addressToGeocode.trim()) {
-          toast({
-            title: "Address Required",
-            description: `${selectedTier === 'manual' ? 'Manual' : 'Equipped'} operators must provide a home address for proximity-based job matching.`,
-            variant: "destructive",
-          });
-          setIsSubmitting(false);
-          return;
-        }
-        
-        let homeLatitude: number | null = null;
-        let homeLongitude: number | null = null;
-        let latitude = "0";
-        let longitude = "0";
-        
-        if (requiresAddress && addressToGeocode.trim()) {
-          try {
-            const geocoded = await geocodeAddress(addressToGeocode);
-            if (geocoded) {
-              latitude = geocoded.lat.toString();
-              longitude = geocoded.lon.toString();
-              homeLatitude = geocoded.lat;
-              homeLongitude = geocoded.lon;
-            } else {
-              toast({
-                title: "Invalid Address",
-                description: "We couldn't locate the address you provided. Please enter a valid street address, city, and state.",
-                variant: "destructive",
-              });
-              setIsSubmitting(false);
-              return;
-            }
-          } catch (error) {
-            console.error("Geocoding failed:", error);
-            toast({
-              title: "Geocoding Failed",
-              description: "We couldn't verify your address location. Please check your internet connection and try again.",
-              variant: "destructive",
-            });
-            setIsSubmitting(false);
-            return;
-          }
-        }
-        
+        // Adding new tier
         const response = await fetch(`/api/operators/${user.operatorId}/add-tier`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -406,1379 +483,882 @@ export const OperatorOnboarding = () => {
           body: JSON.stringify({
             tier: selectedTier,
             details: formData,
+            serviceAreas,
             homeLatitude,
             homeLongitude,
-            latitude,
-            longitude,
             operatingRadius: selectedTier === 'manual' ? 5 : selectedTier === 'equipped' ? 15 : null
           }),
         });
 
         if (!response.ok) {
-          const errorData = await response.json();
-          console.error("Add tier failed:", errorData);
-          throw new Error(errorData.message || "Failed to add tier");
+          throw new Error("Failed to add tier");
         }
-
-        // Refetch user from server to get authoritative state with all tier data
-        await refetchUser();
-        
-        // Invalidate operator query to refetch with updated tiers
-        queryClient.invalidateQueries({ queryKey: [`/api/operators/by-id/${user.operatorId}`] });
-        
-        toast({
-          title: "Tier Added!",
-          description: `You're now subscribed to ${OPERATOR_TIER_INFO[selectedTier!].label}. Start accepting jobs!`,
-        });
-        
-        // Navigate to the unified operator dashboard
-        setTimeout(() => {
-          setLocation(getDashboardRoute());
-        }, 1500);
       } else {
-        // New operator - create operator profile
-        const operatorId = `op-${user.email.replace(/[^a-zA-Z0-9]/g, '-')}-${Date.now()}`;
-        
-        // Ensure services array is not empty (default to Snow Plowing)
-        const services = formData.services.length > 0 ? formData.services : ["Snow Plowing"];
-        
-        // Validate address is provided for tiers requiring proximity filtering
-        const addressToGeocode = formData.homeAddress || formData.address || "";
-        const requiresAddress = selectedTier === 'manual' || selectedTier === 'equipped';
-        
-        if (requiresAddress && !addressToGeocode.trim()) {
-          toast({
-            title: "Address Required",
-            description: `${selectedTier === 'manual' ? 'Manual' : 'Equipped'} operators must provide a home address for proximity-based job matching.`,
-            variant: "destructive",
-          });
-          setIsSubmitting(false);
-          return;
-        }
-        
-        // Geocode operator's address to get coordinates
-        let latitude = "0";
-        let longitude = "0";
-        let homeLatitude: number | null = null;
-        let homeLongitude: number | null = null;
-        
-        if (addressToGeocode.trim()) {
-          try {
-            const geocoded = await geocodeAddress(addressToGeocode);
-            if (geocoded) {
-              latitude = geocoded.lat.toString();
-              longitude = geocoded.lon.toString();
-              homeLatitude = geocoded.lat;
-              homeLongitude = geocoded.lon;
-            } else {
-              // Geocoding returned no results
-              if (requiresAddress) {
-                toast({
-                  title: "Invalid Address",
-                  description: "We couldn't locate the address you provided. Please enter a valid street address, city, and state.",
-                  variant: "destructive",
-                });
-                setIsSubmitting(false);
-                return;
-              }
-              console.warn("Geocoding returned no results for:", addressToGeocode);
-            }
-          } catch (error) {
-            console.error("Geocoding failed:", error);
-            // Only block submission if address is required for proximity filtering
-            if (requiresAddress) {
-              toast({
-                title: "Geocoding Failed",
-                description: "We couldn't verify your address location. Please check your internet connection and try again.",
-                variant: "destructive",
-              });
-              setIsSubmitting(false);
-              return;
-            }
-          }
-        }
-        
-        // Set operating radius based on tier
-        const operatingRadius = selectedTier === 'manual' ? 5 : selectedTier === 'equipped' ? 15 : null;
-        
-        // Prepare operator data based on tier
-        const operatorData = {
-          operatorId,
-          name: formData.contactName || user.name,
-          driverName: formData.contactName || user.name,
-          rating: "5.00",
-          totalJobs: 0,
-          services,
-          vehicle: formData.vehicleType || "Not specified",
-          licensePlate: formData.licensePlate || "N/A",
-          phone: formData.phone || "",
-          email: formData.email || user.email,
-          latitude,
-          longitude,
-          address: formData.address || formData.homeAddress || "",
-          isOnline: 0, // FIXED: Operators start offline by default - must manually go online
-          availability: "available",
-          operatorTier: selectedTier || "professional",
-          subscribedTiers: [selectedTier || "professional"],
-          activeTier: null, // FIXED: Null until operator goes online
-          viewTier: selectedTier || "professional",
-          isCertified: selectedTier === "professional" ? 1 : 0,
-          businessLicense: formData.licenseNumber || null,
-          businessName: formData.businessName || null,
-          homeLatitude,
-          homeLongitude,
-          operatingRadius,
-        };
-
-        // Create operator record in database
-        const response = await fetch("/api/operators", {
+        // New operator registration
+        const response = await fetch("/api/operators/register", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           credentials: "include",
-          body: JSON.stringify(operatorData),
+          body: JSON.stringify({
+            tier: selectedTier,
+            details: formData,
+            serviceAreas,
+            homeLatitude,
+            homeLongitude,
+            operatingRadius: selectedTier === 'manual' ? 5 : selectedTier === 'equipped' ? 15 : null
+          }),
         });
 
         if (!response.ok) {
-          const errorData = await response.json();
-          console.error("Operator creation failed:", errorData);
-          throw new Error(errorData.message || "Failed to create operator profile");
+          throw new Error("Failed to register");
         }
-
-        const operator = await response.json();
-
-        // Verify we got an operatorId back
-        if (!operator.operatorId) {
-          throw new Error("Operator created but no operatorId returned");
-        }
-
-        // If professional tier, create a business record
-        let businessId: string | null = null;
-        if (selectedTier === "professional") {
-          businessId = `BUS-${user.email.replace(/[^a-zA-Z0-9]/g, '-')}-${Date.now()}`;
-          
-          const businessData = {
-            businessId,
-            name: formData.businessName || `${user.name}'s Business`,
-            email: formData.email || user.email,
-            phone: formData.phone || "",
-            businessLicense: formData.licenseNumber || "",
-            address: formData.address || "",
-            city: "",
-            state: "",
-            zipCode: "",
-          };
-
-          const businessResponse = await fetch("/api/business", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            credentials: "include",
-            body: JSON.stringify(businessData),
-          });
-
-          if (!businessResponse.ok) {
-            console.error("Business creation failed, but operator was created");
-            // Don't throw error - operator is created, just log the failure
-          } else {
-            // Update operator with businessId
-            await fetch(`/api/operators/${operator.operatorId}`, {
-              method: "PATCH",
-              headers: { "Content-Type": "application/json" },
-              credentials: "include",
-              body: JSON.stringify({ businessId }),
-            });
-          }
-        }
-
-        // Refetch user from server first to get authoritative state
-        await refetchUser();
-        
-        // Then update local state to match
-        updateUser({ 
-          operatorId: operator.operatorId,
-          operatorProfileComplete: true,
-          operatorTier: selectedTier,
-          businessId: businessId || undefined
-        });
-        
-        // Invalidate operator queries to ensure fresh data
-        queryClient.invalidateQueries({ queryKey: [`/api/operators/by-id/${operator.operatorId}`] });
-        
-        toast({
-          title: "Profile Complete!",
-          description: `Welcome to Fleetly as a ${OPERATOR_TIER_INFO[selectedTier!].label}. You can now start accepting jobs.`,
-        });
-        
-        // Navigate to the unified operator dashboard
-        setTimeout(() => {
-          setLocation(getDashboardRoute());
-        }, 1500);
       }
-    } catch (error: any) {
-      console.error("Error in tier registration:", error);
+
+      await refetchUser();
+      queryClient.invalidateQueries({ queryKey: [`/api/operators/by-id/${user.operatorId}`] });
+
       toast({
-        title: "Error",
-        description: error.message || "Failed to complete tier registration. Please try again.",
+        title: "Registration Complete!",
+        description: `Welcome to Fleetly as a ${OPERATOR_TIER_INFO[selectedTier!].label}!`,
+      });
+
+      setTimeout(() => {
+        setLocation(`/operator?tier=${selectedTier}`);
+      }, 1500);
+
+    } catch (error) {
+      console.error("Registration error:", error);
+      toast({
+        title: "Registration Failed",
+        description: "Something went wrong. Please try again.",
         variant: "destructive",
       });
-      // Don't redirect on error - let user retry
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleSubmit = () => {
-    // Check if user is authenticated
-    if (!isAuthenticated) {
-      // Show auth dialog with pre-filled name
-      setShowAuthDialog(true);
-      return;
-    }
-    
-    // User is authenticated, proceed with registration
-    submitTierRegistration();
-  };
-
   const handleAuthSuccess = () => {
-    // After successful auth, submit the tier registration
-    submitTierRegistration();
+    setShowAuthDialog(false);
+    handleSubmit();
   };
 
-  const handleSkip = async () => {
-    if (!user) return;
-    
-    try {
-      // Generate a unique operatorId based on user email
-      const operatorId = `op-${user.email.replace(/[^a-zA-Z0-9]/g, '-')}-${Date.now()}`;
-      
-      const tier = selectedTier || "professional";
-      
-      // Create minimal operator profile with required fields
-      const operatorData = {
-        operatorId,
-        name: user.name,
-        driverName: user.name,
-        rating: "5.00",
-        totalJobs: 0,
-        services: ["Snow Plowing"], // Default service (required, can't be empty)
-        vehicle: "Not specified",
-        licensePlate: "N/A",
-        phone: "",
-        email: user.email,
-        latitude: "0",
-        longitude: "0",
-        address: "",
-        isOnline: 1,
-        availability: "available",
-        operatorTier: tier,
-        subscribedTiers: [tier],
-        activeTier: tier,
-        isCertified: tier === "professional" ? 1 : 0,
-        businessLicense: null,
-        businessName: null,
-        homeLatitude: null,
-        homeLongitude: null,
-        operatingRadius: null,
-      };
-
-      // Create operator record in database
-      const response = await fetch("/api/operators", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify(operatorData),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        console.error("Operator creation failed:", errorData);
-        throw new Error(errorData.message || "Failed to create operator profile");
-      }
-
-      const operator = await response.json();
-
-      // Verify we got an operatorId back
-      if (!operator.operatorId) {
-        throw new Error("Operator created but no operatorId returned");
-      }
-
-      // Update user with operatorId
-      await updateUser({ 
-        operatorId: operator.operatorId,
-        operatorProfileComplete: true,
-        operatorTier: tier
-      });
-      
-      toast({
-        title: "Welcome to Fleetly!",
-        description: "You can complete your profile later from your dashboard.",
-      });
-      
-      // Navigate to dashboard with tier parameter for immediate correct view
-      setLocation(`/operator?tier=${tier}`);
-    } catch (error: any) {
-      console.error("Error creating operator:", error);
-      toast({
-        title: "Error",
-        description: error.message || "Failed to create operator profile. Please try again.",
-        variant: "destructive",
-      });
-      // Don't redirect on error - let user retry
-    }
-  };
-
-  // Tier-to-class mapping for fixed Tailwind classes
-  const tierStyles: Record<OperatorTier, {
-    bgGradient: string;
-    ring: string;
-    avatarBg: string;
-    avatarBorder: string;
-    iconBg: string;
-    iconColor: string;
-    icon: typeof Award;
-  }> = {
-    professional: {
-      bgGradient: "bg-gradient-to-br from-white to-orange-50 dark:from-gray-800 dark:to-orange-900/20",
-      ring: "ring-orange-500",
-      avatarBg: "bg-orange-100 dark:bg-orange-900",
-      avatarBorder: "border-orange-500",
-      iconBg: "bg-orange-100 dark:bg-orange-900",
-      iconColor: "text-orange-600 dark:text-orange-400",
-      icon: Award,
-    },
-    equipped: {
-      bgGradient: "bg-gradient-to-br from-white to-blue-50 dark:from-gray-800 dark:to-blue-900/20",
-      ring: "ring-blue-500",
-      avatarBg: "bg-blue-100 dark:bg-blue-900",
-      avatarBorder: "border-blue-500",
-      iconBg: "bg-blue-100 dark:bg-blue-900",
-      iconColor: "text-blue-600 dark:text-blue-400",
-      icon: Truck,
-    },
-    manual: {
-      bgGradient: "bg-gradient-to-br from-white to-green-50 dark:from-gray-800 dark:to-green-900/20",
-      ring: "ring-green-500",
-      avatarBg: "bg-green-100 dark:bg-green-900",
-      avatarBorder: "border-green-500",
-      iconBg: "bg-green-100 dark:bg-green-900",
-      iconColor: "text-green-600 dark:text-green-400",
-      icon: Users,
-    }
-  };
-
-  // All tiers use the unified operator dashboard
-  const getDashboardRoute = () => "/operator";
-
-  // Helper function to render achievement badges
-  const getAchievementBadges = (totalJobs: number, rating: string) => {
-    const badges = [];
-    if (parseFloat(rating) >= 4.9) {
-      badges.push({ icon: Star, label: "Top Rated", color: "text-yellow-600" });
-    }
-    if (totalJobs >= 100) {
-      badges.push({ icon: Award, label: "100+ Jobs", color: "text-purple-600" });
-    } else if (totalJobs >= 50) {
-      badges.push({ icon: TrendingUp, label: "50+ Jobs", color: "text-blue-600" });
-    } else if (totalJobs >= 10) {
-      badges.push({ icon: Sparkles, label: "10+ Jobs", color: "text-green-600" });
-    }
-    return badges;
-  };
-
-  // Helper function to render personalized tier card for subscribed tiers
-  const renderSubscribedTierCard = (tier: OperatorTier) => {
-    const isActive = operatorData?.activeTier === tier;
-    
-    // Get tier-specific stats
-    const tierStats = operatorData?.tierStats?.[tier];
-    const tierJobsCompleted = tierStats?.jobsCompleted || 0;
-    const tierRating = tierStats?.rating || "0";
-    const memberSince = operatorData?.createdAt ? format(new Date(operatorData.createdAt), "MMM yyyy") : "";
-    
-    // Use tier-specific stats for achievement badges
-    const badges = getAchievementBadges(tierJobsCompleted, tierRating);
-    const style = tierStyles[tier];
-    const TierIcon = style.icon;
-    
-    return (
-      <Card 
-        className={`cursor-pointer transition-all hover:shadow-2xl relative overflow-hidden group
-          ${isActive ? `ring-2 ring-offset-2 ${style.ring}` : ''} 
-          shadow-lg ${style.bgGradient}`}
-        onClick={() => handleTierSelection(tier)}
-        data-testid={`card-tier-${tier}`}
-      >
-        {/* Shimmer effect on hover */}
-        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-200%] group-hover:translate-x-[200%] transition-transform duration-1000"></div>
-        
-        {/* Operator avatar badge in top-right */}
-        <div className={`absolute top-4 right-4 w-10 h-10 rounded-full ${style.avatarBg} flex items-center justify-center border-2 ${style.avatarBorder} shadow-lg`}>
-          <UserCircle className={`w-6 h-6 ${style.iconColor}`} />
-        </div>
-        
-        <CardHeader>
-          <div className={`w-12 h-12 ${style.iconBg} rounded-full flex items-center justify-center mb-4`}>
-            <TierIcon className={`w-6 h-6 ${style.iconColor}`} />
-          </div>
-          <CardTitle className="text-black dark:text-white flex items-center gap-2">
-            {OPERATOR_TIER_INFO[tier].label}
-            {isActive && (
-              <span className="text-xs font-semibold text-green-600 dark:text-green-400 bg-green-100 dark:bg-green-900 px-2 py-0.5 rounded">
-                ACTIVE
-              </span>
-            )}
-          </CardTitle>
-          <CardDescription className="text-gray-700 dark:text-gray-300 font-medium">
-            Welcome back, {user?.name}! You've completed {tierJobsCompleted} jobs in this tier.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {/* Stats Display */}
-          <div className="bg-white/50 dark:bg-gray-800/50 rounded-lg p-3 space-y-2">
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-gray-600 dark:text-gray-400">Tier Rating</span>
-              <div className="flex items-center gap-1">
-                <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
-                <span className="font-semibold text-black dark:text-white">
-                  {parseFloat(tierRating).toFixed(1)}
-                </span>
-              </div>
-            </div>
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-gray-600 dark:text-gray-400">Tier Jobs</span>
-              <span className="font-semibold text-black dark:text-white">
-                {tierJobsCompleted}
-              </span>
-            </div>
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-gray-600 dark:text-gray-400">Member Since</span>
-              <span className="font-semibold text-black dark:text-white">
-                {memberSince}
-              </span>
-            </div>
-          </div>
-
-          {/* Achievement Badges */}
-          {badges.length > 0 && (
-            <div className="flex flex-wrap gap-2">
-              {badges.map((badge, idx) => (
-                <div 
-                  key={idx}
-                  className="flex items-center gap-1 bg-white dark:bg-gray-800 px-2 py-1 rounded-full text-xs border"
-                >
-                  {React.createElement(badge.icon, { className: `w-3 h-3 ${badge.color}` })}
-                  <span className="font-medium text-gray-700 dark:text-gray-300">{badge.label}</span>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* Go to Dashboard Button */}
-          <Button 
-            className="w-full bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white"
-            onClick={(e) => {
-              e.stopPropagation();
-              setLocation(getDashboardRoute());
-            }}
-            data-testid={`button-goto-dashboard-${tier}`}
-          >
-            Go to Dashboard →
-          </Button>
-        </CardContent>
-      </Card>
-    );
-  };
-
-  // Helper function to render available tier cards (not yet subscribed)
-  const renderAvailableTierCard = (tier: OperatorTier) => {
-    const style = tierStyles[tier];
-    const TierIcon = style.icon;
-    const info = OPERATOR_TIER_INFO[tier];
-    const features = tierFeatureMap[tier];
-    
-    return (
-      <Card 
-        className="cursor-pointer hover:border-orange-500 dark:hover:border-orange-500 transition-all hover:shadow-lg relative"
-        onClick={() => handleTierSelection(tier)}
-        data-testid={`card-tier-${tier}`}
-      >
-        {/* "+ Add This Tier" badge in top-right */}
-        <div className="absolute top-4 right-4">
-          <span className={`text-xs font-semibold ${style.iconColor} ${style.avatarBg} px-2 py-1 rounded`}>
-            + Add This Tier
-          </span>
-        </div>
-        
-        <CardHeader>
-          <div className={`w-12 h-12 ${style.iconBg} rounded-full flex items-center justify-center mb-4`}>
-            <TierIcon className={`w-6 h-6 ${style.iconColor}`} />
-          </div>
-          <CardTitle className="text-black dark:text-white">
-            {info.label}
-          </CardTitle>
-          <CardDescription className="text-gray-600 dark:text-gray-400">
-            {info.description}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {/* Features List */}
-          <div className="space-y-2">
-            {features.features.map((feature, idx) => (
-              <div key={idx} className="flex items-center text-sm text-gray-600 dark:text-gray-400">
-                <CheckCircle className="w-4 h-4 mr-2 text-green-600" />
-                {feature}
-              </div>
-            ))}
-          </div>
-          
-          {/* Rate & Radius Info - commented out for now to match published version */}
-          {/* <div className="pt-4 border-t border-gray-200 dark:border-gray-800 space-y-2">
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-gray-600 dark:text-gray-400">Rate Multiplier</span>
-              <span className="font-semibold text-black dark:text-white">{features.rateMultiplier}</span>
-            </div>
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-gray-600 dark:text-gray-400">Service Radius</span>
-              <span className="font-semibold text-black dark:text-white">{features.serviceRadius}</span>
-            </div>
-          </div> */}
-          
-          {/* Requirements */}
-          <div className="pt-2 border-t border-gray-200 dark:border-gray-800">
-            <p className="text-xs text-gray-500 dark:text-gray-500">
-              Requires: {features.requirements}
-            </p>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  };
-
-  // REMOVED: Tier Selection Screen (Step 0)
-  // Tier selection is now handled by the NEW Drive & Earn page (/drive-earn)
-  // Users are redirected to /drive-earn if they try to access onboarding without a tier parameter
-  // This eliminates confusion and consolidates all tier selection in one place
-
-  // Get steps based on tier
-  const getSteps = () => {
-    if (selectedTier === "professional") {
-      return [
-        { number: 1, title: "Business Info", icon: FileText },
-        { number: 2, title: "Services & Area", icon: Shield },
-        { number: 3, title: "Vehicle Details", icon: Truck },
-        { number: 4, title: "Documents", icon: CheckCircle },
-      ];
-    } else if (selectedTier === "equipped") {
-      return [
-        { number: 1, title: "Contact Info", icon: FileText },
-        { number: 2, title: "Services & Area", icon: Shield },
-        { number: 3, title: "Vehicle Details", icon: Truck },
-        { number: 4, title: "Complete", icon: CheckCircle },
-      ];
-    } else {
-      return [
-        { number: 1, title: "Contact Info", icon: FileText },
-        { number: 2, title: "Services", icon: Shield },
-        { number: 3, title: "Equipment & Area", icon: Wrench },
-        { number: 4, title: "Complete", icon: CheckCircle },
-      ];
-    }
-  };
-
-  const steps = getSteps();
-
-  // Show loading state while waiting for tier from URL param or redirect
-  // This prevents crash when selectedTier is null on initial render
+  // Loading state
   if (!selectedTier) {
     return (
-      <div className="min-h-screen bg-white dark:bg-gray-900 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500 mx-auto mb-4"></div>
-          <p className="text-gray-600 dark:text-gray-400">Loading...</p>
-        </div>
+      <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white dark:from-gray-950 dark:to-black flex items-center justify-center">
+        <div className="animate-pulse text-gray-500">Loading...</div>
       </div>
     );
   }
 
-  return (
-    <div className="min-h-screen bg-white dark:bg-gray-900 flex flex-col pb-16 md:pb-0">
-      <header className="border-b border-gray-200 dark:border-gray-800 px-4 sm:px-6 lg:px-8 py-4">
-        <div className="max-w-3xl mx-auto flex items-center justify-between">
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            onClick={prevStep}
-            data-testid="button-back-step"
-          >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back
-          </Button>
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-semibold text-orange-600 dark:text-orange-400">
-              {OPERATOR_TIER_INFO[selectedTier!].badge} {OPERATOR_TIER_INFO[selectedTier!].label}
-            </span>
-          </div>
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            onClick={handleSkip}
-            data-testid="button-skip"
-          >
-            Skip for Now
-          </Button>
-        </div>
-      </header>
+  const tierInfo = OPERATOR_TIER_INFO[selectedTier];
+  const tierLimits = SERVICE_AREA_LIMITS[selectedTier];
 
-      <div className="flex-1 px-4 sm:px-6 lg:px-8 py-8">
-        <div className="max-w-3xl mx-auto">
-          {/* Progress Steps */}
-          <div className="mb-8">
-            <div className="flex items-center justify-between">
-              {steps.map((step, index) => {
-                const Icon = step.icon;
-                const isActive = currentStep === step.number;
-                const isCompleted = currentStep > step.number;
-                
-                return (
-                  <React.Fragment key={step.number}>
-                    <div className="flex flex-col items-center">
-                      <div className={`
-                        w-12 h-12 rounded-full flex items-center justify-center mb-2
-                        ${isActive ? 'bg-orange-500 text-white' : ''}
-                        ${isCompleted ? 'bg-green-500 text-white' : ''}
-                        ${!isActive && !isCompleted ? 'bg-gray-200 dark:bg-gray-800 text-gray-500' : ''}
-                      `}>
-                        <Icon className="w-5 h-5" />
-                      </div>
-                      <span className={`text-xs font-medium ${isActive ? 'text-black dark:text-white' : 'text-gray-500'}`}>
-                        {step.title}
-                      </span>
-                    </div>
-                    {index < steps.length - 1 && (
-                      <div className={`flex-1 h-1 mx-2 ${isCompleted ? 'bg-green-500' : 'bg-gray-200 dark:bg-gray-800'}`} />
-                    )}
-                  </React.Fragment>
-                );
-              })}
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-gray-50 via-white to-gray-50 dark:from-gray-950 dark:via-black dark:to-gray-950">
+      {/* Premium Header */}
+      <div className="sticky top-0 z-50 bg-white/80 dark:bg-black/80 backdrop-blur-xl border-b border-gray-200/50 dark:border-gray-800/50">
+        <div className="max-w-4xl mx-auto px-4 py-4">
+          <div className="flex items-center justify-between">
+            <button
+              onClick={prevStep}
+              className="flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-black dark:hover:text-white transition-colors"
+              data-testid="button-back"
+            >
+              <ArrowLeft className="w-5 h-5" />
+              <span className="font-medium">Back</span>
+            </button>
+            
+            <div className="flex items-center gap-2">
+              <Badge 
+                variant="outline" 
+                className={cn(
+                  "px-3 py-1 text-sm font-semibold",
+                  selectedTier === "professional" && "border-purple-500 text-purple-600 dark:text-purple-400",
+                  selectedTier === "equipped" && "border-blue-500 text-blue-600 dark:text-blue-400",
+                  selectedTier === "manual" && "border-green-500 text-green-600 dark:text-green-400"
+                )}
+              >
+                {tierInfo.badge} {tierInfo.label}
+              </Badge>
             </div>
           </div>
+        </div>
+      </div>
 
-          {/* Step Content */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-black dark:text-white">
-                {steps[currentStep - 1]?.title}
-              </CardTitle>
-              <CardDescription className="text-gray-600 dark:text-gray-400">
-                {selectedTier === "professional" && currentStep === 1 && "Enter your business information"}
-                {selectedTier === "professional" && currentStep === 2 && "Select services and operating area"}
-                {selectedTier === "professional" && currentStep === 3 && "Tell us about your vehicle"}
-                {selectedTier === "professional" && currentStep === 4 && "Upload required documents"}
-                {selectedTier === "equipped" && currentStep === 1 && "Enter your contact information"}
-                {selectedTier === "equipped" && currentStep === 2 && "Select services and operating area"}
-                {selectedTier === "equipped" && currentStep === 3 && "Tell us about your vehicle"}
-                {selectedTier === "equipped" && currentStep === 4 && "Review and complete your profile"}
-                {selectedTier === "manual" && currentStep === 1 && "Enter your contact information"}
-                {selectedTier === "manual" && currentStep === 2 && "Select the services you will offer"}
-                {selectedTier === "manual" && currentStep === 3 && "Select equipment and set your operating area"}
-                {selectedTier === "manual" && currentStep === 4 && "Review and complete your profile"}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {/* Professional - Step 1: Business Info */}
-              {selectedTier === "professional" && currentStep === 1 && (
-                <div className="space-y-4">
-                  <div>
-                    <Label htmlFor="businessName">Business Name *</Label>
-                    <Input
-                      id="businessName"
-                      value={formData.businessName}
-                      onChange={(e) => handleInputChange("businessName", e.target.value)}
-                      placeholder="ABC Towing & Hauling LLC"
-                      data-testid="input-business-name"
-                    />
+      {/* Progress Indicator */}
+      <div className="max-w-4xl mx-auto px-4 pt-8 pb-4">
+        <div className="relative">
+          {/* Progress Line */}
+          <div className="absolute top-6 left-0 right-0 h-0.5 bg-gray-200 dark:bg-gray-800" />
+          <div 
+            className="absolute top-6 left-0 h-0.5 bg-gradient-to-r from-orange-500 to-orange-400 transition-all duration-500"
+            style={{ width: `${((currentStep - 1) / (totalSteps - 1)) * 100}%` }}
+          />
+          
+          {/* Step Indicators */}
+          <div className="relative flex justify-between">
+            {steps.map((step, index) => {
+              const StepIcon = step.icon;
+              const isCompleted = currentStep > step.number;
+              const isCurrent = currentStep === step.number;
+              
+              return (
+                <div key={step.number} className="flex flex-col items-center">
+                  <div
+                    className={cn(
+                      "w-12 h-12 rounded-full flex items-center justify-center transition-all duration-300 relative z-10",
+                      isCompleted && "bg-orange-500 text-white shadow-lg shadow-orange-500/30",
+                      isCurrent && "bg-white dark:bg-gray-900 border-2 border-orange-500 text-orange-500 shadow-lg",
+                      !isCompleted && !isCurrent && "bg-gray-100 dark:bg-gray-800 text-gray-400"
+                    )}
+                  >
+                    {isCompleted ? (
+                      <CheckCircle className="w-6 h-6" />
+                    ) : (
+                      <StepIcon className="w-5 h-5" />
+                    )}
                   </div>
-                  <div>
-                    <Label htmlFor="licenseNumber">Business License Number *</Label>
-                    <Input
-                      id="licenseNumber"
-                      value={formData.licenseNumber}
-                      onChange={(e) => handleInputChange("licenseNumber", e.target.value)}
-                      placeholder="BL-123456"
-                      data-testid="input-license-number"
-                    />
+                  <div className="mt-3 text-center">
+                    <p className={cn(
+                      "text-sm font-semibold",
+                      (isCompleted || isCurrent) ? "text-black dark:text-white" : "text-gray-400"
+                    )}>
+                      {step.title}
+                    </p>
+                    <p className="text-xs text-gray-500 dark:text-gray-500 hidden sm:block">
+                      {step.subtitle}
+                    </p>
                   </div>
-                  <div>
-                    <Label htmlFor="contactName">Contact Name *</Label>
-                    <Input
-                      id="contactName"
-                      value={formData.contactName}
-                      onChange={(e) => handleInputChange("contactName", e.target.value)}
-                      placeholder="John Smith"
-                      data-testid="input-contact-name"
-                    />
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="phone">Phone *</Label>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div className="max-w-2xl mx-auto px-4 py-8">
+        <Card className="border-0 shadow-xl bg-white dark:bg-gray-900 rounded-2xl overflow-hidden">
+          <CardHeader className="bg-gradient-to-br from-gray-50 to-white dark:from-gray-800 dark:to-gray-900 border-b border-gray-100 dark:border-gray-800 pb-6">
+            <div className="flex items-start gap-4">
+              <div className={cn(
+                "p-3 rounded-xl",
+                selectedTier === "professional" && "bg-purple-100 dark:bg-purple-900/30",
+                selectedTier === "equipped" && "bg-blue-100 dark:bg-blue-900/30",
+                selectedTier === "manual" && "bg-green-100 dark:bg-green-900/30"
+              )}>
+                {(() => {
+                  const CurrentIcon = steps[currentStep - 1]?.icon || User;
+                  return <CurrentIcon className={cn(
+                    "w-6 h-6",
+                    selectedTier === "professional" && "text-purple-600 dark:text-purple-400",
+                    selectedTier === "equipped" && "text-blue-600 dark:text-blue-400",
+                    selectedTier === "manual" && "text-green-600 dark:text-green-400"
+                  )} />;
+                })()}
+              </div>
+              <div>
+                <CardTitle className="text-2xl font-bold text-black dark:text-white">
+                  {steps[currentStep - 1]?.title}
+                </CardTitle>
+                <CardDescription className="text-gray-600 dark:text-gray-400 mt-1">
+                  Step {currentStep} of {totalSteps}
+                </CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          
+          <CardContent className="p-6 sm:p-8 space-y-6">
+            {/* Step 1: Contact/Business Info */}
+            {currentStep === 1 && (
+              <div className="space-y-6">
+                {selectedTier === "professional" && (
+                  <>
+                    <div className="space-y-2">
+                      <Label htmlFor="businessName" className="text-sm font-semibold text-black dark:text-white flex items-center gap-2">
+                        <Building2 className="w-4 h-4 text-gray-500" />
+                        Business Name *
+                      </Label>
                       <Input
-                        id="phone"
-                        type="tel"
-                        value={formData.phone}
-                        onChange={(e) => handleInputChange("phone", e.target.value)}
-                        placeholder="(555) 123-4567"
-                        data-testid="input-phone"
+                        id="businessName"
+                        value={formData.businessName}
+                        onChange={(e) => handleInputChange("businessName", e.target.value)}
+                        placeholder="Your Company Name"
+                        className="h-12 rounded-xl border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                        data-testid="input-business-name"
                       />
                     </div>
-                    <div>
-                      <Label htmlFor="email">Email *</Label>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="licenseNumber" className="text-sm font-semibold text-black dark:text-white flex items-center gap-2">
+                        <FileText className="w-4 h-4 text-gray-500" />
+                        Business License Number *
+                      </Label>
                       <Input
-                        id="email"
-                        type="email"
-                        value={formData.email}
-                        onChange={(e) => handleInputChange("email", e.target.value)}
-                        placeholder="john@company.com"
-                        data-testid="input-email"
+                        id="licenseNumber"
+                        value={formData.licenseNumber}
+                        onChange={(e) => handleInputChange("licenseNumber", e.target.value)}
+                        placeholder="LIC-123456"
+                        className="h-12 rounded-xl border-gray-200 dark:border-gray-700"
+                        data-testid="input-license-number"
                       />
                     </div>
-                  </div>
-                  <div>
-                    <Label htmlFor="address">Business Address *</Label>
+                  </>
+                )}
+
+                <div className="space-y-2">
+                  <Label htmlFor="contactName" className="text-sm font-semibold text-black dark:text-white flex items-center gap-2">
+                    <User className="w-4 h-4 text-gray-500" />
+                    Full Name *
+                  </Label>
+                  <Input
+                    id="contactName"
+                    value={formData.contactName}
+                    onChange={(e) => handleInputChange("contactName", e.target.value)}
+                    placeholder="John Smith"
+                    className="h-12 rounded-xl border-gray-200 dark:border-gray-700"
+                    data-testid="input-contact-name"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="phone" className="text-sm font-semibold text-black dark:text-white flex items-center gap-2">
+                      <Phone className="w-4 h-4 text-gray-500" />
+                      Phone *
+                    </Label>
                     <Input
-                      id="address"
-                      value={formData.address}
-                      onChange={(e) => handleInputChange("address", e.target.value)}
-                      placeholder="123 Main St, City, State ZIP"
-                      data-testid="input-address"
+                      id="phone"
+                      type="tel"
+                      value={formData.phone}
+                      onChange={(e) => handleInputChange("phone", e.target.value)}
+                      placeholder="(555) 123-4567"
+                      className="h-12 rounded-xl border-gray-200 dark:border-gray-700"
+                      data-testid="input-phone"
                     />
                   </div>
-                  <div>
-                    <Label htmlFor="insuranceProvider">Insurance Provider *</Label>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="email" className="text-sm font-semibold text-black dark:text-white flex items-center gap-2">
+                      <Mail className="w-4 h-4 text-gray-500" />
+                      Email *
+                    </Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      value={formData.email}
+                      onChange={(e) => handleInputChange("email", e.target.value)}
+                      placeholder="john@email.com"
+                      className="h-12 rounded-xl border-gray-200 dark:border-gray-700"
+                      data-testid="input-email"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="address" className="text-sm font-semibold text-black dark:text-white flex items-center gap-2">
+                    <MapPin className="w-4 h-4 text-gray-500" />
+                    {selectedTier === "manual" ? "Home Address *" : "Business Address *"}
+                  </Label>
+                  <Input
+                    id="address"
+                    value={formData.address}
+                    onChange={(e) => handleInputChange("address", e.target.value)}
+                    placeholder="123 Main St, City, State ZIP"
+                    className="h-12 rounded-xl border-gray-200 dark:border-gray-700"
+                    data-testid="input-address"
+                  />
+                  {selectedTier === "manual" && (
+                    <p className="text-xs text-gray-500 flex items-center gap-1 mt-1">
+                      <AlertCircle className="w-3 h-3" />
+                      Jobs will be matched within {OPERATOR_TIER_INFO.manual.radiusKm}km of your home
+                    </p>
+                  )}
+                </div>
+
+                {selectedTier === "professional" && (
+                  <div className="space-y-2">
+                    <Label htmlFor="insuranceProvider" className="text-sm font-semibold text-black dark:text-white flex items-center gap-2">
+                      <Shield className="w-4 h-4 text-gray-500" />
+                      Insurance Provider *
+                    </Label>
                     <Input
                       id="insuranceProvider"
                       value={formData.insuranceProvider}
                       onChange={(e) => handleInputChange("insuranceProvider", e.target.value)}
                       placeholder="State Farm, Geico, etc."
+                      className="h-12 rounded-xl border-gray-200 dark:border-gray-700"
                       data-testid="input-insurance"
                     />
                   </div>
-                </div>
-              )}
-
-              {/* Equipped/Manual - Step 1: Contact Info */}
-              {(selectedTier === "equipped" || selectedTier === "manual") && currentStep === 1 && (
-                <div className="space-y-4">
-                  <div>
-                    <Label htmlFor="contactName">Full Name *</Label>
-                    <Input
-                      id="contactName"
-                      value={formData.contactName}
-                      onChange={(e) => handleInputChange("contactName", e.target.value)}
-                      placeholder="John Smith"
-                      data-testid="input-contact-name"
-                    />
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="phone">Phone *</Label>
-                      <Input
-                        id="phone"
-                        type="tel"
-                        value={formData.phone}
-                        onChange={(e) => handleInputChange("phone", e.target.value)}
-                        placeholder="(555) 123-4567"
-                        data-testid="input-phone"
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="email">Email *</Label>
-                      <Input
-                        id="email"
-                        type="email"
-                        value={formData.email}
-                        onChange={(e) => handleInputChange("email", e.target.value)}
-                        placeholder="john@email.com"
-                        data-testid="input-email"
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <Label htmlFor="address">{selectedTier === "manual" ? "Home Address *" : "Address *"}</Label>
-                    <Input
-                      id="address"
-                      value={formData.address}
-                      onChange={(e) => handleInputChange("address", e.target.value)}
-                      placeholder="123 Main St, City, State ZIP"
-                      data-testid="input-address"
-                    />
-                    {selectedTier === "manual" && (
-                      <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
-                        You can only accept jobs within {OPERATOR_TIER_INFO.manual.radiusKm}km of your home
-                      </p>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {/* Manual - Step 2: Services Only */}
-              {selectedTier === "manual" && currentStep === 2 && (
-                <div className="space-y-6">
-                  <div>
-                    <Label>Services You'll Provide *</Label>
-                    <p className="text-sm text-gray-500 dark:text-gray-500 mb-3">
-                      Select all services you can offer
-                    </p>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      {serviceTypes.map((service) => (
-                        <div 
-                          key={service}
-                          className="flex items-center space-x-2"
-                        >
-                          <Checkbox
-                            variant="circular"
-                            id={`manual-service-${service}`}
-                            checked={formData.services.includes(service)}
-                            onCheckedChange={() => handleServiceToggle(service)}
-                            data-testid={`checkbox-service-${service.toLowerCase().replace(/\s+/g, '-')}`}
-                          />
-                          <label
-                            htmlFor={`manual-service-${service}`}
-                            className="text-sm text-black dark:text-white cursor-pointer"
-                          >
-                            {service}
-                          </label>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center space-x-2">
-                    <Switch
-                      id="emergencyAvailable"
-                      checked={formData.emergencyAvailable}
-                      onCheckedChange={(checked) => handleInputChange("emergencyAvailable", checked)}
-                      data-testid="switch-emergency"
-                    />
-                    <Label htmlFor="emergencyAvailable" className="cursor-pointer">
-                      Available for emergency calls
-                    </Label>
-                  </div>
-                </div>
-              )}
-
-              {/* Professional/Equipped - Step 3: Vehicle Details */}
-              {(selectedTier === "professional" || selectedTier === "equipped") && currentStep === 3 && (
-                <div className="space-y-4">
-                  <div>
-                    <Label htmlFor="vehicleType">Vehicle Type *</Label>
-                    <Select
-                      value={formData.vehicleType}
-                      onValueChange={(value) => handleInputChange("vehicleType", value)}
-                    >
-                      <SelectTrigger data-testid="select-vehicle-type">
-                        <SelectValue placeholder="Select vehicle type" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {vehicleTypes.map((type) => (
-                          <SelectItem key={type} value={type}>
-                            {type}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div>
-                      <Label htmlFor="vehicleMake">Make *</Label>
-                      <Input
-                        id="vehicleMake"
-                        value={formData.vehicleMake}
-                        onChange={(e) => handleInputChange("vehicleMake", e.target.value)}
-                        placeholder="Ford"
-                        data-testid="input-vehicle-make"
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="vehicleModel">Model *</Label>
-                      <Input
-                        id="vehicleModel"
-                        value={formData.vehicleModel}
-                        onChange={(e) => handleInputChange("vehicleModel", e.target.value)}
-                        placeholder="F-350"
-                        data-testid="input-vehicle-model"
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="vehicleYear">Year *</Label>
-                      <Input
-                        id="vehicleYear"
-                        value={formData.vehicleYear}
-                        onChange={(e) => handleInputChange("vehicleYear", e.target.value)}
-                        placeholder="2023"
-                        data-testid="input-vehicle-year"
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <Label htmlFor="licensePlate">License Plate *</Label>
-                    <Input
-                      id="licensePlate"
-                      value={formData.licensePlate}
-                      onChange={(e) => handleInputChange("licensePlate", e.target.value)}
-                      placeholder="ABC-1234"
-                      data-testid="input-license-plate"
-                    />
-                  </div>
-                </div>
-              )}
-
-              {/* Manual - Step 3: Equipment & Area */}
-              {selectedTier === "manual" && currentStep === 3 && (
-                <div className="space-y-6">
-                  <div>
-                    <Label>Your Equipment *</Label>
-                    <p className="text-sm text-gray-500 dark:text-gray-500 mb-3">
-                      Select all equipment you have available
-                    </p>
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                      {manualEquipment.map((equipment) => (
-                        <div 
-                          key={equipment}
-                          className="flex items-center space-x-2"
-                        >
-                          <Checkbox
-                            variant="circular"
-                            id={equipment}
-                            checked={formData.equipment.includes(equipment)}
-                            onCheckedChange={() => handleEquipmentToggle(equipment)}
-                            data-testid={`checkbox-equipment-${equipment.toLowerCase().replace(/\s+/g, '-')}`}
-                          />
-                          <label
-                            htmlFor={equipment}
-                            className="text-sm text-black dark:text-white cursor-pointer"
-                          >
-                            {equipment}
-                          </label>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <Label htmlFor="availableHours">Available Hours</Label>
-                    <Input
-                      id="availableHours"
-                      value={formData.availableHours}
-                      onChange={(e) => handleInputChange("availableHours", e.target.value)}
-                      placeholder="e.g., Mornings, Evenings, Weekends"
-                      data-testid="input-available-hours"
-                    />
-                  </div>
-                  
-                  <div>
-                    <Label>Equipment Photos (Optional)</Label>
-                    <p className="text-sm text-gray-500 dark:text-gray-500 mb-3">
-                      Upload photos of your equipment to help verify your application
-                    </p>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-lg p-6 text-center">
-                        <Upload className="w-8 h-8 mx-auto mb-2 text-gray-400" />
-                        <p className="text-sm font-medium text-black dark:text-white mb-1">Equipment Photo 1</p>
-                        <p className="text-xs text-gray-500 dark:text-gray-500 mb-3">Upload image (JPG, PNG)</p>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleFileUpload("Equipment Photo 1")}
-                          data-testid="button-upload-equipment-1"
-                        >
-                          Upload
-                        </Button>
-                      </div>
-                      <div className="border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-lg p-6 text-center">
-                        <Upload className="w-8 h-8 mx-auto mb-2 text-gray-400" />
-                        <p className="text-sm font-medium text-black dark:text-white mb-1">Equipment Photo 2</p>
-                        <p className="text-xs text-gray-500 dark:text-gray-500 mb-3">Upload image (JPG, PNG)</p>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleFileUpload("Equipment Photo 2")}
-                          data-testid="button-upload-equipment-2"
-                        >
-                          Upload
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-                    <h4 className="font-semibold text-black dark:text-white mb-2">Operating Radius</h4>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
-                      As a manual operator, you can accept jobs within <strong>{OPERATOR_TIER_INFO.manual.radiusKm}km</strong> from your home address. This ensures efficient service delivery and prevents operator clashing in neighborhoods.
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              {/* Professional/Equipped - Step 2: Services */}
-              {(selectedTier === "professional" || selectedTier === "equipped") && currentStep === 2 && (
-                <div className="space-y-4">
-                  <div>
-                    <Label>Services Offered *</Label>
-                    <p className="text-sm text-gray-500 dark:text-gray-500 mb-3">
-                      Select the services you want to offer. Your tier determines which services are available.
-                    </p>
-                    
-                    {/* Dynamic services based on tier */}
-                    {(() => {
-                      const tierServices = getServicesForTier(selectedTier);
-                      const microServices = tierServices.filter(s => s.category === "micro");
-                      const standardServices = tierServices.filter(s => s.category === "standard");
-                      const professionalServices = tierServices.filter(s => s.category === "professional");
-                      
-                      return (
-                        <div className="space-y-6">
-                          {/* Micro Services */}
-                          {microServices.length > 0 && (
-                            <div>
-                              <div className="flex items-center gap-2 mb-3">
-                                <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300">
-                                  Micro Services
-                                </span>
-                                <span className="text-xs text-gray-500">Quick jobs, manual labor</span>
-                              </div>
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                                {microServices.map((service) => (
-                                  <div 
-                                    key={service.id}
-                                    className={`flex items-start space-x-3 p-3 rounded-lg border cursor-pointer transition-all ${
-                                      formData.services.includes(service.name)
-                                        ? 'border-teal-400 bg-teal-50 dark:bg-teal-900/20'
-                                        : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
-                                    }`}
-                                    onClick={() => handleServiceToggle(service.name)}
-                                    data-testid={`service-card-${service.id}`}
-                                  >
-                                    <Checkbox
-                                      variant="circular"
-                                      id={service.id}
-                                      checked={formData.services.includes(service.name)}
-                                      onCheckedChange={() => handleServiceToggle(service.name)}
-                                    />
-                                    <div className="flex-1 min-w-0">
-                                      <label htmlFor={service.id} className="text-sm font-medium text-black dark:text-white cursor-pointer">
-                                        {service.name}
-                                      </label>
-                                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 line-clamp-1">
-                                        {service.description}
-                                      </p>
-                                    </div>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-                          
-                          {/* Standard Services */}
-                          {standardServices.length > 0 && (
-                            <div>
-                              <div className="flex items-center gap-2 mb-3">
-                                <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300">
-                                  Standard Services
-                                </span>
-                                <span className="text-xs text-gray-500">Require equipment/vehicles</span>
-                              </div>
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                                {standardServices.map((service) => (
-                                  <div 
-                                    key={service.id}
-                                    className={`flex items-start space-x-3 p-3 rounded-lg border cursor-pointer transition-all ${
-                                      formData.services.includes(service.name)
-                                        ? 'border-teal-400 bg-teal-50 dark:bg-teal-900/20'
-                                        : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
-                                    }`}
-                                    onClick={() => handleServiceToggle(service.name)}
-                                    data-testid={`service-card-${service.id}`}
-                                  >
-                                    <Checkbox
-                                      variant="circular"
-                                      id={service.id}
-                                      checked={formData.services.includes(service.name)}
-                                      onCheckedChange={() => handleServiceToggle(service.name)}
-                                    />
-                                    <div className="flex-1 min-w-0">
-                                      <label htmlFor={service.id} className="text-sm font-medium text-black dark:text-white cursor-pointer">
-                                        {service.name}
-                                        {service.requiresCertification && (
-                                          <span className="ml-2 text-xs text-amber-600 dark:text-amber-400">(Cert required)</span>
-                                        )}
-                                      </label>
-                                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 line-clamp-1">
-                                        {service.description}
-                                      </p>
-                                    </div>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-                          
-                          {/* Professional Services */}
-                          {professionalServices.length > 0 && (
-                            <div>
-                              <div className="flex items-center gap-2 mb-3">
-                                <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-700 dark:bg-purple-900/50 dark:text-purple-300">
-                                  Professional Services
-                                </span>
-                                <span className="text-xs text-gray-500">Licensed & certified only</span>
-                              </div>
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                                {professionalServices.map((service) => (
-                                  <div 
-                                    key={service.id}
-                                    className={`flex items-start space-x-3 p-3 rounded-lg border cursor-pointer transition-all ${
-                                      formData.services.includes(service.name)
-                                        ? 'border-teal-400 bg-teal-50 dark:bg-teal-900/20'
-                                        : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
-                                    }`}
-                                    onClick={() => handleServiceToggle(service.name)}
-                                    data-testid={`service-card-${service.id}`}
-                                  >
-                                    <Checkbox
-                                      variant="circular"
-                                      id={service.id}
-                                      checked={formData.services.includes(service.name)}
-                                      onCheckedChange={() => handleServiceToggle(service.name)}
-                                    />
-                                    <div className="flex-1 min-w-0">
-                                      <label htmlFor={service.id} className="text-sm font-medium text-black dark:text-white cursor-pointer">
-                                        {service.name}
-                                        {(service.requiresCertification || service.requiresBusinessLicense) && (
-                                          <span className="ml-2 text-xs text-amber-600 dark:text-amber-400">
-                                            ({service.requiresBusinessLicense ? 'License' : 'Cert'} required)
-                                          </span>
-                                        )}
-                                      </label>
-                                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 line-clamp-1">
-                                        {service.description}
-                                      </p>
-                                    </div>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })()}
-                    
-                    {formData.services.length > 0 && (
-                      <div className="mt-4 p-3 rounded-lg bg-teal-50 dark:bg-teal-900/20 border border-teal-200 dark:border-teal-800">
-                        <p className="text-sm text-teal-700 dark:text-teal-300">
-                          <span className="font-medium">{formData.services.length}</span> service{formData.services.length !== 1 ? 's' : ''} selected
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                  <div>
-                    <Label htmlFor="serviceArea">Service Area</Label>
-                    <Textarea
-                      id="serviceArea"
-                      value={formData.serviceArea}
-                      onChange={(e) => handleInputChange("serviceArea", e.target.value)}
-                      placeholder="e.g., Manhattan, Queens, Brooklyn"
-                      rows={3}
-                      data-testid="input-service-area"
-                    />
-                    {selectedTier === "equipped" && (
-                      <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
-                        You can operate within {OPERATOR_TIER_INFO.equipped.radiusKm}km from your location
-                      </p>
-                    )}
-                  </div>
-                  <div className="flex items-center justify-between p-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
-                    <div className="flex-1">
-                      <label
-                        htmlFor="emergencyAvailable"
-                        className="text-sm font-medium text-black dark:text-white cursor-pointer"
-                      >
-                        Available for emergency calls (24/7)
-                      </label>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                        Enable to receive urgent requests at any time
-                      </p>
-                    </div>
-                    <Switch
-                      id="emergencyAvailable"
-                      checked={formData.emergencyAvailable}
-                      onCheckedChange={(checked) => handleInputChange("emergencyAvailable", checked)}
-                      data-testid="switch-emergency"
-                    />
-                  </div>
-                </div>
-              )}
-
-              {/* Professional - Step 4: Documents (Optional) */}
-              {selectedTier === "professional" && currentStep === 4 && (
-                <div className="space-y-6">
-                  {/* Info banner about optional documents */}
-                  <div className="flex items-start gap-3 p-4 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
-                    <AlertCircle className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
-                    <div>
-                      <p className="text-sm font-medium text-blue-900 dark:text-blue-100">
-                        Documents are optional for now
-                      </p>
-                      <p className="text-xs text-blue-700 dark:text-blue-300 mt-1">
-                        You can complete your profile and access your dashboard. However, you'll need to upload and verify your documents before you can go online and accept jobs.
-                      </p>
-                    </div>
-                  </div>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-xl p-6 text-center hover:border-orange-400 dark:hover:border-orange-500 transition-colors">
-                      <Upload className="w-8 h-8 mx-auto mb-2 text-gray-400" />
-                      <p className="text-sm font-medium text-black dark:text-white mb-1">Business License</p>
-                      <p className="text-xs text-gray-500 dark:text-gray-500 mb-3">Upload PDF or image</p>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleFileUpload("Business License")}
-                        data-testid="button-upload-license"
-                      >
-                        Upload
-                      </Button>
-                    </div>
-                    <div className="border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-xl p-6 text-center hover:border-orange-400 dark:hover:border-orange-500 transition-colors">
-                      <Upload className="w-8 h-8 mx-auto mb-2 text-gray-400" />
-                      <p className="text-sm font-medium text-black dark:text-white mb-1">Insurance Certificate</p>
-                      <p className="text-xs text-gray-500 dark:text-gray-500 mb-3">Upload PDF or image</p>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleFileUpload("Insurance Certificate")}
-                        data-testid="button-upload-insurance"
-                      >
-                        Upload
-                      </Button>
-                    </div>
-                    <div className="border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-xl p-6 text-center hover:border-orange-400 dark:hover:border-orange-500 transition-colors">
-                      <Upload className="w-8 h-8 mx-auto mb-2 text-gray-400" />
-                      <p className="text-sm font-medium text-black dark:text-white mb-1">Vehicle Registration</p>
-                      <p className="text-xs text-gray-500 dark:text-gray-500 mb-3">Upload PDF or image</p>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleFileUpload("Vehicle Registration")}
-                        data-testid="button-upload-registration"
-                      >
-                        Upload
-                      </Button>
-                    </div>
-                    <div className="border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-xl p-6 text-center hover:border-orange-400 dark:hover:border-orange-500 transition-colors">
-                      <Upload className="w-8 h-8 mx-auto mb-2 text-gray-400" />
-                      <p className="text-sm font-medium text-black dark:text-white mb-1">Driver's License</p>
-                      <p className="text-xs text-gray-500 dark:text-gray-500 mb-3">Upload PDF or image</p>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleFileUpload("Driver's License")}
-                        data-testid="button-upload-drivers-license"
-                      >
-                        Upload
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Completion screens */}
-              {((selectedTier === "equipped" && currentStep === 4) || (selectedTier === "manual" && currentStep === 4)) && (
-                <div className="space-y-6 text-center py-8">
-                  <div className="w-20 h-20 bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center mx-auto">
-                    <CheckCircle className="w-10 h-10 text-green-600 dark:text-green-400" />
-                  </div>
-                  <div>
-                    <h3 className="text-2xl font-bold text-black dark:text-white mb-2">
-                      Profile Complete!
-                    </h3>
-                    <p className="text-gray-600 dark:text-gray-400">
-                      You now have access to your dashboard. Complete verification to start accepting jobs.
-                    </p>
-                  </div>
-                  
-                  {/* Verification Notice */}
-                  <div className="flex items-start gap-3 p-4 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 max-w-md mx-auto text-left">
-                    <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
-                    <div>
-                      <p className="text-sm font-medium text-amber-900 dark:text-amber-100">
-                        Document verification required
-                      </p>
-                      <p className="text-xs text-amber-700 dark:text-amber-300 mt-1">
-                        Upload your documents from the dashboard. Once verified, you can go online and accept jobs.
-                      </p>
-                    </div>
-                  </div>
-                  
-                  <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-6 max-w-md mx-auto">
-                    <h4 className="font-semibold text-black dark:text-white mb-3">Next Steps:</h4>
-                    <ul className="space-y-2 text-sm text-left">
-                      <li className="flex items-start">
-                        <CheckCircle className="w-4 h-4 text-green-600 mr-2 mt-0.5 flex-shrink-0" />
-                        <span className="text-gray-600 dark:text-gray-400">Access your operator dashboard</span>
-                      </li>
-                      <li className="flex items-start">
-                        <CheckCircle className="w-4 h-4 text-green-600 mr-2 mt-0.5 flex-shrink-0" />
-                        <span className="text-gray-600 dark:text-gray-400">Upload required documents for verification</span>
-                      </li>
-                      <li className="flex items-start">
-                        <CheckCircle className="w-4 h-4 text-green-600 mr-2 mt-0.5 flex-shrink-0" />
-                        <span className="text-gray-600 dark:text-gray-400">Once verified, go online and start earning!</span>
-                      </li>
-                      {selectedTier === "manual" && (
-                        <li className="flex items-start">
-                          <CheckCircle className="w-4 h-4 text-green-600 mr-2 mt-0.5 flex-shrink-0" />
-                          <span className="text-gray-600 dark:text-gray-400">Check customer grouping for nearby jobs</span>
-                        </li>
-                      )}
-                    </ul>
-                  </div>
-                </div>
-              )}
-
-              {/* Action Buttons */}
-              <div className="flex justify-between mt-8 pt-6 border-t border-gray-200 dark:border-gray-800">
-                {currentStep > 1 && (
-                  <Button
-                    variant="outline"
-                    onClick={prevStep}
-                    data-testid="button-previous"
-                  >
-                    Previous
-                  </Button>
-                )}
-                {currentStep === steps.length ? (
-                  <Button
-                    onClick={handleSubmit}
-                    disabled={isSubmitting || (user?.operatorId && isLoadingOperator)}
-                    className="ml-auto bg-orange-500 hover:bg-orange-600 text-white disabled:opacity-50 disabled:cursor-not-allowed"
-                    data-testid="button-complete"
-                  >
-                    {isSubmitting ? "Processing..." : "Complete Profile"}
-                  </Button>
-                ) : (
-                  <Button
-                    onClick={nextStep}
-                    className="ml-auto bg-orange-500 hover:bg-orange-600 text-white"
-                    data-testid="button-next"
-                  >
-                    Next Step
-                  </Button>
                 )}
               </div>
-            </CardContent>
-          </Card>
+            )}
+
+            {/* Step 2: Service Area (Professional/Equipped) or Services (Manual) */}
+            {currentStep === 2 && (
+              <div className="space-y-6">
+                {selectedTier === "manual" ? (
+                  // Manual tier - Services selection only
+                  <>
+                    <div className="space-y-4">
+                      <div>
+                        <Label className="text-sm font-semibold text-black dark:text-white">Services You Offer *</Label>
+                        <p className="text-sm text-gray-500 mt-1">Select the services you can provide</p>
+                      </div>
+                      
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {serviceTypes.map((service) => (
+                          <div
+                            key={service}
+                            onClick={() => handleServiceToggle(service)}
+                            className={cn(
+                              "flex items-center gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all",
+                              formData.services.includes(service)
+                                ? "border-orange-500 bg-orange-50 dark:bg-orange-900/20"
+                                : "border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600"
+                            )}
+                            data-testid={`service-${service.toLowerCase().replace(/\s+/g, '-')}`}
+                          >
+                            <Checkbox
+                              variant="circular"
+                              checked={formData.services.includes(service)}
+                              className="pointer-events-none"
+                            />
+                            <span className="text-sm font-medium text-black dark:text-white">{service}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between p-4 rounded-xl bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700">
+                      <div>
+                        <p className="font-semibold text-black dark:text-white flex items-center gap-2">
+                          <Zap className="w-4 h-4 text-orange-500" />
+                          Emergency Availability
+                        </p>
+                        <p className="text-sm text-gray-500 mt-0.5">Accept urgent requests 24/7</p>
+                      </div>
+                      <Switch
+                        checked={formData.emergencyAvailable}
+                        onCheckedChange={(checked) => handleInputChange("emergencyAvailable", checked)}
+                        data-testid="switch-emergency"
+                      />
+                    </div>
+                  </>
+                ) : (
+                  // Professional/Equipped - Service Area selection
+                  <>
+                    {/* Tier limits info */}
+                    <div className="p-4 rounded-xl bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border border-blue-200 dark:border-blue-800">
+                      <div className="flex items-start gap-3">
+                        <Globe className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5" />
+                        <div>
+                          <p className="font-semibold text-blue-900 dark:text-blue-100">
+                            {tierInfo.label} Coverage
+                          </p>
+                          <p className="text-sm text-blue-700 dark:text-blue-300 mt-1">
+                            {tierLimits.description}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Location Selectors */}
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label className="text-sm font-semibold text-black dark:text-white">Country *</Label>
+                          <Select value={selectedCountry} onValueChange={setSelectedCountry}>
+                            <SelectTrigger className="h-12 rounded-xl" data-testid="select-country">
+                              <SelectValue placeholder="Select country" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {countries.map((country) => (
+                                <SelectItem key={country.isoCode} value={country.isoCode}>
+                                  {country.flag} {country.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label className="text-sm font-semibold text-black dark:text-white">Province/State *</Label>
+                          <Select 
+                            value={selectedState} 
+                            onValueChange={setSelectedState}
+                            disabled={!selectedCountry}
+                          >
+                            <SelectTrigger className="h-12 rounded-xl" data-testid="select-state">
+                              <SelectValue placeholder={selectedCountry ? "Select state" : "Select country first"} />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {states.map((state) => (
+                                <SelectItem key={state.isoCode} value={state.isoCode}>
+                                  {state.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label className="text-sm font-semibold text-black dark:text-white">City *</Label>
+                        <Select 
+                          value=""
+                          onValueChange={handleCitySelect}
+                          disabled={!selectedState || isLoadingLocations}
+                        >
+                          <SelectTrigger className="h-12 rounded-xl" data-testid="select-city">
+                            <SelectValue placeholder={
+                              isLoadingLocations ? "Loading cities..." :
+                              !selectedState ? "Select state first" :
+                              "Select city to add"
+                            } />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {cities.map((city) => (
+                              <SelectItem 
+                                key={city.name} 
+                                value={city.name}
+                                disabled={selectedCities.some(c => c.cityName === city.name && c.stateCode === selectedState)}
+                              >
+                                {city.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      {/* Selected Cities */}
+                      {selectedCities.length > 0 && (
+                        <div className="space-y-2">
+                          <Label className="text-sm font-semibold text-black dark:text-white">
+                            Selected Cities ({selectedCities.length}{tierLimits.maxCities ? `/${tierLimits.maxCities}` : ''})
+                          </Label>
+                          <div className="flex flex-wrap gap-2">
+                            {selectedCities.map((city) => (
+                              <Badge
+                                key={`${city.cityName}-${city.stateCode}`}
+                                variant="secondary"
+                                className={cn(
+                                  "pl-3 pr-2 py-2 text-sm flex items-center gap-2",
+                                  city.isPrimary && "bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300"
+                                )}
+                              >
+                                <MapPin className="w-3 h-3" />
+                                {city.cityName}, {city.stateName}
+                                {city.isPrimary && <span className="text-xs">(Primary)</span>}
+                                <button
+                                  onClick={() => handleRemoveCity(city.cityName, city.stateCode)}
+                                  className="ml-1 p-0.5 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700"
+                                >
+                                  <X className="w-3 h-3" />
+                                </button>
+                              </Badge>
+                            ))}
+                          </div>
+                          {/* Same-province constraint reminder for equipped tier */}
+                          {selectedTier === "equipped" && selectedCities.length > 0 && selectedCities.length < 3 && (
+                            <p className="text-xs text-amber-600 dark:text-amber-400 flex items-center gap-1 mt-1">
+                              <AlertCircle className="w-3 h-3" />
+                              Additional cities must be in {selectedCities[0].stateName}
+                            </p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Services selection */}
+                    <div className="space-y-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                      <div>
+                        <Label className="text-sm font-semibold text-black dark:text-white">Services You Offer *</Label>
+                        <p className="text-sm text-gray-500 mt-1">Select the services you'll provide in your area</p>
+                      </div>
+                      
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {(() => {
+                          const tierServices = getServicesForTier(selectedTier);
+                          return tierServices.map((service) => (
+                            <div
+                              key={service.id}
+                              onClick={() => handleServiceToggle(service.name)}
+                              className={cn(
+                                "flex items-center gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all",
+                                formData.services.includes(service.name)
+                                  ? "border-orange-500 bg-orange-50 dark:bg-orange-900/20"
+                                  : "border-gray-200 dark:border-gray-700 hover:border-gray-300"
+                              )}
+                              data-testid={`service-${service.id}`}
+                            >
+                              <Checkbox
+                                variant="circular"
+                                checked={formData.services.includes(service.name)}
+                                className="pointer-events-none"
+                              />
+                              <div className="flex-1">
+                                <p className="text-sm font-medium text-black dark:text-white">{service.name}</p>
+                                <p className="text-xs text-gray-500 line-clamp-1">{service.description}</p>
+                              </div>
+                            </div>
+                          ));
+                        })()}
+                      </div>
+
+                      {formData.services.length > 0 && (
+                        <p className="text-sm text-orange-600 dark:text-orange-400 font-medium">
+                          {formData.services.length} service(s) selected
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Emergency toggle */}
+                    <div className="flex items-center justify-between p-4 rounded-xl bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700">
+                      <div>
+                        <p className="font-semibold text-black dark:text-white flex items-center gap-2">
+                          <Zap className="w-4 h-4 text-orange-500" />
+                          Emergency Availability
+                        </p>
+                        <p className="text-sm text-gray-500 mt-0.5">Accept urgent 24/7 requests in your area</p>
+                      </div>
+                      <Switch
+                        checked={formData.emergencyAvailable}
+                        onCheckedChange={(checked) => handleInputChange("emergencyAvailable", checked)}
+                        data-testid="switch-emergency"
+                      />
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+
+            {/* Step 3: Vehicle Details (Pro/Equipped) or Equipment (Manual) */}
+            {currentStep === 3 && (
+              <div className="space-y-6">
+                {(selectedTier === "professional" || selectedTier === "equipped") ? (
+                  // Vehicle Details
+                  <>
+                    <div className="space-y-2">
+                      <Label className="text-sm font-semibold text-black dark:text-white flex items-center gap-2">
+                        <Truck className="w-4 h-4 text-gray-500" />
+                        Vehicle Type *
+                      </Label>
+                      <Select
+                        value={formData.vehicleType}
+                        onValueChange={(value) => handleInputChange("vehicleType", value)}
+                      >
+                        <SelectTrigger className="h-12 rounded-xl" data-testid="select-vehicle-type">
+                          <SelectValue placeholder="Select vehicle type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {vehicleTypes.map((type) => (
+                            <SelectItem key={type} value={type}>{type}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="vehicleMake" className="text-sm font-semibold text-black dark:text-white">Make *</Label>
+                        <Input
+                          id="vehicleMake"
+                          value={formData.vehicleMake}
+                          onChange={(e) => handleInputChange("vehicleMake", e.target.value)}
+                          placeholder="Ford"
+                          className="h-12 rounded-xl"
+                          data-testid="input-vehicle-make"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="vehicleModel" className="text-sm font-semibold text-black dark:text-white">Model *</Label>
+                        <Input
+                          id="vehicleModel"
+                          value={formData.vehicleModel}
+                          onChange={(e) => handleInputChange("vehicleModel", e.target.value)}
+                          placeholder="F-350"
+                          className="h-12 rounded-xl"
+                          data-testid="input-vehicle-model"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="vehicleYear" className="text-sm font-semibold text-black dark:text-white">Year *</Label>
+                        <Input
+                          id="vehicleYear"
+                          value={formData.vehicleYear}
+                          onChange={(e) => handleInputChange("vehicleYear", e.target.value)}
+                          placeholder="2023"
+                          className="h-12 rounded-xl"
+                          data-testid="input-vehicle-year"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="licensePlate" className="text-sm font-semibold text-black dark:text-white">License Plate *</Label>
+                        <Input
+                          id="licensePlate"
+                          value={formData.licensePlate}
+                          onChange={(e) => handleInputChange("licensePlate", e.target.value)}
+                          placeholder="ABC-1234"
+                          className="h-12 rounded-xl"
+                          data-testid="input-license-plate"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Vehicle photo upload */}
+                    <div className="space-y-2">
+                      <Label className="text-sm font-semibold text-black dark:text-white flex items-center gap-2">
+                        <Camera className="w-4 h-4 text-gray-500" />
+                        Vehicle Photo (Optional)
+                      </Label>
+                      <div className="border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-xl p-8 text-center hover:border-orange-400 transition-colors cursor-pointer">
+                        <Upload className="w-10 h-10 mx-auto mb-3 text-gray-400" />
+                        <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                          Click to upload vehicle photo
+                        </p>
+                        <p className="text-xs text-gray-500 mt-1">JPG, PNG up to 5MB</p>
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  // Manual tier - Equipment selection
+                  <>
+                    <div className="space-y-4">
+                      <div>
+                        <Label className="text-sm font-semibold text-black dark:text-white">Your Equipment *</Label>
+                        <p className="text-sm text-gray-500 mt-1">Select all equipment you have available</p>
+                      </div>
+                      
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                        {manualEquipment.map((equipment) => (
+                          <div
+                            key={equipment}
+                            onClick={() => handleEquipmentToggle(equipment)}
+                            className={cn(
+                              "flex items-center gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all",
+                              formData.equipment.includes(equipment)
+                                ? "border-orange-500 bg-orange-50 dark:bg-orange-900/20"
+                                : "border-gray-200 dark:border-gray-700 hover:border-gray-300"
+                            )}
+                            data-testid={`equipment-${equipment.toLowerCase().replace(/\s+/g, '-')}`}
+                          >
+                            <Checkbox
+                              variant="circular"
+                              checked={formData.equipment.includes(equipment)}
+                              className="pointer-events-none"
+                            />
+                            <span className="text-sm font-medium text-black dark:text-white">{equipment}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="availableHours" className="text-sm font-semibold text-black dark:text-white flex items-center gap-2">
+                        <Clock className="w-4 h-4 text-gray-500" />
+                        Available Hours
+                      </Label>
+                      <Input
+                        id="availableHours"
+                        value={formData.availableHours}
+                        onChange={(e) => handleInputChange("availableHours", e.target.value)}
+                        placeholder="e.g., Mornings, Evenings, Weekends"
+                        className="h-12 rounded-xl"
+                        data-testid="input-available-hours"
+                      />
+                    </div>
+
+                    {/* Equipment photos */}
+                    <div className="space-y-2">
+                      <Label className="text-sm font-semibold text-black dark:text-white flex items-center gap-2">
+                        <Camera className="w-4 h-4 text-gray-500" />
+                        Equipment Photos (Optional)
+                      </Label>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-xl p-6 text-center hover:border-orange-400 transition-colors cursor-pointer">
+                          <Upload className="w-8 h-8 mx-auto mb-2 text-gray-400" />
+                          <p className="text-xs text-gray-500">Photo 1</p>
+                        </div>
+                        <div className="border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-xl p-6 text-center hover:border-orange-400 transition-colors cursor-pointer">
+                          <Upload className="w-8 h-8 mx-auto mb-2 text-gray-400" />
+                          <p className="text-xs text-gray-500">Photo 2</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Operating radius info */}
+                    <div className="p-4 rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
+                      <div className="flex items-start gap-3">
+                        <MapPin className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5" />
+                        <div>
+                          <p className="font-semibold text-blue-900 dark:text-blue-100">
+                            Operating Radius
+                          </p>
+                          <p className="text-sm text-blue-700 dark:text-blue-300 mt-1">
+                            As a manual operator, you can accept jobs within <strong>{OPERATOR_TIER_INFO.manual.radiusKm}km</strong> from your home address.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+
+            {/* Step 4: Documents (Pro) or Complete (Equipped/Manual) */}
+            {currentStep === 4 && (
+              <div className="space-y-6">
+                {selectedTier === "professional" ? (
+                  // Document uploads for professional
+                  <>
+                    <div className="p-4 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
+                      <div className="flex items-start gap-3">
+                        <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-400 mt-0.5" />
+                        <div>
+                          <p className="font-semibold text-amber-900 dark:text-amber-100">
+                            Optional Documents
+                          </p>
+                          <p className="text-sm text-amber-700 dark:text-amber-300 mt-1">
+                            Upload these documents later to speed up your verification process.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {[
+                        { title: "Business License", icon: FileText },
+                        { title: "Insurance Certificate", icon: Shield },
+                        { title: "Vehicle Registration", icon: Truck },
+                        { title: "Driver's License", icon: User },
+                      ].map((doc) => (
+                        <div
+                          key={doc.title}
+                          className="border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-xl p-6 text-center hover:border-orange-400 transition-colors cursor-pointer"
+                        >
+                          <doc.icon className="w-8 h-8 mx-auto mb-2 text-gray-400" />
+                          <p className="text-sm font-medium text-black dark:text-white">{doc.title}</p>
+                          <p className="text-xs text-gray-500 mt-1">PDF or Image</p>
+                          <Button variant="outline" size="sm" className="mt-3">
+                            Upload
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                ) : (
+                  // Completion screen for Equipped/Manual
+                  <div className="text-center py-8 space-y-6">
+                    <div className="w-20 h-20 bg-gradient-to-br from-green-400 to-green-600 rounded-full flex items-center justify-center mx-auto shadow-lg shadow-green-500/30">
+                      <CheckCircle className="w-10 h-10 text-white" />
+                    </div>
+                    
+                    <div>
+                      <h3 className="text-2xl font-bold text-black dark:text-white">
+                        You're Almost Ready!
+                      </h3>
+                      <p className="text-gray-600 dark:text-gray-400 mt-2">
+                        Complete your registration to access your operator dashboard.
+                      </p>
+                    </div>
+
+                    <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-6 max-w-sm mx-auto text-left">
+                      <h4 className="font-semibold text-black dark:text-white mb-4 flex items-center gap-2">
+                        <Sparkles className="w-5 h-5 text-orange-500" />
+                        What's Next?
+                      </h4>
+                      <ul className="space-y-3">
+                        {[
+                          "Access your operator dashboard",
+                          "Upload verification documents",
+                          "Go online and start earning!",
+                        ].map((item, index) => (
+                          <li key={index} className="flex items-start gap-3">
+                            <CheckCircle className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
+                            <span className="text-sm text-gray-600 dark:text-gray-400">{item}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </CardContent>
+
+          {/* Action Buttons */}
+          <div className="px-6 sm:px-8 py-6 bg-gray-50 dark:bg-gray-800/50 border-t border-gray-200 dark:border-gray-700">
+            <div className="flex justify-between items-center">
+              {currentStep > 1 ? (
+                <Button
+                  variant="outline"
+                  onClick={prevStep}
+                  className="h-12 px-6 rounded-xl"
+                  data-testid="button-previous"
+                >
+                  <ArrowLeft className="w-4 h-4 mr-2" />
+                  Previous
+                </Button>
+              ) : (
+                <div />
+              )}
+
+              {currentStep === totalSteps ? (
+                <Button
+                  onClick={handleSubmit}
+                  disabled={isSubmitting || (user?.operatorId && isLoadingOperator)}
+                  className="h-12 px-8 rounded-xl bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white shadow-lg shadow-orange-500/30"
+                  data-testid="button-complete"
+                >
+                  {isSubmitting ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2" />
+                      Processing...
+                    </>
+                  ) : (
+                    <>
+                      Complete Registration
+                      <CheckCircle className="w-4 h-4 ml-2" />
+                    </>
+                  )}
+                </Button>
+              ) : (
+                <Button
+                  onClick={nextStep}
+                  className="h-12 px-8 rounded-xl bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white shadow-lg shadow-orange-500/30"
+                  data-testid="button-next"
+                >
+                  Next Step
+                  <ArrowRight className="w-4 h-4 ml-2" />
+                </Button>
+              )}
+            </div>
+          </div>
+        </Card>
+
+        {/* Trust indicators */}
+        <div className="mt-8 text-center space-y-4">
+          <div className="flex items-center justify-center gap-6 text-gray-500">
+            <div className="flex items-center gap-2">
+              <Shield className="w-4 h-4" />
+              <span className="text-sm">Secure & Encrypted</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Clock className="w-4 h-4" />
+              <span className="text-sm">24/7 Support</span>
+            </div>
+          </div>
         </div>
       </div>
-      
-      {/* Auth Dialog - shown when unauthenticated user tries to submit */}
+
+      {/* Auth Dialog */}
       <AuthDialog
         open={showAuthDialog}
         onOpenChange={setShowAuthDialog}
