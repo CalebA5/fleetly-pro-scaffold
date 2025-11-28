@@ -24,6 +24,8 @@ interface ProfileDropdownProps {
   operatorRating?: number;
   operatorTier?: string;
   operatorPhoto?: string;
+  operatorServicesCount?: number;
+  isOnline?: boolean;
 }
 
 export const ProfileDropdown = ({ 
@@ -31,7 +33,9 @@ export const ProfileDropdown = ({
   context = "home",
   operatorRating,
   operatorTier,
-  operatorPhoto
+  operatorPhoto,
+  operatorServicesCount,
+  isOnline
 }: ProfileDropdownProps) => {
   const { user, signOut } = useAuth();
   const [location, setLocation] = useLocation();
@@ -103,10 +107,25 @@ export const ProfileDropdown = ({
             <p className="text-xs leading-none text-muted-foreground truncate">
               {user.email}
             </p>
-            {isOnOperatorDashboard && operatorRating && (
-              <div className="flex items-center gap-1 mt-1">
-                <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
-                <span className="text-xs font-medium">{operatorRating.toFixed(1)}</span>
+            {isOnOperatorDashboard && (
+              <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                {operatorRating !== undefined && (
+                  <span className="flex items-center gap-1">
+                    <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
+                    <span className="text-xs font-medium">{operatorRating.toFixed(1)}</span>
+                  </span>
+                )}
+                {operatorServicesCount !== undefined && operatorServicesCount > 0 && (
+                  <span className="text-xs text-muted-foreground">
+                    • {operatorServicesCount} service{operatorServicesCount !== 1 ? 's' : ''}
+                  </span>
+                )}
+                {isOnline !== undefined && (
+                  <span className={`inline-flex items-center gap-1 text-xs ${isOnline ? 'text-teal-600' : 'text-gray-400'}`}>
+                    <span className={`w-1.5 h-1.5 rounded-full ${isOnline ? 'bg-teal-500 animate-pulse' : 'bg-gray-400'}`} />
+                    {isOnline ? 'Online' : 'Offline'}
+                  </span>
+                )}
               </div>
             )}
           </div>

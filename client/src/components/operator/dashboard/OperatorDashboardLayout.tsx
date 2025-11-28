@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation, Link } from "wouter";
 import { useAuth } from "@/contexts/AuthContext";
@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { IOSToggle } from "@/components/ui/ios-toggle";
 import { useToast } from "@/hooks/use-toast";
-import { AlertCircle, X, Truck, AlertTriangle } from "lucide-react";
+import { AlertCircle, X, Truck, AlertTriangle, Sparkles, Plus, ArrowRight } from "lucide-react";
 import { NotificationBell } from "@/components/NotificationBell";
 import { TierSwitcher } from "@/components/TierSwitcher";
 import { ProfileDropdown } from "@/components/ProfileDropdown";
@@ -64,8 +64,17 @@ export function OperatorDashboardLayout({ tier }: OperatorDashboardLayoutProps) 
   const tabs = getTabsForTier(tier);
   const { location: userLocation, permissionStatus } = useUserLocation();
   const [showLocationModal, setShowLocationModal] = useState(false);
+  const [dismissedServicesSuggestion, setDismissedServicesSuggestion] = useState(false);
 
   const operatorId = user?.operatorId;
+
+  const greeting = useMemo(() => {
+    const hour = new Date().getHours();
+    const firstName = user?.name?.split(" ")[0] || "Operator";
+    if (hour < 12) return `Good morning, ${firstName}`;
+    if (hour < 17) return `Good afternoon, ${firstName}`;
+    return `Good evening, ${firstName}`;
+  }, [user?.name]);
   const hasLocation = userLocation !== null && permissionStatus === "granted";
 
   const { data: operatorData, isLoading: isLoadingOperator } = useQuery<Operator>({
@@ -99,6 +108,22 @@ export function OperatorDashboardLayout({ tier }: OperatorDashboardLayoutProps) 
     queryKey: [`/api/operators/${operatorId}/dashboard-metrics/${tier}`],
     enabled: !!operatorId,
   });
+
+  interface OperatorService {
+    id: string;
+    serviceId: string;
+    name: string;
+    isActive: boolean;
+  }
+
+  const { data: operatorServices = [] } = useQuery<OperatorService[]>({
+    queryKey: [`/api/operators/${operatorId}/services`],
+    enabled: !!operatorId,
+  });
+
+  const hasServices = operatorServices.length > 0;
+  const activeServicesCount = operatorServices.filter(s => s.isActive).length;
+  const showServicesSuggestion = !dismissedServicesSuggestion && !hasServices && isApproved;
 
   const handleToggleOnline = async (options: { confirmed?: boolean; forceOnline?: boolean } = {}) => {
     const { confirmed = false, forceOnline } = options;
@@ -300,6 +325,8 @@ export function OperatorDashboardLayout({ tier }: OperatorDashboardLayoutProps) 
                 operatorTier={tier}
                 operatorRating={operatorData?.rating ? Number(operatorData.rating) : undefined}
                 operatorPhoto={operatorData?.photo || undefined}
+                operatorServicesCount={activeServicesCount}
+                isOnline={isOnline}
               />
             </div>
           </div>
@@ -331,6 +358,67 @@ export function OperatorDashboardLayout({ tier }: OperatorDashboardLayoutProps) 
       </div>
 
       <main className="container max-w-4xl mx-auto px-4 py-4 pb-24 md:pb-4 space-y-5">
+        {/* Personalized Welcome Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white" data-testid="greeting-text">
+              {greeting} {tierInfo.badge}
+            </h1>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+              {tierInfo.label}
+              {activeServicesCount > 0 && (
+                <span className="ml-2 text-teal-600 dark:text-teal-400">
+                  • {activeServicesCount} active service{activeServicesCount !== 1 ? 's' : ''}
+                </span>
+              )}
+            </p>
+          </div>
+          {hasLocation && tierInfo.radiusKm && (
+            <div className="text-right hidden sm:block">
+              <p className="text-xs text-gray-500 dark:text-gray-400">Operating Radius</p>
+              <p className="text-lg font-semibold text-gray-900 dark:text-white">{tierInfo.radiusKm} km</p>
+            </div>
+          )}
+        </div>
+
+        {/* Services Setup Suggestion */}
+        {showServicesSuggestion && (
+          <div className="relative flex items-start gap-3 p-4 rounded-xl bg-gradient-to-r from-teal-50 to-cyan-50 dark:from-teal-950/40 dark:to-cyan-950/40 border border-teal-200/50 dark:border-teal-800/50">
+            <div className="p-2 rounded-lg bg-teal-100 dark:bg-teal-900/50">
+              <Sparkles className="h-5 w-5 text-teal-600 dark:text-teal-400" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <h3 className="font-semibold text-sm text-teal-800 dark:text-teal-200">
+                Set up your services
+              </h3>
+              <p className="text-xs text-teal-700 dark:text-teal-300 mt-0.5 leading-relaxed">
+                Add services you offer to start receiving job requests from customers.
+              </p>
+              <div className="flex items-center gap-2 mt-3">
+                <Button
+                  size="sm"
+                  onClick={() => setActiveTab("services")}
+                  className="bg-teal-600 hover:bg-teal-700 text-white h-8 text-xs"
+                  data-testid="button-setup-services"
+                >
+                  <Plus className="h-3.5 w-3.5 mr-1.5" />
+                  Add Services
+                  <ArrowRight className="h-3.5 w-3.5 ml-1" />
+                </Button>
+              </div>
+            </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-6 w-6 shrink-0 text-teal-600 hover:text-teal-800 hover:bg-teal-100 dark:text-teal-400 dark:hover:text-teal-200 dark:hover:bg-teal-900/50"
+              onClick={() => setDismissedServicesSuggestion(true)}
+              data-testid="button-dismiss-services-suggestion"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+        )}
+
         {!isApproved && showVerificationBanner && (
           <div className="relative flex items-start gap-3 p-3 rounded-xl bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-950/40 dark:to-orange-950/40 border border-amber-200/50 dark:border-amber-800/50">
             <AlertCircle className="h-5 w-5 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />

@@ -17,6 +17,7 @@ import { AuthDialog } from "@/components/AuthDialog";
 import { useQuery } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { geocodeAddress } from "@/lib/geocoding";
+import { getServicesForTier, type ServiceConfig } from "@shared/tierCapabilities";
 
 const vehicleTypes = [
   "Pickup Truck",
@@ -38,6 +39,7 @@ const manualEquipment = [
   "De-icing Tools",
 ];
 
+// Static service types are now deprecated - use getServicesForTier() for dynamic tier-based services
 const serviceTypes = [
   "Snow Plowing",
   "Towing",
@@ -1407,30 +1409,159 @@ export const OperatorOnboarding = () => {
                   <div>
                     <Label>Services Offered *</Label>
                     <p className="text-sm text-gray-500 dark:text-gray-500 mb-3">
-                      Select all services you can provide
+                      Select the services you want to offer. Your tier determines which services are available.
                     </p>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      {serviceTypes.map((service) => (
-                        <div 
-                          key={service}
-                          className="flex items-center space-x-2"
-                        >
-                          <Checkbox
-                            variant="circular"
-                            id={service}
-                            checked={formData.services.includes(service)}
-                            onCheckedChange={() => handleServiceToggle(service)}
-                            data-testid={`checkbox-service-${service.toLowerCase().replace(/\s+/g, '-')}`}
-                          />
-                          <label
-                            htmlFor={service}
-                            className="text-sm text-black dark:text-white cursor-pointer"
-                          >
-                            {service}
-                          </label>
+                    
+                    {/* Dynamic services based on tier */}
+                    {(() => {
+                      const tierServices = getServicesForTier(selectedTier);
+                      const microServices = tierServices.filter(s => s.category === "micro");
+                      const standardServices = tierServices.filter(s => s.category === "standard");
+                      const professionalServices = tierServices.filter(s => s.category === "professional");
+                      
+                      return (
+                        <div className="space-y-6">
+                          {/* Micro Services */}
+                          {microServices.length > 0 && (
+                            <div>
+                              <div className="flex items-center gap-2 mb-3">
+                                <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300">
+                                  Micro Services
+                                </span>
+                                <span className="text-xs text-gray-500">Quick jobs, manual labor</span>
+                              </div>
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                {microServices.map((service) => (
+                                  <div 
+                                    key={service.id}
+                                    className={`flex items-start space-x-3 p-3 rounded-lg border cursor-pointer transition-all ${
+                                      formData.services.includes(service.name)
+                                        ? 'border-teal-400 bg-teal-50 dark:bg-teal-900/20'
+                                        : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+                                    }`}
+                                    onClick={() => handleServiceToggle(service.name)}
+                                    data-testid={`service-card-${service.id}`}
+                                  >
+                                    <Checkbox
+                                      variant="circular"
+                                      id={service.id}
+                                      checked={formData.services.includes(service.name)}
+                                      onCheckedChange={() => handleServiceToggle(service.name)}
+                                    />
+                                    <div className="flex-1 min-w-0">
+                                      <label htmlFor={service.id} className="text-sm font-medium text-black dark:text-white cursor-pointer">
+                                        {service.name}
+                                      </label>
+                                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 line-clamp-1">
+                                        {service.description}
+                                      </p>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                          
+                          {/* Standard Services */}
+                          {standardServices.length > 0 && (
+                            <div>
+                              <div className="flex items-center gap-2 mb-3">
+                                <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300">
+                                  Standard Services
+                                </span>
+                                <span className="text-xs text-gray-500">Require equipment/vehicles</span>
+                              </div>
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                {standardServices.map((service) => (
+                                  <div 
+                                    key={service.id}
+                                    className={`flex items-start space-x-3 p-3 rounded-lg border cursor-pointer transition-all ${
+                                      formData.services.includes(service.name)
+                                        ? 'border-teal-400 bg-teal-50 dark:bg-teal-900/20'
+                                        : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+                                    }`}
+                                    onClick={() => handleServiceToggle(service.name)}
+                                    data-testid={`service-card-${service.id}`}
+                                  >
+                                    <Checkbox
+                                      variant="circular"
+                                      id={service.id}
+                                      checked={formData.services.includes(service.name)}
+                                      onCheckedChange={() => handleServiceToggle(service.name)}
+                                    />
+                                    <div className="flex-1 min-w-0">
+                                      <label htmlFor={service.id} className="text-sm font-medium text-black dark:text-white cursor-pointer">
+                                        {service.name}
+                                        {service.requiresCertification && (
+                                          <span className="ml-2 text-xs text-amber-600 dark:text-amber-400">(Cert required)</span>
+                                        )}
+                                      </label>
+                                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 line-clamp-1">
+                                        {service.description}
+                                      </p>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                          
+                          {/* Professional Services */}
+                          {professionalServices.length > 0 && (
+                            <div>
+                              <div className="flex items-center gap-2 mb-3">
+                                <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-700 dark:bg-purple-900/50 dark:text-purple-300">
+                                  Professional Services
+                                </span>
+                                <span className="text-xs text-gray-500">Licensed & certified only</span>
+                              </div>
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                {professionalServices.map((service) => (
+                                  <div 
+                                    key={service.id}
+                                    className={`flex items-start space-x-3 p-3 rounded-lg border cursor-pointer transition-all ${
+                                      formData.services.includes(service.name)
+                                        ? 'border-teal-400 bg-teal-50 dark:bg-teal-900/20'
+                                        : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+                                    }`}
+                                    onClick={() => handleServiceToggle(service.name)}
+                                    data-testid={`service-card-${service.id}`}
+                                  >
+                                    <Checkbox
+                                      variant="circular"
+                                      id={service.id}
+                                      checked={formData.services.includes(service.name)}
+                                      onCheckedChange={() => handleServiceToggle(service.name)}
+                                    />
+                                    <div className="flex-1 min-w-0">
+                                      <label htmlFor={service.id} className="text-sm font-medium text-black dark:text-white cursor-pointer">
+                                        {service.name}
+                                        {(service.requiresCertification || service.requiresBusinessLicense) && (
+                                          <span className="ml-2 text-xs text-amber-600 dark:text-amber-400">
+                                            ({service.requiresBusinessLicense ? 'License' : 'Cert'} required)
+                                          </span>
+                                        )}
+                                      </label>
+                                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 line-clamp-1">
+                                        {service.description}
+                                      </p>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
                         </div>
-                      ))}
-                    </div>
+                      );
+                    })()}
+                    
+                    {formData.services.length > 0 && (
+                      <div className="mt-4 p-3 rounded-lg bg-teal-50 dark:bg-teal-900/20 border border-teal-200 dark:border-teal-800">
+                        <p className="text-sm text-teal-700 dark:text-teal-300">
+                          <span className="font-medium">{formData.services.length}</span> service{formData.services.length !== 1 ? 's' : ''} selected
+                        </p>
+                      </div>
+                    )}
                   </div>
                   <div>
                     <Label htmlFor="serviceArea">Service Area</Label>
