@@ -1,0 +1,62 @@
+okay this is looking good, however there are some changes I will like to make!
+
+in the emergency page, I like the map view, however I will like the page that comes up after to be optimized, I like how once you click request emergency service like I asked. However when that page loads(with the blurry map in the background) I want the page that loads next to still have a similar map view, but tis time it will have the emergency details right below it, while showing the customers live location, and also the operators near him. (the emergency tracking page should be optimized). Also I want to fix the routing for the whole emergency page, such that it remebers the previous page it is coming from, meaning if the customer clicks emergency request from the request page, it should take them to the live emergecny tracking page. however if they want to return from that page, it takes them back to the previous page they are coming from. and its also easy to go back home.
+Also the operator pins, I like how it has been modified to stay static, however when you zoom out or zoom in, the position of the operators shift and they move all over the map. I want the operator pins to remain in their exact location or postal code, regardless of if you mov thee screen, zoom in or out.
+
+all the operators have an address in calgary , but when I zoom out, the pins move out of calgary.
+
+also i do not see any changes made to the settings page, or either of the settings page from the drop down menu ( I know it is just one page shared by the both drop downs)
+
+also i dont see any significant changes to the request service page like I asked. instead of having a seperate section for deescribe job descriotion, there should be a place to describe the job description when the user selects a service (depending on the type of service for eample some services might require dimensions, or pictures for services like hauling or courier), also I dont think all the services on the request service page show all the services the app offers. it only shows for 6 services. Optimize the whole service request page, and if you have already done so, i cannot see it. if so, optimize the new design to match these current description.
+
+after selecting a service the user /customer should be able to describe more abouut the job )optional, and operatos will be able to request for pictures.
+
+I also dont see the in app messaging system. for when customers request services and the service has been accepted or quoted. has this already been created, do I need to test it out by requesting a service fom an operator.
+
+also lets clean up the data base to removle all the users that have been manualy created, by me or anyone else.
+
+Also can you create 8 accounts to test with, just create the user log in and passwords, then I will go in and test all the functions from the customers point of view and the operators point of view.
+
+meaning I will create operator tiers that need document authentication and verification. mening the onboarding page should be perfect and working perfectly.
+
+Also I will need access to the admin profile to be able to verify or authenticate the operators to give them access to their dashboards.
+Customers should also be able to send requests, and view the status of their requests from the request page.
+
+And also users(cucstomers and operators) should get notified when they have sent requests, status updates of their requests, jobs have been started, cancelled or accepted.
+
+also operators should get notified when they have received requests, (aany type of requests)
+
+Also in the operator dashboard page, I want you to modify the icon of the service that has been added, so in the service and pricing section.
+
+I want you to modify the design to look a lot more modern.
+
+also can you modify the edit serfvice page to be a lot more sophisticated, like during the onboarding process, customers will be able to put in their years of expereicne for what ever skill they choose to add, and thiis should be editable in the customers section. and also important details should be editable,but not every information should be editable. only information that is liable to change easily, such as service area.
+
+Also the new users I want the dashboard should be very dynamic, meaning they will start from a clean state ( in terms of their metrics), so all the metrics should start from scratch, except metriics like the rating, the user will usually start with a 4.7 rating, and this will reduce or increase based on the operators performance.
+Also the driver should be reset to show (0) until the user adds a driver themselves.
+
+also what is the process of logining drivers who are added by a user? like what log in details will they use, and will they have a separate dashboard. So for example, if they log in with their created password, it takes them to an associate dashboard. and this is only for extra drivers that have been added. if the primary user becomes a driver then they will operate from the main dashboard, however if they are too add more drivers, then the extra drivers will either have access to their own dashboard (associate dashboard), or they will acess to the main dashboard, but will be restriced on what they can view and change. ( so they will be able to see everything on the dashboard, like total drivers in the fleet, active jobs(that have been allocated to the extra driver and also will be able to see their own ratings and the other active drivrers) but they wont be able to see sensitive information that the supervisor sees, like total jobs nearby, they wont be able to edit the service page, and the manpower tab, they will only be able to see their own history of the jobs completed.
+
+also back to the jobs nearby page, I am currently at the jobs nearby page and I see the jobs nearby icon face shows 5 jobs nearby, but when you cick it, there are onyl 2 jobs available nearby. secodnly I am not alble to go back to the dashboard when I click back. Also there is no need to have the list view if the user can just slide up the jobs nearby. except when they click the list view it brings up the list tab, similar to the find operators page.
+
+Also I need the verification prompt to be visible and minimizable on the jobs near by page.
+
+I have poured out my all in explaining my requests and what I want. plese go over and beyond and deliver something exceptional.
+
+Also the operators dont need to see the AI assist button from their dashboard.
+
+Also can we include the AI assist into the request service page, such that if users are trying to do a project. and the user they chose does not offer a specific service they want the AI assist, can either help them find operators who offer all those sevices, or it can match them with individual operators who do each of the needed services
+
+Can you also optimze this page to be very smart.
+
+also can you optimize the view details page for the requests, i want this page to look more modern, sophisticated, yet easy to understand. the operator should also be able to see any additional information the user provides, such as pictures or notes or specual requests.
+
+also how does the system register the operators location, is it during the onboarding process? Also the location tracking has to be so dynamic and perfect, in the sense that, it automatically registers the operators address, which they will be able to change.
+
+also on the maps I dont see the home button that represents the users home addess..
+
+I also want it to be easy for the user to navigate to their current location on the map. Lastly what is the purpose for the third button on the map, right below the zoom out button?
+
+also on the find operators page, when the user clicks their own operator card, it takes me to a blank page. this should take the user to their own operator profile card (that is usually visible to other customers) but they wont be able to interact with their profile card.
+
+I have asked a lot, now cook. take your time and make sure no request is omitted
