@@ -293,7 +293,7 @@ export const OperatorOnboarding = () => {
     
     if (!country || !state || !city) return;
 
-    // Check tier limits
+    // Get tier-specific limits
     const limits = SERVICE_AREA_LIMITS[selectedTier!];
     
     // Check max cities limit
@@ -306,13 +306,13 @@ export const OperatorOnboarding = () => {
       return;
     }
 
-    // Equipped tier: Enforce same province/state restriction
-    if (selectedTier === "equipped" && selectedCities.length > 0) {
+    // Enforce same province/state restriction for tiers that require it
+    if (limits.requireSameProvince && selectedCities.length > 0) {
       const firstCity = selectedCities[0];
       if (firstCity.stateCode !== selectedState || firstCity.countryCode !== selectedCountry) {
         toast({
           title: "Same province required",
-          description: "Equipped operators can only select cities within the same province/state.",
+          description: `${OPERATOR_TIER_INFO[selectedTier!].label} operators can only select cities within the same province/state.`,
           variant: "destructive",
         });
         return;
@@ -962,8 +962,9 @@ export const OperatorOnboarding = () => {
                               </Badge>
                             ))}
                           </div>
-                          {/* Same-province constraint reminder for equipped tier */}
-                          {selectedTier === "equipped" && selectedCities.length > 0 && selectedCities.length < 3 && (
+                          {/* Same-province constraint reminder for tiers with requireSameProvince */}
+                          {tierLimits.requireSameProvince && selectedCities.length > 0 && 
+                           (!tierLimits.maxCities || selectedCities.length < tierLimits.maxCities) && (
                             <p className="text-xs text-amber-600 dark:text-amber-400 flex items-center gap-1 mt-1">
                               <AlertCircle className="w-3 h-3" />
                               Additional cities must be in {selectedCities[0].stateName}
