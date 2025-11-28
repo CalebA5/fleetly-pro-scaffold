@@ -1036,31 +1036,31 @@ export const OperatorMap = () => {
           </Select>
         </div>
         
-        {/* Map Style Toggle - Map vs Satellite */}
-        <div className="hidden md:flex gap-1 p-1 bg-gray-100 dark:bg-gray-800 rounded-lg">
+        {/* Map Style Toggle - Compact icon-only buttons */}
+        <div className="hidden md:flex gap-0.5 p-0.5 bg-gray-100 dark:bg-gray-800 rounded-md">
           <button
             onClick={() => setMapStyle('streets')}
-            className={`flex items-center justify-center gap-1.5 py-2 px-3 rounded-md text-sm font-medium transition-all ${
+            className={`flex items-center justify-center p-1.5 rounded transition-all ${
               mapStyle === 'streets' 
                 ? 'bg-white dark:bg-gray-700 text-black dark:text-white shadow-sm' 
-                : 'text-gray-500 dark:text-gray-400'
+                : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
             }`}
             data-testid="button-map-style-streets"
+            title="Map view"
           >
             <MapIcon className="w-4 h-4" />
-            Map
           </button>
           <button
             onClick={() => setMapStyle('satellite')}
-            className={`flex items-center justify-center gap-1.5 py-2 px-3 rounded-md text-sm font-medium transition-all ${
+            className={`flex items-center justify-center p-1.5 rounded transition-all ${
               mapStyle === 'satellite' 
                 ? 'bg-white dark:bg-gray-700 text-black dark:text-white shadow-sm' 
-                : 'text-gray-500 dark:text-gray-400'
+                : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
             }`}
             data-testid="button-map-style-satellite"
+            title="Satellite view"
           >
             <Layers className="w-4 h-4" />
-            Satellite
           </button>
         </div>
         
