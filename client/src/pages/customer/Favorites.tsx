@@ -41,15 +41,16 @@ export const Favorites = () => {
     // Navigate back to referrer
     setLocation(referrer);
   };
-  const customerId = user?.id || "CUST-001";
+  const customerId = user?.customerId || user?.id;
 
   // Fetch customer's favorites
-  const { data: favorites = [], isLoading: favoritesLoading } = useQuery<Favorite[]>({
+  const { data: favorites = [], isLoading: favoritesLoading, isError: favoritesError } = useQuery<Favorite[]>({
     queryKey: [`/api/favorites/${customerId}`],
+    enabled: !!customerId,
   });
 
   // Fetch all operators
-  const { data: allOperators = [], isLoading: operatorsLoading } = useQuery<Operator[]>({
+  const { data: allOperators = [], isLoading: operatorsLoading, isError: operatorsError } = useQuery<Operator[]>({
     queryKey: ['/api/operators'],
   });
 
@@ -82,6 +83,7 @@ export const Favorites = () => {
   );
 
   const isLoading = favoritesLoading || operatorsLoading;
+  const hasError = favoritesError || operatorsError;
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col pb-20 md:pb-0">
@@ -119,6 +121,22 @@ export const Favorites = () => {
           {isLoading ? (
             <div className="flex items-center justify-center py-12">
               <div className="w-12 h-12 border-4 border-gray-300 border-t-black rounded-full animate-spin"></div>
+            </div>
+          ) : hasError ? (
+            <div className="text-center py-12">
+              <Heart className="w-16 h-16 mx-auto text-gray-300 dark:text-gray-600 mb-4" />
+              <h3 className="text-lg font-semibold text-black dark:text-white mb-2">
+                Unable to Load Favorites
+              </h3>
+              <p className="text-gray-600 dark:text-gray-400 mb-6 max-w-md mx-auto">
+                There was a problem loading your favorites. Please try again later.
+              </p>
+              <Button 
+                onClick={() => window.location.reload()}
+                className="bg-black text-white hover:bg-gray-800 dark:bg-white dark:text-black"
+              >
+                Refresh Page
+              </Button>
             </div>
           ) : favoriteOperators.length === 0 ? (
             <div className="text-center py-12">

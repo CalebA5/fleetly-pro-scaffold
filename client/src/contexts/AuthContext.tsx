@@ -5,6 +5,7 @@ export interface User {
   name: string;
   email: string;
   role: "customer" | "operator" | "both" | "business";
+  customerId?: string;
   operatorProfileComplete?: boolean;
   operatorTier?: "professional" | "equipped" | "manual";
   subscribedTiers?: ("professional" | "equipped" | "manual")[];
@@ -46,6 +47,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             name: userData.name,
             email: userData.email,
             role: userData.role,
+            customerId: userData.customerId,
             operatorProfileComplete: userData.operatorProfileComplete,
             operatorTier: userData.operatorTier,
             subscribedTiers: userData.subscribedTiers,
@@ -85,6 +87,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         name: userData.name,
         email: userData.email,
         role: userData.role,
+        customerId: userData.customerId,
         operatorProfileComplete: userData.operatorProfileComplete,
         operatorTier: userData.operatorTier,
         subscribedTiers: userData.subscribedTiers,
@@ -119,6 +122,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         name: userData.name,
         email: userData.email,
         role: userData.role,
+        customerId: userData.customerId,
         operatorProfileComplete: userData.operatorProfileComplete,
         operatorTier: userData.operatorTier,
         subscribedTiers: userData.subscribedTiers,
@@ -178,6 +182,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           name: userData.name,
           email: userData.email,
           role: userData.role,
+          customerId: userData.customerId,
           operatorProfileComplete: userData.operatorProfileComplete,
           operatorTier: userData.operatorTier,
           subscribedTiers: userData.subscribedTiers,

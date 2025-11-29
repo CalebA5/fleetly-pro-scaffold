@@ -141,14 +141,9 @@ export function OperatorDashboardLayout({ tier }: OperatorDashboardLayoutProps) 
     // Determine target status: if forceOnline is set, use it; otherwise toggle current state
     const targetOnline = forceOnline !== undefined ? forceOnline : !isOnline;
 
-    // Check if trying to go online without location
+    // Check if trying to go online without location - show modal only (no duplicate toast)
     if (targetOnline && !hasLocation) {
       setShowLocationModal(true);
-      toast({
-        title: "Location Required",
-        description: "Please share your location to go online and receive nearby job requests.",
-        variant: "default",
-      });
       return;
     }
 
