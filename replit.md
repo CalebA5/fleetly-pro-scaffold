@@ -96,8 +96,22 @@ Professional and Equipped tiers now have cascading country → province → city
 1. ~~Test account login~~ - FIXED (populated email_normalized column)
 2. i18n cleanup - add translations to all pages
 3. ~~Operator onboarding step reordering~~ - FIXED (Nov 28, 2025 - Services now before Equipment/Vehicle)
-4. Map pin stability when zooming
-5. Emergency tracking improvements
+4. ~~Operator onboarding failing for existing operators~~ - FIXED (Nov 29, 2025 - Added missing operator records in operators table for test accounts)
+5. Map pin stability when zooming
+6. Emergency tracking improvements
+
+### OAuth Integration (Added Nov 29, 2025)
+- Google and Yahoo OAuth sign-in buttons added to AuthDialog
+- Backend routes in `server/oauth.ts` handle OAuth callback flow
+- Requires GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, YAHOO_CLIENT_ID, YAHOO_CLIENT_SECRET secrets (one-time app owner setup)
+- Users click "Sign in with Google/Yahoo" → authenticate with provider → redirected back → session created
+
+### Email Verification & Document System (Schema Added Nov 29, 2025)
+New database tables added:
+- `email_otp_codes` - Stores 6-digit OTP codes for email verification (10 min expiry)
+- `service_document_requirements` - Defines required documents per service type (e.g., Red Seal for electricians)
+- `operator_document_submissions` - Tracks operator document uploads and admin review status
+- `users.email_verified` - Flag to track if operator email is verified (test accounts auto-verified)
 
 ## System Architecture
 

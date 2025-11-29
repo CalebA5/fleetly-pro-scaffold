@@ -681,6 +681,8 @@ export const users = pgTable("users", {
   operatorId: text("operator_id"), // Links to operators table if role is operator
   businessId: text("business_id"), // Links to businesses table if role is business
   isAdmin: integer("is_admin").notNull().default(0), // PHASE 2: Admin access flag (0 = false, 1 = true)
+  emailVerified: integer("email_verified").notNull().default(0), // 0 = not verified, 1 = verified
+  emailVerifiedAt: timestamp("email_verified_at"), // When email was verified
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -714,6 +716,76 @@ export const insertSessionSchema = createInsertSchema(sessions).pick({
 
 export type InsertSession = z.infer<typeof insertSessionSchema>;
 export type Session = typeof sessions.$inferSelect;
+
+// Email OTP Codes table - for email verification
+export const emailOtpCodes = pgTable("email_otp_codes", {
+  id: serial("id").primaryKey(),
+  email: text("email").notNull(),
+  code: text("code").notNull(), // 6-digit OTP code
+  purpose: text("purpose").notNull().default("signup"), // "signup" | "password_reset" | "email_change"
+  attempts: integer("attempts").notNull().default(0), // Track failed attempts
+  expiresAt: timestamp("expires_at").notNull(), // OTP expires after 10 minutes
+  usedAt: timestamp("used_at"), // When the OTP was used (null if not used)
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertEmailOtpSchema = createInsertSchema(emailOtpCodes).pick({
+  email: true,
+  code: true,
+  purpose: true,
+  expiresAt: true,
+});
+
+export type InsertEmailOtp = z.infer<typeof insertEmailOtpSchema>;
+export type EmailOtpCode = typeof emailOtpCodes.$inferSelect;
+
+// Service Document Requirements - defines what documents are needed for each service
+export const serviceDocumentRequirements = pgTable("service_document_requirements", {
+  id: serial("id").primaryKey(),
+  serviceType: text("service_type").notNull(), // e.g., "electrical", "plumbing", "towing"
+  documentType: text("document_type").notNull(), // e.g., "red_seal", "license", "insurance"
+  documentName: text("document_name").notNull(), // Human-readable name
+  description: text("description"), // Explanation of what's required
+  isRequired: integer("is_required").notNull().default(1), // 1 = required, 0 = optional
+  tier: text("tier"), // null = all tiers, or specific tier like "professional"
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => ({
+  serviceDocUnique: unique().on(table.serviceType, table.documentType),
+}));
+
+export const insertServiceDocReqSchema = createInsertSchema(serviceDocumentRequirements).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertServiceDocReq = z.infer<typeof insertServiceDocReqSchema>;
+export type ServiceDocumentRequirement = typeof serviceDocumentRequirements.$inferSelect;
+
+// Operator Document Submissions - tracks documents uploaded by operators
+export const operatorDocumentSubmissions = pgTable("operator_document_submissions", {
+  id: serial("id").primaryKey(),
+  operatorId: text("operator_id").notNull(),
+  serviceType: text("service_type").notNull(), // Which service this document is for
+  documentType: text("document_type").notNull(), // e.g., "red_seal", "license"
+  documentUrl: text("document_url"), // URL to uploaded file
+  status: text("status").notNull().default("pending"), // "pending" | "approved" | "rejected"
+  reviewNote: text("review_note"), // Admin feedback
+  reviewedAt: timestamp("reviewed_at"),
+  reviewedBy: text("reviewed_by"), // Admin user ID
+  expiresAt: timestamp("expires_at"), // For documents that expire (licenses, insurance)
+  submittedAt: timestamp("submitted_at").defaultNow().notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => ({
+  operatorDocUnique: unique().on(table.operatorId, table.serviceType, table.documentType),
+}));
+
+export const insertOperatorDocSubmissionSchema = createInsertSchema(operatorDocumentSubmissions).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertOperatorDocSubmission = z.infer<typeof insertOperatorDocSubmissionSchema>;
+export type OperatorDocumentSubmission = typeof operatorDocumentSubmissions.$inferSelect;
 
 // Weather Alerts table - stores active weather alerts for proactive notifications
 export const weatherAlerts = pgTable("weather_alerts", {
