@@ -498,7 +498,7 @@ export default function EmergencySOS() {
           location,
           latitude: finalLat,
           longitude: finalLng,
-          customerId: isAuthenticated && (user?.role === 'customer' || user?.role === 'both') ? user.id : undefined,
+          customerId: isAuthenticated && user?.id ? user.id : undefined,
         }),
       });
       
