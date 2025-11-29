@@ -494,23 +494,44 @@ export const OperatorOnboarding = () => {
           throw new Error("Failed to add tier");
         }
       } else {
-        // New operator registration
-        const response = await fetch("/api/operators/register", {
+        // New operator registration - build complete payload for server
+        const operatorId = `OP-${user.name?.toLowerCase().replace(/\s+/g, '-') || 'user'}-${Date.now().toString(36)}`;
+        
+        // Build vehicle string from form data
+        const vehicleString = formData.vehicleType 
+          ? `${formData.vehicleYear || ''} ${formData.vehicleMake || ''} ${formData.vehicleModel || ''} (${formData.vehicleType})`.trim()
+          : (formData.equipment.length > 0 ? formData.equipment.join(', ') : 'Not specified');
+        
+        const response = await fetch("/api/operators", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           credentials: "include",
           body: JSON.stringify({
-            tier: selectedTier,
-            details: formData,
-            serviceAreas,
+            operatorId,
+            name: formData.contactName || formData.businessName || user.name || 'Operator',
+            driverName: formData.contactName || user.name,
+            phone: formData.phone || '',
+            email: user.email,
+            address: formData.address || formData.homeAddress || '',
+            latitude: homeLongitude ? String(homeLatitude) : '0',
+            longitude: homeLongitude ? String(homeLongitude) : '0',
+            vehicle: vehicleString,
+            licensePlate: formData.licensePlate || 'N/A',
+            services: formData.services || [],
+            operatorTier: selectedTier,
+            subscribedTiers: [selectedTier],
             homeLatitude,
             homeLongitude,
-            operatingRadius: selectedTier === 'manual' ? 5 : selectedTier === 'equipped' ? 15 : null
+            operatingRadius: selectedTier === 'manual' ? 5 : selectedTier === 'equipped' ? 15 : null,
+            businessLicense: formData.licenseNumber || null,
+            businessName: formData.businessName || null,
+            serviceAreas,
           }),
         });
 
         if (!response.ok) {
-          throw new Error("Failed to register");
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.message || "Failed to register");
         }
       }
 
