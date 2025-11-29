@@ -165,9 +165,17 @@ export const ProfileDropdown = ({
               <Link href="/profile?from=/operator">
                 <DropdownMenuItem data-testid="menu-profile">
                   <User className="mr-2 h-4 w-4" />
-                  <span>Profile</span>
+                  <span>Edit Profile</span>
                 </DropdownMenuItem>
               </Link>
+              {user.operatorId && (
+                <Link href={`/customer/operator-profile/${user.operatorId}`}>
+                  <DropdownMenuItem data-testid="menu-view-public-profile">
+                    <Briefcase className="mr-2 h-4 w-4" />
+                    <span>View Public Profile</span>
+                  </DropdownMenuItem>
+                </Link>
+              )}
               <Link href="/settings">
                 <DropdownMenuItem data-testid="menu-settings">
                   <Settings className="mr-2 h-4 w-4" />

@@ -9,11 +9,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   Star, MapPin, Phone, Truck, Wrench, Award, Clock, 
   Briefcase, MessageCircle, Calendar, Image, ChevronRight,
-  ThumbsUp, Shield, CheckCircle2
+  ThumbsUp, Shield, CheckCircle2, Eye
 } from "lucide-react";
 import { OPERATOR_TIER_INFO, type Operator } from "@shared/schema";
 import { format, formatDistanceToNow } from "date-fns";
 import { useState } from "react";
+import { useAuth } from "@/contexts/AuthContext";
 
 type OperatorReview = {
   ratingId: string;
@@ -36,6 +37,9 @@ export const OperatorProfile = () => {
   const { operatorId } = useParams<{ operatorId: string }>();
   const [, setLocation] = useLocation();
   const [selectedImage, setSelectedImage] = useState<PortfolioItem | null>(null);
+  const { user } = useAuth();
+  
+  const isOwnProfile = user?.operatorId === operatorId;
 
   const { data: operator, isLoading } = useQuery<Operator>({
     queryKey: [`/api/operators/by-id/${operatorId}`],
@@ -124,6 +128,20 @@ export const OperatorProfile = () => {
           label="Back"
           className="mb-4"
         />
+
+        {isOwnProfile && (
+          <div className="mb-4 p-4 bg-blue-50 dark:bg-blue-950/50 border border-blue-200 dark:border-blue-800 rounded-xl flex items-center gap-3">
+            <Eye className="h-5 w-5 text-blue-600 dark:text-blue-400 flex-shrink-0" />
+            <div>
+              <p className="text-sm font-medium text-blue-900 dark:text-blue-100">
+                You're viewing your public profile
+              </p>
+              <p className="text-xs text-blue-600 dark:text-blue-400 mt-0.5">
+                This is how customers see you. Make sure your information is up to date!
+              </p>
+            </div>
+          </div>
+        )}
 
         <Card className="border-0 shadow-xl rounded-2xl overflow-hidden mb-6">
           <div className="relative bg-gradient-to-br from-orange-500 via-orange-600 to-orange-700 px-6 py-8 text-white">
@@ -365,14 +383,25 @@ export const OperatorProfile = () => {
         </Tabs>
 
         <div className="fixed bottom-0 left-0 right-0 p-4 bg-white dark:bg-gray-900 border-t border-gray-100 dark:border-gray-800 shadow-2xl md:relative md:border-0 md:shadow-none md:bg-transparent md:p-0">
-          <Button
-            onClick={() => setLocation(`/customer/create-request?operatorId=${operator.operatorId}&operatorName=${encodeURIComponent(operator.name)}`)}
-            className="w-full bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white py-6 text-lg font-semibold rounded-xl shadow-lg"
-            data-testid="button-request-service"
-          >
-            Request Service
-            <ChevronRight className="w-5 h-5 ml-2" />
-          </Button>
+          {isOwnProfile ? (
+            <Button
+              onClick={() => setLocation("/profile?from=/operator")}
+              className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white py-6 text-lg font-semibold rounded-xl shadow-lg"
+              data-testid="button-edit-profile"
+            >
+              Edit Profile
+              <ChevronRight className="w-5 h-5 ml-2" />
+            </Button>
+          ) : (
+            <Button
+              onClick={() => setLocation(`/customer/create-request?operatorId=${operator.operatorId}&operatorName=${encodeURIComponent(operator.name)}`)}
+              className="w-full bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white py-6 text-lg font-semibold rounded-xl shadow-lg"
+              data-testid="button-request-service"
+            >
+              Request Service
+              <ChevronRight className="w-5 h-5 ml-2" />
+            </Button>
+          )}
         </div>
       </div>
 
