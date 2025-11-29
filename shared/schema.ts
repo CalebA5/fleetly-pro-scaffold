@@ -447,7 +447,7 @@ export const insertServiceRequestSchema = baseServiceRequestSchema.extend({
 
 export type InsertServiceRequest = z.infer<typeof insertServiceRequestSchema>;
 export type ServiceRequest = typeof serviceRequests.$inferSelect;
-export type ServiceRequestStatus = "pending" | "confirmed" | "declined" | "cancelled";
+// ServiceRequestStatus is already defined at the top of the file using SERVICE_REQUEST_STATUSES
 
 // Request Status Events - Track all status transitions for audit and real-time notifications
 export const requestStatusEvents = pgTable("request_status_events", {
