@@ -1362,17 +1362,22 @@ export function registerRoutes(storage: IStorage) {
     }
   });
 
-  router.get("/api/service-requests/:id", async (req, res) => {
-    const id = parseInt(req.params.id);
-    const request = await storage.getServiceRequest(id);
+  // IMPORTANT: This route must come BEFORE /api/service-requests/:id to prevent "request" being parsed as an ID
+  router.get("/api/service-requests/request/:requestId", async (req, res) => {
+    const request = await storage.getServiceRequestByRequestId(req.params.requestId);
     if (!request) {
       return res.status(404).json({ message: "Service request not found" });
     }
     res.json(request);
   });
 
-  router.get("/api/service-requests/request/:requestId", async (req, res) => {
-    const request = await storage.getServiceRequestByRequestId(req.params.requestId);
+  router.get("/api/service-requests/:id", async (req, res) => {
+    const id = parseInt(req.params.id);
+    // Guard against NaN from non-numeric :id values
+    if (isNaN(id)) {
+      return res.status(400).json({ message: "Invalid service request ID" });
+    }
+    const request = await storage.getServiceRequest(id);
     if (!request) {
       return res.status(404).json({ message: "Service request not found" });
     }
@@ -1412,6 +1417,17 @@ export function registerRoutes(storage: IStorage) {
     }
     
     const request = await storage.createServiceRequest(result.data);
+    
+    // Create notifications for operators (non-blocking)
+    if (targetOperatorId) {
+      notificationService.notifyOperatorsOfNewRequest(
+        request.requestId,
+        result.data.customerName || "Customer",
+        result.data.serviceType,
+        [targetOperatorId]
+      ).catch(err => console.error("Failed to create request notification:", err));
+    }
+    
     res.status(201).json(request);
   });
 

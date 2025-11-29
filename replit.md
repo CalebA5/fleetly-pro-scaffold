@@ -16,7 +16,7 @@ The backend is an Express.js server utilizing PostgreSQL with Drizzle ORM. Zod i
 
 ### Feature Specifications
 - **Quote-Based Negotiation**: Allows operators to submit quotes and customers to accept, decline, or counter.
-- **Comprehensive Notification System**: Real-time, in-app notifications for customer-operator interactions.
+- **Comprehensive Notification System**: Real-time, in-app notifications for customer-operator interactions. Notifications are created for: new service requests, quotes received/accepted/declined, job started, job completed, and cancellations.
 - **Multi-Driver Business Management**: Enables businesses to manage drivers and service assignments.
 - **Three-Tier Operator System**: Differentiates between Professional, Skilled & Equipped, and Manual Operators, each with specific onboarding, capabilities, and proximity-based job filtering. Operators undergo manual approval for each tier.
 - **AI Assist Feature**: Recommends services and operators with estimated pricing.
@@ -37,11 +37,33 @@ The backend is an Express.js server utilizing PostgreSQL with Drizzle ORM. Zod i
 - **Multi-Select Service Filter**: Allows users to select multiple services for filtering operators.
 - **Advanced Service Area Selection**: Professional and Equipped tiers feature cascading country → province → city selection, with tier-based limits on the number of cities and radius.
 - **Operator Onboarding Flow**: Features progress persistence and a structured 4-step process for each tier, with services defined before equipment/vehicle details.
+- **Job Lifecycle Management**: Complete flow from request → quote → acceptance → job start → progress tracking → completion.
+
+### Job Status Flow
+1. **pending**: Initial state when customer creates a request
+2. **quoted**: Operator has submitted a quote
+3. **accepted/operator_accepted**: Customer accepted the quote, job is ready to start
+4. **assigned**: Job assigned to specific operator
+5. **in_progress**: Operator has started working on the job
+6. **completed**: Job finished successfully
+7. **cancelled**: Request was cancelled (with optional cancellation fee)
+
+### Cancellation/Edit Policy
+- **10-minute free window**: Customers can edit requests for free within 10 minutes of creation
+- **Progressive fees after operator engagement**: Cancellation fees increase based on job status
+- **Fee tracking**: System tracks edit counts and cancellation fees in the service_requests table
 
 ### System Design Choices
-- **Data Model**: Key entities include service requests (with `serviceType`, `isEmergency`, `description`, `location`, `status`, `details` JSONB) and operator profiles (with `operatorTier`, `isCertified`, `businessLicense`, `homeLatitude`, `homeLongitude`, `operatingRadius`). New tables for email OTP, document requirements, and operator document submissions enhance verification.
+- **Data Model**: Key entities include service requests (with `serviceType`, `isEmergency`, `description`, `location`, `status`, `details` JSONB, `cancelledBy`, `cancellationReason`, `cancellationFeeCents`, `editAllowedUntil`, `lastEditedAt`, `editCount`) and operator profiles (with `operatorTier`, `isCertified`, `businessLicense`, `homeLatitude`, `homeLongitude`, `operatingRadius`). New tables for email OTP, document requirements, and operator document submissions enhance verification.
 - **Location Handling**: `LocationContext` manages centralized location state, permissions, and auto-population, supporting proximity-based operator matching within a 50km radius.
 - **Security**: Implements email normalization, bcrypt hashing for passwords, 30-day httpOnly cookie sessions, and tier isolation.
+- **Notification Service**: Uses userId lookups from operatorId/customerId to ensure notifications are delivered to the correct user account.
+
+### Current Service Requests
+- REQ-1764441533276-ghr3euizv: Emma Thompson → Frank Garcia (Snow Plowing, status: pending)
+
+### Route Ordering
+Important: Specific routes must be defined BEFORE parameterized routes in Express.js to prevent incorrect matching. Example: `/api/service-requests/request/:requestId` must come before `/api/service-requests/:id`.
 
 ## External Dependencies
 
@@ -66,3 +88,9 @@ The backend is an Express.js server utilizing PostgreSQL with Drizzle ORM. Zod i
 - National Weather Service API
 - Google OAuth (pending credentials)
 - Yahoo OAuth (pending credentials)
+
+## Test Accounts
+All test accounts use password: "Test1234!"
+- Customers: Alice, Bob, Charlie (Alice has customerId: CUST-alice, etc.)
+- Operators: Frank (OP-frank-e5bc84ea), Grace, Henry
+- The customerId format is CUST-{name} and userId format is user-{timestamp}-{random}
