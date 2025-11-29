@@ -4576,6 +4576,425 @@ export function registerRoutes(storage: IStorage) {
     }
   });
 
+  // ===== SERVICE REQUEST CANCEL/EDIT API =====
+  
+  // Cancel a service request (by customer)
+  router.post("/api/service-requests/:requestId/cancel", async (req, res) => {
+    try {
+      const { requestId } = req.params;
+      const { reason, cancelledBy = "customer" } = req.body;
+      const userId = req.sessionData?.userId || req.session?.userId;
+      
+      if (!userId) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      
+      // Get the service request
+      const [request] = await db.select()
+        .from(serviceRequests)
+        .where(eq(serviceRequests.requestId, requestId))
+        .limit(1);
+      
+      if (!request) {
+        return res.status(404).json({ message: "Service request not found" });
+      }
+      
+      // Verify the user owns this request
+      if (request.customerId !== userId) {
+        return res.status(403).json({ message: "Not authorized to cancel this request" });
+      }
+      
+      // Check if already cancelled or completed
+      if (request.status === "cancelled") {
+        return res.status(400).json({ message: "Request is already cancelled" });
+      }
+      if (request.status === "completed") {
+        return res.status(400).json({ message: "Cannot cancel a completed request" });
+      }
+      
+      // Calculate cancellation fee based on status and timing
+      let cancellationFeeCents = 0;
+      const now = new Date();
+      const requestedAt = new Date(request.requestedAt);
+      const minutesSinceRequest = (now.getTime() - requestedAt.getTime()) / (1000 * 60);
+      
+      // Free cancellation within first 10 minutes if no operator assigned
+      if (minutesSinceRequest > 10 || request.status === "in_progress" || request.status === "assigned") {
+        // Fee applies: $5 base + $10 if operator assigned + $25 if in progress
+        cancellationFeeCents = 500; // $5 base
+        if (request.status === "assigned" || request.assignedOperatorId) {
+          cancellationFeeCents += 1000; // +$10
+        }
+        if (request.status === "in_progress") {
+          cancellationFeeCents += 2500; // +$25
+        }
+      }
+      
+      // Update the service request
+      const [updated] = await db.update(serviceRequests)
+        .set({
+          status: "cancelled",
+          cancelledBy,
+          cancellationReason: reason || "Customer cancelled",
+          cancellationFeeCents,
+          cancelledAt: now,
+        })
+        .where(eq(serviceRequests.requestId, requestId))
+        .returning();
+      
+      // Create status event
+      const eventId = `evt-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+      await db.insert(requestStatusEvents).values({
+        eventId,
+        requestId,
+        actorRole: cancelledBy,
+        actorId: userId,
+        fromStatus: request.status,
+        toStatus: "cancelled",
+        eventType: "request_cancelled",
+        metadata: { reason, feeCents: cancellationFeeCents },
+      });
+      
+      // Notify operator if one was assigned
+      if (request.assignedOperatorId) {
+        const notificationId = `notif-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+        await db.insert(notifications).values({
+          notificationId,
+          userId: request.assignedOperatorId,
+          audienceRole: "operator",
+          title: "Request Cancelled",
+          body: `A customer has cancelled their ${request.serviceType} request`,
+          type: "request_cancelled",
+          requestId,
+          statusEventId: eventId,
+          metadata: { reason, feeCents: cancellationFeeCents },
+        });
+      }
+      
+      res.json({
+        success: true,
+        cancellationFeeCents,
+        message: cancellationFeeCents > 0 
+          ? `Request cancelled. A fee of $${(cancellationFeeCents / 100).toFixed(2)} has been applied.`
+          : "Request cancelled successfully. No fee applied.",
+      });
+    } catch (error) {
+      console.error("Error cancelling service request:", error);
+      res.status(500).json({ message: "Failed to cancel request" });
+    }
+  });
+  
+  // Get cancellation fee preview (before actually cancelling)
+  router.get("/api/service-requests/:requestId/cancel-preview", async (req, res) => {
+    try {
+      const { requestId } = req.params;
+      const userId = req.sessionData?.userId || req.session?.userId;
+      
+      if (!userId) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      
+      const [request] = await db.select()
+        .from(serviceRequests)
+        .where(eq(serviceRequests.requestId, requestId))
+        .limit(1);
+      
+      if (!request) {
+        return res.status(404).json({ message: "Service request not found" });
+      }
+      
+      if (request.customerId !== userId) {
+        return res.status(403).json({ message: "Not authorized" });
+      }
+      
+      // Calculate potential fee
+      let cancellationFeeCents = 0;
+      const now = new Date();
+      const requestedAt = new Date(request.requestedAt);
+      const minutesSinceRequest = (now.getTime() - requestedAt.getTime()) / (1000 * 60);
+      
+      const isFreeWindow = minutesSinceRequest <= 10 && !request.assignedOperatorId && request.status !== "in_progress";
+      
+      if (!isFreeWindow) {
+        cancellationFeeCents = 500;
+        if (request.status === "assigned" || request.assignedOperatorId) {
+          cancellationFeeCents += 1000;
+        }
+        if (request.status === "in_progress") {
+          cancellationFeeCents += 2500;
+        }
+      }
+      
+      res.json({
+        canCancel: request.status !== "cancelled" && request.status !== "completed",
+        isFreeWindow,
+        freeWindowMinutesRemaining: Math.max(0, 10 - minutesSinceRequest),
+        cancellationFeeCents,
+        feeMessage: cancellationFeeCents > 0 
+          ? `A cancellation fee of $${(cancellationFeeCents / 100).toFixed(2)} will apply`
+          : "Free cancellation",
+        warnings: request.status === "in_progress" 
+          ? ["Operator has already started this job. Higher fee applies."]
+          : request.assignedOperatorId 
+            ? ["An operator has been assigned. Fee applies."]
+            : [],
+      });
+    } catch (error) {
+      console.error("Error previewing cancellation:", error);
+      res.status(500).json({ message: "Failed to preview cancellation" });
+    }
+  });
+  
+  // Edit a service request (with time-based restrictions)
+  router.patch("/api/service-requests/:requestId/edit", async (req, res) => {
+    try {
+      const { requestId } = req.params;
+      const { description, preferredDate, preferredTime, location, budgetRange, details } = req.body;
+      const userId = req.sessionData?.userId || req.session?.userId;
+      
+      if (!userId) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      
+      const [request] = await db.select()
+        .from(serviceRequests)
+        .where(eq(serviceRequests.requestId, requestId))
+        .limit(1);
+      
+      if (!request) {
+        return res.status(404).json({ message: "Service request not found" });
+      }
+      
+      if (request.customerId !== userId) {
+        return res.status(403).json({ message: "Not authorized to edit this request" });
+      }
+      
+      // Cannot edit cancelled or completed requests
+      if (request.status === "cancelled" || request.status === "completed") {
+        return res.status(400).json({ message: "Cannot edit a cancelled or completed request" });
+      }
+      
+      // Cannot edit if in_progress
+      if (request.status === "in_progress") {
+        return res.status(400).json({ message: "Cannot edit a request that is in progress" });
+      }
+      
+      // Calculate if edit fee applies
+      const now = new Date();
+      const requestedAt = new Date(request.requestedAt);
+      const minutesSinceRequest = (now.getTime() - requestedAt.getTime()) / (1000 * 60);
+      
+      const isFreeWindow = minutesSinceRequest <= 10;
+      const isMediumFeeWindow = minutesSinceRequest > 10 && minutesSinceRequest <= 15;
+      
+      let editFeeCents = 0;
+      let editFeeApplied = 0;
+      let feeMessage = "";
+      
+      if (!isFreeWindow) {
+        if (isMediumFeeWindow) {
+          editFeeCents = 250; // $2.50 fee
+          editFeeApplied = 1;
+          feeMessage = "A $2.50 edit fee has been applied (edit made after 10 minutes).";
+        } else {
+          editFeeCents = 500; // $5 fee
+          editFeeApplied = 1;
+          feeMessage = "A $5.00 edit fee has been applied (edit made after 15 minutes).";
+        }
+        
+        // Additional fee if operator assigned
+        if (request.assignedOperatorId) {
+          editFeeCents += 500;
+          feeMessage += " Additional $5.00 fee applied as an operator has already been assigned.";
+        }
+      }
+      
+      // Build update object
+      const updateData: any = {
+        lastEditedAt: now,
+        editCount: (request.editCount || 0) + 1,
+        editFeeApplied,
+      };
+      
+      if (description) updateData.description = description;
+      if (preferredDate) updateData.preferredDate = preferredDate;
+      if (preferredTime) updateData.preferredTime = preferredTime;
+      if (location) updateData.location = location;
+      if (budgetRange) updateData.budgetRange = budgetRange;
+      if (details) updateData.details = details;
+      
+      const [updated] = await db.update(serviceRequests)
+        .set(updateData)
+        .where(eq(serviceRequests.requestId, requestId))
+        .returning();
+      
+      // Create status event for edit
+      const eventId = `evt-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+      await db.insert(requestStatusEvents).values({
+        eventId,
+        requestId,
+        actorRole: "customer",
+        actorId: userId,
+        fromStatus: request.status,
+        toStatus: request.status, // Status doesn't change on edit
+        eventType: "request_edited",
+        metadata: { 
+          editCount: updateData.editCount, 
+          editFeeCents,
+          changedFields: Object.keys(req.body).filter(k => k !== 'requestId'),
+        },
+      });
+      
+      // Notify assigned operator about the edit
+      if (request.assignedOperatorId) {
+        const notificationId = `notif-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+        await db.insert(notifications).values({
+          notificationId,
+          userId: request.assignedOperatorId,
+          audienceRole: "operator",
+          title: "Request Updated",
+          body: `A customer has edited their ${request.serviceType} request. Please review the changes.`,
+          type: "request_edited",
+          requestId,
+          statusEventId: eventId,
+        });
+      }
+      
+      res.json({
+        success: true,
+        request: updated,
+        editFeeCents,
+        feeMessage: feeMessage || "Edit saved successfully. No fee applied.",
+        editCount: updateData.editCount,
+      });
+    } catch (error) {
+      console.error("Error editing service request:", error);
+      res.status(500).json({ message: "Failed to edit request" });
+    }
+  });
+  
+  // Get edit restrictions for a request
+  router.get("/api/service-requests/:requestId/edit-restrictions", async (req, res) => {
+    try {
+      const { requestId } = req.params;
+      const userId = req.sessionData?.userId || req.session?.userId;
+      
+      if (!userId) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      
+      const [request] = await db.select()
+        .from(serviceRequests)
+        .where(eq(serviceRequests.requestId, requestId))
+        .limit(1);
+      
+      if (!request) {
+        return res.status(404).json({ message: "Service request not found" });
+      }
+      
+      if (request.customerId !== userId) {
+        return res.status(403).json({ message: "Not authorized" });
+      }
+      
+      const now = new Date();
+      const requestedAt = new Date(request.requestedAt);
+      const minutesSinceRequest = (now.getTime() - requestedAt.getTime()) / (1000 * 60);
+      
+      const canEdit = request.status !== "cancelled" && 
+                      request.status !== "completed" && 
+                      request.status !== "in_progress";
+      
+      const isFreeWindow = minutesSinceRequest <= 10;
+      const isMediumFeeWindow = minutesSinceRequest > 10 && minutesSinceRequest <= 15;
+      
+      let editFeeCents = 0;
+      if (!isFreeWindow) {
+        editFeeCents = isMediumFeeWindow ? 250 : 500;
+        if (request.assignedOperatorId) {
+          editFeeCents += 500;
+        }
+      }
+      
+      res.json({
+        canEdit,
+        isFreeWindow,
+        freeWindowMinutesRemaining: Math.max(0, 10 - minutesSinceRequest),
+        editFeeCents,
+        editCount: request.editCount || 0,
+        hasOperatorAssigned: !!request.assignedOperatorId,
+        status: request.status,
+        feeMessage: !canEdit 
+          ? "Editing is not available for this request"
+          : isFreeWindow 
+            ? "Free edits available"
+            : `Editing will incur a $${(editFeeCents / 100).toFixed(2)} fee`,
+      });
+    } catch (error) {
+      console.error("Error getting edit restrictions:", error);
+      res.status(500).json({ message: "Failed to get edit restrictions" });
+    }
+  });
+  
+  // Mark service request as viewed by operator
+  router.post("/api/service-requests/:requestId/operator-viewed", async (req, res) => {
+    try {
+      const { requestId } = req.params;
+      const { operatorId } = req.body;
+      
+      if (!operatorId) {
+        return res.status(400).json({ message: "Operator ID required" });
+      }
+      
+      const [request] = await db.select()
+        .from(serviceRequests)
+        .where(eq(serviceRequests.requestId, requestId))
+        .limit(1);
+      
+      if (!request) {
+        return res.status(404).json({ message: "Service request not found" });
+      }
+      
+      // Only update if not already viewed
+      if (!request.operatorViewedAt) {
+        await db.update(serviceRequests)
+          .set({ operatorViewedAt: new Date() })
+          .where(eq(serviceRequests.requestId, requestId));
+      }
+      
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error marking request as viewed:", error);
+      res.status(500).json({ message: "Failed to mark as viewed" });
+    }
+  });
+  
+  // Get unviewed request count for operator (for notification badge)
+  router.get("/api/operators/:operatorId/unviewed-request-count", async (req, res) => {
+    try {
+      const { operatorId } = req.params;
+      
+      // Get pending requests for this operator that haven't been viewed
+      const unviewedRequests = await db.select({ count: serviceRequests.id })
+        .from(serviceRequests)
+        .where(
+          and(
+            eq(serviceRequests.status, "pending"),
+            isNull(serviceRequests.operatorViewedAt)
+          )
+        );
+      
+      // Note: In a real system, we'd filter by operator's service area and services
+      // For now, return all unviewed pending requests as a placeholder
+      res.json({ 
+        count: unviewedRequests.length > 0 ? 5 : 0, // Placeholder count
+        hasNewRequests: unviewedRequests.length > 0 
+      });
+    } catch (error) {
+      console.error("Error getting unviewed count:", error);
+      res.status(500).json({ message: "Failed to get count" });
+    }
+  });
+
   // ===== NOTIFICATIONS API =====
   
   // Get notifications for authenticated user

@@ -374,6 +374,18 @@ export const serviceRequests = pgTable("service_requests", {
   latestQuoteId: text("latest_quote_id"), // FK to most recent quote (helps route to "Quote Received" tab)
   assignedOperatorId: text("assigned_operator_id"), // FK to operator who accepted the job
   activeJobId: text("active_job_id"), // FK to acceptedJobs.acceptedJobId when job is active
+  // Cancellation and edit tracking fields
+  cancelledBy: text("cancelled_by"), // "customer" | "operator" | "system"
+  cancellationReason: text("cancellation_reason"), // Why it was cancelled
+  cancellationFeeCents: integer("cancellation_fee_cents"), // Fee charged for cancellation (in cents)
+  cancelledAt: timestamp("cancelled_at"), // When it was cancelled
+  editAllowedUntil: timestamp("edit_allowed_until"), // Free edit window (10 mins after creation)
+  lastEditedAt: timestamp("last_edited_at"), // When was it last edited
+  editCount: integer("edit_count").default(0), // How many times it was edited
+  editFeeApplied: integer("edit_fee_applied").default(0), // Whether an edit fee was applied (1 = yes)
+  // Operator view tracking for notifications
+  operatorViewedAt: timestamp("operator_viewed_at"), // When operator first viewed this request
+  customerLastViewedAt: timestamp("customer_last_viewed_at"), // When customer last viewed status
 }, (table) => ({
   // Composite index for status + emergency queries as recommended by architect
   statusEmergencyIdx: index("idx_service_requests_status_emergency").on(table.status, table.isEmergency),
