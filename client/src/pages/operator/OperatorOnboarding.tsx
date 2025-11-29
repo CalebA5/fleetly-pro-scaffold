@@ -653,8 +653,8 @@ export const OperatorOnboarding = () => {
             tier: selectedTier,
             details: formData,
             serviceAreas,
-            homeLatitude,
-            homeLongitude,
+            homeLatitude: homeLatitude !== null ? String(homeLatitude) : null,
+            homeLongitude: homeLongitude !== null ? String(homeLongitude) : null,
             operatingRadius: selectedTier === 'manual' ? 5 : selectedTier === 'equipped' ? 15 : null
           }),
         });
@@ -689,8 +689,8 @@ export const OperatorOnboarding = () => {
             services: formData.services || [],
             operatorTier: selectedTier,
             subscribedTiers: [selectedTier],
-            homeLatitude,
-            homeLongitude,
+            homeLatitude: homeLatitude !== null ? String(homeLatitude) : null,
+            homeLongitude: homeLongitude !== null ? String(homeLongitude) : null,
             operatingRadius: selectedTier === 'manual' ? 5 : selectedTier === 'equipped' ? 15 : null,
             businessLicense: formData.licenseNumber || null,
             businessName: formData.businessName || null,
