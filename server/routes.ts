@@ -589,8 +589,28 @@ export function registerRoutes(storage: IStorage) {
         return res.status(401).json({ message: "Authentication required to create operator profile" });
       }
       
-      const result = insertOperatorSchema.safeParse(req.body);
+      // Apply server-side defaults before validation
+      // These fields are required in DB but set by server, not client
+      const bodyWithDefaults = {
+        ...req.body,
+        rating: req.body.rating || "0",
+        totalJobs: req.body.totalJobs ?? 0,
+        latitude: req.body.latitude || "0",
+        longitude: req.body.longitude || "0",
+        isOnline: req.body.isOnline ?? 0,
+        availability: req.body.availability || "available",
+        isCertified: req.body.isCertified ?? 1,
+        subscribedTiers: req.body.subscribedTiers || [],
+        vehicle: req.body.vehicle || "Not specified",
+        licensePlate: req.body.licensePlate || "N/A",
+        address: req.body.address || "",
+        phone: req.body.phone || "",
+        services: req.body.services || [],
+      };
+      
+      const result = insertOperatorSchema.safeParse(bodyWithDefaults);
       if (!result.success) {
+        console.error("Operator validation errors:", result.error.issues);
         return res.status(400).json({ errors: result.error.issues });
       }
       
