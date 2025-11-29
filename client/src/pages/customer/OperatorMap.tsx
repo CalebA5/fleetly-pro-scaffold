@@ -666,8 +666,12 @@ export const OperatorMap = () => {
 
       if (!marker) {
         // Create marker element with modern design and tier indicator
+        // FIXED: Use fixed dimensions to prevent anchor point shifting on zoom
         const el = document.createElement('div');
-        el.className = 'cursor-pointer relative';
+        el.className = 'cursor-pointer';
+        el.style.width = '36px';
+        el.style.height = '48px';
+        el.style.position = 'relative';
         
         // Determine colors based on tier and moving status
         const isProfessional = operator.tierType === 'professional';
@@ -677,30 +681,28 @@ export const OperatorMap = () => {
         const tierBgColor = isProfessional ? '#f59e0b' : '#6b7280';
         
         el.innerHTML = `
-          <div class="relative">
-            <svg width="36" height="48" viewBox="0 0 36 48" ${isMoving ? 'class="animate-pulse"' : ''}>
-              <defs>
-                <filter id="shadow-${operator.operatorId}" x="-50%" y="-50%" width="200%" height="200%">
-                  <feDropShadow dx="0" dy="2" stdDeviation="2" flood-opacity="0.3"/>
-                </filter>
-              </defs>
-              <path d="M18 2C9.2 2 2 9.2 2 18c0 12 16 28 16 28s16-16 16-28c0-8.8-7.2-16-16-16z" 
-                    fill="${markerColor}" 
-                    stroke="${strokeColor}" 
-                    stroke-width="2"
-                    filter="url(#shadow-${operator.operatorId})"/>
-              ${operator.photo 
-                ? `<clipPath id="clip-${operator.operatorId}"><circle cx="18" cy="18" r="10"/></clipPath>
-                   <image href="${operator.photo}" x="8" y="8" width="20" height="20" clip-path="url(#clip-${operator.operatorId})" preserveAspectRatio="xMidYMid slice"/>`
-                : `<circle cx="18" cy="18" r="10" fill="white"/>
-                   <text x="18" y="22" text-anchor="middle" font-size="10" font-weight="bold" fill="${markerColor}">${operator.name.charAt(0)}</text>`
-              }
-            </svg>
-            <span style="position: absolute; top: -6px; right: -8px; background: ${tierBgColor}; color: white; font-size: 7px; font-weight: 700; padding: 2px 4px; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.3);">
-              ${tierLabel}
-            </span>
-            ${isMoving ? '<div style="position: absolute; bottom: -4px; left: 50%; transform: translateX(-50%); background: #ef4444; color: white; font-size: 8px; font-weight: 600; padding: 1px 6px; border-radius: 10px; white-space: nowrap;">En Route</div>' : ''}
-          </div>
+          <svg width="36" height="48" viewBox="0 0 36 48" style="display: block;" ${isMoving ? 'class="animate-pulse"' : ''}>
+            <defs>
+              <filter id="shadow-${operator.operatorId}" x="-50%" y="-50%" width="200%" height="200%">
+                <feDropShadow dx="0" dy="2" stdDeviation="2" flood-opacity="0.3"/>
+              </filter>
+            </defs>
+            <path d="M18 2C9.2 2 2 9.2 2 18c0 12 16 28 16 28s16-16 16-28c0-8.8-7.2-16-16-16z" 
+                  fill="${markerColor}" 
+                  stroke="${strokeColor}" 
+                  stroke-width="2"
+                  filter="url(#shadow-${operator.operatorId})"/>
+            ${operator.photo 
+              ? `<clipPath id="clip-${operator.operatorId}"><circle cx="18" cy="18" r="10"/></clipPath>
+                 <image href="${operator.photo}" x="8" y="8" width="20" height="20" clip-path="url(#clip-${operator.operatorId})" preserveAspectRatio="xMidYMid slice"/>`
+              : `<circle cx="18" cy="18" r="10" fill="white"/>
+                 <text x="18" y="22" text-anchor="middle" font-size="10" font-weight="bold" fill="${markerColor}">${operator.name.charAt(0)}</text>`
+            }
+          </svg>
+          <span style="position: absolute; top: -4px; right: -6px; background: ${tierBgColor}; color: white; font-size: 7px; font-weight: 700; padding: 2px 4px; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.3); pointer-events: none;">
+            ${tierLabel}
+          </span>
+          ${isMoving ? '<div style="position: absolute; bottom: -2px; left: 50%; transform: translateX(-50%); background: #ef4444; color: white; font-size: 8px; font-weight: 600; padding: 1px 6px; border-radius: 10px; white-space: nowrap; pointer-events: none;">En Route</div>' : ''}
         `;
 
         marker = new mapboxgl.Marker({ element: el, anchor: 'bottom' })
@@ -757,6 +759,7 @@ export const OperatorMap = () => {
         marker.setLngLat([lng, lat]);
         
         // Update marker appearance based on moving status
+        // FIXED: Maintain consistent element structure for stable anchor point
         const el = marker.getElement();
         const isProfessional = operator.tierType === 'professional';
         const markerColor = isMoving ? '#ef4444' : (isProfessional ? '#f59e0b' : '#3b82f6');
@@ -765,30 +768,28 @@ export const OperatorMap = () => {
         const tierBgColor = isProfessional ? '#f59e0b' : '#6b7280';
         
         el.innerHTML = `
-          <div class="relative">
-            <svg width="36" height="48" viewBox="0 0 36 48" ${isMoving ? 'class="animate-pulse"' : ''}>
-              <defs>
-                <filter id="shadow-${operator.operatorId}" x="-50%" y="-50%" width="200%" height="200%">
-                  <feDropShadow dx="0" dy="2" stdDeviation="2" flood-opacity="0.3"/>
-                </filter>
-              </defs>
-              <path d="M18 2C9.2 2 2 9.2 2 18c0 12 16 28 16 28s16-16 16-28c0-8.8-7.2-16-16-16z" 
-                    fill="${markerColor}" 
-                    stroke="${strokeColor}" 
-                    stroke-width="2"
-                    filter="url(#shadow-${operator.operatorId})"/>
-              ${operator.photo 
-                ? `<clipPath id="clip-${operator.operatorId}"><circle cx="18" cy="18" r="10"/></clipPath>
-                   <image href="${operator.photo}" x="8" y="8" width="20" height="20" clip-path="url(#clip-${operator.operatorId})" preserveAspectRatio="xMidYMid slice"/>`
-                : `<circle cx="18" cy="18" r="10" fill="white"/>
-                   <text x="18" y="22" text-anchor="middle" font-size="10" font-weight="bold" fill="${markerColor}">${operator.name.charAt(0)}</text>`
-              }
-            </svg>
-            <span style="position: absolute; top: -6px; right: -8px; background: ${tierBgColor}; color: white; font-size: 7px; font-weight: 700; padding: 2px 4px; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.3);">
-              ${tierLabel}
-            </span>
-            ${isMoving ? '<div style="position: absolute; bottom: -4px; left: 50%; transform: translateX(-50%); background: #ef4444; color: white; font-size: 8px; font-weight: 600; padding: 1px 6px; border-radius: 10px; white-space: nowrap;">En Route</div>' : ''}
-          </div>
+          <svg width="36" height="48" viewBox="0 0 36 48" style="display: block;" ${isMoving ? 'class="animate-pulse"' : ''}>
+            <defs>
+              <filter id="shadow-${operator.operatorId}" x="-50%" y="-50%" width="200%" height="200%">
+                <feDropShadow dx="0" dy="2" stdDeviation="2" flood-opacity="0.3"/>
+              </filter>
+            </defs>
+            <path d="M18 2C9.2 2 2 9.2 2 18c0 12 16 28 16 28s16-16 16-28c0-8.8-7.2-16-16-16z" 
+                  fill="${markerColor}" 
+                  stroke="${strokeColor}" 
+                  stroke-width="2"
+                  filter="url(#shadow-${operator.operatorId})"/>
+            ${operator.photo 
+              ? `<clipPath id="clip-${operator.operatorId}"><circle cx="18" cy="18" r="10"/></clipPath>
+                 <image href="${operator.photo}" x="8" y="8" width="20" height="20" clip-path="url(#clip-${operator.operatorId})" preserveAspectRatio="xMidYMid slice"/>`
+              : `<circle cx="18" cy="18" r="10" fill="white"/>
+                 <text x="18" y="22" text-anchor="middle" font-size="10" font-weight="bold" fill="${markerColor}">${operator.name.charAt(0)}</text>`
+            }
+          </svg>
+          <span style="position: absolute; top: -4px; right: -6px; background: ${tierBgColor}; color: white; font-size: 7px; font-weight: 700; padding: 2px 4px; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.3); pointer-events: none;">
+            ${tierLabel}
+          </span>
+          ${isMoving ? '<div style="position: absolute; bottom: -2px; left: 50%; transform: translateX(-50%); background: #ef4444; color: white; font-size: 8px; font-weight: 600; padding: 1px 6px; border-radius: 10px; white-space: nowrap; pointer-events: none;">En Route</div>' : ''}
         `;
       }
     });
