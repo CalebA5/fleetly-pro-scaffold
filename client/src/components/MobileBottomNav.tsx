@@ -155,7 +155,9 @@ export function MobileBottomNav({ context = "customer" }: MobileBottomNavProps) 
     {
       icon: Heart,
       label: t.nav.favorites,
-      path: `/customer/favorites?from=${encodeURIComponent(location)}`,
+      path: location.includes('__repl') || location.includes('workspace_iframe') 
+        ? '/customer/favorites' 
+        : `/customer/favorites?from=${encodeURIComponent(location)}`,
       testId: "nav-favorites"
     },
     {

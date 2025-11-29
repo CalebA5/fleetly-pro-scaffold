@@ -23,14 +23,23 @@ export const Favorites = () => {
   // Track where user came from for back navigation
   useEffect(() => {
     const fromUrl = new URLSearchParams(window.location.search).get("from");
-    if (fromUrl) {
+    if (fromUrl && !fromUrl.includes('__repl') && !fromUrl.includes('workspace_iframe')) {
       setReferrer(fromUrl);
     } else {
-      // Use document.referrer or default to home
+      // Use document.referrer or default to home, but filter out Replit internal routes
       const ref = document.referrer;
       if (ref && ref.includes(window.location.host)) {
-        const path = new URL(ref).pathname;
-        setReferrer(path);
+        try {
+          const path = new URL(ref).pathname;
+          // Filter out Replit internal routes
+          if (!path.includes('__repl') && !path.includes('workspace_iframe') && path !== '/') {
+            setReferrer(path);
+          } else {
+            setReferrer("/");
+          }
+        } catch {
+          setReferrer("/");
+        }
       } else {
         setReferrer("/");
       }
@@ -38,8 +47,12 @@ export const Favorites = () => {
   }, []);
   
   const handleBack = () => {
-    // Navigate back to referrer
-    setLocation(referrer);
+    // Navigate back to referrer, ensure it's a valid app route
+    if (referrer && referrer.startsWith('/') && !referrer.includes('__repl')) {
+      setLocation(referrer);
+    } else {
+      setLocation("/");
+    }
   };
   const customerId = user?.customerId || user?.id;
   const isAuthenticated = !!user;
