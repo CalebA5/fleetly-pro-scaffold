@@ -53,6 +53,41 @@ The backend is an Express.js server utilizing PostgreSQL with Drizzle ORM. Zod i
 - **Progressive fees after operator engagement**: Cancellation fees increase based on job status
 - **Fee tracking**: System tracks edit counts and cancellation fees in the service_requests table
 
+### Operator Verification Flow
+New operators (registered after initial 8 test accounts) go through a verification process before they can accept jobs:
+
+**Registration Phase:**
+1. User signs up and selects an operator tier (Professional, Equipped, or Manual)
+2. User completes the 4-step onboarding form (business info, services, vehicle/equipment, service area)
+3. System creates operator profile with `approvalStatus: "pending"` and `canEarn: false`
+4. Operator can access their dashboard immediately (view jobs, set up profile)
+
+**Pending Verification Phase:**
+- Operator can view the dashboard but CANNOT go online or accept jobs
+- Attempting to toggle online returns error: "You cannot go online until your documents have been verified"
+- The `/operator/pending-verification` page shows status for each tier (pending, under_review, approved, rejected)
+- Page polls every 10 seconds to check for status updates
+
+**Admin Verification Phase:**
+- Admins access pending operators via `GET /api/admin/operators/pending`
+- Admin reviews operator documents, credentials, and profile information
+- Admin approves via `POST /api/admin/operators/:operatorId/approve/:tier`
+- Admin rejects via `POST /api/admin/operators/:operatorId/reject/:tier` (with reason)
+
+**Post-Approval Phase:**
+- Once approved, `approvalStatus: "approved"`, `canEarn: true`, and `approvedAt` timestamp set
+- Operator can now go online and accept jobs for that tier
+- If rejected, operator sees rejection reason and can resubmit documents
+
+**Key Implementation Files:**
+- `server/routes.ts`: Registration endpoints (POST /api/operators, POST /api/operators/:id/add-tier), toggle-online enforcement, admin approval endpoints
+- `client/src/hooks/useOperatorApproval.ts`: Hook that checks tier approval status without redirecting
+- `client/src/pages/operator/PendingVerification.tsx`: Shows verification status for each tier
+- Dashboards use `useOperatorApproval` hook to disable "Go Online" toggle for unapproved tiers
+
+**Legacy Operators (Test Accounts):**
+The 8 original test operators (Frank, Grace, Henry, Emma, etc.) have `approvalStatus: "approved"` and can operate normally. New operators must complete verification.
+
 ### System Design Choices
 - **Data Model**: Key entities include service requests (with `serviceType`, `isEmergency`, `description`, `location`, `status`, `details` JSONB, `cancelledBy`, `cancellationReason`, `cancellationFeeCents`, `editAllowedUntil`, `lastEditedAt`, `editCount`) and operator profiles (with `operatorTier`, `isCertified`, `businessLicense`, `homeLatitude`, `homeLongitude`, `operatingRadius`). New tables for email OTP, document requirements, and operator document submissions enhance verification.
 - **Location Handling**: `LocationContext` manages centralized location state, permissions, and auto-population, supporting proximity-based operator matching within a 50km radius.
