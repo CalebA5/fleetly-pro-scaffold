@@ -9,14 +9,30 @@ import { createServer } from "http";
 import authRouter from "./auth";
 import { startWeatherSyncJob } from "./jobs/weatherSync";
 import { db } from "./db";
-import { sessions } from "@shared/schema";
+import { sessions, users, operators } from "@shared/schema";
 import { eq } from "drizzle-orm";
 import pg from "pg";
 
-// Extend Express Session to include userId
+// User type for session
+interface SessionUser {
+  userId: string;
+  id: string;
+  email: string;
+  name: string;
+  role: string;
+  operatorId?: string | null;
+  operatorTier?: string | null;
+  subscribedTiers?: string[];
+  viewTier?: string | null;
+  operatorProfileComplete?: boolean;
+  businessId?: string | null;
+}
+
+// Extend Express Session to include userId and user
 declare module "express-session" {
   interface SessionData {
     userId: string;
+    user?: SessionUser;
   }
 }
 
@@ -49,16 +65,48 @@ app.use(async (req, res, next) => {
       });
       
       if (session && new Date(session.expiresAt) > new Date()) {
-        // Populate both req.session (for express-session compatibility)
-        // and req.sessionData (for our existing auth checks)
+        // Populate req.sessionData for our existing auth checks
         req.sessionData = {
           userId: session.userId,
           sessionId: session.sessionId,
         };
         
-        // Also set on req.session for notification endpoints
-        if (req.session) {
-          req.session.userId = session.userId;
+        // Fetch the user data to populate req.session.user
+        const user = await db.query.users.findFirst({
+          where: eq(users.userId, session.userId),
+        });
+        
+        if (user) {
+          // Build base session user object
+          const sessionUser: SessionUser = {
+            userId: user.userId,
+            id: user.operatorId || user.userId,
+            email: user.email,
+            name: user.name,
+            role: user.role,
+            operatorId: user.operatorId,
+            businessId: user.businessId,
+          };
+          
+          // If user has an operatorId, fetch operator data for tier info
+          if (user.operatorId) {
+            const operator = await db.query.operators.findFirst({
+              where: eq(operators.operatorId, user.operatorId),
+            });
+            
+            if (operator) {
+              sessionUser.operatorTier = operator.operatorTier;
+              sessionUser.subscribedTiers = operator.subscribedTiers || [];
+              sessionUser.viewTier = operator.viewTier;
+              sessionUser.operatorProfileComplete = true;
+            }
+          }
+          
+          // Also set on req.session for routes that expect req.session.user
+          if (req.session) {
+            req.session.userId = session.userId;
+            (req.session as any).user = sessionUser;
+          }
         }
       }
     } catch (error) {
