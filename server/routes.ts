@@ -656,33 +656,35 @@ export function registerRoutes(storage: IStorage) {
       const subscribedTiers: string[] = result.data.subscribedTiers || [tier];
       const activeTier = result.data.activeTier || null; // Start as null - operator must go online manually
       
-      // COORDINATE VALIDATION: Manual and Equipped tiers require valid coordinates for proximity filtering
-      // Check ALL subscribedTiers, not just primary tier
-      const requiresCoordinates = subscribedTiers.some(t => t === 'manual' || t === 'equipped');
-      if (requiresCoordinates) {
-        const hasValidHomeCoords = result.data.homeLatitude !== null && 
-                                   result.data.homeLongitude !== null &&
-                                   result.data.homeLatitude !== 0 &&
-                                   result.data.homeLongitude !== 0;
-        
-        const hasValidCoords = result.data.latitude && 
-                              result.data.longitude &&
-                              result.data.latitude !== "0" &&
-                              result.data.longitude !== "0";
-        
-        if (!hasValidHomeCoords || !hasValidCoords) {
-          return res.status(400).json({ 
-            message: `Operators subscribing to Manual or Equipped tiers require valid home coordinates for proximity-based job matching. Please provide a valid address that can be geocoded.`,
-            field: "address",
-            debug: {
-              subscribedTiers,
-              homeLatitude: result.data.homeLatitude,
-              homeLongitude: result.data.homeLongitude,
-              latitude: result.data.latitude,
-              longitude: result.data.longitude
-            }
-          });
-        }
+      // COORDINATE VALIDATION: ALL tiers require valid coordinates to appear on the map
+      // Professional tier operators also need to be visible to customers
+      const hasValidHomeCoords = result.data.homeLatitude !== null && 
+                                 result.data.homeLongitude !== null &&
+                                 result.data.homeLatitude !== 0 &&
+                                 result.data.homeLongitude !== 0;
+      
+      const hasValidCoords = result.data.latitude && 
+                            result.data.longitude &&
+                            result.data.latitude !== "0" &&
+                            result.data.longitude !== "0";
+      
+      if (!hasValidHomeCoords || !hasValidCoords) {
+        return res.status(400).json({ 
+          message: `All operators require valid home coordinates to appear on the map for customers. Please provide a valid address that can be geocoded.`,
+          field: "address",
+          debug: {
+            subscribedTiers,
+            homeLatitude: result.data.homeLatitude,
+            homeLongitude: result.data.homeLongitude,
+            latitude: result.data.latitude,
+            longitude: result.data.longitude
+          }
+        });
+      }
+      
+      // Manual and Equipped tiers have specific operating radius validation
+      const requiresRadiusValidation = subscribedTiers.some(t => t === 'manual' || t === 'equipped');
+      if (requiresRadiusValidation) {
         
         // Validate operating radius is set correctly for manual/equipped
         const primaryTier = tier;
@@ -1985,27 +1987,27 @@ export function registerRoutes(storage: IStorage) {
       const { tier, details, homeLatitude, homeLongitude, latitude, longitude, operatingRadius } = req.body;
       const operatorId = req.params.operatorId;
       
-      // COORDINATE VALIDATION: Manual and Equipped tiers require valid coordinates
-      const requiresCoordinates = tier === 'manual' || tier === 'equipped';
-      if (requiresCoordinates) {
-        const hasValidHomeCoords = homeLatitude !== null && 
-                                   homeLongitude !== null &&
-                                   homeLatitude !== 0 &&
-                                   homeLongitude !== 0;
-        
-        const hasValidCoords = latitude && 
-                              longitude &&
-                              latitude !== "0" &&
-                              longitude !== "0";
-        
-        if (!hasValidHomeCoords || !hasValidCoords) {
-          return res.status(400).json({ 
-            message: `${tier === 'manual' ? 'Manual' : 'Equipped'} operators require valid home coordinates for proximity-based job matching. Please provide a valid address that can be geocoded.`,
-            field: "address"
-          });
-        }
-        
-        // Validate operating radius is set correctly
+      // COORDINATE VALIDATION: ALL tiers require valid coordinates to appear on the map
+      const hasValidHomeCoords = homeLatitude !== null && 
+                                 homeLongitude !== null &&
+                                 homeLatitude !== 0 &&
+                                 homeLongitude !== 0;
+      
+      const hasValidCoords = latitude && 
+                            longitude &&
+                            latitude !== "0" &&
+                            longitude !== "0";
+      
+      if (!hasValidHomeCoords || !hasValidCoords) {
+        return res.status(400).json({ 
+          message: `All operators require valid home coordinates to appear on the map. Please provide a valid address that can be geocoded.`,
+          field: "address"
+        });
+      }
+      
+      // Validate operating radius is set correctly for manual/equipped
+      const requiresRadiusValidation = tier === 'manual' || tier === 'equipped';
+      if (requiresRadiusValidation) {
         const expectedRadius = tier === 'manual' ? 5 : 15;
         if (operatingRadius !== expectedRadius) {
           return res.status(400).json({ 
@@ -2062,7 +2064,7 @@ export function registerRoutes(storage: IStorage) {
       // viewTier tracks which dashboard to show (persists across reloads)
       // User must manually go online after adding a tier
       
-      // Build update data - include coordinates if provided for manual/equipped tiers
+      // Build update data - include coordinates for ALL tiers (required for map visibility)
       const updateData: any = {
         subscribedTiers: updatedTiers,
         operatorTier: tier, // Set as primary tier for legacy compatibility
@@ -2070,13 +2072,16 @@ export function registerRoutes(storage: IStorage) {
         operatorTierProfiles: updatedProfiles
       };
       
-      // Update home coordinates if this is a manual/equipped tier
-      if (requiresCoordinates && homeLatitude && homeLongitude) {
+      // Update home coordinates for ALL tiers (required for map visibility)
+      if (homeLatitude && homeLongitude) {
         updateData.homeLatitude = homeLatitude.toString();
         updateData.homeLongitude = homeLongitude.toString();
         updateData.latitude = latitude;
         updateData.longitude = longitude;
-        updateData.operatingRadius = operatingRadius.toString();
+        // Only set operating radius if provided (manual/equipped have specific values)
+        if (operatingRadius) {
+          updateData.operatingRadius = operatingRadius.toString();
+        }
       }
       
       const [updatedOperator] = await db.update(operators)
