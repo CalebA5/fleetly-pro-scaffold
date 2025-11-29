@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useLocation } from "wouter";
+import { useQuery } from "@tanstack/react-query";
 import {
   Dialog,
   DialogContent,
@@ -11,10 +12,13 @@ import { Button } from "@/components/ui/enhanced-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Separator } from "@/components/ui/separator";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { useI18n } from "@/i18n";
 import { CheckCircle2, XCircle, Loader2, Eye, EyeOff } from "lucide-react";
+import { SiGoogle } from "react-icons/si";
+import { FaYahoo } from "react-icons/fa";
 
 interface AuthDialogProps {
   open: boolean;
@@ -247,6 +251,40 @@ export const AuthDialog = ({
           </TabsList>
           
           <TabsContent value="signin" className="space-y-4">
+            {/* Social Login Buttons */}
+            <div className="space-y-3">
+              <Button
+                variant="outline"
+                className="w-full flex items-center justify-center gap-3 h-11 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800"
+                onClick={() => window.location.href = `/api/auth/oauth/google?role=${signupRole}`}
+                data-testid="button-signin-google"
+              >
+                <SiGoogle className="h-5 w-5 text-[#4285F4]" />
+                <span>Continue with Google</span>
+              </Button>
+              <Button
+                variant="outline"
+                className="w-full flex items-center justify-center gap-3 h-11 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800"
+                onClick={() => window.location.href = `/api/auth/oauth/yahoo?role=${signupRole}`}
+                data-testid="button-signin-yahoo"
+              >
+                <FaYahoo className="h-5 w-5 text-[#720E9E]" />
+                <span>Continue with Yahoo</span>
+              </Button>
+            </div>
+            
+            {/* Divider */}
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <Separator className="w-full" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-background px-2 text-muted-foreground">
+                  or continue with email
+                </span>
+              </div>
+            </div>
+            
             <div className="space-y-2">
               <Label htmlFor="email">{t.auth.email}</Label>
               <Input 
@@ -286,11 +324,11 @@ export const AuthDialog = ({
             >
               {t.auth.signIn}
             </Button>
-            <p className="text-sm text-center text-gray-600">
+            <p className="text-sm text-center text-gray-600 dark:text-gray-400">
               {t.auth.dontHaveAccount}{" "}
               <button
                 onClick={() => setActiveTab("signup")}
-                className="text-black font-semibold hover:underline"
+                className="text-black dark:text-white font-semibold hover:underline"
                 data-testid="link-switch-signup"
               >
                 {t.auth.signUp}
@@ -299,6 +337,40 @@ export const AuthDialog = ({
           </TabsContent>
           
           <TabsContent value="signup" className="space-y-4">
+            {/* Social Login Buttons */}
+            <div className="space-y-3">
+              <Button
+                variant="outline"
+                className="w-full flex items-center justify-center gap-3 h-11 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800"
+                onClick={() => window.location.href = `/api/auth/oauth/google?role=${signupRole}`}
+                data-testid="button-signup-google"
+              >
+                <SiGoogle className="h-5 w-5 text-[#4285F4]" />
+                <span>Continue with Google</span>
+              </Button>
+              <Button
+                variant="outline"
+                className="w-full flex items-center justify-center gap-3 h-11 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800"
+                onClick={() => window.location.href = `/api/auth/oauth/yahoo?role=${signupRole}`}
+                data-testid="button-signup-yahoo"
+              >
+                <FaYahoo className="h-5 w-5 text-[#720E9E]" />
+                <span>Continue with Yahoo</span>
+              </Button>
+            </div>
+            
+            {/* Divider */}
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <Separator className="w-full" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-background px-2 text-muted-foreground">
+                  or sign up with email
+                </span>
+              </div>
+            </div>
+            
             <div className="space-y-2">
               <Label htmlFor="name">{t.auth.fullName}</Label>
               <div className="relative">
@@ -420,11 +492,11 @@ export const AuthDialog = ({
             >
               {t.auth.createAccount}
             </Button>
-            <p className="text-sm text-center text-gray-600">
+            <p className="text-sm text-center text-gray-600 dark:text-gray-400">
               {t.auth.alreadyHaveAccount}{" "}
               <button
                 onClick={() => setActiveTab("signin")}
-                className="text-black font-semibold hover:underline"
+                className="text-black dark:text-white font-semibold hover:underline"
                 data-testid="link-switch-signin"
               >
                 {t.auth.signIn}

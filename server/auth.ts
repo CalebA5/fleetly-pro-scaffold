@@ -6,8 +6,11 @@ import { db } from './db';
 import { users, operators, sessions, customers } from '@shared/schema';
 import type { InsertUser, InsertOperator, InsertSession, InsertCustomer } from '@shared/schema';
 import { verifyNewUser, checkEmailDuplicate, checkNameDuplicate, normalizeEmail, normalizeName } from './userVerification';
+import oauthRouter from './oauth';
 
 const router = Router();
+
+router.use('/oauth', oauthRouter);
 
 // Helper to generate session ID
 function generateSessionId(): string {
