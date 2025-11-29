@@ -250,23 +250,23 @@ export default function Wallet() {
         </div>
 
         {/* Balance Card */}
-        <Card className="border border-gray-200 dark:border-gray-700 shadow-sm mb-4">
-          <CardContent className="p-5">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Available Balance</p>
-                <p className="text-3xl font-bold text-gray-900 dark:text-white" data-testid="text-balance">
-                  ${balance.toFixed(2)}
+        <Card className="border border-gray-200 dark:border-gray-700 shadow-sm mb-4 overflow-hidden">
+          <CardContent className="p-4 sm:p-5">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0 flex-1">
+                <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mb-1">Available Balance</p>
+                <p className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white truncate" data-testid="text-balance">
+                  ${balance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </p>
                 {pendingBalance > 0 && (
-                  <p className="text-sm text-amber-600 dark:text-amber-400 mt-1 flex items-center gap-1">
-                    <Clock className="h-3.5 w-3.5" />
-                    ${pendingBalance.toFixed(2)} pending
+                  <p className="text-xs sm:text-sm text-amber-600 dark:text-amber-400 mt-1 flex items-center gap-1">
+                    <Clock className="h-3 w-3 sm:h-3.5 sm:w-3.5 flex-shrink-0" />
+                    <span className="truncate">${pendingBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} pending</span>
                   </p>
                 )}
               </div>
-              <div className="w-12 h-12 rounded-full bg-gray-900 dark:bg-white flex items-center justify-center">
-                <WalletIcon className="h-6 w-6 text-white dark:text-gray-900" />
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gray-900 dark:bg-white flex items-center justify-center flex-shrink-0">
+                <WalletIcon className="h-5 w-5 sm:h-6 sm:w-6 text-white dark:text-gray-900" />
               </div>
             </div>
 
@@ -371,29 +371,29 @@ export default function Wallet() {
 
         {/* Quick Stats */}
         <div className="grid grid-cols-2 gap-3 mb-4">
-          <Card className="border border-gray-200 dark:border-gray-700 shadow-sm">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2 mb-1">
-                <TrendingUp className="h-4 w-4 text-emerald-500" />
-                <span className="text-sm text-gray-500 dark:text-gray-400">
-                  {selectedTier === "all" ? "Total Earnings" : `${TIER_INFO[selectedTier as OperatorTier].shortLabel} Earnings`}
+          <Card className="border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
+            <CardContent className="p-3 sm:p-4">
+              <div className="flex items-center gap-1.5 sm:gap-2 mb-1">
+                <TrendingUp className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-emerald-500 flex-shrink-0" />
+                <span className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 truncate">
+                  {selectedTier === "all" ? "Total Earnings" : `${TIER_INFO[selectedTier as OperatorTier].shortLabel}`}
                 </span>
               </div>
-              <p className="text-xl font-bold text-gray-900 dark:text-white" data-testid="text-total-earnings">
-                ${selectedTier === "all" ? totalEarnings.toFixed(2) : tierEarnings[selectedTier as OperatorTier].toFixed(2)}
+              <p className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white truncate" data-testid="text-total-earnings">
+                ${selectedTier === "all" ? totalEarnings.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : tierEarnings[selectedTier as OperatorTier].toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </p>
             </CardContent>
           </Card>
-          <Card className="border border-gray-200 dark:border-gray-700 shadow-sm bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2 mb-1">
-                <Sparkles className="h-4 w-4 text-purple-500" />
-                <span className="text-sm text-gray-500 dark:text-gray-400">Referral Credits</span>
+          <Card className="border border-gray-200 dark:border-gray-700 shadow-sm bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 overflow-hidden">
+            <CardContent className="p-3 sm:p-4">
+              <div className="flex items-center gap-1.5 sm:gap-2 mb-1">
+                <Sparkles className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-purple-500 flex-shrink-0" />
+                <span className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 truncate">Referral Credits</span>
               </div>
-              <p className="text-xl font-bold text-purple-700 dark:text-purple-300" data-testid="text-referral-credits">
-                ${referralCredits.toFixed(2)}
+              <p className="text-lg sm:text-xl font-bold text-purple-700 dark:text-purple-300 truncate" data-testid="text-referral-credits">
+                ${referralCredits.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </p>
-              <p className="text-xs text-purple-600 dark:text-purple-400 mt-1">Use towards jobs</p>
+              <p className="text-[10px] sm:text-xs text-purple-600 dark:text-purple-400 mt-0.5 sm:mt-1">Use towards jobs</p>
             </CardContent>
           </Card>
         </div>
@@ -497,9 +497,9 @@ export default function Wallet() {
                             </div>
                           </div>
                         </div>
-                        <div className="text-right shrink-0 ml-3">
-                          <p className={`font-semibold ${transaction.amount > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-900 dark:text-white'}`}>
-                            {transaction.amount > 0 ? '+' : ''}${Math.abs(transaction.amount).toFixed(2)}
+                        <div className="text-right shrink-0 ml-2 sm:ml-3">
+                          <p className={`text-sm sm:text-base font-semibold ${transaction.amount > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-900 dark:text-white'}`}>
+                            {transaction.amount > 0 ? '+' : ''}${Math.abs(transaction.amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                           </p>
                           <div className="mt-0.5">
                             {getStatusBadge(transaction.status)}

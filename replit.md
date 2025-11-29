@@ -1,160 +1,46 @@
 # Fleetly - On-Demand Trucks & Snow Services Platform
 
 ## Overview
-Fleetly is a professional on-demand service platform connecting customers with verified operators for trucking, snow plowing, towing, hauling, and courier services. It operates as a two-sided marketplace with distinct customer and operator dashboards. The platform focuses on real-time booking, job tracking, and professional service delivery, supporting multi-driver business management, a three-tier operator system with proximity-based job filtering, and an emergency SOS mode. Its vision is to provide a seamless, efficient booking experience for on-demand services.
+Fleetly is a professional on-demand service platform connecting customers with verified operators for a range of services including trucking, snow plowing, towing, hauling, and courier services. It functions as a two-sided marketplace, offering distinct interfaces for customers and operators. The platform's core capabilities include real-time booking, job tracking, support for multi-driver businesses, a three-tier operator system with proximity-based job filtering, and an emergency SOS mode. Fleetly aims to provide an efficient and seamless booking experience for on-demand services.
 
 ## User Preferences
 Preferred communication style: Simple, everyday language.
 
-## Current Task Status (Session Notes)
-
-### Test Accounts (Password: Test1234!)
-- **Customers**: customer.alice@fleetly.test, customer.bob@fleetly.test, customer.carol@fleetly.test, customer.david@fleetly.test
-- **Operators**: operator.emma@fleetly.test, operator.frank@fleetly.test, operator.grace@fleetly.test, operator.henry@fleetly.test
-- **Admin**: admin@fleetly.test (has is_admin=1)
-
-### Admin Portal (/admin)
-The admin portal is at `client/src/pages/admin/AdminPortal.tsx`. It allows admins to:
-1. View pending operator tier applications
-2. Approve operators for specific tiers via POST `/api/admin/operators/:operatorId/approve/:tier`
-3. Reject operators with reason via POST `/api/admin/operators/:operatorId/reject/:tier`
-4. See stats for pending reviews, total tiers awaiting, and action required counts
-
-**How to Verify Operators**:
-1. Login with admin@fleetly.test (Test1234!)
-2. Navigate to /admin
-3. You'll see a list of operators with pending tier applications
-4. Each operator card shows their tier profiles with "Approve" and "Reject" buttons
-5. Click Approve to activate a tier, or Reject (with reason) to deny
-
-### Operator Onboarding Flow (Updated Nov 29, 2025)
-Located at `client/src/pages/operator/OperatorOnboarding.tsx`:
-
-**New Features:**
-- **Progress Persistence**: Form data is auto-saved to localStorage. If user navigates away or reloads, their progress is restored. Clearing options: complete onboarding, switch to different tier, or click "Reset" button.
-- **Auto-Approval (Testing Mode)**: Operators are automatically approved after onboarding. For production, change `approvalStatus` back to "pending" in `server/routes.ts`.
-
-**All tiers now have 4 steps with Services BEFORE Equipment/Vehicle:**
-
-**Professional Tier:**
-- Step 1: Business Info (business name, license, contact details, address)
-- Step 2: Services & Area (service selection, operating area, emergency availability)
-- Step 3: Vehicle Details (type, make, model, year, plate)
-- Step 4: Documents (optional uploads for verification)
-
-**Equipped Tier:**
-- Step 1: Contact Info (name, phone, email, address)
-- Step 2: Services & Area (service selection, operating area, emergency availability)
-- Step 3: Vehicle Details (type, make, model, year, plate)
-- Step 4: Complete (review and finish)
-
-**Manual Tier:**
-- Step 1: Contact Info (name, phone, email, home address)
-- Step 2: Services (select services, emergency availability toggle)
-- Step 3: Equipment & Area (select equipment, hours, photos, operating radius info)
-- Step 4: Complete (review and finish)
-
-### Advanced Service Area Selection (Added Nov 28, 2025)
-Professional and Equipped tiers now have cascading country → province → city selection for defining service areas.
-
-**Tier-Based Limits** (defined in `SERVICE_AREA_LIMITS` in schema.ts):
-- **Manual Tier**: 1 city max, 5km radius from home
-- **Equipped Tier**: 3 cities max, same province required, 15km radius per city
-- **Professional Tier**: Unlimited cities within country, no radius limit
-
-**Implementation:**
-- Frontend: `client/src/pages/operator/OperatorOnboarding.tsx` - uses `country-state-city` npm package for local data
-- Backend validation: `server/routes.ts` - Zod schema validates serviceAreas, enforces tier limits
-- Database: `operator_service_areas` table stores geographic coverage per operator/tier
-
-**Location APIs:**
-- GET `/api/locations/countries` - Returns all countries
-- GET `/api/locations/states/:countryCode` - Returns states for a country
-- GET `/api/locations/cities/:countryCode/:stateCode` - Returns cities for a state
-
-### i18n System Status (Updated Nov 28, 2025)
-- Uses React Context-based I18nProvider at `client/src/i18n/index.tsx`
-- 8 supported languages: English, French, Spanish, Portuguese, German, Chinese, Japanese, Korean
-- Translation files at `client/src/i18n/{lang}.ts`
-- **COMPLETED**: Major pages now use i18n:
-  - Settings.tsx ✅
-  - AuthDialog.tsx ✅ (sign in/out labels, email/password fields, buttons, dialog title, validation messages)
-  - Index.tsx ✅ (welcome, tagline, buttons, section headers)
-  - SignIn.tsx ✅
-  - SignUp.tsx ✅
-  - DriveEarn.tsx ✅ (complete translations for all content - tiers, benefits, stats)
-  - Notifications.tsx ✅ (page title, description, stayUpdated)
-  - Header.tsx ✅
-  - MobileBottomNav.tsx ✅
-  - Help.tsx ✅ (complete translations for FAQ categories, contact support)
-  - NotFound.tsx ✅ (404 page with navigation buttons)
-- **REMAINING**: 
-  - Other secondary pages (Profile, Wallet, Payments, etc.)
-  - Service request forms and detailed job pages
-
-### Priority Issues to Fix
-1. ~~Test account login~~ - FIXED (populated email_normalized column)
-2. i18n cleanup - add translations to all pages
-3. ~~Operator onboarding step reordering~~ - FIXED (Nov 28, 2025 - Services now before Equipment/Vehicle)
-4. ~~Operator onboarding failing for existing operators~~ - FIXED (Nov 29, 2025 - Added missing operator records in operators table for test accounts)
-5. Map pin stability when zooming
-6. Emergency tracking improvements
-
-### OAuth Integration (Added Nov 29, 2025)
-- Google and Yahoo OAuth sign-in buttons added to AuthDialog
-- Backend routes in `server/oauth.ts` handle OAuth callback flow
-- Requires GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, YAHOO_CLIENT_ID, YAHOO_CLIENT_SECRET secrets (one-time app owner setup)
-- Users click "Sign in with Google/Yahoo" → authenticate with provider → redirected back → session created
-
-### Email Verification & Document System (Schema Added Nov 29, 2025)
-New database tables added:
-- `email_otp_codes` - Stores 6-digit OTP codes for email verification (10 min expiry)
-- `service_document_requirements` - Defines required documents per service type (e.g., Red Seal for electricians)
-- `operator_document_submissions` - Tracks operator document uploads and admin review status
-- `users.email_verified` - Flag to track if operator email is verified (test accounts auto-verified)
-
 ## System Architecture
 
 ### UI/UX Decisions
-The frontend is built with React 18, TypeScript, Vite, Wouter for routing, Radix UI primitives, shadcn/ui, and Tailwind CSS. The design adopts a black-and-white color scheme with orange accents, minimal aesthetics, and bold typography. It features adaptive theming with seasonal palettes and dark mode. A LocationPermissionModal guides first-time users, and features are progressively disclosed.
-
-**Mobile-First Design Patterns:**
-- **Find Operators Page**: Mobile uses a half-map/half-list sliding sheet design with touch gesture support. The bottom sheet follows the user's finger during drag and snaps to three positions (collapsed, half, full). Desktop uses a separate list/map toggle view.
-- **Service Selector**: Services are grouped by category (Micro Services, Standard Services, Professional Services) with multi-select capability.
-- **Operator Cards**: Mobile cards show operator photo, name, service badges, and a bottom row with rating/jobs/distance. A small map icon allows focusing on the operator's location.
+The frontend is built with React 18, TypeScript, Vite, Wouter for routing, Radix UI primitives, shadcn/ui, and Tailwind CSS. The design features a black-and-white color scheme with orange accents, a minimal aesthetic, and bold typography. It includes adaptive theming with seasonal palettes and dark mode. Key UI/UX patterns include a LocationPermissionModal for first-time users, progressive disclosure of features, and mobile-first designs such as a half-map/half-list sliding sheet for the "Find Operators" page. Service selection is categorized with multi-select capabilities, and operator cards are designed for clear information display on mobile.
 
 ### Technical Implementations
-The backend is an Express.js server utilizing PostgreSQL with Drizzle ORM. Zod is employed for schema validation. API endpoints are RESTful under `/api` with centralized error handling. State management on the frontend uses TanStack Query for server state and React Hook Form with Zod for form validation.
+The backend is an Express.js server utilizing PostgreSQL with Drizzle ORM. Zod is used for schema validation. API endpoints are RESTful under `/api` and feature centralized error handling. Frontend state management leverages TanStack Query for server state and React Hook Form with Zod for form validation. The platform supports a comprehensive i18n system using React Context for 8 languages.
 
 ### Feature Specifications
-- **Quote-Based Negotiation System**: Operators submit quotes, and customers can accept, decline, or counter within a 12-hour expiry.
-- **Comprehensive Notification System**: Real-time and persistent in-app notifications for all customer-operator interactions. Email integration is deferred but planned.
-- **Multi-Driver Business Management**: Allows businesses to manage drivers and assign services.
-- **Three-Tier Operator System**: Features Professional, Skilled & Equipped, and Manual Operators with tier-specific onboarding, capabilities, and proximity-based job filtering.
+- **Quote-Based Negotiation**: Allows operators to submit quotes and customers to accept, decline, or counter.
+- **Comprehensive Notification System**: Real-time, in-app notifications for customer-operator interactions.
+- **Multi-Driver Business Management**: Enables businesses to manage drivers and service assignments.
+- **Three-Tier Operator System**: Differentiates between Professional, Skilled & Equipped, and Manual Operators, each with specific onboarding, capabilities, and proximity-based job filtering. Operators undergo manual approval for each tier.
 - **AI Assist Feature**: Recommends services and operators with estimated pricing.
-- **Enhanced Service Request Creation**: Dynamic forms for service types, emergency/scheduled toggles, and photo uploads. Supports **Project Mode** for multi-service bundling with pricing preferences (fixed/hourly/custom quote).
-- **Unified Map Implementation**: Uses Mapbox GL JS for interactive operator selection and filters.
-- **Real-Time Tracking**: Live operator location updates with LiveTrackingMap component showing ETA, distance, and animated operator markers. Particularly for emergency requests.
-- **In-App Messaging**: Customer-operator messaging system with real-time message history on job tracking pages via JobMessaging component.
-- **Operator Tier Badges**: Operator cards display tier badges ("Pro" for Professional, "Skilled" for Skilled & Equipped) inline with operator names on both mobile and desktop views, preventing badge clustering.
-- **Clickable Operator Profiles**: Operator photos on cards navigate to detailed profile pages showing tier, services, equipment, ratings, and response time.
-- **Navigation Directions**: Operator job details page includes "Get Directions" buttons for both Google Maps and Apple Maps with deep-link support using coordinates when available.
-- **Smart Back Navigation**: BackButton component provides history-aware back navigation with fallback routes for consistent navigation experience.
-- **Proactive Weather Alert System**: Integrates with a weather API for alerts.
-- **Emergency SOS Mode**: Provides no-login emergency assistance with auto-location detection. Features a mini map with pulsing location marker (Uber-like UX), service selection cards with modern icons, and GPS coordinate confirmation.
+- **Enhanced Service Request Creation**: Dynamic forms supporting emergency/scheduled toggles, photo uploads, and a "Project Mode" for multi-service bundling with various pricing preferences.
+- **Unified Map Implementation**: Uses Mapbox GL JS for interactive operator selection and filtering, with real-time tracking of operator locations for emergency requests.
+- **In-App Messaging**: Real-time customer-operator messaging on job tracking pages.
+- **Operator Badges & Profiles**: Tier badges are displayed on operator cards, which are clickable to access detailed profiles.
+- **Navigation Directions**: Integration with Google Maps and Apple Maps for job navigation.
+- **Smart Back Navigation**: Provides history-aware back navigation with fallback routes.
+- **Proactive Weather Alert System**: Integrates with a weather API.
+- **Emergency SOS Mode**: Offers no-login emergency assistance with auto-location detection, a mini-map, and service selection.
 - **Persistent Job Tracking System**: Database-backed job persistence across sessions.
-- **Customer Groups Unlock System**: Gamified access to "Nearby Customer Groups" after completing 5 jobs per tier.
+- **Customer Groups Unlock System**: Gamified access to customer groups.
 - **User Verification & Duplicate Prevention**: Comprehensive signup verification via email and name normalization.
-- **Operator Authentication & Verification**: Operators sign up with zero tiers and require manual approval for each tier after onboarding, with statuses stored in `operatorTierProfiles`.
-- **Account Management Pages**: Includes Wallet (balance, transactions, withdrawals), Payments (cards, bank accounts, payout preferences), Settings (appearance, notifications, privacy), and Legal (terms, privacy, liability, cookie policy).
-- **Unified Operator Dashboard**: A single, tier-aware dashboard with configurable modules (Metrics Slider, Tier Tabs, Drawer Navigation) driven by `TIER_CAPABILITIES`.
-- **Self-Service Prevention (Transparency)**: Users cannot request services from, favorite, or rate their own operator cards. A "Your Operator" badge is displayed with disabled/blurred action buttons to prevent metric gaming.
-- **Multi-Language i18n System**: Complete internationalization with 8 supported languages (English, French, Spanish, Portuguese, German, Chinese, Japanese, Korean). Uses React Context-based I18nProvider with type-safe translation keys, localStorage persistence, and browser language detection.
-- **Multi-Select Service Filter**: The Find Operators page features a popover-based multi-select filter allowing users to select 15+ services simultaneously with checkbox toggles, selection count badges, and clear-all functionality.
+- **Account Management Pages**: Includes Wallet, Payments, Settings, and Legal sections.
+- **Unified Operator Dashboard**: A single, tier-aware dashboard with configurable modules.
+- **Self-Service Prevention**: Prevents users from interacting with their own operator cards to ensure fair metrics.
+- **Multi-Select Service Filter**: Allows users to select multiple services for filtering operators.
+- **Advanced Service Area Selection**: Professional and Equipped tiers feature cascading country → province → city selection, with tier-based limits on the number of cities and radius.
+- **Operator Onboarding Flow**: Features progress persistence and a structured 4-step process for each tier, with services defined before equipment/vehicle details.
 
 ### System Design Choices
-- **Data Model**: Key entities include service requests (with `serviceType`, `isEmergency`, `description`, `location`, `status`, `details` JSONB) and operator profiles (with `operatorTier`, `isCertified`, `businessLicense`, `homeLatitude`, `homeLongitude`, `operatingRadius`).
-- **Location Handling**: `LocationContext` manages centralized location state, permissions, auto-population, and persistent storage. Proximity-based operator matching uses a 50km radius.
+- **Data Model**: Key entities include service requests (with `serviceType`, `isEmergency`, `description`, `location`, `status`, `details` JSONB) and operator profiles (with `operatorTier`, `isCertified`, `businessLicense`, `homeLatitude`, `homeLongitude`, `operatingRadius`). New tables for email OTP, document requirements, and operator document submissions enhance verification.
+- **Location Handling**: `LocationContext` manages centralized location state, permissions, and auto-population, supporting proximity-based operator matching within a 50km radius.
 - **Security**: Implements email normalization, bcrypt hashing for passwords, 30-day httpOnly cookie sessions, and tier isolation.
 
 ## External Dependencies
@@ -178,3 +64,5 @@ The backend is an Express.js server utilizing PostgreSQL with Drizzle ORM. Zod i
 **APIs:**
 - OpenStreetMap Nominatim API
 - National Weather Service API
+- Google OAuth (pending credentials)
+- Yahoo OAuth (pending credentials)

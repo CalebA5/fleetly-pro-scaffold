@@ -272,59 +272,65 @@ export const ProfileDropdown = ({
         
         <DropdownMenuSeparator />
         
-        <DropdownMenuLabel className="flex items-center gap-2 text-xs text-muted-foreground">
-          <Palette className="h-3.5 w-3.5" />
-          Theme {currentSeasonEmoji} {currentModeLabel}
-        </DropdownMenuLabel>
-        <div className="grid grid-cols-2 gap-1 px-2 pb-2">
-          <button
-            onClick={() => setThemeMode('auto-seasonal')}
-            className={`flex items-center justify-center gap-1.5 rounded-md px-2 py-1.5 text-xs font-medium transition-colors ${
-              themeMode === 'auto-seasonal'
-                ? 'bg-primary text-primary-foreground'
-                : 'bg-muted hover:bg-muted/80 text-muted-foreground'
-            }`}
-            data-testid="theme-option-auto-seasonal"
-          >
-            🍂 Auto
-          </button>
-          <button
-            onClick={() => setThemeMode('time-based')}
-            className={`flex items-center justify-center gap-1.5 rounded-md px-2 py-1.5 text-xs font-medium transition-colors ${
-              themeMode === 'time-based'
-                ? 'bg-primary text-primary-foreground'
-                : 'bg-muted hover:bg-muted/80 text-muted-foreground'
-            }`}
-            data-testid="theme-option-time-based"
-          >
-            🌍 Time
-          </button>
-          <button
-            onClick={() => setThemeMode('light')}
-            className={`flex items-center justify-center gap-1.5 rounded-md px-2 py-1.5 text-xs font-medium transition-colors ${
-              themeMode === 'light'
-                ? 'bg-primary text-primary-foreground'
-                : 'bg-muted hover:bg-muted/80 text-muted-foreground'
-            }`}
-            data-testid="theme-option-light"
-          >
-            ☀️ Light
-          </button>
-          <button
-            onClick={() => setThemeMode('dark')}
-            className={`flex items-center justify-center gap-1.5 rounded-md px-2 py-1.5 text-xs font-medium transition-colors ${
-              themeMode === 'dark'
-                ? 'bg-primary text-primary-foreground'
-                : 'bg-muted hover:bg-muted/80 text-muted-foreground'
-            }`}
-            data-testid="theme-option-dark"
-          >
-            🌙 Dark
-          </button>
+        <div className="flex items-center justify-between px-2 py-1.5">
+          <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <Palette className="h-3.5 w-3.5" />
+            Theme
+          </span>
+          <div className="flex items-center gap-0.5 bg-muted rounded-lg p-0.5">
+            <button
+              onClick={() => setThemeMode('auto-seasonal')}
+              className={`p-1.5 rounded-md text-sm transition-colors ${
+                themeMode === 'auto-seasonal'
+                  ? 'bg-background shadow-sm'
+                  : 'hover:bg-background/50'
+              }`}
+              title="Auto (Seasonal)"
+              data-testid="theme-option-auto-seasonal"
+            >
+              🍂
+            </button>
+            <button
+              onClick={() => setThemeMode('time-based')}
+              className={`p-1.5 rounded-md text-sm transition-colors ${
+                themeMode === 'time-based'
+                  ? 'bg-background shadow-sm'
+                  : 'hover:bg-background/50'
+              }`}
+              title="Time-based"
+              data-testid="theme-option-time-based"
+            >
+              🌍
+            </button>
+            <button
+              onClick={() => setThemeMode('light')}
+              className={`p-1.5 rounded-md text-sm transition-colors ${
+                themeMode === 'light'
+                  ? 'bg-background shadow-sm'
+                  : 'hover:bg-background/50'
+              }`}
+              title="Light"
+              data-testid="theme-option-light"
+            >
+              ☀️
+            </button>
+            <button
+              onClick={() => setThemeMode('dark')}
+              className={`p-1.5 rounded-md text-sm transition-colors ${
+                themeMode === 'dark'
+                  ? 'bg-background shadow-sm'
+                  : 'hover:bg-background/50'
+              }`}
+              title="Dark"
+              data-testid="theme-option-dark"
+            >
+              🌙
+            </button>
+          </div>
         </div>
         
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={handleSignOut} data-testid="menu-sign-out">
+        <DropdownMenuItem onClick={handleSignOut} className="text-red-600 focus:text-red-600 focus:bg-red-50 dark:focus:bg-red-900/20" data-testid="menu-sign-out">
           <LogOut className="mr-2 h-4 w-4" />
           <span>Sign out</span>
         </DropdownMenuItem>
