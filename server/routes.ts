@@ -732,8 +732,8 @@ export function registerRoutes(storage: IStorage) {
         }
       }
       
-      // TESTING MODE: Auto-approve operators immediately after onboarding
-      // In production, change to "pending" and set canEarn: false
+      // PRODUCTION MODE: New operators start with pending status
+      // They can access the dashboard but cannot go online until verified by admin
       const tierProfiles: Record<string, any> = {};
       subscribedTiers.forEach(tier => {
         tierProfiles[tier] = {
@@ -741,11 +741,11 @@ export function registerRoutes(storage: IStorage) {
           subscribed: true,
           onboardingCompleted: true,
           onboardedAt: new Date().toISOString(),
-          approvalStatus: "approved", // TESTING: Auto-approve for testing
+          approvalStatus: "pending", // PRODUCTION: Pending until admin verification
           approvalSubmittedAt: new Date().toISOString(),
-          approvedAt: new Date().toISOString(), // TESTING: Set approval timestamp
+          approvedAt: null, // Will be set when admin approves
           rejectionReason: null,
-          canEarn: true, // TESTING: Allow earning immediately
+          canEarn: false, // PRODUCTION: Cannot earn until approved
           vehicle: result.data.vehicle || "Not specified",
           licensePlate: result.data.licensePlate || "N/A",
           businessLicense: normalizedBusinessLicense, // Use normalized value
@@ -2050,8 +2050,8 @@ export function registerRoutes(storage: IStorage) {
       // Add tier to subscribed tiers and set as active tier
       const updatedTiers = [...operator.subscribedTiers, tier];
       
-      // TESTING MODE: Auto-approve new tiers immediately
-      // In production, change to "pending" and set canEarn: false
+      // PRODUCTION MODE: New tiers start with pending status
+      // Operators can access the dashboard but cannot go online for this tier until verified
       const existingProfiles = (operator.operatorTierProfiles as any) || {};
       const updatedProfiles = {
         ...existingProfiles,
@@ -2060,11 +2060,11 @@ export function registerRoutes(storage: IStorage) {
           subscribed: true,
           onboardingCompleted: true,
           onboardedAt: new Date().toISOString(),
-          approvalStatus: "approved", // TESTING: Auto-approve for testing
+          approvalStatus: "pending", // PRODUCTION: Pending until admin verification
           approvalSubmittedAt: new Date().toISOString(),
-          approvedAt: new Date().toISOString(), // TESTING: Set approval timestamp
+          approvedAt: null, // Will be set when admin approves
           rejectionReason: null,
-          canEarn: true, // TESTING: Allow earning immediately
+          canEarn: false, // PRODUCTION: Cannot earn until approved
           vehicle: details?.vehicle || operator.vehicle,
           licensePlate: details?.licensePlate || operator.licensePlate,
           businessLicense: details?.businessLicense || operator.businessLicense,
