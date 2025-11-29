@@ -1,6 +1,8 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/contexts/AuthContext";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -38,25 +40,34 @@ const TIER_INFO = {
   manual: { label: "Manual", shortLabel: "Manual", badge: "⛏️", color: "text-green-600", bgColor: "bg-green-100 dark:bg-green-900/30" },
 };
 
-const mockTransactions: Transaction[] = [
-  { id: "1", type: "credit", amount: 125.00, description: "Snow Plowing Job - Calgary Downtown", date: "2025-11-26", status: "completed", reference: "JOB-2411260", tier: "professional" },
-  { id: "2", type: "credit", amount: 85.50, description: "Towing Service - Highway 2", date: "2025-11-25", status: "completed", reference: "JOB-2411252", tier: "equipped" },
-  { id: "3", type: "withdrawal", amount: -200.00, description: "Withdrawal to Bank Account", date: "2025-11-24", status: "completed" },
-  { id: "4", type: "credit", amount: 45.00, description: "Courier Delivery", date: "2025-11-23", status: "completed", reference: "JOB-2411231", tier: "manual" },
-  { id: "5", type: "referral_credit", amount: 25.00, description: "Referral Credit - New Operator John", date: "2025-11-22", status: "completed" },
-  { id: "6", type: "credit", amount: 180.00, description: "Hauling Job - Industrial Area", date: "2025-11-21", status: "completed", reference: "JOB-2411211", tier: "professional" },
-  { id: "7", type: "withdrawal", amount: -150.00, description: "Withdrawal to Bank Account (Friday Payout)", date: "2025-11-20", status: "pending" },
-  { id: "8", type: "referral_credit", amount: 15.00, description: "Referral Credit - New Customer Sarah", date: "2025-11-19", status: "completed" },
-  { id: "9", type: "credit", amount: 95.00, description: "Snow Removal - Residential", date: "2025-11-18", status: "completed", reference: "JOB-2411181", tier: "equipped" },
-  { id: "10", type: "credit", amount: 55.00, description: "Handyman Service", date: "2025-11-17", status: "completed", reference: "JOB-2411171", tier: "manual" },
-];
+interface WalletData {
+  id: number;
+  userId: number;
+  balance: string;
+  pendingBalance: string;
+  totalEarnings: string;
+  referralCredits: string;
+  currency: string;
+}
+
+interface TransactionData {
+  id: number;
+  walletId: number;
+  userId: number;
+  type: string;
+  amount: string;
+  description: string;
+  status: string;
+  reference?: string;
+  tier?: string;
+  createdAt: string;
+}
 
 export default function Wallet() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [location, navigate] = useLocation();
   const [activeTab, setActiveTab] = useState("all");
-  const [isLoading] = useState(false);
   const [showWithdrawDialog, setShowWithdrawDialog] = useState(false);
   const [showFilterDialog, setShowFilterDialog] = useState(false);
   const [withdrawAmount, setWithdrawAmount] = useState("");
@@ -79,17 +90,70 @@ export default function Wallet() {
     return fromParam?.startsWith('/operator') || urlTier !== null || user?.operatorId !== undefined;
   }, [urlTier, user?.operatorId]);
 
-  // Calculate tier-specific earnings
+  // Fetch wallet data
+  const { data: walletData, isLoading: walletLoading } = useQuery<WalletData>({
+    queryKey: ['/api/wallet'],
+    enabled: !!user,
+  });
+
+  // Fetch transactions
+  const { data: transactionsData = [], isLoading: transactionsLoading } = useQuery<TransactionData[]>({
+    queryKey: ['/api/wallet/transactions'],
+    enabled: !!user,
+  });
+
+  // Withdrawal mutation
+  const withdrawMutation = useMutation({
+    mutationFn: (amount: number) => apiRequest('/api/wallet/withdraw', {
+      method: 'POST',
+      body: JSON.stringify({ amount }),
+      headers: { 'Content-Type': 'application/json' },
+    }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/wallet'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/wallet/transactions'] });
+      toast({
+        title: "Withdrawal Scheduled",
+        description: `Your withdrawal will be processed on ${getNextFriday()}.`,
+      });
+      setShowWithdrawDialog(false);
+      setWithdrawAmount("");
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Withdrawal Failed",
+        description: error?.message || "Failed to process withdrawal",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const isLoading = walletLoading || transactionsLoading;
+
+  // Convert API transactions to local format
+  const transactions: Transaction[] = transactionsData.map(t => ({
+    id: String(t.id),
+    type: t.type as Transaction['type'],
+    amount: parseFloat(t.amount),
+    description: t.description,
+    date: new Date(t.createdAt).toISOString().split('T')[0],
+    status: t.status as Transaction['status'],
+    reference: t.reference,
+    tier: t.tier as OperatorTier | undefined,
+  }));
+
+  // Calculate tier-specific earnings from real data
   const tierEarnings = {
-    professional: mockTransactions.filter(t => t.tier === "professional" && t.type === "credit").reduce((sum, t) => sum + t.amount, 0),
-    equipped: mockTransactions.filter(t => t.tier === "equipped" && t.type === "credit").reduce((sum, t) => sum + t.amount, 0),
-    manual: mockTransactions.filter(t => t.tier === "manual" && t.type === "credit").reduce((sum, t) => sum + t.amount, 0),
+    professional: transactions.filter(t => t.tier === "professional" && t.type === "credit").reduce((sum, t) => sum + t.amount, 0),
+    equipped: transactions.filter(t => t.tier === "equipped" && t.type === "credit").reduce((sum, t) => sum + t.amount, 0),
+    manual: transactions.filter(t => t.tier === "manual" && t.type === "credit").reduce((sum, t) => sum + t.amount, 0),
   };
 
-  const balance = 460.50;
-  const pendingBalance = 150.00;
-  const totalEarnings = 1235.50;
-  const referralCredits = 40.00;
+  // Use real wallet data or defaults
+  const balance = parseFloat(walletData?.balance || "0.00");
+  const pendingBalance = parseFloat(walletData?.pendingBalance || "0.00");
+  const totalEarnings = parseFloat(walletData?.totalEarnings || "0.00");
+  const referralCredits = parseFloat(walletData?.referralCredits || "0.00");
 
   const handleBack = () => {
     if (window.history.length > 1) {
@@ -133,8 +197,8 @@ export default function Wallet() {
 
   // First filter by tier, then by period, then by transaction type
   const tierFilteredTransactions = selectedTier === "all" 
-    ? mockTransactions 
-    : mockTransactions.filter(t => t.tier === selectedTier || !t.tier);
+    ? transactions 
+    : transactions.filter(t => t.tier === selectedTier || !t.tier);
     
   const filteredTransactions = filterByPeriod(
     activeTab === "all" 
@@ -169,12 +233,7 @@ export default function Wallet() {
       });
       return;
     }
-    toast({
-      title: "Withdrawal Scheduled",
-      description: `$${amount.toFixed(2)} will be transferred to your bank account on ${getNextFriday()}.`,
-    });
-    setShowWithdrawDialog(false);
-    setWithdrawAmount("");
+    withdrawMutation.mutate(amount);
   };
 
   const getTransactionIcon = (type: string) => {

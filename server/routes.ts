@@ -1,7 +1,7 @@
 import { Router } from "express";
 import type { IStorage } from "./storage";
 import { db } from "./db";
-import { operators, customers, users, favorites, operatorTierStats, weatherAlerts, insertWeatherAlertSchema, emergencyRequests, dispatchQueue, insertEmergencyRequestSchema, insertDispatchQueueSchema, businesses, serviceRequests, operatorDailyEarnings, operatorMonthlyEarnings, acceptedJobs, operatorPricingConfigs, operatorQuotes, insertOperatorPricingConfigSchema, insertOperatorQuoteSchema, notifications, jobMessages, operatorLiveLocations, insertJobMessageSchema, insertOperatorLiveLocationSchema, ratings } from "@shared/schema";
+import { operators, customers, users, favorites, operatorTierStats, weatherAlerts, insertWeatherAlertSchema, emergencyRequests, dispatchQueue, insertEmergencyRequestSchema, insertDispatchQueueSchema, businesses, serviceRequests, operatorDailyEarnings, operatorMonthlyEarnings, acceptedJobs, operatorPricingConfigs, operatorQuotes, insertOperatorPricingConfigSchema, insertOperatorQuoteSchema, notifications, jobMessages, operatorLiveLocations, insertJobMessageSchema, insertOperatorLiveLocationSchema, ratings, wallets, walletTransactions, paymentCards, insertWalletSchema, insertWalletTransactionSchema, insertPaymentCardSchema, CARD_BRANDS } from "@shared/schema";
 import { notificationService } from "./notificationService";
 import { eq, sql, and, gte, or, desc, asc } from "drizzle-orm";
 import { insertJobSchema, insertServiceRequestSchema, insertCustomerSchema, insertOperatorSchema, insertRatingSchema, insertFavoriteSchema, insertOperatorLocationSchema, insertCustomerServiceHistorySchema, OPERATOR_TIER_INFO, SERVICE_AREA_LIMITS, operatorServiceAreas } from "@shared/schema";
@@ -5357,6 +5357,292 @@ Be friendly, concise, and helpful. If you cannot help with something or the user
     } catch (error) {
       console.error("Error searching cities:", error);
       res.status(500).json({ message: "Failed to search cities" });
+    }
+  });
+
+  // ==================== WALLET API ROUTES ====================
+  
+  // Get user's wallet
+  router.get("/api/wallet", async (req, res) => {
+    try {
+      const userId = (req.session as any)?.userId;
+      if (!userId) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+      
+      // Get or create wallet for user
+      let [wallet] = await db.select().from(wallets).where(eq(wallets.userId, userId)).limit(1);
+      
+      if (!wallet) {
+        [wallet] = await db.insert(wallets).values({
+          userId,
+          balance: "0.00",
+          pendingBalance: "0.00",
+          totalEarnings: "0.00",
+          referralCredits: "0.00",
+          currency: "CAD"
+        }).returning();
+      }
+      
+      res.json(wallet);
+    } catch (error) {
+      console.error("Error fetching wallet:", error);
+      res.status(500).json({ message: "Failed to fetch wallet" });
+    }
+  });
+
+  // Get wallet transactions
+  router.get("/api/wallet/transactions", async (req, res) => {
+    try {
+      const userId = (req.session as any)?.userId;
+      if (!userId) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+      
+      const limit = parseInt(req.query.limit as string) || 50;
+      const offset = parseInt(req.query.offset as string) || 0;
+      const type = req.query.type as string | undefined;
+      const tier = req.query.tier as string | undefined;
+      
+      let query = db.select().from(walletTransactions)
+        .where(eq(walletTransactions.userId, userId))
+        .orderBy(desc(walletTransactions.createdAt))
+        .limit(limit)
+        .offset(offset);
+      
+      const transactions = await query;
+      
+      // Filter in JavaScript if type or tier specified
+      let filtered = transactions;
+      if (type && type !== 'all') {
+        filtered = filtered.filter(t => t.type === type);
+      }
+      if (tier && tier !== 'all') {
+        filtered = filtered.filter(t => t.tier === tier);
+      }
+      
+      res.json(filtered);
+    } catch (error) {
+      console.error("Error fetching transactions:", error);
+      res.status(500).json({ message: "Failed to fetch transactions" });
+    }
+  });
+
+  // Create a withdrawal request
+  router.post("/api/wallet/withdraw", async (req, res) => {
+    try {
+      const userId = (req.session as any)?.userId;
+      if (!userId) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+      
+      const { amount } = req.body;
+      if (!amount || parseFloat(amount) <= 0) {
+        return res.status(400).json({ message: "Invalid withdrawal amount" });
+      }
+      
+      // Get wallet
+      const [wallet] = await db.select().from(wallets).where(eq(wallets.userId, userId)).limit(1);
+      if (!wallet) {
+        return res.status(404).json({ message: "Wallet not found" });
+      }
+      
+      const currentBalance = parseFloat(wallet.balance);
+      const withdrawalAmount = parseFloat(amount);
+      
+      if (withdrawalAmount > currentBalance) {
+        return res.status(400).json({ message: "Insufficient balance" });
+      }
+      
+      // Create pending withdrawal transaction
+      const [transaction] = await db.insert(walletTransactions).values({
+        walletId: wallet.id,
+        userId,
+        type: "withdrawal",
+        amount: (-withdrawalAmount).toFixed(2),
+        description: "Withdrawal to Bank Account",
+        status: "pending"
+      }).returning();
+      
+      // Update wallet balance and pending balance
+      await db.update(wallets)
+        .set({
+          balance: (currentBalance - withdrawalAmount).toFixed(2),
+          pendingBalance: (parseFloat(wallet.pendingBalance) + withdrawalAmount).toFixed(2),
+          updatedAt: new Date()
+        })
+        .where(eq(wallets.id, wallet.id));
+      
+      res.json({ 
+        message: "Withdrawal request submitted",
+        transaction 
+      });
+    } catch (error) {
+      console.error("Error processing withdrawal:", error);
+      res.status(500).json({ message: "Failed to process withdrawal" });
+    }
+  });
+
+  // ==================== PAYMENT CARDS API ROUTES ====================
+  
+  // Get user's payment cards (with masked numbers)
+  router.get("/api/payment-cards", async (req, res) => {
+    try {
+      const userId = (req.session as any)?.userId;
+      if (!userId) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+      
+      const cards = await db.select().from(paymentCards)
+        .where(eq(paymentCards.userId, userId))
+        .orderBy(desc(paymentCards.isDefault), desc(paymentCards.createdAt));
+      
+      // Return cards with masked info
+      const maskedCards = cards.map(card => ({
+        ...card,
+        displayNumber: `•••• •••• •••• ${card.lastFourDigits}`
+      }));
+      
+      res.json(maskedCards);
+    } catch (error) {
+      console.error("Error fetching payment cards:", error);
+      res.status(500).json({ message: "Failed to fetch payment cards" });
+    }
+  });
+
+  // Add a new payment card
+  router.post("/api/payment-cards", async (req, res) => {
+    try {
+      const userId = (req.session as any)?.userId;
+      if (!userId) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+      
+      const { cardNumber, cardholderName, expiryMonth, expiryYear, cvv, setAsDefault } = req.body;
+      
+      // Validate required fields
+      if (!cardNumber || !cardholderName || !expiryMonth || !expiryYear) {
+        return res.status(400).json({ message: "Missing required card information" });
+      }
+      
+      // Extract last 4 digits
+      const cleanCardNumber = cardNumber.replace(/\s/g, '');
+      const lastFourDigits = cleanCardNumber.slice(-4);
+      
+      // Detect card brand
+      let cardBrand = 'unknown';
+      if (/^4/.test(cleanCardNumber)) cardBrand = 'visa';
+      else if (/^5[1-5]|^2[2-7]/.test(cleanCardNumber)) cardBrand = 'mastercard';
+      else if (/^3[47]/.test(cleanCardNumber)) cardBrand = 'amex';
+      else if (/^6(?:011|5)/.test(cleanCardNumber)) cardBrand = 'discover';
+      
+      // If setting as default, unset other cards
+      if (setAsDefault) {
+        await db.update(paymentCards)
+          .set({ isDefault: 0, updatedAt: new Date() })
+          .where(eq(paymentCards.userId, userId));
+      }
+      
+      // Check if this is the first card (auto-set as default)
+      const existingCards = await db.select().from(paymentCards).where(eq(paymentCards.userId, userId));
+      const isFirstCard = existingCards.length === 0;
+      
+      // Create the card (never store full card number)
+      const [card] = await db.insert(paymentCards).values({
+        userId,
+        cardholderName,
+        lastFourDigits,
+        cardBrand,
+        expiryMonth: parseInt(expiryMonth),
+        expiryYear: parseInt(expiryYear),
+        isDefault: (setAsDefault || isFirstCard) ? 1 : 0
+      }).returning();
+      
+      res.json({
+        ...card,
+        displayNumber: `•••• •••• •••• ${lastFourDigits}`
+      });
+    } catch (error) {
+      console.error("Error adding payment card:", error);
+      res.status(500).json({ message: "Failed to add payment card" });
+    }
+  });
+
+  // Delete a payment card
+  router.delete("/api/payment-cards/:cardId", async (req, res) => {
+    try {
+      const userId = (req.session as any)?.userId;
+      if (!userId) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+      
+      const cardId = parseInt(req.params.cardId);
+      
+      // Verify card belongs to user
+      const [card] = await db.select().from(paymentCards)
+        .where(and(eq(paymentCards.id, cardId), eq(paymentCards.userId, userId)))
+        .limit(1);
+      
+      if (!card) {
+        return res.status(404).json({ message: "Card not found" });
+      }
+      
+      await db.delete(paymentCards).where(eq(paymentCards.id, cardId));
+      
+      // If this was the default card, set another as default
+      if (card.isDefault) {
+        const [remainingCard] = await db.select().from(paymentCards)
+          .where(eq(paymentCards.userId, userId))
+          .orderBy(desc(paymentCards.createdAt))
+          .limit(1);
+        
+        if (remainingCard) {
+          await db.update(paymentCards)
+            .set({ isDefault: 1, updatedAt: new Date() })
+            .where(eq(paymentCards.id, remainingCard.id));
+        }
+      }
+      
+      res.json({ message: "Card deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting payment card:", error);
+      res.status(500).json({ message: "Failed to delete payment card" });
+    }
+  });
+
+  // Set card as default
+  router.post("/api/payment-cards/:cardId/set-default", async (req, res) => {
+    try {
+      const userId = (req.session as any)?.userId;
+      if (!userId) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+      
+      const cardId = parseInt(req.params.cardId);
+      
+      // Verify card belongs to user
+      const [card] = await db.select().from(paymentCards)
+        .where(and(eq(paymentCards.id, cardId), eq(paymentCards.userId, userId)))
+        .limit(1);
+      
+      if (!card) {
+        return res.status(404).json({ message: "Card not found" });
+      }
+      
+      // Unset all cards for user
+      await db.update(paymentCards)
+        .set({ isDefault: 0, updatedAt: new Date() })
+        .where(eq(paymentCards.userId, userId));
+      
+      // Set the specified card as default
+      await db.update(paymentCards)
+        .set({ isDefault: 1, updatedAt: new Date() })
+        .where(eq(paymentCards.id, cardId));
+      
+      res.json({ message: "Default card updated" });
+    } catch (error) {
+      console.error("Error setting default card:", error);
+      res.status(500).json({ message: "Failed to set default card" });
     }
   });
 

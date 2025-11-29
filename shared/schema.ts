@@ -1065,3 +1065,101 @@ export const SERVICE_AREA_LIMITS = {
     description: "Operate anywhere within your country with no limits",
   },
 } as const;
+
+// Wallet - Per-user wallet with balance tracking
+export const wallets = pgTable("wallets", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().unique(), // Links to users table
+  balance: decimal("balance", { precision: 12, scale: 2 }).notNull().default("0.00"),
+  pendingBalance: decimal("pending_balance", { precision: 12, scale: 2 }).notNull().default("0.00"),
+  totalEarnings: decimal("total_earnings", { precision: 12, scale: 2 }).notNull().default("0.00"),
+  referralCredits: decimal("referral_credits", { precision: 12, scale: 2 }).notNull().default("0.00"),
+  currency: text("currency").notNull().default("CAD"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => ({
+  userIdIdx: index("idx_wallets_user_id").on(table.userId),
+}));
+
+export const insertWalletSchema = createInsertSchema(wallets).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertWallet = z.infer<typeof insertWalletSchema>;
+export type Wallet = typeof wallets.$inferSelect;
+
+// Transaction Types
+export const TRANSACTION_TYPES = ["credit", "debit", "withdrawal", "bonus", "referral_credit", "refund", "fee"] as const;
+export type TransactionType = typeof TRANSACTION_TYPES[number];
+
+export const TRANSACTION_STATUSES = ["pending", "completed", "failed", "cancelled"] as const;
+export type TransactionStatus = typeof TRANSACTION_STATUSES[number];
+
+// Wallet Transactions - Individual transaction records
+export const walletTransactions = pgTable("wallet_transactions", {
+  id: serial("id").primaryKey(),
+  walletId: integer("wallet_id").notNull(),
+  userId: integer("user_id").notNull(),
+  type: text("type").notNull(), // credit, debit, withdrawal, bonus, referral_credit, refund, fee
+  amount: decimal("amount", { precision: 12, scale: 2 }).notNull(),
+  description: text("description").notNull(),
+  status: text("status").notNull().default("completed"), // pending, completed, failed, cancelled
+  reference: text("reference"), // Job number, referral code, etc.
+  tier: text("tier"), // Which operator tier this transaction relates to
+  jobId: integer("job_id"), // Related job if applicable
+  metadata: jsonb("metadata"), // Additional transaction data
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => ({
+  walletIdIdx: index("idx_transactions_wallet_id").on(table.walletId),
+  userIdIdx: index("idx_transactions_user_id").on(table.userId),
+  typeIdx: index("idx_transactions_type").on(table.type),
+  statusIdx: index("idx_transactions_status").on(table.status),
+  createdAtIdx: index("idx_transactions_created_at").on(table.createdAt),
+}));
+
+export const insertWalletTransactionSchema = createInsertSchema(walletTransactions).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertWalletTransaction = z.infer<typeof insertWalletTransactionSchema>;
+export type WalletTransaction = typeof walletTransactions.$inferSelect;
+
+// Payment Cards - Stored payment methods with masked numbers
+export const paymentCards = pgTable("payment_cards", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  cardholderName: text("cardholder_name").notNull(),
+  lastFourDigits: text("last_four_digits").notNull(), // Only store last 4 digits
+  cardBrand: text("card_brand").notNull(), // visa, mastercard, amex, discover
+  expiryMonth: integer("expiry_month").notNull(),
+  expiryYear: integer("expiry_year").notNull(),
+  isDefault: integer("is_default").notNull().default(0),
+  billingAddress: jsonb("billing_address"), // Optional billing address
+  stripePaymentMethodId: text("stripe_payment_method_id"), // For Stripe integration later
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => ({
+  userIdIdx: index("idx_payment_cards_user_id").on(table.userId),
+}));
+
+export const insertPaymentCardSchema = createInsertSchema(paymentCards).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertPaymentCard = z.infer<typeof insertPaymentCardSchema>;
+export type PaymentCard = typeof paymentCards.$inferSelect;
+
+// Card brand detection from card number
+export const CARD_BRANDS = {
+  visa: /^4/,
+  mastercard: /^5[1-5]|^2[2-7]/,
+  amex: /^3[47]/,
+  discover: /^6(?:011|5)/,
+} as const;
+
+export type CardBrand = keyof typeof CARD_BRANDS;

@@ -14,7 +14,10 @@ import type {
   OperatorTierStats, InsertOperatorTierStats,
   AcceptedJob, InsertAcceptedJob,
   OperatorPricingConfig, InsertOperatorPricingConfig,
-  OperatorQuote, InsertOperatorQuote
+  OperatorQuote, InsertOperatorQuote,
+  Wallet, InsertWallet,
+  WalletTransaction, InsertWalletTransaction,
+  PaymentCard, InsertPaymentCard
 } from "@shared/schema";
 import { db } from "./db";
 import { operatorDailyEarnings, operatorMonthlyEarnings, operatorPenalties, acceptedJobs, operatorPricingConfigs, operatorQuotes, serviceRequests } from "@shared/schema";
@@ -136,6 +139,21 @@ export interface IStorage {
 
   // Alternative operator matching (for declined jobs)
   findAlternativeOperators(serviceRequestId: string, excludeOperatorIds?: string[]): Promise<Array<Operator & { distanceKm: number }>>;
+
+  // Wallet Management
+  getWallet(userId: number): Promise<Wallet | undefined>;
+  getOrCreateWallet(userId: number): Promise<Wallet>;
+  updateWalletBalance(userId: number, amount: number, type: 'credit' | 'debit'): Promise<Wallet | undefined>;
+  getWalletTransactions(userId: number, limit?: number, offset?: number, type?: string, tier?: string): Promise<WalletTransaction[]>;
+  createWalletTransaction(transaction: InsertWalletTransaction): Promise<WalletTransaction>;
+  
+  // Payment Cards
+  getPaymentCards(userId: number): Promise<PaymentCard[]>;
+  getPaymentCard(cardId: number, userId: number): Promise<PaymentCard | undefined>;
+  createPaymentCard(card: InsertPaymentCard): Promise<PaymentCard>;
+  updatePaymentCard(cardId: number, userId: number, updates: Partial<InsertPaymentCard>): Promise<PaymentCard | undefined>;
+  deletePaymentCard(cardId: number, userId: number): Promise<boolean>;
+  setDefaultPaymentCard(cardId: number, userId: number): Promise<boolean>;
 }
 
 export class MemStorage implements IStorage {
@@ -1139,5 +1157,134 @@ export class MemStorage implements IStorage {
     });
 
     return operatorsWithDistance;
+  }
+
+  // Wallet Management (in-memory implementation)
+  private wallets: Wallet[] = [];
+  private walletTransactions: WalletTransaction[] = [];
+  private paymentCards: PaymentCard[] = [];
+  private nextWalletId = 1;
+  private nextTransactionId = 1;
+  private nextPaymentCardId = 1;
+
+  async getWallet(userId: number): Promise<Wallet | undefined> {
+    return this.wallets.find((w) => w.userId === userId);
+  }
+
+  async getOrCreateWallet(userId: number): Promise<Wallet> {
+    let wallet = await this.getWallet(userId);
+    if (!wallet) {
+      wallet = {
+        id: this.nextWalletId++,
+        userId,
+        balance: "0.00",
+        pendingBalance: "0.00",
+        totalEarnings: "0.00",
+        referralCredits: "0.00",
+        currency: "CAD",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      this.wallets.push(wallet);
+    }
+    return wallet;
+  }
+
+  async updateWalletBalance(userId: number, amount: number, type: 'credit' | 'debit'): Promise<Wallet | undefined> {
+    const wallet = await this.getOrCreateWallet(userId);
+    const currentBalance = parseFloat(wallet.balance);
+    const newBalance = type === 'credit' ? currentBalance + amount : currentBalance - amount;
+    
+    wallet.balance = newBalance.toFixed(2);
+    if (type === 'credit') {
+      wallet.totalEarnings = (parseFloat(wallet.totalEarnings) + amount).toFixed(2);
+    }
+    wallet.updatedAt = new Date();
+    
+    return wallet;
+  }
+
+  async getWalletTransactions(userId: number, limit = 50, offset = 0, type?: string, tier?: string): Promise<WalletTransaction[]> {
+    let transactions = this.walletTransactions.filter((t) => t.userId === userId);
+    
+    if (type && type !== 'all') {
+      transactions = transactions.filter((t) => t.type === type);
+    }
+    if (tier && tier !== 'all') {
+      transactions = transactions.filter((t) => t.tier === tier);
+    }
+    
+    return transactions
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      .slice(offset, offset + limit);
+  }
+
+  async createWalletTransaction(transaction: InsertWalletTransaction): Promise<WalletTransaction> {
+    const newTransaction: WalletTransaction = {
+      ...transaction,
+      id: this.nextTransactionId++,
+      createdAt: new Date(),
+    };
+    this.walletTransactions.push(newTransaction);
+    return newTransaction;
+  }
+
+  // Payment Cards (in-memory implementation)
+  async getPaymentCards(userId: number): Promise<PaymentCard[]> {
+    return this.paymentCards
+      .filter((c) => c.userId === userId)
+      .sort((a, b) => (b.isDefault || 0) - (a.isDefault || 0));
+  }
+
+  async getPaymentCard(cardId: number, userId: number): Promise<PaymentCard | undefined> {
+    return this.paymentCards.find((c) => c.id === cardId && c.userId === userId);
+  }
+
+  async createPaymentCard(card: InsertPaymentCard): Promise<PaymentCard> {
+    const newCard: PaymentCard = {
+      ...card,
+      id: this.nextPaymentCardId++,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    this.paymentCards.push(newCard);
+    return newCard;
+  }
+
+  async updatePaymentCard(cardId: number, userId: number, updates: Partial<InsertPaymentCard>): Promise<PaymentCard | undefined> {
+    const index = this.paymentCards.findIndex((c) => c.id === cardId && c.userId === userId);
+    if (index === -1) return undefined;
+    
+    this.paymentCards[index] = {
+      ...this.paymentCards[index],
+      ...updates,
+      updatedAt: new Date(),
+    };
+    return this.paymentCards[index];
+  }
+
+  async deletePaymentCard(cardId: number, userId: number): Promise<boolean> {
+    const index = this.paymentCards.findIndex((c) => c.id === cardId && c.userId === userId);
+    if (index === -1) return false;
+    
+    this.paymentCards.splice(index, 1);
+    return true;
+  }
+
+  async setDefaultPaymentCard(cardId: number, userId: number): Promise<boolean> {
+    // First, unset all cards for this user
+    this.paymentCards.forEach((c) => {
+      if (c.userId === userId) {
+        c.isDefault = 0;
+      }
+    });
+    
+    // Then set the specified card as default
+    const card = this.paymentCards.find((c) => c.id === cardId && c.userId === userId);
+    if (!card) return false;
+    
+    card.isDefault = 1;
+    card.updatedAt = new Date();
+    return true;
   }
 }
