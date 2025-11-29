@@ -1,4 +1,4 @@
-import { User, LogOut, HelpCircle, FileText, Truck, List, Palette, Settings, Wallet, CreditCard, Shield, LayoutDashboard, Home, Briefcase, Star, MapPin } from "lucide-react";
+import { User, LogOut, HelpCircle, FileText, Truck, List, Palette, Settings, Wallet, CreditCard, Shield, LayoutDashboard, Home, Briefcase, Star, MapPin, Heart } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import {
   DropdownMenu,
@@ -228,6 +228,12 @@ export const ProfileDropdown = ({
                 <DropdownMenuItem data-testid="menu-my-requests">
                   <List className="mr-2 h-4 w-4" />
                   <span>My Requests</span>
+                </DropdownMenuItem>
+              </Link>
+              <Link href="/customer/favorites">
+                <DropdownMenuItem data-testid="menu-favorites">
+                  <Heart className="mr-2 h-4 w-4" />
+                  <span>Favorites</span>
                 </DropdownMenuItem>
               </Link>
               <DropdownMenuItem

@@ -16,7 +16,7 @@ import { useEffect, useState } from "react";
 
 export const Favorites = () => {
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
   const [, setLocation] = useLocation();
   const [referrer, setReferrer] = useState<string>("/");
   
@@ -42,6 +42,7 @@ export const Favorites = () => {
     setLocation(referrer);
   };
   const customerId = user?.customerId || user?.id;
+  const isAuthenticated = !!user;
 
   // Fetch customer's favorites
   const { data: favorites = [], isLoading: favoritesLoading, isError: favoritesError } = useQuery<Favorite[]>({
@@ -82,7 +83,7 @@ export const Favorites = () => {
     favorites.some(fav => fav.operatorId === op.operatorId)
   );
 
-  const isLoading = favoritesLoading || operatorsLoading;
+  const isLoading = (favoritesLoading || operatorsLoading) && isAuthenticated;
   const hasError = favoritesError || operatorsError;
 
   return (
@@ -108,7 +109,7 @@ export const Favorites = () => {
                 My Favorites
               </h1>
               <p className="text-sm text-gray-600 dark:text-gray-400">
-                {favoriteOperators.length} {favoriteOperators.length === 1 ? 'operator' : 'operators'} saved
+                {isAuthenticated ? `${favoriteOperators.length} ${favoriteOperators.length === 1 ? 'operator' : 'operators'} saved` : 'Sign in to view your favorites'}
               </p>
             </div>
           </div>
@@ -118,7 +119,33 @@ export const Favorites = () => {
       {/* Main Content */}
       <div className="flex-1 overflow-auto">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          {isLoading ? (
+          {authLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="w-12 h-12 border-4 border-gray-300 border-t-black rounded-full animate-spin"></div>
+            </div>
+          ) : !isAuthenticated ? (
+            <div className="text-center py-12">
+              <Heart className="w-16 h-16 mx-auto text-gray-300 dark:text-gray-600 mb-4" />
+              <h3 className="text-lg font-semibold text-black dark:text-white mb-2">
+                Sign In Required
+              </h3>
+              <p className="text-gray-600 dark:text-gray-400 mb-6 max-w-md mx-auto">
+                Please sign in to view and manage your favorite operators.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                <Link href="/signin" data-testid="link-signin">
+                  <Button className="bg-black text-white hover:bg-gray-800 dark:bg-white dark:text-black">
+                    Sign In
+                  </Button>
+                </Link>
+                <Link href="/signup" data-testid="link-signup">
+                  <Button variant="outline">
+                    Create Account
+                  </Button>
+                </Link>
+              </div>
+            </div>
+          ) : isLoading ? (
             <div className="flex items-center justify-center py-12">
               <div className="w-12 h-12 border-4 border-gray-300 border-t-black rounded-full animate-spin"></div>
             </div>

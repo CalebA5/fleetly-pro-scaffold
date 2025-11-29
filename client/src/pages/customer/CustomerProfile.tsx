@@ -364,19 +364,21 @@ export const CustomerProfile = () => {
             </CardContent>
           </Card>
 
-          <Card className="hover:shadow-lg transition-shadow">
-            <CardContent className="pt-4 md:pt-6 pb-4 md:pb-6">
-              <div className="flex flex-col md:flex-row md:items-center md:justify-between">
-                <div>
-                  <p className="text-xs md:text-sm text-muted-foreground mb-1">Favorites</p>
-                  <p className="text-2xl md:text-3xl font-bold text-red-600 dark:text-red-400">{favorites.length}</p>
+          <Link href="/customer/favorites">
+            <Card className="hover:shadow-lg transition-shadow cursor-pointer" data-testid="card-favorites-stat">
+              <CardContent className="pt-4 md:pt-6 pb-4 md:pb-6">
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between">
+                  <div>
+                    <p className="text-xs md:text-sm text-muted-foreground mb-1">Favorites</p>
+                    <p className="text-2xl md:text-3xl font-bold text-red-600 dark:text-red-400">{favorites.length}</p>
+                  </div>
+                  <div className="h-8 w-8 md:h-12 md:w-12 rounded-full bg-red-100 dark:bg-red-900 flex items-center justify-center mt-2 md:mt-0">
+                    <Heart className="w-4 h-4 md:w-6 md:h-6 text-red-600 dark:text-red-400" />
+                  </div>
                 </div>
-                <div className="h-8 w-8 md:h-12 md:w-12 rounded-full bg-red-100 dark:bg-red-900 flex items-center justify-center mt-2 md:mt-0">
-                  <Heart className="w-4 h-4 md:w-6 md:h-6 text-red-600 dark:text-red-400" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </Link>
         </div>
 
         {/* Home Address Quick Request Card */}
