@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/enhanced-button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -29,7 +29,8 @@ import {
   AlertCircle,
   Sparkles,
   Camera,
-  X
+  X,
+  Trash2
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
@@ -40,6 +41,46 @@ import { queryClient } from "@/lib/queryClient";
 import { geocodeAddress } from "@/lib/geocoding";
 import { getServicesForTier } from "@shared/tierCapabilities";
 import { cn } from "@/lib/utils";
+
+// Storage key for onboarding progress
+const ONBOARDING_STORAGE_KEY = 'fleetly_operator_onboarding';
+
+interface SavedOnboardingData {
+  tier: OperatorTier;
+  currentStep: number;
+  formData: {
+    businessName: string;
+    licenseNumber: string;
+    contactName: string;
+    phone: string;
+    email: string;
+    address: string;
+    homeAddress: string;
+    insuranceProvider: string;
+    vehicleType: string;
+    vehicleMake: string;
+    vehicleModel: string;
+    vehicleYear: string;
+    licensePlate: string;
+    services: string[];
+    serviceArea: string;
+    emergencyAvailable: boolean;
+    equipment: string[];
+    availableHours: string;
+  };
+  selectedCities: Array<{
+    cityName: string;
+    stateCode: string;
+    stateName: string;
+    countryCode: string;
+    countryName: string;
+    isPrimary?: boolean;
+  }>;
+  selectedCountry: string;
+  selectedState: string;
+  savedAt: number;
+  userId: string;
+}
 
 const vehicleTypes = [
   "Pickup Truck",
@@ -119,6 +160,10 @@ export const OperatorOnboarding = () => {
   const [selectedCities, setSelectedCities] = useState<SelectedCity[]>([]);
   const [isLoadingLocations, setIsLoadingLocations] = useState(false);
 
+  // Track if we've loaded saved data to avoid overwriting with defaults
+  const hasLoadedSavedData = useRef(false);
+  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
   // Form state
   const [formData, setFormData] = useState({
     // Contact/Business Info
@@ -148,18 +193,120 @@ export const OperatorOnboarding = () => {
     availableHours: "",
   });
 
-  // Read tier from URL parameter
+  // Helper function to get storage key for current user
+  const getStorageKey = useCallback(() => {
+    const userId = user?.userId || 'guest';
+    return `${ONBOARDING_STORAGE_KEY}_${userId}`;
+  }, [user?.userId]);
+
+  // Save onboarding progress to localStorage
+  const saveProgress = useCallback(() => {
+    if (!selectedTier || !hasLoadedSavedData.current) return;
+    
+    const dataToSave: SavedOnboardingData = {
+      tier: selectedTier,
+      currentStep,
+      formData,
+      selectedCities,
+      selectedCountry,
+      selectedState,
+      savedAt: Date.now(),
+      userId: user?.userId || 'guest',
+    };
+    
+    try {
+      localStorage.setItem(getStorageKey(), JSON.stringify(dataToSave));
+    } catch (error) {
+      console.error('Failed to save onboarding progress:', error);
+    }
+  }, [selectedTier, currentStep, formData, selectedCities, selectedCountry, selectedState, user?.userId, getStorageKey]);
+
+  // Clear saved onboarding progress
+  const clearSavedProgress = useCallback(() => {
+    try {
+      localStorage.removeItem(getStorageKey());
+    } catch (error) {
+      console.error('Failed to clear saved progress:', error);
+    }
+  }, [getStorageKey]);
+
+  // Reset form to initial state
+  const resetForm = useCallback(() => {
+    setFormData({
+      businessName: "",
+      licenseNumber: "",
+      contactName: "",
+      phone: "",
+      email: "",
+      address: "",
+      homeAddress: "",
+      insuranceProvider: "",
+      vehicleType: "",
+      vehicleMake: "",
+      vehicleModel: "",
+      vehicleYear: "",
+      licensePlate: "",
+      services: [],
+      serviceArea: "",
+      emergencyAvailable: false,
+      equipment: [],
+      availableHours: "",
+    });
+    setSelectedCities([]);
+    setSelectedCountry("");
+    setSelectedState("");
+    setCurrentStep(1);
+    clearSavedProgress();
+    toast({
+      title: "Form Reset",
+      description: "All fields have been cleared. You can start fresh.",
+    });
+  }, [clearSavedProgress, toast]);
+
+  // Read tier from URL parameter and load saved data
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const tierParam = params.get('tier') as OperatorTier | null;
     
     if (tierParam && ['professional', 'equipped', 'manual'].includes(tierParam)) {
+      // Check for saved data
+      try {
+        const savedDataStr = localStorage.getItem(getStorageKey());
+        if (savedDataStr) {
+          const savedData: SavedOnboardingData = JSON.parse(savedDataStr);
+          
+          // Check if saved data is for the same tier
+          if (savedData.tier === tierParam) {
+            // Restore saved data
+            setFormData(savedData.formData);
+            setSelectedCities(savedData.selectedCities || []);
+            setSelectedCountry(savedData.selectedCountry || "");
+            setSelectedState(savedData.selectedState || "");
+            setCurrentStep(savedData.currentStep || 1);
+            setSelectedTier(tierParam);
+            hasLoadedSavedData.current = true;
+            
+            toast({
+              title: "Progress Restored",
+              description: "Your previous onboarding progress has been loaded.",
+            });
+            return;
+          } else {
+            // Different tier - clear old data
+            clearSavedProgress();
+          }
+        }
+      } catch (error) {
+        console.error('Failed to load saved onboarding data:', error);
+      }
+      
       setSelectedTier(tierParam);
       setCurrentStep(1);
+      hasLoadedSavedData.current = true;
     } else {
       setLocation('/drive-earn');
     }
-  }, [setLocation]);
+  }, [setLocation, getStorageKey, clearSavedProgress, toast]);
 
   // Fetch operator data if user has operatorId
   type OperatorWithTierStats = Operator & {
@@ -176,6 +323,28 @@ export const OperatorOnboarding = () => {
     queryKey: [`/api/operators/by-id/${user?.operatorId}`],
     enabled: !!user?.operatorId,
   });
+
+  // Auto-save progress on form changes (debounced)
+  useEffect(() => {
+    // Don't save if we haven't loaded saved data yet or if currentStep is 0 (not initialized)
+    if (!hasLoadedSavedData.current || currentStep === 0) return;
+    
+    // Clear existing timeout
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
+    
+    // Debounce save by 500ms
+    saveTimeoutRef.current = setTimeout(() => {
+      saveProgress();
+    }, 500);
+    
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+    };
+  }, [formData, selectedCities, selectedCountry, selectedState, currentStep, saveProgress]);
 
   // Load countries on mount
   useEffect(() => {
@@ -538,6 +707,9 @@ export const OperatorOnboarding = () => {
       await refetchUser();
       queryClient.invalidateQueries({ queryKey: [`/api/operators/by-id/${user.operatorId}`] });
 
+      // Clear saved progress on successful registration
+      clearSavedProgress();
+
       toast({
         title: "Registration Complete!",
         description: `Welcome to Fleetly as a ${OPERATOR_TIER_INFO[selectedTier!].label}!`,
@@ -591,7 +763,7 @@ export const OperatorOnboarding = () => {
               <span className="font-medium">Back</span>
             </button>
             
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
               <Badge 
                 variant="outline" 
                 className={cn(
@@ -603,6 +775,16 @@ export const OperatorOnboarding = () => {
               >
                 {tierInfo.badge} {tierInfo.label}
               </Badge>
+              
+              <button
+                onClick={resetForm}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-500 hover:text-red-500 dark:text-gray-400 dark:hover:text-red-400 transition-colors rounded-lg hover:bg-red-50 dark:hover:bg-red-950/30"
+                data-testid="button-reset-form"
+                title="Clear all fields and start fresh"
+              >
+                <Trash2 className="w-4 h-4" />
+                <span className="hidden sm:inline">Reset</span>
+              </button>
             </div>
           </div>
         </div>

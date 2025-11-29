@@ -27,8 +27,12 @@ The admin portal is at `client/src/pages/admin/AdminPortal.tsx`. It allows admin
 4. Each operator card shows their tier profiles with "Approve" and "Reject" buttons
 5. Click Approve to activate a tier, or Reject (with reason) to deny
 
-### Operator Onboarding Flow (Updated Nov 28, 2025)
+### Operator Onboarding Flow (Updated Nov 29, 2025)
 Located at `client/src/pages/operator/OperatorOnboarding.tsx`:
+
+**New Features:**
+- **Progress Persistence**: Form data is auto-saved to localStorage. If user navigates away or reloads, their progress is restored. Clearing options: complete onboarding, switch to different tier, or click "Reset" button.
+- **Auto-Approval (Testing Mode)**: Operators are automatically approved after onboarding. For production, change `approvalStatus` back to "pending" in `server/routes.ts`.
 
 **All tiers now have 4 steps with Services BEFORE Equipment/Vehicle:**
 
