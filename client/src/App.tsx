@@ -15,12 +15,14 @@ import { AIAssist } from "./pages/customer/AIAssist";
 import { Favorites } from "./pages/customer/Favorites";
 import QuoteCenter from "./pages/customer/QuoteCenter";
 import RequestStatus from "./pages/customer/RequestStatus";
+import CustomerRequestDetails from "./pages/customer/CustomerRequestDetails";
 import { OperatorOnboarding } from "./pages/operator/OperatorOnboarding";
 import { PendingVerification } from "./pages/operator/PendingVerification";
 import { OperatorDashboard } from "./pages/operator/OperatorDashboard";
 import EarningsDetails from "./pages/operator/EarningsDetails";
 import NearbyJobsMap from "./pages/operator/NearbyJobsMap";
 import JobDetailsPage from "./pages/operator/JobDetailsPage";
+import OperatorRequestDetails from "./pages/operator/OperatorRequestDetails";
 import { JobHistory as OperatorJobHistory } from "./pages/operator/JobHistory";
 import FleetAnalytics from "./pages/operator/FleetAnalytics";
 import TeamAnalytics from "./pages/operator/TeamAnalytics";
@@ -103,6 +105,7 @@ const App = () => (
               <Route path="/customer/profile" component={CustomerProfile} />
               <Route path="/customer/quotes" component={QuoteCenter} />
               <Route path="/customer/request-status" component={RequestStatus} />
+              <Route path="/customer/request/:requestId" component={CustomerRequestDetails} />
               
               {/* Public tier selection/onboarding - no auth required */}
               <Route path="/drive-earn" component={DriveEarn} />
@@ -157,6 +160,11 @@ const App = () => (
               <Route path="/operator/jobs/:jobId">
                 <ProtectedRoute requireOperator>
                   <JobDetailsPage />
+                </ProtectedRoute>
+              </Route>
+              <Route path="/operator/request/:requestId">
+                <ProtectedRoute requireOperator>
+                  <OperatorRequestDetails />
                 </ProtectedRoute>
               </Route>
               <Route path="/operator/job-history">

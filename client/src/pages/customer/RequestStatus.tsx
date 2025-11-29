@@ -213,13 +213,11 @@ export default function RequestStatus() {
       }
       
       // For assigned jobs, navigate to job tracking page
-      // No need to check selectedQuoteId - just use requestId
       if (isAssigned) {
         setLocation(`/customer/job-tracking?requestId=${request.requestId}`);
       } else {
-        // For other statuses, open detail modal
-        setSelectedRequest(request);
-        setShowDetailModal(true);
+        // Navigate to the full request details page
+        setLocation(`/customer/request/${request.requestId}`);
       }
     };
 

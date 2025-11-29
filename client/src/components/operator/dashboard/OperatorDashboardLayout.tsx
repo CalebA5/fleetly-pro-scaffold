@@ -15,6 +15,7 @@ import { MobileBottomNav } from "@/components/MobileBottomNav";
 import { MetricsSlider } from "./MetricsSlider";
 import { TierTabs } from "./TierTabs";
 import { JobsPanel } from "./JobsPanel";
+import { NewRequestZone } from "./NewRequestZone";
 import { EquipmentPanel } from "./EquipmentPanel";
 import { ServicesPanel } from "./ServicesPanel";
 import { HistoryPanel } from "./HistoryPanel";
@@ -250,8 +251,8 @@ export function OperatorDashboardLayout({ tier }: OperatorDashboardLayoutProps) 
     }
   };
 
-  const handleViewJob = (jobId: string) => {
-    setSelectedJobId(jobId);
+  const handleViewJob = (requestIdOrJobId: string) => {
+    setLocation(`/operator/request/${requestIdOrJobId}`);
   };
 
   const handleAcceptJob = async (jobId: string) => {
@@ -440,6 +441,16 @@ export function OperatorDashboardLayout({ tier }: OperatorDashboardLayoutProps) 
               <X className="h-4 w-4" />
             </Button>
           </div>
+        )}
+
+        {isOnline && (
+          <section data-testid="new-requests-section">
+            <NewRequestZone
+              operatorId={operatorId || ""}
+              isOnline={isOnline}
+              onViewRequest={handleViewJob}
+            />
+          </section>
         )}
 
         <section data-testid="metrics-section">
