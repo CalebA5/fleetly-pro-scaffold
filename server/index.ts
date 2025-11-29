@@ -53,6 +53,19 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 
+// Initialize express-session middleware so req.session exists
+// We use a simple memory store since our custom middleware handles actual session data
+app.use(session({
+  secret: process.env.SESSION_SECRET || 'fleetly-session-secret-dev',
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    secure: process.env.NODE_ENV === 'production',
+    httpOnly: true,
+    maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days
+  }
+}));
+
 // Custom session middleware that reads from our custom sessions table
 // This maintains compatibility with existing auth system
 app.use(async (req, res, next) => {
@@ -60,20 +73,20 @@ app.use(async (req, res, next) => {
   
   if (sessionId) {
     try {
-      const session = await db.query.sessions.findFirst({
+      const dbSession = await db.query.sessions.findFirst({
         where: eq(sessions.sessionId, sessionId),
       });
       
-      if (session && new Date(session.expiresAt) > new Date()) {
+      if (dbSession && new Date(dbSession.expiresAt) > new Date()) {
         // Populate req.sessionData for our existing auth checks
         req.sessionData = {
-          userId: session.userId,
-          sessionId: session.sessionId,
+          userId: dbSession.userId,
+          sessionId: dbSession.sessionId,
         };
         
         // Fetch the user data to populate req.session.user
         const user = await db.query.users.findFirst({
-          where: eq(users.userId, session.userId),
+          where: eq(users.userId, dbSession.userId),
         });
         
         if (user) {
@@ -102,11 +115,9 @@ app.use(async (req, res, next) => {
             }
           }
           
-          // Also set on req.session for routes that expect req.session.user
-          if (req.session) {
-            req.session.userId = session.userId;
-            (req.session as any).user = sessionUser;
-          }
+          // Set on req.session for routes that expect req.session.user
+          req.session.userId = dbSession.userId;
+          (req.session as any).user = sessionUser;
         }
       }
     } catch (error) {
