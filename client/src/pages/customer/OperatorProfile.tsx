@@ -239,12 +239,16 @@ export const OperatorProfile = () => {
                     </div>
                     {operator.equipmentInventory && Array.isArray(operator.equipmentInventory) && operator.equipmentInventory.length > 0 && (
                       <div className="flex flex-wrap gap-2 mt-3">
-                        {operator.equipmentInventory.map((item: any, idx: number) => (
-                          <Badge key={idx} className="bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-0">
-                            <Wrench className="w-3 h-3 mr-1" />
-                            {item.displayName || item}
-                          </Badge>
-                        ))}
+                        {operator.equipmentInventory.map((item: any, idx: number) => {
+                          const itemName = typeof item === 'string' ? item : (item?.displayName || item?.name || 'Equipment');
+                          const itemKey = typeof item === 'string' ? `eq-${idx}` : (item?.id || `eq-${idx}`);
+                          return (
+                            <Badge key={itemKey} className="bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-0">
+                              <Wrench className="w-3 h-3 mr-1" />
+                              {itemName}
+                            </Badge>
+                          );
+                        })}
                       </div>
                     )}
                   </div>
@@ -254,15 +258,19 @@ export const OperatorProfile = () => {
                   <div>
                     <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">Services</h3>
                     <div className="flex flex-wrap gap-2">
-                      {operator.services.map((service: string) => (
-                        <Badge 
-                          key={service} 
-                          className="bg-gradient-to-r from-orange-500 to-orange-600 text-white border-0 px-3 py-1"
-                        >
-                          <CheckCircle2 className="w-3 h-3 mr-1" />
-                          {service}
-                        </Badge>
-                      ))}
+                      {operator.services.map((service: any, idx: number) => {
+                        const serviceName = typeof service === 'string' ? service : (service?.name || service?.serviceId || 'Service');
+                        const serviceKey = typeof service === 'string' ? service : (service?.id || service?.serviceId || `svc-${idx}`);
+                        return (
+                          <Badge 
+                            key={serviceKey} 
+                            className="bg-gradient-to-r from-orange-500 to-orange-600 text-white border-0 px-3 py-1"
+                          >
+                            <CheckCircle2 className="w-3 h-3 mr-1" />
+                            {serviceName}
+                          </Badge>
+                        );
+                      })}
                     </div>
                   </div>
                 )}
