@@ -1,4 +1,4 @@
-import { User, LogOut, HelpCircle, FileText, Truck, List, Palette, Settings, Wallet, CreditCard, Shield, LayoutDashboard, Home, Briefcase, Star, MapPin, Heart } from "lucide-react";
+import { User, LogOut, HelpCircle, FileText, Truck, List, Palette, Settings, Wallet, CreditCard, Shield, LayoutDashboard, Home, Briefcase, Star, MapPin, Heart, ShieldCheck } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import {
   DropdownMenu,
@@ -342,6 +342,24 @@ export const ProfileDropdown = ({
             </button>
           </div>
         </div>
+        
+        {/* Admin Section - Only visible to admin users */}
+        {user.isAdmin && (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuGroup>
+              <DropdownMenuLabel className="text-xs text-muted-foreground px-2 py-1">
+                Admin
+              </DropdownMenuLabel>
+              <Link href="/admin">
+                <DropdownMenuItem data-testid="menu-admin-portal">
+                  <ShieldCheck className="mr-2 h-4 w-4 text-orange-500" />
+                  <span>Admin Portal</span>
+                </DropdownMenuItem>
+              </Link>
+            </DropdownMenuGroup>
+          </>
+        )}
         
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={handleSignOut} className="text-red-600 focus:text-red-600 focus:bg-red-50 dark:focus:bg-red-900/20" data-testid="menu-sign-out">

@@ -126,6 +126,12 @@ Important: Specific routes must be defined BEFORE parameterized routes in Expres
 
 ## Test Accounts
 All test accounts use password: "Test1234!"
+- **Admin**: admin@fleetly.test (Fleetly Admin) - has full admin access to approve/reject operators
 - Customers: Alice, Bob, Charlie (Alice has customerId: CUST-alice, etc.)
 - Operators: Frank (OP-frank-e5bc84ea), Grace, Henry
 - The customerId format is CUST-{name} and userId format is user-{timestamp}-{random}
+
+## Admin Access
+- Admin portal accessible at `/admin` (visible in profile dropdown for admin users)
+- Admin features: View pending operators, approve/reject operator tier applications
+- Only users with `isAdmin: 1` in the database can access admin functions

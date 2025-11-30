@@ -212,6 +212,7 @@ router.post('/signup', async (req, res) => {
       activeTier: operatorData?.activeTier,
       viewTier: operatorData?.viewTier,
       operatorTierProfiles: operatorData?.operatorTierProfiles,
+      isAdmin: (createdUser as any).isAdmin,
     });
   } catch (error) {
     console.error('Signup error:', error);
@@ -309,6 +310,7 @@ router.post('/signin', async (req, res) => {
       activeTier: operatorData?.activeTier,
       viewTier: operatorData?.viewTier,
       operatorTierProfiles: operatorData?.operatorTierProfiles,
+      isAdmin: (user as any).isAdmin,
     });
   } catch (error) {
     console.error('Signin error:', error);
@@ -395,6 +397,7 @@ router.get('/session', async (req, res) => {
       activeTier: operatorData?.activeTier,
       viewTier: operatorData?.viewTier,
       operatorTierProfiles: operatorData?.operatorTierProfiles,
+      isAdmin: (user as any).isAdmin,
     });
   } catch (error) {
     console.error('Session error:', error);

@@ -13,6 +13,7 @@ export interface User {
   viewTier?: "professional" | "equipped" | "manual";
   operatorId?: string;
   businessId?: string;
+  isAdmin?: boolean;
 }
 
 interface AuthContextType {
@@ -55,6 +56,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             viewTier: userData.viewTier,
             operatorId: userData.operatorId,
             businessId: userData.businessId,
+            isAdmin: userData.isAdmin === 1 || userData.isAdmin === true,
           });
         }
       } catch (error) {
@@ -95,6 +97,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         viewTier: userData.viewTier,
         operatorId: userData.operatorId,
         businessId: userData.businessId,
+        isAdmin: userData.isAdmin === 1 || userData.isAdmin === true,
       });
     } catch (error) {
       console.error("Sign in error:", error);
@@ -130,6 +133,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         viewTier: userData.viewTier,
         operatorId: userData.operatorId,
         businessId: userData.businessId,
+        isAdmin: userData.isAdmin === 1 || userData.isAdmin === true,
       });
     } catch (error) {
       console.error("Sign up error:", error);
@@ -190,6 +194,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           viewTier: userData.viewTier,
           operatorId: userData.operatorId,
           businessId: userData.businessId,
+          isAdmin: userData.isAdmin === 1 || userData.isAdmin === true,
         });
       }
     } catch (error) {
